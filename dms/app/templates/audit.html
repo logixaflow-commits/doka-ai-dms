@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Audit Log - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/sop" class="sidebar-link">
+                <i class="fas fa-tasks w-5 text-center"></i>
+                <span>SOP Tracker</span>
+            </a>
+            <a href="/reminders" class="sidebar-link">
+                <i class="fas fa-bell w-5 text-center"></i>
+                <span>Reminders</span>
+            </a>
+            <a href="/audit" class="sidebar-link active">
+                <i class="fas fa-clipboard-list w-5 text-center"></i>
+                <span>Audit Log</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Audit Log</h2>
+                <p class="text-sm text-slate-500">Complete system activity trail (Admin only)</p>
+            </div>
+        </header>
+
+        <div class="p-6">
+            <!-- Filters -->
+            <div class="card p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Action</label>
+                        <select id="actionFilter" onchange="loadAuditLogs()" class="w-full border border-slate-300 rounded-lg px-4 py-3">
+                            <option value="">All Actions</option>
+                            <option value="VIEW">View</option>
+                            <option value="UPLOAD">Upload</option>
+                            <option value="APPROVE">Approve</option>
+                            <option value="REJECT">Reject</option>
+                            <option value="DELETE">Delete</option>
+                            <option value="DOWNLOAD">Download</option>
+                            <option value="EDIT">Edit</option>
+                            <option value="BULK_APPROVE">Bulk Approve</option>
+                            <option value="BULK_REJECT">Bulk Reject</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">User</label>
+                        <input type="text" id="userFilter" placeholder="Username..." onchange="loadAuditLogs()" 
+                               class="w-full border border-slate-300 rounded-lg px-4 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Date From</label>
+                        <input type="date" id="dateFromFilter" onchange="loadAuditLogs()" 
+                               class="w-full border border-slate-300 rounded-lg px-4 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Date To</label>
+                        <input type="date" id="dateToFilter" onchange="loadAuditLogs()" 
+                               class="w-full border border-slate-300 rounded-lg px-4 py-3">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Log Table -->
+            <div class="card p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Timestamp</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">User</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Action</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Document</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">IP Address</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTable">
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-500">Loading audit logs...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex items-center justify-between mt-6">
+                    <div class="text-sm text-slate-500">
+                        Page <span id="auditPage">1</span> of <span id="auditTotalPages">-</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="previousAuditPage()" id="auditPrevButton" class="btn-secondary text-sm" disabled>
+                            <i class="fas fa-chevron-left mr-1"></i>Previous
+                        </button>
+                        <button onclick="nextAuditPage()" id="auditNextButton" class="btn-secondary text-sm" disabled>
+                            Next<i class="fas fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+let auditPage = 1;
+let auditPageSize = 50;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadUserInfo();
+    await loadAuditLogs();
+});
+
+async function loadUserInfo() {
+    const user = await loadCurrentUser();
+    if (user) {
+        document.getElementById('userName').textContent = user.full_name || user.username;
+        document.getElementById('userRole').textContent = user.role.toUpperCase();
+        
+        if (user.role !== 'admin') {
+            showToast('Access denied. Admin only.', 'error');
+            window.location.href = '/dashboard';
+        }
+    }
+}
+
+async function loadAuditLogs() {
+    const action = document.getElementById('actionFilter').value;
+    const user = document.getElementById('userFilter').value;
+    const dateFrom = document.getElementById('dateFromFilter').value;
+    const dateTo = document.getElementById('dateToFilter').value;
+    
+    try {
+        const params = new URLSearchParams({
+            page: auditPage,
+            page_size: auditPageSize
+        });
+        
+        if (action) params.append('action', action);
+        if (user) params.append('user', user);
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        
+        const resp = await apiFetch(`/api/audit?${params.toString()}`);
+        
+        if (resp.ok) {
+            const data = await resp.json();
+            renderAuditLogs(data.items);
+            updateAuditPagination(data);
+        } else {
+            document.getElementById('auditTable').innerHTML = '<tr><td colspan="6" class="py-8 text-center text-red-500">Failed to load audit logs</td></tr>';
+        }
+    } catch (e) {
+        console.error('Failed to load audit logs', e);
+        document.getElementById('auditTable').innerHTML = '<tr><td colspan="6" class="py-8 text-center text-red-500">Failed to load audit logs</td></tr>';
+    }
+}
+
+function renderAuditLogs(auditLogs) {
+    const tbody = document.getElementById('auditTable');
+    
+    if (!auditLogs || auditLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500">No audit logs found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = auditLogs.map(log => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="py-3 px-4 text-sm text-slate-600">${formatDate(log.timestamp)}</td>
+            <td class="py-3 px-4 text-sm font-medium text-slate-800">${log.username}</td>
+            <td class="py-3 px-4">
+                <span class="status-badge ${getActionBadgeClass(log.action)}">${log.action}</span>
+            </td>
+            <td class="py-3 px-4 text-sm text-slate-600">${log.document_id || '-'}</td>
+            <td class="py-3 px-4 text-sm text-slate-600">${log.ip_address || '-'}</td>
+            <td class="py-3 px-4 text-sm text-slate-600">
+                ${log.details ? `<button onclick="showDetails('${encodeURIComponent(JSON.stringify(log.details))}')" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-info-circle"></i>
+                </button>` : '-'}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getActionBadgeClass(action) {
+    const classes = {
+        'VIEW': 'status-processing',
+        'UPLOAD': 'status-completed',
+        'APPROVE': 'status-approved',
+        'REJECT': 'status-rejected',
+        'DELETE': 'status-failed',
+        'DOWNLOAD': 'status-processing',
+        'EDIT': 'status-review',
+        'BULK_APPROVE': 'status-approved',
+        'BULK_REJECT': 'status-rejected',
+    };
+    return classes[action] || 'status-unknown';
+}
+
+function updateAuditPagination(data) {
+    const totalPages = data.pages;
+    document.getElementById('auditPage').textContent = auditPage;
+    document.getElementById('auditTotalPages').textContent = totalPages;
+    
+    document.getElementById('auditPrevButton').disabled = auditPage <= 1;
+    document.getElementById('auditNextButton').disabled = auditPage >= totalPages;
+}
+
+function previousAuditPage() {
+    if (auditPage > 1) {
+        auditPage--;
+        loadAuditLogs();
+    }
+}
+
+function nextAuditPage() {
+    const totalPages = parseInt(document.getElementById('auditTotalPages').textContent);
+    if (auditPage < totalPages) {
+        auditPage++;
+        loadAuditLogs();
+    }
+}
+
+function showDetails(encodedDetails) {
+    try {
+        const details = JSON.parse(decodeURIComponent(encodedDetails));
+        alert(JSON.stringify(details, null, 2));
+    } catch (e) {
+        console.error('Failed to parse details', e);
+    }
+}
+</script>
+{% endblock %}

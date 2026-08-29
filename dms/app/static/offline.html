@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Enterprise DMS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 450px;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        h1 {
+            color: #1f2937;
+            margin: 0 0 1rem 0;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        p {
+            color: #6b7280;
+            margin: 0 0 2rem 0;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        }
+        button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .status {
+            margin-top: 1.5rem;
+            padding: 0.75rem;
+            background: #f3f4f6;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .status.online {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status.offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📴</div>
+        <h1>You're Offline</h1>
+        <p>It looks like you've lost your internet connection. Check your connection and try again.</p>
+        <button onclick="location.reload()">Retry Connection</button>
+        <div class="status offline" id="connection-status">
+            Checking connection...
+        </div>
+    </div>
+
+    <script>
+        // Check connection status
+        function checkConnection() {
+            const statusDiv = document.getElementById('connection-status');
+            if (navigator.onLine) {
+                statusDiv.className = 'status online';
+                statusDiv.textContent = '✓ Connection restored! Reloading...';
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                statusDiv.className = 'status offline';
+                statusDiv.textContent = '✗ No internet connection';
+            }
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', checkConnection);
+        window.addEventListener('offline', checkConnection);
+
+        // Check on load
+        checkConnection();
+
+        // Auto-retry every 5 seconds
+        setInterval(checkConnection, 5000);
+    </script>
+</body>
+</html>

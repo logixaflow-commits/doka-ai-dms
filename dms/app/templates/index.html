@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Office DMS</title>
+    <script>
+        if (localStorage.getItem('access_token')) {
+            window.location.href = '/dashboard';
+        } else {
+            window.location.href = '/login';
+        }
+    </script>
+</head>
+<body>Redirecting...</body>
+</html>

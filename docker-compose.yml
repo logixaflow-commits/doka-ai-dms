@@ -1,0 +1,200 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dms-postgres
+    environment:
+      POSTGRES_DB: dms
+      POSTGRES_USER: dms_user
+      POSTGRES_PASSWORD: dms_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dms_user -d dms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dms-network
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: dms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dms-network
+
+  # MinIO Object Storage (S3-compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: dms-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"  # MinIO Console
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - dms-network
+
+  # FastAPI Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: dms-web
+    environment:
+      DATABASE_URL: postgresql+psycopg2://dms_user:dms_password@postgres:5432/dms
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_SECURE: "false"
+      # IMPORTANT: Set strong random values for production deployment
+      # Generate SECRET_KEY with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      # Email/SMTP Configuration (Optional - Disabled by default)
+      # Set SMTP_ENABLED to "true" and configure SMTP settings to enable email notifications
+      SMTP_ENABLED: "false"
+      SMTP_SERVER: smtp.gmail.com
+      SMTP_PORT: "587"
+      SMTP_USERNAME: your-email@gmail.com
+      SMTP_PASSWORD: your-app-password
+      SMTP_USE_TLS: "true"
+      SMTP_FROM_EMAIL: noreply@enterprise-dms.local
+      SMTP_FROM_NAME: "Enterprise DMS"
+      ADMIN_EMAIL: admin@enterprise-dms.local
+    volumes:
+      - ./Office_DMS:/app/Office_DMS
+      - ./logs:/app/logs
+      - static_data:/app/static
+      - template_data:/app/templates
+      # Social Media Source Folders (Optional - Mount host directories if needed)
+      # Uncomment and update these paths to match your actual download folders
+      # Windows example:
+      # - C:/Users/YourUsername/Documents/ViberDownloads:/app/Social_Sources/Viber
+      # - C:/Users/YourUsername/Downloads/WhatsApp:/app/Social_Sources/WhatsApp
+      # Linux/Mac example:
+      # - /home/yourusername/Downloads/Viber:/app/Social_Sources/Viber
+      # - /home/yourusername/Downloads/WhatsApp:/app/Social_Sources/WhatsApp
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - dms-network
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: celery-worker
+    container_name: dms-celery-worker
+    environment:
+      DATABASE_URL: postgresql+psycopg2://dms_user:dms_password@postgres:5432/dms
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_SECURE: "false"
+      # IMPORTANT: Set strong random values for production deployment
+      # Generate SECRET_KEY with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      TESSERACT_CMD: tesseract
+      MYANMAR_LANG: mya
+    volumes:
+      - ./Office_DMS:/app/Office_DMS
+      - ./logs:/app/logs
+      # Social Media Source Folders (Optional - Uncomment if needed)
+      # Update these paths to match your actual download folders
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - dms-network
+
+  # Celery Beat Scheduler
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: celery-beat
+    container_name: dms-celery-beat
+    environment:
+      DATABASE_URL: postgresql+psycopg2://dms_user:dms_password@postgres:5432/dms
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_SECURE: "false"
+      # IMPORTANT: Set strong random values for production deployment
+      # Generate SECRET_KEY with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ENVIRONMENT: production
+      DEBUG: "false"
+    volumes:
+      - ./Office_DMS:/app/Office_DMS
+      - ./logs:/app/logs
+      # Social Media Source Folders (Optional - Uncomment if needed)
+      # Update these paths to match your actual download folders
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - dms-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  static_data:
+  template_data:
+
+networks:
+  dms-network:
+    driver: bridge

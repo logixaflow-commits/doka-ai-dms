@@ -1,0 +1,57 @@
+# =============================================================================
+# Railway Deployment Dockerfile - Single Container
+# Combines web server + Celery worker for Railway's free tier
+# =============================================================================
+
+FROM python:3.11-slim
+
+LABEL maintainer="Office DMS Team"
+LABEL description="AI Document Management System for Railway"
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-mya \
+    libtesseract-dev \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libpq5 \
+    poppler-utils \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Verify Tesseract installation
+RUN tesseract --version && tesseract --list-langs
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Create required directories
+RUN mkdir -p Office_DMS/{Watch_Folder,Processing_Workspace,Organized,Duplicate,Suspicious} \
+    logs \
+    app/static \
+    app/templates
+
+# Copy application code
+COPY app/ ./app/
+COPY config.yaml .
+COPY .env.example .env
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start script that runs both web and worker
+CMD ["python", "start_railway.py"]

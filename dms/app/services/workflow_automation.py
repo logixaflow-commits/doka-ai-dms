@@ -1,0 +1,478 @@
+"""
+Workflow Automation Service
+Provides custom approval workflows, conditional routing, and automated task assignments
+"""
+import uuid
+from typing import Optional, List, Dict, Any
+from datetime import datetime
+from dataclasses import dataclass
+from enum import Enum
+import json
+from pathlib import Path
+from loguru import logger
+
+
+class WorkflowStatus(Enum):
+    """Workflow status"""
+    DRAFT = "draft"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class TaskStatus(Enum):
+    """Task status"""
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+
+
+@dataclass
+class WorkflowStep:
+    """Workflow step definition"""
+    id: str
+    name: str
+    type: str  # approval, task, notification, condition
+    assigned_to: Optional[List[int]]  # User IDs
+    conditions: Optional[Dict[str, Any]]
+    actions: Optional[List[Dict[str, Any]]]
+    order: int
+
+
+@dataclass
+class Workflow:
+    """Workflow definition"""
+    id: str
+    name: str
+    description: str
+    document_type: str
+    steps: List[WorkflowStep]
+    status: WorkflowStatus
+    created_by: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+@dataclass
+class WorkflowInstance:
+    """Workflow instance (running workflow)"""
+    id: str
+    workflow_id: str
+    document_id: int
+    current_step: int
+    status: str
+    started_by: int
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    data: Optional[Dict[str, Any]] = None
+
+
+class WorkflowAutomationService:
+    """Service for workflow automation"""
+    
+    def __init__(self):
+        self.workflows_storage_path = Path("storage/workflows")
+        self.workflows_storage_path.mkdir(parents=True, exist_ok=True)
+        self.instances_storage_path = Path("storage/workflow_instances")
+        self.instances_storage_path.mkdir(parents=True, exist_ok=True)
+        
+    def create_workflow(
+        self,
+        name: str,
+        description: str,
+        document_type: str,
+        steps: List[Dict[str, Any]],
+        created_by: int
+    ) -> Workflow:
+        """Create new workflow"""
+        try:
+            workflow_id = str(uuid.uuid4())
+            
+            # Convert steps to WorkflowStep objects
+            workflow_steps = []
+            for step_data in steps:
+                step = WorkflowStep(
+                    id=str(uuid.uuid4()),
+                    name=step_data["name"],
+                    type=step_data["type"],
+                    assigned_to=step_data.get("assigned_to"),
+                    conditions=step_data.get("conditions"),
+                    actions=step_data.get("actions"),
+                    order=step_data["order"]
+                )
+                workflow_steps.append(step)
+            
+            # Sort steps by order
+            workflow_steps.sort(key=lambda x: x.order)
+            
+            workflow = Workflow(
+                id=workflow_id,
+                name=name,
+                description=description,
+                document_type=document_type,
+                steps=workflow_steps,
+                status=WorkflowStatus.DRAFT,
+                created_by=created_by,
+                created_at=datetime.utcnow()
+            )
+            
+            # Save workflow
+            self._save_workflow(workflow)
+            
+            logger.info(f"Created workflow {workflow_id}: {name}")
+            return workflow
+            
+        except Exception as e:
+            logger.error(f"Failed to create workflow: {e}")
+            raise
+    
+    def start_workflow(
+        self,
+        workflow_id: str,
+        document_id: int,
+        started_by: int,
+        initial_data: Optional[Dict[str, Any]] = None
+    ) -> WorkflowInstance:
+        """Start workflow instance"""
+        try:
+            # Get workflow
+            workflow = self.get_workflow(workflow_id)
+            
+            if not workflow:
+                raise ValueError("Workflow not found")
+            
+            # Create instance
+            instance_id = str(uuid.uuid4())
+            instance = WorkflowInstance(
+                id=instance_id,
+                workflow_id=workflow_id,
+                document_id=document_id,
+                current_step=0,
+                status="in_progress",
+                started_by=started_by,
+                started_at=datetime.utcnow(),
+                data=initial_data or {}
+            )
+            
+            # Save instance
+            self._save_workflow_instance(instance)
+            
+            # Execute first step
+            self._execute_step(instance, workflow.steps[0])
+            
+            logger.info(f"Started workflow instance {instance_id}")
+            return instance
+            
+        except Exception as e:
+            logger.error(f"Failed to start workflow: {e}")
+            raise
+    
+    def _execute_step(self, instance: WorkflowInstance, step: WorkflowStep):
+        """Execute workflow step"""
+        try:
+            logger.info(f"Executing step {step.name} for instance {instance.id}")
+            
+            if step.type == "approval":
+                self._handle_approval_step(instance, step)
+            elif step.type == "task":
+                self._handle_task_step(instance, step)
+            elif step.type == "notification":
+                self._handle_notification_step(instance, step)
+            elif step.type == "condition":
+                self._handle_condition_step(instance, step)
+            
+            # Update instance
+            instance.current_step += 1
+            self._save_workflow_instance(instance)
+            
+        except Exception as e:
+            logger.error(f"Failed to execute step: {e}")
+            instance.status = "failed"
+            self._save_workflow_instance(instance)
+    
+    def _handle_approval_step(self, instance: WorkflowInstance, step: WorkflowStep):
+        """Handle approval step"""
+        # This would send approval requests to assigned users
+        logger.info(f"Approval step {step.name} assigned to {step.assigned_to}")
+        
+        # Update instance data
+        if "approvals" not in instance.data:
+            instance.data["approvals"] = []
+        
+        instance.data["approvals"].append({
+            "step_id": step.id,
+            "step_name": step.name,
+            "assigned_to": step.assigned_to,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat()
+        })
+    
+    def _handle_task_step(self, instance: WorkflowInstance, step: WorkflowStep):
+        """Handle task step"""
+        # This would create tasks for assigned users
+        logger.info(f"Task step {step.name} assigned to {step.assigned_to}")
+        
+        # Update instance data
+        if "tasks" not in instance.data:
+            instance.data["tasks"] = []
+        
+        instance.data["tasks"].append({
+            "step_id": step.id,
+            "step_name": step.name,
+            "assigned_to": step.assigned_to,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat()
+        })
+    
+    def _handle_notification_step(self, instance: WorkflowInstance, step: WorkflowStep):
+        """Handle notification step"""
+        # This would send notifications
+        logger.info(f"Notification step {step.name} executed")
+        
+        # Update instance data
+        if "notifications" not in instance.data:
+            instance.data["notifications"] = []
+        
+        instance.data["notifications"].append({
+            "step_id": step.id,
+            "step_name": step.name,
+            "sent_at": datetime.utcnow().isoformat()
+        })
+    
+    def _handle_condition_step(self, instance: WorkflowInstance, step: WorkflowStep):
+        """Handle condition step"""
+        # This would evaluate conditions and route accordingly
+        logger.info(f"Condition step {step.name} evaluated")
+        
+        if step.conditions:
+            # Evaluate conditions
+            condition_met = self._evaluate_conditions(step.conditions, instance.data)
+            
+            instance.data["conditions"] = instance.data.get("conditions", [])
+            instance.data["conditions"].append({
+                "step_id": step.id,
+                "step_name": step.name,
+                "conditions": step.conditions,
+                "result": condition_met,
+                "evaluated_at": datetime.utcnow().isoformat()
+            })
+    
+    def _evaluate_conditions(self, conditions: Dict[str, Any], data: Dict[str, Any]) -> bool:
+        """Evaluate workflow conditions"""
+        # Simple condition evaluation
+        if conditions.get("document_status"):
+            return data.get("document_status") == conditions["document_status"]
+        
+        if conditions.get("document_type"):
+            return data.get("document_type") == conditions["document_type"]
+        
+        return True
+    
+    def complete_step(
+        self,
+        instance_id: str,
+        step_id: str,
+        user_id: int,
+        result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Complete workflow step"""
+        try:
+            # Get instance
+            instance = self.get_workflow_instance(instance_id)
+            
+            if not instance:
+                return {"success": False, "error": "Instance not found"}
+            
+            # Get workflow
+            workflow = self.get_workflow(instance.workflow_id)
+            
+            if not workflow:
+                return {"success": False, "error": "Workflow not found"}
+            
+            # Update step result
+            if "step_results" not in instance.data:
+                instance.data["step_results"] = []
+            
+            instance.data["step_results"].append({
+                "step_id": step_id,
+                "user_id": user_id,
+                "result": result,
+                "completed_at": datetime.utcnow().isoformat()
+            })
+            
+            # Check if workflow is complete
+            if instance.current_step >= len(workflow.steps):
+                instance.status = "completed"
+                instance.completed_at = datetime.utcnow()
+            else:
+                # Execute next step
+                next_step = workflow.steps[instance.current_step]
+                self._execute_step(instance, next_step)
+            
+            # Save instance
+            self._save_workflow_instance(instance)
+            
+            return {
+                "success": True,
+                "instance_status": instance.status,
+                "current_step": instance.current_step
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to complete step: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def get_workflow(self, workflow_id: str) -> Optional[Workflow]:
+        """Get workflow by ID"""
+        try:
+            workflow_file = self.workflows_storage_path / f"{workflow_id}.json"
+            
+            if not workflow_file.exists():
+                return None
+            
+            with open(workflow_file, 'r') as f:
+                workflow_data = json.load(f)
+            
+            steps = []
+            for step_data in workflow_data["steps"]:
+                step = WorkflowStep(
+                    id=step_data["id"],
+                    name=step_data["name"],
+                    type=step_data["type"],
+                    assigned_to=step_data.get("assigned_to"),
+                    conditions=step_data.get("conditions"),
+                    actions=step_data.get("actions"),
+                    order=step_data["order"]
+                )
+                steps.append(step)
+            
+            workflow = Workflow(
+                id=workflow_data["id"],
+                name=workflow_data["name"],
+                description=workflow_data["description"],
+                document_type=workflow_data["document_type"],
+                steps=steps,
+                status=WorkflowStatus(workflow_data["status"]),
+                created_by=workflow_data["created_by"],
+                created_at=datetime.fromisoformat(workflow_data["created_at"]),
+                updated_at=datetime.fromisoformat(workflow_data["updated_at"]) if workflow_data.get("updated_at") else None
+            )
+            
+            return workflow
+            
+        except Exception as e:
+            logger.error(f"Failed to get workflow: {e}")
+            return None
+    
+    def get_workflow_instance(self, instance_id: str) -> Optional[WorkflowInstance]:
+        """Get workflow instance by ID"""
+        try:
+            instance_file = self.instances_storage_path / f"{instance_id}.json"
+            
+            if not instance_file.exists():
+                return None
+            
+            with open(instance_file, 'r') as f:
+                instance_data = json.load(f)
+            
+            instance = WorkflowInstance(
+                id=instance_data["id"],
+                workflow_id=instance_data["workflow_id"],
+                document_id=instance_data["document_id"],
+                current_step=instance_data["current_step"],
+                status=instance_data["status"],
+                started_by=instance_data["started_by"],
+                started_at=datetime.fromisoformat(instance_data["started_at"]),
+                completed_at=datetime.fromisoformat(instance_data["completed_at"]) if instance_data.get("completed_at") else None,
+                data=instance_data.get("data")
+            )
+            
+            return instance
+            
+        except Exception as e:
+            logger.error(f"Failed to get workflow instance: {e}")
+            return None
+    
+    def get_workflows_by_document_type(self, document_type: str) -> List[Workflow]:
+        """Get workflows for specific document type"""
+        try:
+            workflows = []
+            
+            for workflow_file in self.workflows_storage_path.glob("*.json"):
+                with open(workflow_file, 'r') as f:
+                    workflow_data = json.load(f)
+                
+                if workflow_data["document_type"] == document_type:
+                    workflow = self.get_workflow(workflow_data["id"])
+                    if workflow:
+                        workflows.append(workflow)
+            
+            return workflows
+            
+        except Exception as e:
+            logger.error(f"Failed to get workflows by document type: {e}")
+            return []
+    
+    def _save_workflow(self, workflow: Workflow):
+        """Save workflow to file"""
+        workflow_file = self.workflows_storage_path / f"{workflow.id}.json"
+        
+        workflow_data = {
+            "id": workflow.id,
+            "name": workflow.name,
+            "description": workflow.description,
+            "document_type": workflow.document_type,
+            "steps": [
+                {
+                    "id": step.id,
+                    "name": step.name,
+                    "type": step.type,
+                    "assigned_to": step.assigned_to,
+                    "conditions": step.conditions,
+                    "actions": step.actions,
+                    "order": step.order
+                }
+                for step in workflow.steps
+            ],
+            "status": workflow.status.value,
+            "created_by": workflow.created_by,
+            "created_at": workflow.created_at.isoformat(),
+            "updated_at": workflow.updated_at.isoformat() if workflow.updated_at else None
+        }
+        
+        with open(workflow_file, 'w') as f:
+            json.dump(workflow_data, f, indent=2)
+    
+    def _save_workflow_instance(self, instance: WorkflowInstance):
+        """Save workflow instance to file"""
+        instance_file = self.instances_storage_path / f"{instance.id}.json"
+        
+        instance_data = {
+            "id": instance.id,
+            "workflow_id": instance.workflow_id,
+            "document_id": instance.document_id,
+            "current_step": instance.current_step,
+            "status": instance.status,
+            "started_by": instance.started_by,
+            "started_at": instance.started_at.isoformat(),
+            "completed_at": instance.completed_at.isoformat() if instance.completed_at else None,
+            "data": instance.data
+        }
+        
+        with open(instance_file, 'w') as f:
+            json.dump(instance_data, f, indent=2)
+
+
+# Singleton instance
+_workflow_service: Optional[WorkflowAutomationService] = None
+
+
+def get_workflow_service() -> WorkflowAutomationService:
+    """Get singleton workflow service"""
+    global _workflow_service
+    if _workflow_service is None:
+        _workflow_service = WorkflowAutomationService()
+    return _workflow_service

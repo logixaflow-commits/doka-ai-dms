@@ -1,0 +1,308 @@
+/* Custom CSS for Enterprise DMS */
+
+/* Additional custom styles beyond Tailwind CSS */
+
+/* Glassmorphism effects */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Loading spinner */
+.spinner {
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Confidence bar colors */
+.confidence-high {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.confidence-medium {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.confidence-low {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Status badge enhancements */
+.status-badge {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+/* Table hover effects */
+.table-row-hover {
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.table-row-hover:hover {
+    background-color: #f8fafc;
+    transform: translateX(2px);
+}
+
+/* Button hover effects */
+.btn-hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Sidebar active state */
+.sidebar-item-active {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
+    border-left: 3px solid #2563eb;
+}
+
+/* Print styles for reports */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .print-only {
+        display: block !important;
+    }
+    
+    body {
+        background: white;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+       : 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+/* File upload zone */
+.upload-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.upload-zone:hover {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+}
+
+.upload-zone.drag-over {
+    border-color: #2563eb;
+    background-color: #dbeafe;
+    transform: scale(1.02);
+}
+
+/* Tooltip styles */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1e293b;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.tooltip:hover::after {
+    opacity: 1;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .hide-mobile {
+        display: none !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .hide-desktop {
+        display: none !important;
+    }
+}
+
+/* Chart styles */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Heatmap styles */
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: 50px repeat(auto-fit, minmax(40px, 1fr));
+    gap: 2px;
+}
+
+.heatmap-cell {
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.heatmap-cell:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.heatmap-0 {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+}
+
+.heatmap-1 {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.heatmap-2 {
+    background-color: #93c5fd;
+    color: #1e3a8a;
+}
+
+.heatmap-3 {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.heatmap-4 {
+    background-color: #1d4ed8;
+    color: white;
+}
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.heatmap-legend-item {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+/* OCR edit styles */
+.ocr-edit-mode {
+    border: 2px solid #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* Expiry warning styles */
+.expiry-urgent {
+    border-left: 4px solid #ef4444;
+    background-color: #fef2f2;
+}
+
+.expiry-warning {
+    border-left: 4px solid #f59e0b;
+    background-color: #fffbeb;
+}
+
+.expiry-normal {
+    border-left: 4px solid #10b981;
+    background-color: #ecfdf5;
+}

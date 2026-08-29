@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}Reports - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/admin/folders" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-folder-open w-5 text-center"></i>
+                <span>Folder Permissions</span>
+            </a>
+            <a href="/reports" class="sidebar-link admin-only active" style="display:none;">
+                <i class="fas fa-chart-bar w-5 text-center"></i>
+                <span>Reports</span>
+            </a>
+            <a href="/settings" class="sidebar-link">
+                <i class="fas fa-cog w-5 text-center"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Compliance Reports</h2>
+                    <p class="text-sm text-slate-500">Generate audit-ready reports for compliance</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="p-6">
+            <!-- Report Generation Form -->
+            <div class="card p-6 mb-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Generate Report</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Report Type</label>
+                        <select id="reportType" class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                            <option value="access_log">Access Log Report</option>
+                            <option value="document_activity">Document Activity Report</option>
+                            <option value="user_activity">User Activity Report</option>
+                            <option value="custom">Custom Report</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Start Date</label>
+                        <input type="date" id="startDate" class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">End Date</label>
+                        <input type="date" id="endDate" class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Format</label>
+                        <select id="reportFormat" class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                            <option value="excel">Excel</option>
+                            <option value="pdf">PDF</option>
+                            <option value="json">JSON</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Additional filters for custom reports -->
+                <div id="customFilters" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-slate-50 rounded-lg">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">User Filter</label>
+                        <select id="userFilter" class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                            <option value="">All Users</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Document Type</label>
+                        <input type="text" id="documentType" class="w-full border border-slate-300 rounded-lg px-4 py-2" placeholder="Invoice, BL, etc.">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Action Filter</label>
+                        <select id="actionFilter" class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                            <option value="">All Actions</option>
+                            <option value="VIEW">View</option>
+                            <option value="UPLOAD">Upload</option>
+                            <option value="DOWNLOAD">Download</option>
+                            <option value="EDIT">Edit</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="generateReport()" class="btn-primary">
+                        <i class="fas fa-play mr-2"></i>Generate Report
+                    </button>
+                    <button onclick="scheduleReport()" class="btn-secondary">
+                        <i class="fas fa-clock mr-2"></i>Schedule Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Report Status -->
+            <div id="reportStatus" class="card p-6 mb-6 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Report Generation Status</h3>
+                    <button onclick="hideReportStatus()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="statusContent">
+                    <!-- Status content will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Recent Reports -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Recent Reports</h3>
+                    <button onclick="loadReportStats()" class="btn-secondary text-sm">
+                        <i class="fas fa-sync-alt mr-1"></i>Refresh
+                    </button>
+                </div>
+                
+                <div id="recentReports">
+                    <p class="text-slate-500">Loading recent reports...</p>
+                </div>
+
+                <!-- Report Statistics -->
+                <div class="mt-6 pt-6 border-t border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-700 mb-3">Report Statistics</h4>
+                    <div id="reportStats" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <p class="text-xs text-blue-600">Total Reports</p>
+                            <p id="totalReports" class="text-xl font-bold text-blue-800">-</p>
+                        </div>
+                        <div class="p-3 bg-green-50 rounded-lg">
+                            <p class="text-xs text-green-600">Successful</p>
+                            <p id="successfulReports" class="text-xl font-bold text-green-800">-</p>
+                        </div>
+                        <div class="p-3 bg-red-50 rounded-lg">
+                            <p class="text-xs text-red-600">Failed</p>
+                            <p id="failedReports" class="text-xl font-bold text-red-800">-</p>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <p class="text-xs text-purple-600">Last Generated</p>
+                            <p id="lastGenerated" class="text-sm font-bold text-purple-800">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cleanup -->
+                <div class="mt-4 pt-4 border-t border-slate-200">
+                    <button onclick="cleanupOldReports()" class="btn-secondary text-sm">
+                        <i class="fas fa-trash mr-1"></i>Cleanup Old Reports (30 days)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Schedule Report Modal -->
+<div id="scheduleModal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Schedule Recurring Report</h3>
+            <button onclick="closeScheduleModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form onsubmit="confirmSchedule(event)">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Report Type</label>
+                <select id="scheduleReportType" required class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                    <option value="access_log">Access Log Report</option>
+                    <option value="document_activity">Document Activity Report</option>
+                    <option value="user_activity">User Activity Report</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Frequency</label>
+                <select id="scheduleFrequency" required class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Recipient Email</label>
+                <input type="email" id="scheduleEmail" required class="w-full border border-slate-300 rounded-lg px-4 py-2" placeholder="admin@example.com">
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeScheduleModal()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/js/reports.js"></script>
+{% endblock %}

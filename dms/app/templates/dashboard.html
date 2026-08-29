@@ -1,0 +1,778 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link active">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+                <span id="sidebarPendingCount" class="ml-auto bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full hidden">0</span>
+            </a>
+            <a href="/dashboard" class="sidebar-link" onclick="showSocialInbox()">
+                <i class="fas fa-share-alt w-5 text-center"></i>
+                <span>Social Inbox</span>
+                <span id="sidebarSocialCount" class="ml-auto bg-purple-500/20 text-purple-400 text-xs px-2 py-0.5 rounded-full hidden">0</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/sop" class="sidebar-link">
+                <i class="fas fa-tasks w-5 text-center"></i>
+                <span>SOP Tracker</span>
+            </a>
+            <a href="/reminders" class="sidebar-link">
+                <i class="fas fa-bell w-5 text-center"></i>
+                <span>Reminders</span>
+                <span id="sidebarReminderCount" class="ml-auto bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full hidden">0</span>
+            </a>
+            <a href="/audit" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-clipboard-list w-5 text-center"></i>
+                <span>Audit Log</span>
+            </a>
+            <a href="/admin/activity" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-fire w-5 text-center"></i>
+                <span>Activity Heatmap</span>
+            </a>
+            <a href="/admin/folders" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-folder-open w-5 text-center"></i>
+                <span>Folder Permissions</span>
+            </a>
+            <a href="/reports" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-chart-bar w-5 text-center"></i>
+                <span>Reports</span>
+            </a>
+            <a href="/api/admin/export" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-download w-5 text-center"></i>
+                <span>Export Reports</span>
+            </a>
+            <a href="/settings/sources" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-cog w-5 text-center"></i>
+                <span>Watch Sources</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Dashboard</h2>
+                    <p class="text-sm text-slate-500">AI-powered document processing overview</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Connection Status Indicator -->
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg" title="Connection Status">
+                        <div id="connectionStatus" class="w-2 h-2 rounded-full bg-red-500" title="Disconnected"></div>
+                        <span class="text-xs text-slate-600 hidden sm:inline">Real-time</span>
+                    </div>
+                    
+                    <button onclick="openUploadModal()" class="btn-primary">
+                        <i class="fas fa-upload mr-2"></i>Upload Document
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="p-6">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-500 mb-1">Pending Review</p>
+                            <p id="statPending" class="text-2xl font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <i class="fas fa-clock text-amber-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-500 mb-1">Approved Today</p>
+                            <p id="statApprovedToday" class="text-2xl font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <i class="fas fa-check-circle text-emerald-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-500 mb-1">Total Documents</p>
+                            <p id="statTotal" class="text-2xl font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-500 mb-1">Processing Failed</p>
+                            <p id="statFailed" class="text-2xl font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Media Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="card p-5 bg-purple-50 border-purple-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-purple-600 mb-1">Social Inbox</p>
+                            <p id="statSocialPending" class="text-2xl font-bold text-purple-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-purple-200 flex items-center justify-center">
+                            <i class="fas fa-share-alt text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5 bg-blue-50 border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-blue-600 mb-1">Viber</p>
+                            <p id="statViber" class="text-2xl font-bold text-blue-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-200 flex items-center justify-center">
+                            <i class="fas fa-comments text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5 bg-green-50 border-green-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-green-600 mb-1">WhatsApp</p>
+                            <p id="statWhatsApp" class="text-2xl font-bold text-green-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-200 flex items-center justify-center">
+                            <i class="fab fa-whatsapp text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5 bg-orange-50 border-orange-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-orange-600 mb-1">Today</p>
+                            <p id="statSocialToday" class="text-2xl font-bold text-orange-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-orange-200 flex items-center justify-center">
+                            <i class="fas fa-calendar-day text-orange-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                <!-- Bar Chart: Documents per Category -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Documents by Category</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <!-- Pie Chart: Status Distribution -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Status Distribution</h3>
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <!-- Line Chart: Daily Upload Trend -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Upload Trend (30 Days)</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Expiring Soon Card -->
+            <div class="card p-6 mb-6 bg-orange-50 border-orange-200">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-orange-800">Expiring Soon</h3>
+                    <span class="text-sm text-orange-600">Documents expiring within 7 days</span>
+                </div>
+                <div id="expiringSoon" class="space-y-2">
+                    <p class="text-orange-600">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Social Media Daily View -->
+            <div id="socialInboxSection" class="card p-6 mb-6 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Social Media Inbox - Daily View</h3>
+                    <div class="flex items-center gap-2">
+                        <select id="socialSourceFilter" onchange="loadSocialBySource()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                            <option value="">All Sources</option>
+                            <option value="Viber">Viber</option>
+                            <option value="WhatsApp">WhatsApp</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Telegram">Telegram</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="socialDailyView" class="space-y-4">
+                    <!-- Daily groups will be rendered here -->
+                    <p class="text-slate-500 text-center py-4">Loading social media documents...</p>
+                </div>
+            </div>
+
+            <!-- Pending Documents Table with Bulk Actions -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Pending Documents</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="bulkApprove()" class="btn-primary text-sm">
+                            <i class="fas fa-check mr-1"></i>Bulk Approve
+                        </button>
+                        <button onclick="bulkReject()" class="btn-secondary text-sm">
+                            <i class="fas fa-times mr-1"></i>Bulk Reject
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                </th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Document</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Category</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Confidence</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Status</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Uploaded</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTable">
+                            <tr>
+                                <td colspan="7" class="py-8 text-center text-slate-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ETA Alerts -->
+            <div class="card p-6 mb-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">ETA Overdue Alerts</h3>
+                <div id="etaAlerts">
+                    <p class="text-slate-500">Loading alerts...</p>
+                </div>
+            </div>
+
+            <!-- Missing SOP Documents -->
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Missing SOP Documents</h3>
+                <div id="missingSopDocs">
+                    <p class="text-slate-500">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Upload Document</h3>
+            <button onclick="closeUploadModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="uploadDropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+            <i class="fas fa-cloud-upload-alt text-4xl text-slate-300 mb-3"></i>
+            <p class="text-slate-600 font-medium">Drag & drop files here</p>
+            <p class="text-sm text-slate-400 mt-1">or click to browse</p>
+            <input type="file" id="uploadInput" multiple class="hidden" accept=".pdf,.png,.jpg,.jpeg,.tiff,.doc,.docx,.xls,.xlsx,.txt">
+        </div>
+        <div id="uploadList" class="mt-4 space-y-2"></div>
+        <div id="uploadProgress" class="hidden mt-4">
+            <div class="progress-bar"><div class="progress-fill bg-blue-500" style="width:0%"></div></div>
+            <p class="text-sm text-slate-500 mt-1 text-center">Uploading...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Reject Modal -->
+<div id="bulkRejectModal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Bulk Reject Documents</h3>
+            <button onclick="closeBulkRejectModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Rejection Reason</label>
+            <textarea id="bulkRejectReason" class="w-full border border-slate-300 rounded-lg p-3" rows="3" placeholder="Enter rejection reason..."></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button onclick="closeBulkRejectModal()" class="btn-secondary">Cancel</button>
+            <button onclick="confirmBulkReject()" class="btn-primary">Confirm Reject</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedDocuments = new Set();
+let eventSource = null;
+
+// Initialize dashboard
+async function initDashboard() {
+    await loadUserInfo();
+    await loadStats();
+    await loadPendingDocuments();
+    initRealtimeUpdates();
+    initUploadHandlers();
+}
+
+// Load user info and update UI
+async function loadUserInfo() {
+    const user = await loadCurrentUser();
+    if (user) {
+        document.getElementById('userName').textContent = user.full_name || user.username;
+        document.getElementById('userRole').textContent = user.role.toUpperCase();
+        
+        // Show admin-only links
+        if (user.role === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+        }
+    }
+}
+
+// Load statistics
+async function loadStats() {
+    try {
+        const resp = await apiFetch('/api/admin/stats');
+        if (resp.ok) {
+            const stats = await resp.json();
+            document.getElementById('statPending').textContent = stats.documents.pending_review || 0;
+            document.getElementById('statApprovedToday').textContent = stats.documents.approved_today || 0;
+            document.getElementById('statTotal').textContent = stats.documents.total || 0;
+            document.getElementById('statFailed').textContent = stats.documents.failed || 0;
+            
+            // Update sidebar count
+            const sidebarCount = document.getElementById('sidebarPendingCount');
+            if (stats.documents.pending_review > 0) {
+                sidebarCount.textContent = stats.documents.pending_review;
+                sidebarCount.classList.remove('hidden');
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load stats', e);
+    }
+}
+
+// Load pending documents
+async function loadPendingDocuments() {
+    try {
+        const resp = await apiFetch('/api/documents/pending?page=1&page_size=10');
+        if (resp.ok) {
+            const data = await resp.json();
+            renderPendingTable(data.items);
+        }
+    } catch (e) {
+        console.error('Failed to load pending documents', e);
+        document.getElementById('pendingTable').innerHTML = '<tr><td colspan="7" class="py-8 text-center text-red-500">Failed to load documents</td></tr>';
+    }
+}
+
+// Render pending documents table
+function renderPendingTable(documents) {
+    const tbody = document.getElementById('pendingTable');
+    
+    if (!documents || documents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-500">No pending documents</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = documents.map(doc => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="py-3 px-4">
+                <input type="checkbox" class="doc-checkbox" data-id="${doc.id}" onchange="toggleDocumentSelection(${doc.id})">
+            </td>
+            <td class="py-3 px-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-file-pdf text-blue-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-800 truncate max-w-xs">${doc.original_filename}</p>
+                        <p class="text-xs text-slate-500">${formatFileSize(doc.file_size)}</p>
+                    </div>
+                </div>
+            </td>
+            <td class="py-3 px-4 text-sm text-slate-600">${doc.category || 'Unknown'}</td>
+            <td class="py-3 px-4">
+                <div class="flex items-center gap-2">
+                    <div class="progress-bar w-24">
+                        <div class="progress-fill ${doc.confidence >= 0.85 ? 'bg-emerald-500' : doc.confidence >= 0.7 ? 'bg-amber-500' : 'bg-red-500'}" 
+                             style="width: ${(doc.confidence || 0) * 100}%"></div>
+                    </div>
+                    <span class="text-xs text-slate-500">${((doc.confidence || 0) * 100).toFixed(0)}%</span>
+                </div>
+            </td>
+            <td class="py-3 px-4">${statusBadge(doc.status)}</td>
+            <td class="py-3 px-4 text-sm text-slate-600">${formatDate(doc.created_at)}</td>
+            <td class="py-3 px-4">
+                <a href="/documents/${doc.id}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    <i class="fas fa-eye mr-1"></i>View
+                </a>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Toggle document selection
+function toggleDocumentSelection(docId) {
+    if (selectedDocuments.has(docId)) {
+        selectedDocuments.delete(docId);
+    } else {
+        selectedDocuments.add(docId);
+    }
+    updateSelectAllCheckbox();
+}
+
+// Toggle select all
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.doc-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+        const docId = parseInt(cb.dataset.id);
+        if (selectAll.checked) {
+            selectedDocuments.add(docId);
+        } else {
+            selectedDocuments.delete(docId);
+        }
+    });
+}
+
+// Update select all checkbox state
+function updateSelectAllCheckbox() {
+    const checkboxes = document.querySelectorAll('.doc-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+    
+    selectAll.checked = allChecked;
+    selectAll.indeterminate = someChecked && !allChecked;
+}
+
+// Bulk approve
+async function bulkApprove() {
+    if (selectedDocuments.size === 0) {
+        showToast('Please select documents to approve', 'warning');
+        return;
+    }
+    
+    try {
+        const resp = await apiFetch('/api/documents/bulk/approve', {
+            method: 'POST',
+            body: JSON.stringify({
+                document_ids: Array.from(selectedDocuments),
+                target_folder: 'Approved'
+            })
+        });
+        
+        if (resp.ok) {
+            const result = await resp.json();
+            showToast(`Approved ${result.success_count} documents successfully`);
+            selectedDocuments.clear();
+            loadPendingDocuments();
+            loadStats();
+        } else {
+            showToast('Failed to approve documents', 'error');
+        }
+    } catch (e) {
+        console.error('Bulk approve error', e);
+        showToast('Failed to approve documents', 'error');
+    }
+}
+
+// Bulk reject
+function bulkReject() {
+    if (selectedDocuments.size === 0) {
+        showToast('Please select documents to reject', 'warning');
+        return;
+    }
+    document.getElementById('bulkRejectModal').classList.remove('hidden');
+}
+
+function closeBulkRejectModal() {
+    document.getElementById('bulkRejectModal').classList.add('hidden');
+    document.getElementById('bulkRejectReason').value = '';
+}
+
+async function confirmBulkReject() {
+    const reason = document.getElementById('bulkRejectReason').value.trim();
+    if (!reason) {
+        showToast('Please provide a rejection reason', 'warning');
+        return;
+    }
+    
+    try {
+        const resp = await apiFetch('/api/documents/bulk/reject', {
+            method: 'POST',
+            body: JSON.stringify({
+                document_ids: Array.from(selectedDocuments),
+                reason: reason
+            })
+        });
+        
+        if (resp.ok) {
+            const result = await resp.json();
+            showToast(`Rejected ${result.success_count} documents successfully`);
+            closeBulkRejectModal();
+            selectedDocuments.clear();
+            loadPendingDocuments();
+            loadStats();
+        } else {
+            showToast('Failed to reject documents', 'error');
+        }
+    } catch (e) {
+        console.error('Bulk reject error', e);
+        showToast('Failed to reject documents', 'error');
+    }
+}
+
+// Real-time updates with SSE
+function initRealtimeUpdates() {
+    try {
+        eventSource = new EventSource('/api/realtime/events');
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'pending_count_update') {
+                const count = data.data.count;
+                document.getElementById('statPending').textContent = count;
+                const sidebarCount = document.getElementById('sidebarPendingCount');
+                if (count > 0) {
+                    sidebarCount.textContent = count;
+                    sidebarCount.classList.remove('hidden');
+                } else {
+                    sidebarCount.classList.add('hidden');
+                }
+                // Reload pending table when count changes
+                loadPendingDocuments();
+            } else if (data.type === 'stats_update') {
+                document.getElementById('statPending').textContent = data.data.pending_count;
+                document.getElementById('statTotal').textContent = data.data.total_documents;
+                document.getElementById('statApprovedToday').textContent = data.data.approved_today;
+                document.getElementById('statRejectedToday').textContent = data.data.rejected_today;
+            }
+        };
+        
+        eventSource.onerror = function(error) {
+            console.error('SSE error:', error);
+            eventSource.close();
+            // Fallback to polling
+            setTimeout(() => initPolling(), 5000);
+        };
+    } catch (e) {
+        console.error('Failed to init SSE, falling back to polling');
+        initPolling();
+    }
+}
+
+// Fallback polling
+function initPolling() {
+    setInterval(() => {
+        loadStats();
+        loadPendingDocuments();
+    }, 10000); // Poll every 10 seconds
+}
+
+// Upload handlers
+function openUploadModal() {
+    document.getElementById('uploadModal').classList.remove('hidden');
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.add('hidden');
+    document.getElementById('uploadList').innerHTML = '';
+}
+
+function initUploadHandlers() {
+    const dropZone = document.getElementById('uploadDropZone');
+    const uploadInput = document.getElementById('uploadInput');
+    
+    dropZone.addEventListener('click', () => uploadInput.click());
+    dropZone.addEventListener('dragover', (e) => { 
+        e.preventDefault(); 
+        dropZone.classList.add('border-blue-400', 'bg-blue-50/50'); 
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-400', 'bg-blue-50/50'));
+    dropZone.addEventListener('drop', (e) => { 
+        e.preventDefault(); 
+        handleFiles(e.dataTransfer.files); 
+        dropZone.classList.remove('border-blue-400', 'bg-blue-50/50'); 
+    });
+    uploadInput.addEventListener('change', (e) => handleFiles(e.target.files));
+}
+
+async function handleFiles(files) {
+    const list = document.getElementById('uploadList');
+    const progress = document.getElementById('uploadProgress');
+    list.innerHTML = '';
+    progress.classList.remove('hidden');
+
+    // Validation rules
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    const ALLOWED_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.doc', '.docx', '.xls', '.xlsx', '.txt'];
+    const ALLOWED_MIME_TYPES = [
+        'application/pdf',
+        'image/png',
+        'image/jpeg',
+        'image/tiff',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+    ];
+
+    const filesArray = Array.from(files);
+    const validFiles = [];
+    const invalidFiles = [];
+
+    // Pre-upload validation
+    for (const file of filesArray) {
+        const validationErrors = [];
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+        // Check if file is empty
+        if (file.size === 0) {
+            validationErrors.push('File is empty');
+        }
+
+        // Check file size
+        if (file.size > MAX_FILE_SIZE) {
+            validationErrors.push(`File size (${fileSizeMB}MB) exceeds limit of 100MB`);
+        }
+
+        // Check file extension
+        if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
+            validationErrors.push(`File type (${fileExt}) is not allowed`);
+        }
+
+        // Check MIME type
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+            validationErrors.push(`Invalid file type (${file.type})`);
+        }
+
+        // Check for special characters in filename
+        if (/[<>:"/\\|?*\x00-\x1f]/.test(file.name)) {
+            validationErrors.push('Filename contains invalid characters');
+        }
+
+        if (validationErrors.length > 0) {
+            invalidFiles.push({
+                file,
+                errors: validationErrors
+            });
+        } else {
+            validFiles.push(file);
+        }
+    }
+
+    // Display validation errors
+    invalidFiles.forEach(({ file, errors }) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200';
+        item.innerHTML = `
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+            <div class="flex-1">
+                <div class="text-sm font-medium text-red-700">${file.name}</div>
+                <div class="text-xs text-red-600">${errors.join(', ')}</div>
+            </div>
+            <i class="fas fa-times-circle text-red-500"></i>
+        `;
+        list.appendChild(item);
+    });
+
+    // Upload valid files
+    for (const file of validFiles) {
+        const item = document.createElement('div');
+        item.className = 'flex items-center gap-3 p-3 bg-slate-50 rounded-lg';
+        item.innerHTML = `<i class="fas fa-file text-blue-500"></i><span class="text-sm flex-1">${file.name}</span><span class="text-xs text-slate-400">${formatFileSize(file.size)}</span><i class="fas fa-circle-notch fa-spin text-blue-500 upload-status"></i>`;
+        list.appendChild(item);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const resp = await fetch('/api/documents/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${getToken()}` },
+                body: formData
+            });
+            const status = item.querySelector('.upload-status');
+            if (resp.ok) {
+                status.className = 'fas fa-check-circle text-emerald-500 upload-status';
+                showToast(`${file.name} uploaded successfully`);
+            } else {
+                status.className = 'fas fa-exclamation-circle text-red-500 upload-status';
+                showToast(`Failed to upload ${file.name}`, 'error');
+            }
+        } catch (e) {
+            item.querySelector('.upload-status').className = 'fas fa-exclamation-circle text-red-500 upload-status';
+        }
+    }
+    progress.classList.add('hidden');
+    // Reload stats after upload
+    loadStats();
+    loadPendingDocuments();
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+{% endblock %}

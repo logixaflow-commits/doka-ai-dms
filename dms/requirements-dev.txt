@@ -1,0 +1,74 @@
+# Core Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.24.0
+gunicorn>=21.2.0
+python-multipart>=0.0.6
+python-dotenv>=1.0.0
+jinja2>=3.1.2
+aiofiles>=23.2.1
+
+# Database & ORM
+sqlalchemy>=2.0.23
+psycopg2-binary>=2.9.7
+alembic>=1.12.1
+
+# Async Task Queue
+celery>=5.3.4
+redis>=5.0.0
+
+# Object Storage
+boto3>=1.28.57
+minio>=7.2.0
+
+# Security & Authentication
+cryptography>=41.0.5
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-magic>=0.4.27
+
+# OCR & Image Processing
+pytesseract>=0.3.10
+pdf2image>=1.16.3
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0.96
+pdfplumber>=0.10.0
+
+# Data Processing & Machine Learning
+pandas>=2.0.3
+scikit-learn>=1.3.0
+numpy>=1.24.3
+nltk>=3.8.1
+
+# HTTP Client for External Integrations
+httpx>=0.24.0
+
+# AI Services (Optional - for enhanced duplicate detection)
+openai>=1.3.5
+tiktoken>=0.5.1
+google-generativeai>=0.3.0
+httpx>=0.24.0
+numpy>=1.24.3
+
+# Logging & Monitoring
+loguru>=0.7.0
+prometheus-client>=0.19.0
+psutil>=5.9.0
+
+# File Handling & Utilities
+watchdog>=3.0.0
+openpyxl>=3.1.2
+python-magic>=0.4.27
+schedule>=1.2.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+httpx>=0.24.0
+
+# YAML Configuration
+pyyaml>=6.0.1
+
+# Email Support (for SMTP alerts)
+smtplib-ssl>=1.1.0
+# Email Support (for SMTP alerts)
+smtplib-ssl>=1.1.0

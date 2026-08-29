@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Folder Permissions - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/admin/folders" class="sidebar-link admin-only active" style="display:none;">
+                <i class="fas fa-folder-open w-5 text-center"></i>
+                <span>Folder Permissions</span>
+            </a>
+            <a href="/reports" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-chart-bar w-5 text-center"></i>
+                <span>Reports</span>
+            </a>
+            <a href="/settings" class="sidebar-link">
+                <i class="fas fa-cog w-5 text-center"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Folder Permissions</h2>
+                    <p class="text-sm text-slate-500">Manage user access to document folders</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="initializeDefaults()" class="btn-secondary">
+                        <i class="fas fa-magic mr-2"></i>Initialize Defaults
+                    </button>
+                    <button onclick="openAssignModal()" class="btn-primary">
+                        <i class="fas fa-plus mr-2"></i>Assign Permission
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="p-6">
+            <!-- Folder Permissions Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-500 mb-1">Total Folders</p>
+                            <p id="totalFolders" class="text-2xl font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <i class="fas fa-folder text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-500 mb-1">Active Permissions</p>
+                            <p id="activePermissions" class="text-2xl font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                            <i class="fas fa-key text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-500 mb-1">Users with Access</p>
+                            <p id="usersWithAccess" class="text-2xl font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <i class="fas fa-users text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permissions Table -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Folder Permissions</h3>
+                    <div class="flex items-center gap-2">
+                        <select id="roleFilter" onchange="loadPermissions()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                            <option value="">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="staff">Staff</option>
+                            <option value="customer">Customer</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Folder Path</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Role</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Permission</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Users</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Created</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="permissionsTable">
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-500">Loading permissions...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Assign Permission Modal -->
+<div id="assignModal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Assign Folder Permission</h3>
+            <button onclick="closeAssignModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form onsubmit="assignPermission(event)">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">User</label>
+                <select id="userSelect" required class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                    <option value="">Select user...</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Folder Path</label>
+                <select id="folderSelect" required class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                    <option value="">Select folder...</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Permission Level</label>
+                <select id="permissionLevel" required class="w-full border border-slate-300 rounded-lg px-4 py-2">
+                    <option value="read">Read</option>
+                    <option value="write">Write</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeAssignModal()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Assign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/js/permissions.js"></script>
+{% endblock %}

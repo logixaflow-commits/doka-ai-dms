@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Settings - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/settings" class="sidebar-link active">
+                <i class="fas fa-cog w-5 text-center"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Settings</h2>
+                <p class="text-sm text-slate-500">Manage your account and security settings</p>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="p-6">
+            <!-- 2FA Section -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Two-Factor Authentication (2FA)</h3>
+                    <span id="2faEnabledBadge" class="status-badge status-unknown">2FA Disabled</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <p class="text-xs text-slate-600">Status</p>
+                        <p id="2faStatus" class="font-medium text-slate-800">Loading...</p>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <p class="text-xs text-slate-600">Backup Codes</p>
+                        <p id="hasBackupCodes" class="font-medium text-slate-800">Loading...</p>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <p class="text-xs text-slate-600">Method</p>
+                        <p class="font-medium text-slate-800">TOTP (Google Authenticator)</p>
+                    </div>
+                </div>
+
+                <!-- 2FA Setup Section -->
+                <div id="2faSetupSection">
+                    <div class="mb-4">
+                        <button onclick="setup2FA()" class="btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Enable 2FA
+                        </button>
+                        <p class="text-sm text-slate-500 mt-2">
+                            Protect your account with an additional layer of security using Time-based One-Time Password (TOTP).
+                        </p>
+                    </div>
+
+                    <div id="qrCodeSection" class="hidden mt-6 p-4 bg-white border border-slate-200 rounded-lg">
+                        <h4 class="font-medium text-slate-800 mb-3">Scan QR Code</h4>
+                        <div class="flex justify-center mb-4">
+                            <img id="qrCodeImage" src="" alt="QR Code" class="w-48 h-48">
+                        </div>
+                        <p class="text-sm text-slate-600 text-center mb-2">
+                            Scan this QR code with Google Authenticator or any TOTP app
+                        </p>
+                        <div class="mb-4 p-2 bg-slate-100 rounded text-center font-mono text-sm">
+                            <span class="text-xs text-slate-500">Secret: </span>
+                            <span id="totpSecret">-</span>
+                        </div>
+                    </div>
+
+                    <div id="backupCodesSection" class="hidden mt-6 p-4 bg-white border border-slate-200 rounded-lg">
+                        <h4 class="font-medium text-slate-800 mb-3">Backup Codes</h4>
+                        <p class="text-sm text-slate-500 mb-3">
+                            Save these backup codes in a secure location. Each code can only be used once.
+                        </p>
+                        <div id="backupCodesContainer" class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                            <!-- Backup codes will be inserted here -->
+                        </div>
+                        <button onclick="downloadBackupCodes()" class="btn-secondary text-sm">
+                            <i class="fas fa-download mr-1"></i>Download Codes
+                        </button>
+                    </div>
+
+                    <div id="otpVerificationSection" class="hidden mt-6 p-4 bg-white border border-slate-200 rounded-lg">
+                        <h4 class="font-medium text-slate-800 mb-3">Verify Setup</h4>
+                        <div class="flex gap-3">
+                            <input 
+                                type="text" 
+                                id="setupOTPInput" 
+                                maxlength="6" 
+                                pattern="[0-9]*"
+                                class="flex-1 text-center text-2xl tracking-[0.5em] font-mono border border-slate-300 rounded-lg px-4 py-3"
+                                placeholder="000000"
+                            >
+                            <button id="verifyButton" onclick="verifySetupOTP()" class="btn-primary">
+                                Verify
+                            </button>
+                            <button id="enableButton" onclick="enable2FA()" class="btn-success hidden">
+                                Enable 2FA
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2FA Management Section -->
+                <div id="2faManageSection" class="hidden">
+                    <div class="mb-4">
+                        <button onclick="regenerateBackupCodes()" class="btn-secondary">
+                            <i class="fas fa-sync-alt mr-2"></i>Regenerate Backup Codes
+                        </button>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <h4 class="font-medium text-amber-800 mb-3">Danger Zone</h4>
+                        <p class="text-sm text-amber-600 mb-3">
+                            Disabling 2FA reduces your account security. Only disable if you're switching to a new device.
+                        </p>
+                        <div class="flex gap-3">
+                            <input 
+                                type="text" 
+                                id="disableOTPInput" 
+                                maxlength="6" 
+                                pattern="[0-9]*"
+                                class="flex-1 text-center text-2xl tracking-[0.5em] font-mono border border-slate-300 rounded-lg px-4 py-3"
+                                placeholder="Current OTP"
+                            >
+                            <button onclick="disable2FA()" class="btn-secondary text-red-600">
+                                <i class="fas fa-shield-alt mr-2"></i>Disable 2FA
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Information Section -->
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Account Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Username</label>
+                        <input type="text" id="profileUsername" disabled class="w-full border border-slate-300 rounded-lg px-4 py-2 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                        <input type="email" id="profileEmail" disabled class="w-full border border-slate-300 rounded-lg px-4 py-2 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Role</label>
+                        <input type="text" id="profileRole" disabled class="w-full border border-slate-300 rounded-lg px-4 py-2 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Last Login</label>
+                        <input type="text" id="profileLastLogin" disabled class="w-full border border-slate-300 rounded-lg px-4 py-2 bg-slate-50">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/static/js/2fa.js"></script>
+{% endblock %}

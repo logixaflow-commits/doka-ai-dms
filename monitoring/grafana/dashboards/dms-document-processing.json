@@ -1,0 +1,117 @@
+{
+  "dashboard": {
+    "title": "Enterprise AI DMS - Document Processing",
+    "uid": "dms-document-processing",
+    "tags": ["dms", "documents", "processing"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Document Processing Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, documents_processing_time_seconds)",
+            "legendFormat": "95th Percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, documents_processing_time_seconds)",
+            "legendFormat": "50th Percentile"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "OCR Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ocr_operations_total[5m])",
+            "legendFormat": "{{language}} {{status}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "OCR Processing Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, ocr_processing_time_seconds)",
+            "legendFormat": "95th Percentile - {{language}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Function Detection Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(function_detection_operations_total[5m])",
+            "legendFormat": "{{function_type}} {{status}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Fracture Detection Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(fracture_detection_operations_total[5m])",
+            "legendFormat": "{{quality_level}} {{status}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Documents by Quality Level",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (quality_level) (documents_by_quality)",
+            "legendFormat": "{{quality_level}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      }
+    ]
+  }
+}

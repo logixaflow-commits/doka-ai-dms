@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}User Activity Heatmap - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/sop" class="sidebar-link">
+                <i class="fas fa-tasks w-5 text-center"></i>
+                <span>SOP Tracker</span>
+            </a>
+            <a href="/reminders" class="sidebar-link">
+                <i class="fas fa-bell w-5 text-center"></i>
+                <span>Reminders</span>
+            </a>
+            <a href="/audit" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-clipboard-list w-5 text-center"></i>
+                <span>Audit Log</span>
+            </a>
+            <a href="/admin/activity" class="sidebar-link admin-only active" style="display:none;">
+                <i class="fas fa-fire w-5 text-center"></i>
+                <span>Activity Heatmap</span>
+            </a>
+            <a href="/api/admin/export" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-download w-5 text-center"></i>
+                <span>Export Reports</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">User Activity Heatmap</h2>
+                    <p class="text-sm text-slate-500">Visualize user activity patterns over time</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="timeRange" onchange="loadActivityHeatmap()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                        <option value="7">Last 7 days</option>
+                        <option value="14">Last 14 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                    </select>
+                    <select id="userFilter" onchange="loadActivityHeatmap()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="p-6">
+            <!-- Heatmap Legend -->
+            <div class="card p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-600">Activity Level:</span>
+                    <div class="flex items-center gap-1">
+                        <div class="heatmap-cell-legend-0 w-6 h-6 rounded border"></div>
+                        <div class="heatmap-cell-legend-1 w-6 h-6 rounded border"></div>
+                        <div class="heatmap-cell-legend-2 w-6 h-6 rounded border"></div>
+                        <div class="heatmap-cell-legend-3 w-6 h-6 rounded border"></div>
+                        <div class="heatmap-cell-legend-4 w-6 h-6 rounded border"></div>
+                        <span class="text-sm text-slate-600 ml-2">Low → High</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Heatmap Container -->
+            <div class="card p-6">
+                <div id="activityHeatmap" class="overflow-x-auto">
+                    <p class="text-slate-500 text-center py-8">Loading activity heatmap...</p>
+                </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div class="card p-5">
+                    <p class="text-sm text-slate-500 mb-1">Total Actions</p>
+                    <p id="totalActions" class="text-2xl font-bold text-slate-800">-</p>
+                </div>
+                <div class="card p-5">
+                    <p class="text-sm text-slate-500 mb-1">Most Active Hour</p>
+                    <p id="peakHour" class="text-2xl font-bold text-slate-800">-</p>
+                </div>
+                <div class="card p-5">
+                    <p class="text-sm text-slate-500 mb-1">Average Daily Activity</p>
+                    <p id="avgDaily" class="text-2xl font-bold text-slate-800">-</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+let activityData = null;
+const userSelect = document.getElementById('userFilter');
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', () => {
+    loadCurrentUser();
+    loadActivityHeatmap();
+});
+
+// Load activity heatmap data
+async function loadActivityHeatmap() {
+    try {
+        const days = document.getElementById('timeRange').value;
+        const userFilter = userSelect.value;
+        
+        let url = `/api/admin/activity/heatmap?days=${days}`;
+        if (userFilter) {
+            url += `&user_id=${userFilter}`;
+        }
+
+        const resp = await apiFetch(url);
+        if (resp.ok) {
+            activityData = await resp.json();
+            renderHeatmap(activityData);
+            updateUserFilter(activityData.users);
+            updateStats(activityData);
+        }
+    } catch (e) {
+        console.error('Failed to load activity heatmap:', e);
+    }
+}
+
+// Render heatmap
+function renderHeatmap(data) {
+    const container = document.getElementById('activityHeatmap');
+    
+    if (!data || !data.heatmap || data.heatmap.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-8">No activity data available</p>';
+        return;
+    }
+
+    // Create heatmap grid
+    const heatmap = data.heatmap;
+    const hours = Array.from({length: 24}, (_, i) => i);
+    const dates = [...new Set(heatmap.map(item => item.date))].sort();
+
+    let html = '<table class="w-full border-collapse">';
+    
+    // Header row with dates
+    html += '<thead><tr><th class="p-2 text-xs text-slate-500">Hour</th>';
+    dates.forEach(date => {
+        const formattedDate = new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        html += `<th class="p-2 text-xs text-slate-500">${formattedDate}</th>`;
+    });
+    html += '</tr></thead>';
+
+    // Body rows with hours
+    html += '<tbody>';
+    hours.forEach(hour => {
+        html += `<tr><td class="p-2 text-xs font-medium text-slate-600">${hour}:00</td>`;
+        dates.forEach(date => {
+            const cellData = heatmap.find(item => item.date === date && item.hour === hour);
+            const count = cellData ? cellData.count : 0;
+            const intensityClass = getIntensityClass(count);
+            html += `<td class="p-1 text-center"><div class="heatmap-cell ${intensityClass} w-8 h-8 rounded text-xs flex items-center justify-center">${count > 0 ? count : ''}</div></td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+
+    container.innerHTML = html;
+}
+
+// Get intensity class based on count
+function getIntensityClass(count) {
+    if (count === 0) return 'heatmap-0';
+    if (count <= 2) return 'heatmap-1';
+    if (count <= 5) return 'heatmap-2';
+    if (count <= 10) return 'heatmap-3';
+    return 'heatmap-4';
+}
+
+// Update user filter dropdown
+function updateUserFilter(users) {
+    if (!users) return;
+    
+    // Save current selection
+    const currentValue = userSelect.value;
+    
+    // Clear existing options except the first one
+    while (userSelect.options.length > 1) {
+        userSelect.remove(1);
+    }
+    
+    // Add user options
+    users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = user.username;
+        userSelect.appendChild(option);
+    });
+    
+    // Restore selection
+    userSelect.value = currentValue;
+}
+
+// Update stats
+function updateStats(data) {
+    if (!data.stats) return;
+    
+    document.getElementById('totalActions').textContent = data.stats.total_actions || 0;
+    document.getElementById('peakHour').textContent = data.stats.peak_hour ? `${data.stats.peak_hour}:00` : '-';
+    document.getElementById('avgDaily').textContent = (data.stats.avg_daily || 0).toFixed(1);
+}
+</script>
+
+<style>
+.heatmap-cell {
+    transition: all 0.2s;
+}
+
+.heatmap-0 {
+    background-color: #f3f4f6;
+}
+
+.heatmap-1 {
+    background-color: #bfdbfe;
+}
+
+.heatmap-2 {
+    background-color: #60a5fa;
+}
+
+.heatmap-3 {
+    background-color: #2563eb;
+}
+
+.heatmap-4 {
+    background-color: #1d4ed8;
+    color: white;
+}
+
+.heatmap-cell-legend-0 {
+    background-color: #f3f4f6;
+}
+
+.heatmap-cell-legend-1 {
+    background-color: #bfdbfe;
+}
+
+.heatmap-cell-legend-2 {
+    background-color: #60a5fa;
+}
+
+.heatmap-cell-legend-3 {
+    background-color: #2563eb;
+}
+
+.heatmap-cell-legend-4 {
+    background-color: #1d4ed8;
+}
+</style>
+{% endblock %}

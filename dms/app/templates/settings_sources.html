@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block title %}Settings - Watch Sources{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/settings/sources" class="sidebar-link active">
+                <i class="fas fa-cog w-5 text-center"></i>
+                <span>Watch Sources</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Watch Sources Settings</h2>
+                    <p class="text-sm text-slate-500">Configure social media folder monitoring</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="addSource()" class="btn-primary">
+                        <i class="fas fa-plus mr-2"></i>Add Source
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Settings Content -->
+        <div class="p-6">
+            <!-- Watch Sources Table -->
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Social Media Watch Sources</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Name</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Path</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Status</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Auto-Rename</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Last Scanned</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sourcesTable">
+                            <tr>
+                                <td colspan="6" class="text-center py-8 text-slate-500">
+                                    Loading watch sources...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Social Media Configuration -->
+            <div class="card p-6 mt-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Social Media Configuration</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Base Folder</label>
+                        <input type="text" id="baseFolder" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Date Format</label>
+                        <input type="text" id="dateFormat" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" readonly>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Naming Template</label>
+                        <input type="text" id="namingTemplate" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" readonly>
+                        <p class="text-xs text-slate-500 mt-1">Template: {date}_{source}_{category}_{original_name}.pdf</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center">
+                    <input type="checkbox" id="createDailyFolders" class="mr-2">
+                    <label for="createDailyFolders" class="text-sm text-slate-700">Create daily folders automatically</label>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Source Modal -->
+    <div id="sourceModal" class="modal-overlay hidden">
+        <div class="modal-content max-w-md">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-800">Add Watch Source</h3>
+                <button onclick="closeSourceModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="sourceForm" onsubmit="saveSource(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Source Name</label>
+                        <input type="text" id="sourceName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Viber, WhatsApp">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Source Path</label>
+                        <input type="text" id="sourcePath" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="C:/Users/User/Documents/ViberDownloads">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                        <textarea id="sourceDescription" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="2" placeholder="Brief description of this source"></textarea>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="sourceEnabled" class="mr-2" checked>
+                        <label for="sourceEnabled" class="text-sm text-slate-700">Enable this source</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="sourceAutoRename" class="mr-2" checked>
+                        <label for="sourceAutoRename" class="text-sm text-slate-700">Auto-rename files</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="sourcePreserve" class="mr-2" checked>
+                        <label for="sourcePreserve" class="text-sm text-slate-700">Preserve original files</label>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeSourceModal()" class="btn-secondary flex-1">Cancel</button>
+                    <button type="submit" class="btn-primary flex-1">Save Source</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/utils.js"></script>
+<script>
+let currentEditingSource = null;
+
+async function loadWatchSources() {
+    try {
+        const resp = await apiFetch('/api/settings/sources');
+        const data = await resp.json();
+        renderSourcesTable(data.sources);
+    } catch (e) {
+        console.error('Failed to load watch sources:', e);
+        showToast('Failed to load watch sources', 'error');
+    }
+}
+
+function renderSourcesTable(sources) {
+    const tbody = document.getElementById('sourcesTable');
+    
+    if (!sources || sources.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-8 text-slate-500">
+                    No watch sources configured. Click "Add Source" to add one.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = sources.map(source => `
+        <tr class="border-b border-slate-100 table-row-hover">
+            <td class="py-3 px-4">
+                <div class="font-medium text-slate-800">${source.name}</div>
+                ${source.description ? `<div class="text-xs text-slate-500">${source.description}</div>` : ''}
+            </td>
+            <td class="py-3 px-4">
+                <code class="text-sm bg-slate-100 px-2 py-1 rounded">${source.path}</code>
+            </td>
+            <td class="py-3 px-4">
+                <span class="status-badge ${source.enabled ? 'status-approved' : 'status-unknown'}">
+                    ${source.enabled ? 'ENABLED' : 'DISABLED'}
+                </span>
+            </td>
+            <td class="py-3 px-4">
+                <span class="status-badge ${source.auto_rename ? 'status-approved' : 'status-unknown'}">
+                    ${source.auto_rename ? 'YES' : 'NO'}
+                </span>
+            </td>
+            <td class="py-3 px-4 text-sm text-slate-600">
+                ${source.last_scanned || 'Never'}
+            </td>
+            <td class="py-3 px-4">
+                <div class="flex items-center gap-2">
+                    <button onclick="editSource('${source.name}')" class="text-blue-600 hover:text-blue-800" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteSource('${source.name}')" class="text-red-600 hover:text-red-800" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function loadSocialMediaConfig() {
+    try {
+        const resp = await apiFetch('/api/settings/social-media-config');
+        const config = await resp.json();
+        
+        document.getElementById('baseFolder').value = config.base_folder;
+        document.getElementById('dateFormat').value = config.date_format;
+        document.getElementById('namingTemplate').value = config.naming_template;
+        document.getElementById('createDailyFolders').checked = config.create_daily_folders;
+    } catch (e) {
+        console.error('Failed to load social media config:', e);
+    }
+}
+
+function addSource() {
+    currentEditingSource = null;
+    document.getElementById('modalTitle').textContent = 'Add Watch Source';
+    document.getElementById('sourceForm').reset();
+    document.getElementById('sourceEnabled').checked = true;
+    document.getElementById('sourceAutoRename').checked = true;
+    document.getElementById('sourcePreserve').checked = true;
+    openModal('sourceModal');
+}
+
+function editSource(sourceName) {
+    currentEditingSource = sourceName;
+    document.getElementById('modalTitle').textContent = 'Edit Watch Source';
+    
+    // Find the source data (would need to be stored or fetched)
+    // For now, this is a simplified version
+    document.getElementById('sourceName').value = sourceName;
+    openModal('sourceModal');
+}
+
+async function saveSource(event) {
+    event.preventDefault();
+    
+    const sourceData = {
+        name: document.getElementById('sourceName').value,
+        path: document.getElementById('sourcePath').value,
+        description: document.getElementById('sourceDescription').value,
+        enabled: document.getElementById('sourceEnabled').checked,
+        auto_rename: document.getElementById('sourceAutoRename').checked,
+        preserve_original: document.getElementById('sourcePreserve').checked
+    };
+
+    try {
+        const url = currentEditingSource 
+            ? `/api/settings/sources/${currentEditingSource}`
+            : '/api/settings/sources';
+        
+        const method = currentEditingSource ? 'PUT' : 'POST';
+        
+        const resp = await apiFetch(url, {
+            method: method,
+            body: JSON.stringify(sourceData)
+        });
+
+        if (resp.ok) {
+            showToast(currentEditingSource ? 'Source updated successfully' : 'Source added successfully', 'success');
+            closeSourceModal();
+            loadWatchSources();
+        } else {
+            const error = await resp.json();
+            showToast(error.detail || 'Failed to save source', 'error');
+        }
+    } catch (e) {
+        console.error('Failed to save source:', e);
+        showToast('Failed to save source', 'error');
+    }
+}
+
+async function deleteSource(sourceName) {
+    if (!confirm(`Are you sure you want to delete the watch source "${sourceName}"?`)) {
+        return;
+    }
+
+    try {
+        const resp = await apiFetch(`/api/settings/sources/${sourceName}`, {
+            method: 'DELETE'
+        });
+
+        if (resp.ok) {
+            showToast('Source deleted successfully', 'success');
+            loadWatchSources();
+        } else {
+            const error = await resp.json();
+            showToast(error.detail || 'Failed to delete source', 'error');
+        }
+    } catch (e) {
+        console.error('Failed to delete source:', e);
+        showToast('Failed to delete source', 'error');
+    }
+}
+
+function closeSourceModal() {
+    closeModal('sourceModal');
+    currentEditingSource = null;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadCurrentUser();
+    loadWatchSources();
+    loadSocialMediaConfig();
+    initializeModals();
+});
+</script>
+
+<style>
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 32rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-approved {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-unknown {
+    background: #f3f4f6;
+    color: #374151;
+}
+</style>
+{% endblock %}

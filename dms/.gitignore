@@ -1,0 +1,86 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/*.log
+logs/*.json
+
+# Database
+*.db
+*.sqlite3
+
+# Office DMS data (except structure)
+Office_DMS/Original_Files/*
+Office_DMS/Watch_Folder/*
+Office_DMS/Processing_Workspace/*
+Office_DMS/Organized/*
+Office_DMS/Duplicate/*
+Office_DMS/Suspicious/*
+Office_DMS/backups/*
+!Office_DMS/**/.gitkeep
+
+# MinIO data
+minio_data/
+
+# React build
+app/static/react/
+
+# OS
+.DS_Store
+Thumbs.db

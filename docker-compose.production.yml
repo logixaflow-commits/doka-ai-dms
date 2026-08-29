@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dms-postgres
+    environment:
+      POSTGRES_DB: dms_db
+      POSTGRES_USER: dms_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dms_user -d dms_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - dms-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dms-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - dms-network
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: dms-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - dms-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./dms
+      dockerfile: Dockerfile.production
+    container_name: dms-backend
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://dms_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/dms_db
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_SECURE=false
+    volumes:
+      - ./dms:/app
+      - uploads:/app/uploads
+      - logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - dms-network
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./dms
+      dockerfile: Dockerfile.production
+    container_name: dms-celery-worker
+    command: celery -A app.core.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://dms_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/dms_db
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - ./dms:/app
+      - uploads:/app/uploads
+      - logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    restart: unless-stopped
+    networks:
+      - dms-network
+
+  # Celery Beat Scheduler
+  celery-beat:
+    build:
+      context: ./dms
+      dockerfile: Dockerfile.production
+    container_name: dms-celery-beat
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://dms_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/dms_db
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+    volumes:
+      - ./dms:/app
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - dms-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: dms-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - dms-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  uploads:
+  logs:
+
+networks:
+  dms-network:
+    driver: bridge

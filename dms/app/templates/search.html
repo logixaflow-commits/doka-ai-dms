@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}Search - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link active">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/sop" class="sidebar-link">
+                <i class="fas fa-tasks w-5 text-center"></i>
+                <span>SOP Tracker</span>
+            </a>
+            <a href="/reminders" class="sidebar-link">
+                <i class="fas fa-bell w-5 text-center"></i>
+                <span>Reminders</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Document Search</h2>
+                <p class="text-sm text-slate-500">Full-text search across all documents (including Myanmar text)</p>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="p-6">
+            <!-- Search Form -->
+            <div class="card p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Search Query</label>
+                        <div class="relative">
+                            <input type="text" id="searchQuery" 
+                                   class="w-full border border-slate-300 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Enter search terms (supports Myanmar: ခင်ဗျား)...">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Category</label>
+                        <select id="categoryFilter" class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Categories</option>
+                            <option value="Invoice">Invoice</option>
+                            <option value="BL">Bill of Lading</option>
+                            <option value="NRC">NRC</option>
+                            <option value="FDA">FDA</option>
+                            <option value="License">License</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                        <select id="statusFilter" class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="processing">Processing</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Date From</label>
+                        <input type="date" id="dateFrom" class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Date To</label>
+                        <input type="date" id="dateTo" class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="performSearch()" class="w-full btn-primary">
+                            <i class="fas fa-search mr-2"></i>Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">Search Results</h3>
+                    <span id="resultCount" class="text-sm text-slate-500">0 documents found</span>
+                </div>
+                
+                <div id="searchResults">
+                    <div class="text-center py-12 text-slate-500">
+                        <i class="fas fa-search text-4xl mb-4 text-slate-300"></i>
+                        <p>Enter search terms to find documents</p>
+                        <p class="text-sm mt-2">Supports full-text search including Myanmar language (မြန်မာ)</p>
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                <div id="searchPagination" class="hidden flex items-center justify-between mt-6">
+                    <div class="text-sm text-slate-500">
+                        Page <span id="searchPage">1</span> of <span id="searchTotalPages">-</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="previousSearchPage()" id="searchPrevButton" class="btn-secondary text-sm" disabled>
+                            <i class="fas fa-chevron-left mr-1"></i>Previous
+                        </button>
+                        <button onclick="nextSearchPage()" id="searchNextButton" class="btn-secondary text-sm" disabled>
+                            Next<i class="fas fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+let searchPage = 1;
+let searchPageSize = 20;
+let searchTotalPages = 1;
+let searchTimeout = null;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadUserInfo();
+    
+    // Instant search on input
+    const searchInput = document.getElementById('searchQuery');
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (searchInput.value.length >= 2) {
+                performSearch();
+            }
+        }, 500); // Debounce for 500ms
+    });
+    
+    // Enter key search
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+});
+
+// Load user info
+async function loadUserInfo() {
+    const user = await loadCurrentUser();
+    if (user) {
+        document.getElementById('userName').textContent = user.full_name || user.username;
+        document.getElementById('userRole').textContent = user.role.toUpperCase();
+    }
+}
+
+// Perform search
+async function performSearch() {
+    const query = document.getElementById('searchQuery').value;
+    const category = document.getElementById('categoryFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+    
+    const resultsDiv = document.getElementById('searchResults');
+    resultsDiv.innerHTML = '<div class="text-center py-8"><i class="fas fa-circle-notch fa-spin text-blue-500 text-2xl"></i><p class="text-slate-500 mt-2">Searching...</p></div>';
+    
+    try {
+        // Build search parameters
+        const params = new URLSearchParams({
+            page: searchPage,
+            page_size: searchPageSize,
+            sort_by: 'created_at',
+            sort_order: 'desc'
+        });
+        
+        if (query) params.append('query', query);
+        if (category) params.append('category', category);
+        if (status) params.append('status', status);
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        
+        const resp = await apiFetch(`/api/search?${params.toString()}`);
+        
+        if (resp.ok) {
+            const data = await resp.json();
+            renderSearchResults(data.items);
+            updateSearchPagination(data);
+        } else {
+            resultsDiv.innerHTML = '<div class="text-center py-8 text-red-500">Search failed. Please try again.</div>';
+        }
+    } catch (e) {
+        console.error('Search error', e);
+        resultsDiv.innerHTML = '<div class="text-center py-8 text-red-500">Search failed. Please try again.</div>';
+    }
+}
+
+// Render search results
+function renderSearchResults(documents) {
+    const resultsDiv = document.getElementById('searchResults');
+    const countEl = document.getElementById('resultCount');
+    
+    if (!documents || documents.length === 0) {
+        resultsDiv.innerHTML = `
+            <div class="text-center py-12 text-slate-500">
+                <i class="fas fa-search-minus text-4xl mb-4 text-slate-300"></i>
+                <p>No documents found</p>
+                <p class="text-sm mt-2">Try adjusting your search criteria</p>
+            </div>
+        `;
+        countEl.textContent = '0 documents found';
+        return;
+    }
+    
+    countEl.textContent = `${documents.length} documents found`;
+    
+    resultsDiv.innerHTML = documents.map(doc => `
+        <div class="border-b border-slate-200 hover:bg-slate-50 p-4 transition-colors">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 rounded bg-blue-100 flex items-center justify-center">
+                            <i class="fas fa-file-pdf text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-slate-800 hover:text-blue-600 cursor-pointer" onclick="viewDocument(${doc.id})">
+                                ${doc.original_filename}
+                            </h4>
+                            <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                <span>${formatFileSize(doc.file_size)}</span>
+                                <span>•</span>
+                                <span>${formatDate(doc.created_at)}</span>
+                                <span>•</span>
+                                <span>${doc.uploader_name || 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 mt-2">
+                        <span class="text-xs text-slate-500">Category: <span class="font-medium">${doc.category || 'Unknown'}</span></span>
+                        ${statusBadge(doc.status)}
+                        ${doc.confidence ? `<span class="text-xs text-slate-500">Confidence: ${(doc.confidence * 100).toFixed(0)}%</span>` : ''}
+                    </div>
+                    ${doc.ocr_text_preview ? `
+                        <p class="text-sm text-slate-600 mt-2 line-clamp-2">${doc.ocr_text_preview}</p>
+                    ` : ''}
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="viewDocument(${doc.id})" class="btn-secondary text-sm">
+                        <i class="fas fa-eye mr-1"></i>View
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update search pagination
+function updateSearchPagination(data) {
+    searchTotalPages = data.pages;
+    document.getElementById('searchPage').textContent = searchPage;
+    document.getElementById('searchTotalPages').textContent = searchTotalPages;
+    
+    const paginationEl = document.getElementById('searchPagination');
+    if (searchTotalPages > 1) {
+        paginationEl.classList.remove('hidden');
+    } else {
+        paginationEl.classList.add('hidden');
+    }
+    
+    document.getElementById('searchPrevButton').disabled = searchPage <= 1;
+    document.getElementById('searchNextButton').disabled = searchPage >= searchTotalPages;
+}
+
+// Search pagination
+function previousSearchPage() {
+    if (searchPage > 1) {
+        searchPage--;
+        performSearch();
+    }
+}
+
+function nextSearchPage() {
+    if (searchPage < searchTotalPages) {
+        searchPage++;
+        performSearch();
+    }
+}
+
+// View document
+function viewDocument(docId) {
+    window.location.href = `/documents/${docId}`;
+}
+</script>
+{% endblock %}

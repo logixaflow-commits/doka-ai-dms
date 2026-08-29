@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+{% block title %}Pending Review - Enterprise DMS{% endblock %}
+{% block body %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar flex flex-col flex-shrink-0">
+        <div class="p-5 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Enterprise DMS</h1>
+                    <p class="text-xs text-slate-400">v2.0.0</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <a href="/dashboard" class="sidebar-link">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/documents/pending" class="sidebar-link active">
+                <i class="fas fa-inbox w-5 text-center"></i>
+                <span>Pending Review</span>
+            </a>
+            <a href="/search" class="sidebar-link">
+                <i class="fas fa-search w-5 text-center"></i>
+                <span>Search</span>
+            </a>
+            <a href="/sop" class="sidebar-link">
+                <i class="fas fa-tasks w-5 text-center"></i>
+                <span>SOP Tracker</span>
+            </a>
+            <a href="/reminders" class="sidebar-link">
+                <i class="fas fa-bell w-5 text-center"></i>
+                <span>Reminders</span>
+            </a>
+            <a href="/audit" class="sidebar-link admin-only" style="display:none;">
+                <i class="fas fa-clipboard-list w-5 text-center"></i>
+                <span>Audit Log</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="userName" class="text-sm font-medium text-white truncate">Loading...</p>
+                    <p id="userRole" class="text-xs text-slate-400 truncate">-</p>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-white transition-colors" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Pending Documents</h2>
+                    <p class="text-sm text-slate-500">Review and classify documents</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="statusFilter" onchange="loadPendingDocuments()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="review">Review</option>
+                        <option value="unknown">Unknown</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending_review">Social Media Review</option>
+                    </select>
+                    <select id="sourceFilter" onchange="loadPendingDocuments()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">All Sources</option>
+                        <option value="Viber">Viber</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="Telegram">Telegram</option>
+                        <option value="null">Main Watch Folder</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="p-6">
+            <!-- Bulk Actions Bar -->
+            <div class="card p-4 mb-6 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="selectAllPending" onchange="toggleSelectAllPending()">
+                    <span class="text-sm text-slate-600">Select All</span>
+                    <span id="selectedCount" class="text-sm text-blue-600 font-medium hidden">0 selected</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="bulkApprovePending()" class="btn-primary text-sm">
+                        <i class="fas fa-check mr-1"></i>Bulk Approve
+                    </button>
+                    <button onclick="bulkRejectPending()" class="btn-secondary text-sm">
+                        <i class="fas fa-times mr-1"></i>Bulk Reject
+                    </button>
+                </div>
+            </div>
+
+            <!-- Documents Table -->
+            <div class="card p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">
+                                    <input type="checkbox" id="selectAllTable" onchange="toggleSelectAllPending()">
+                                </th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Document</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Category</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Confidence</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Status</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Uploaded By</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Created</th>
+                                <th class="text-left py-3 px-4 text-sm font-medium text-slate-600">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTable">
+                            <tr>
+                                <td colspan="8" class="py-8 text-center text-slate-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex items-center justify-between mt-6">
+                    <div class="text-sm text-slate-500">
+                        Page <span id="currentPage">1</span> of <span id="totalPages">-</span>
+                        (<span id="totalRecords">-</span> total)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="previousPage()" id="prevButton" class="btn-secondary text-sm" disabled>
+                            <i class="fas fa-chevron-left mr-1"></i>Previous
+                        </button>
+                        <button onclick="nextPage()" id="nextButton" class="btn-secondary text-sm" disabled>
+                            Next<i class="fas fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Bulk Reject Modal -->
+<div id="bulkRejectModal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Bulk Reject Documents</h3>
+            <button onclick="closeBulkRejectModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Rejection Reason</label>
+            <textarea id="bulkRejectReason" class="w-full border border-slate-300 rounded-lg p-3" rows="3" placeholder="Enter rejection reason..."></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button onclick="closeBulkRejectModal()" class="btn-secondary">Cancel</button>
+            <button onclick="confirmBulkReject()" class="btn-primary">Confirm Reject</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedPendingDocs = new Set();
+let currentPage = 1;
+let pageSize = 20;
+let totalPages = 1;
+let totalRecords = 0;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadUserInfo();
+    await loadPendingDocuments();
+});
+
+// Load user info
+async function loadUserInfo() {
+    const user = await loadCurrentUser();
+    if (user) {
+        document.getElementById('userName').textContent = user.full_name || user.username;
+        document.getElementById('userRole').textContent = user.role.toUpperCase();
+        if (user.role === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+        }
+    }
+}
+
+// Load pending documents with pagination
+async function loadPendingDocuments() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    try {
+        let url = `/api/documents/pending?page=${currentPage}&page_size=${pageSize}`;
+        if (statusFilter) {
+            url = `/api/documents?status=${statusFilter}&page=${currentPage}&page_size=${pageSize}`;
+        }
+        
+        const resp = await apiFetch(url);
+        if (resp.ok) {
+            const data = await resp.json();
+            renderPendingTable(data.items);
+            updatePagination(data);
+        }
+    } catch (e) {
+        console.error('Failed to load pending documents', e);
+        document.getElementById('pendingTable').innerHTML = '<tr><td colspan="8" class="py-8 text-center text-red-500">Failed to load documents</td></tr>';
+    }
+}
+
+// Render pending documents table
+function renderPendingTable(documents) {
+    const tbody = document.getElementById('pendingTable');
+    
+    if (!documents || documents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">No documents found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = documents.map(doc => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="py-3 px-4">
+                <input type="checkbox" class="pending-checkbox" data-id="${doc.id}" onchange="togglePendingSelection(${doc.id})">
+            </td>
+            <td class="py-3 px-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-file-pdf text-blue-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-800 truncate max-w-xs">${doc.original_filename}</p>
+                        <p class="text-xs text-slate-500">${formatFileSize(doc.file_size)}</p>
+                    </div>
+                </div>
+            </td>
+            <td class="py-3 px-4 text-sm text-slate-600">${doc.category || 'Unknown'}</td>
+            <td class="py-3 px-4">
+                <div class="flex items-center gap-2">
+                    <div class="progress-bar w-24">
+                        <div class="progress-fill ${doc.confidence >= 0.85 ? 'bg-emerald-500' : doc.confidence >= 0.7 ? 'bg-amber-500' : 'bg-red-500'}" 
+                             style="width: ${(doc.confidence || 0) * 100}%"></div>
+                    </div>
+                    <span class="text-xs text-slate-500">${((doc.confidence || 0) * 100).toFixed(0)}%</span>
+                </div>
+            </td>
+            <td class="py-3 px-4">${statusBadge(doc.status)}</td>
+            <td class="py-3 px-4 text-sm text-slate-600">${doc.uploader_name || 'Unknown'}</td>
+            <td class="py-3 px-4 text-sm text-slate-600">${formatDate(doc.created_at)}</td>
+            <td class="py-3 px-4">
+                <a href="/documents/${doc.id}" class="text-blue-600 hover:text-blue-800 text-sm mr-3">
+                    <i class="fas fa-eye mr-1"></i>View
+                </a>
+            </td>
+        </tr>
+    `).join('');
+    
+    // Restore selections
+    selectedPendingDocs.forEach(id => {
+        const checkbox = document.querySelector(`.pending-checkbox[data-id="${id}"]`);
+        if (checkbox) checkbox.checked = true;
+    });
+    
+    updateSelectAllState();
+}
+
+// Update pagination
+function updatePagination(data) {
+    totalPages = data.pages;
+    totalRecords = data.total;
+    
+    document.getElementById('currentPage').textContent = currentPage;
+    document.getElementById('totalPages').textContent = totalPages;
+    document.getElementById('totalRecords').textContent = totalRecords;
+    
+    document.getElementById('prevButton').disabled = currentPage <= 1;
+    document.getElementById('nextButton').disabled = currentPage >= totalPages;
+}
+
+// Toggle pending document selection
+function togglePendingSelection(docId) {
+    if (selectedPendingDocs.has(docId)) {
+        selectedPendingDocs.delete(docId);
+    } else {
+        selectedPendingDocs.add(docId);
+    }
+    updateSelectAllState();
+    updateSelectedCount();
+}
+
+// Toggle select all pending
+function toggleSelectAllPending() {
+    const selectAll = document.getElementById('selectAllPending') || document.getElementById('selectAllTable');
+    const checkboxes = document.querySelectorAll('.pending-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+        const docId = parseInt(cb.dataset.id);
+        if (selectAll.checked) {
+            selectedPendingDocs.add(docId);
+        } else {
+            selectedPendingDocs.delete(docId);
+        }
+    });
+    
+    updateSelectedCount();
+}
+
+// Update select all state
+function updateSelectAllState() {
+    const checkboxes = document.querySelectorAll('.pending-checkbox');
+    const selectAll = document.getElementById('selectAllPending') || document.getElementById('selectAllTable');
+    
+    const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+    const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+    
+    selectAll.checked = allChecked;
+    selectAll.indeterminate = someChecked && !allChecked;
+}
+
+// Update selected count
+function updateSelectedCount() {
+    const countEl = document.getElementById('selectedCount');
+    if (selectedPendingDocs.size > 0) {
+        countEl.textContent = `${selectedPendingDocs.size} selected`;
+        countEl.classList.remove('hidden');
+    } else {
+        countEl.classList.add('hidden');
+    }
+}
+
+// Pagination
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        selectedPendingDocs.clear();
+        loadPendingDocuments();
+    }
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        selectedPendingDocs.clear();
+        loadPendingDocuments();
+    }
+}
+
+// Bulk approve pending
+async function bulkApprovePending() {
+    if (selectedPendingDocs.size === 0) {
+        showToast('Please select documents to approve', 'warning');
+        return;
+    }
+    
+    try {
+        const resp = await apiFetch('/api/documents/bulk/approve', {
+            method: 'POST',
+            body: JSON.stringify({
+                document_ids: Array.from(selectedPendingDocs),
+                target_folder: 'Approved'
+            })
+        });
+        
+        if (resp.ok) {
+            const result = await resp.json();
+            showToast(`Approved ${result.success_count} documents successfully`);
+            selectedPendingDocs.clear();
+            loadPendingDocuments();
+        } else {
+            showToast('Failed to approve documents', 'error');
+        }
+    } catch (e) {
+        console.error('Bulk approve error', e);
+        showToast('Failed to approve documents', 'error');
+    }
+}
+
+// Bulk reject pending
+function bulkRejectPending() {
+    if (selectedPendingDocs.size === 0) {
+        showToast('Please select documents to reject', 'warning');
+        return;
+    }
+    document.getElementById('bulkRejectModal').classList.remove('hidden');
+}
+
+function closeBulkRejectModal() {
+    document.getElementById('bulkRejectModal').classList.add('hidden');
+    document.getElementById('bulkRejectReason').value = '';
+}
+
+async function confirmBulkReject() {
+    const reason = document.getElementById('bulkRejectReason').value.trim();
+    if (!reason) {
+        showToast('Please provide a rejection reason', 'warning');
+        return;
+    }
+    
+    try {
+        const resp = await apiFetch('/api/documents/bulk/reject', {
+            method: 'POST',
+            body: JSON.stringify({
+                document_ids: Array.from(selectedPendingDocs),
+                reason: reason
+            })
+        });
+        
+        if (resp.ok) {
+            const result = await resp.json();
+            showToast(`Rejected ${result.success_count} documents successfully`);
+            closeBulkRejectModal();
+            selectedPendingDocs.clear();
+            loadPendingDocuments();
+        } else {
+            showToast('Failed to reject documents', 'error');
+        }
+    } catch (e) {
+        console.error('Bulk reject error', e);
+        showToast('Failed to reject documents', 'error');
+    }
+}
+</script>
+{% endblock %}
