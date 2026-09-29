@@ -56,7 +56,12 @@ export default function WorkspaceReview() {
   const [ocrStatus, setOcrStatus] = useState<any>(null);
   const [backupStatus, setBackupStatus] = useState<string>('');
   const [sessions, setSessions] = useState<any[]>([]);
+  const [showReviewOnly, setShowReviewOnly] = useState(false);
 
+  const visibleProposals = useMemo(
+    () => showReviewOnly ? proposals.filter(p => p.action.startsWith('review')) : proposals,
+    [proposals, showReviewOnly]
+  );
   const selectedCount = selected.size;
   const reviewCount = useMemo(() => proposals.filter(p => p.action.startsWith('review')).length, [proposals]);
 
@@ -269,7 +274,11 @@ export default function WorkspaceReview() {
                 <span>Failed: <strong>{status?.files_failed || 0}</strong></span>
               </div>
               <div className="h-2 rounded bg-slate-100 overflow-hidden"><div className="h-full bg-blue-600" style={{ width: `${Math.round((status?.progress || 0) * 100)}%` }} /></div>
-              <div className="flex flex-wrap gap-2">
+              <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={showReviewOnly} onCheckedChange={(v) => setShowReviewOnly(Boolean(v))} />
+            Show manual-review items only ({reviewCount})
+          </label>
+          <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => runStep('scan')} disabled={busy || status?.state === 'running'}>Scan Copy</Button>
                 <Button variant="outline" onClick={() => runStep('understand')} disabled={busy || status?.state === 'running'}>Read / OCR</Button>
                 <Button onClick={() => runStep('plan')} disabled={busy || status?.state === 'running'}>Build Review Plan</Button>
