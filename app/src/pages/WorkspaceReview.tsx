@@ -314,7 +314,7 @@ export default function WorkspaceReview() {
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle>3. Review organization proposals</CardTitle>
-                  <div className="text-sm text-slate-500">{selectedCount} selected · {reviewCount} need review</div>
+                  <div className="text-sm text-slate-500">{selectedCount} selected · {reviewCount} need review · showing {visibleProposals.length}</div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -327,7 +327,7 @@ export default function WorkspaceReview() {
                   <table className="w-full text-sm">
                     <thead><tr className="border-b text-left"><th className="p-2">✓</th><th className="p-2">File</th><th className="p-2">Action</th><th className="p-2">Confidence</th><th className="p-2">Reason</th><th className="p-2">Target</th></tr></thead>
                     <tbody>
-                      {proposals.map(p => (
+                      {visibleProposals.map(p => (
                         <tr key={p.relative_path} className="border-b align-top">
                           <td className="p-2"><Checkbox checked={selected.has(p.relative_path)} onCheckedChange={() => toggle(p.relative_path)} /></td>
                           <td className="p-2 max-w-[260px] break-all">{p.relative_path}</td>
