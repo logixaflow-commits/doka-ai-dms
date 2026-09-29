@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from app.core.config import settings
-from app.services.safe_workspace_service import safe_workspace_service
+from app.services.safe_workspace_service import safe_workspace_service, sha256_file
 
 
 BUILTIN_KEYWORDS = {
@@ -143,9 +143,9 @@ class OrganizationPlanner:
                 source.relative_to(root)
                 target = (final_root / proposal["target"].split("/", 1)[1]).resolve()
                 target.parent.mkdir(parents=True, exist_ok=True)
-                source_hash = __import__("hashlib").sha256(source.read_bytes()).hexdigest()
+                source_hash = sha256_file(source)
                 if target.exists():
-                    target_hash = __import__("hashlib").sha256(target.read_bytes()).hexdigest()
+                    target_hash = sha256_file(target)
                     if target_hash == source_hash:
                         result = {"relative_path": rel, "status": "already_present", "target": str(target), "sha256": source_hash}
                     else:
