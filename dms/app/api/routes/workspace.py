@@ -34,6 +34,15 @@ async def resume_import(session_id: str, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.post("/imports/{session_id}/understand")
+async def understand_import(session_id: str):
+    try:
+        from app.services.document_understanding_service import document_understanding_service
+        return document_understanding_service.analyze(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/imports/{session_id}/scan")
 async def scan_import(session_id: str):
     try:
