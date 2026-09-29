@@ -58,6 +58,14 @@ async def verify_backup(archive_name: str):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/backups/restore")
+async def restore_backup(archive_name: str):
+    try:
+        return workspace_backup_service.restore_to_recovery(archive_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/backups/prune")
 async def prune_backups():
     return workspace_backup_service.prune()
