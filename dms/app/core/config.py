@@ -367,9 +367,9 @@ class Settings:
         if self.STORAGE_TYPE == "local" and not self.MINIO_ENABLED:
             logger.info("Using local storage (MinIO disabled)")
 
-        # Safety boundary for the personal local workflow.
-        # The source tree must never overlap the writable workspace.
-        if self.SOURCE_ROOT and self.ORIGINAL_READ_ONLY and not self.ALLOW_SOURCE_WRITE:
+        # Personal mode safety boundary: SOURCE_ROOT is always treated as read-only,
+        # and every writable organization/quarantine path must stay inside WORKING_ROOT.
+        if self.SOURCE_ROOT:
             source = self.SOURCE_ROOT.resolve()
             working = self.WORKING_ROOT.resolve()
             try:
@@ -378,13 +378,16 @@ class Settings:
                 overlap = source == working or str(working).startswith(str(source) + os.sep) or str(source).startswith(str(working) + os.sep)
             if overlap:
                 raise ValueError(f"Unsafe workspace configuration: SOURCE_ROOT ({source}) and WORKING_ROOT ({working}) overlap.")
-            for writable_root in (self.FINAL_ROOT, self.QUARANTINE_ROOT):
-                try:
-                    inside = writable_root.resolve().is_relative_to(working)
-                except AttributeError:
-                    inside = str(writable_root.resolve()).startswith(str(working) + os.sep)
-                if not inside:
-                    raise ValueError(f"Unsafe workspace configuration: {writable_root} must be inside WORKING_ROOT ({working}).")
+            if self.ALLOW_SOURCE_WRITE:
+                raise ValueError("Unsafe workspace configuration: ALLOW_SOURCE_WRITE must remain false in personal local mode.")
+        working = self.WORKING_ROOT.resolve()
+        for writable_root in (self.FINAL_ROOT, self.QUARANTINE_ROOT):
+            try:
+                inside = writable_root.resolve().is_relative_to(working)
+            except AttributeError:
+                inside = str(writable_root.resolve()).startswith(str(working) + os.sep)
+            if not inside:
+                raise ValueError(f"Unsafe workspace configuration: {writable_root} must be inside WORKING_ROOT ({working}).")
 
         # Ensure directories exist
         for path_attr in ["WATCH_FOLDER", "PROCESSING_WORKSPACE", "ORGANIZED_ROOT",
