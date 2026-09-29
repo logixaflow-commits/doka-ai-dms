@@ -134,11 +134,23 @@ class Settings:
 
         # Paths
         base_path = Path(__file__).resolve().parent.parent.parent
-        self.WATCH_FOLDER = Path(os.getenv("WATCH_FOLDER", str(base_path / "Office_DMS" / "Watch_Folder")))
-        self.PROCESSING_WORKSPACE = Path(os.getenv("PROCESSING_WORKSPACE", str(base_path / "Office_DMS" / "Processing_Workspace")))
-        self.ORGANIZED_ROOT = Path(os.getenv("ORGANIZED_ROOT", str(base_path / "Office_DMS" / "Organized")))
-        self.DUPLICATE_FOLDER = Path(os.getenv("DUPLICATE_FOLDER", str(base_path / "Office_DMS" / "Duplicate")))
-        self.SUSPICIOUS_FOLDER = Path(os.getenv("SUSPICIOUS_FOLDER", str(base_path / "Office_DMS" / "Suspicious")))
+        # Personal/local safety model: the original source is read-only; all write operations
+        # are expected to stay inside the working workspace. The future D: drive scanner will
+        # copy the source into SOURCE_ROOT/WORKING_ROOT before any organization step.
+        self.SOURCE_ROOT = Path(os.getenv("SOURCE_ROOT", "")) if os.getenv("SOURCE_ROOT") else None
+        self.WORKING_ROOT = Path(os.getenv("WORKING_ROOT", str(base_path / "Office_DMS" / "Workspace")))
+        self.FINAL_ROOT = Path(os.getenv("FINAL_ROOT", str(self.WORKING_ROOT / "Final")))
+        self.QUARANTINE_ROOT = Path(os.getenv("QUARANTINE_ROOT", str(self.WORKING_ROOT / "Quarantine")))
+        self.BACKUP_ROOT = Path(os.getenv("BACKUP_ROOT", str(base_path / "Office_DMS" / "Backups")))
+        self.ORIGINAL_READ_ONLY = os.getenv("ORIGINAL_READ_ONLY", "true").lower() == "true"
+        self.ALLOW_SOURCE_WRITE = os.getenv("ALLOW_SOURCE_WRITE", "false").lower() == "true"
+
+        # Backward-compatible aliases used by existing services.
+        self.WATCH_FOLDER = Path(os.getenv("WATCH_FOLDER", str(self.WORKING_ROOT / "Watch_Folder")))
+        self.PROCESSING_WORKSPACE = Path(os.getenv("PROCESSING_WORKSPACE", str(self.WORKING_ROOT / "Processing_Workspace")))
+        self.ORGANIZED_ROOT = Path(os.getenv("ORGANIZED_ROOT", str(self.FINAL_ROOT)))
+        self.DUPLICATE_FOLDER = Path(os.getenv("DUPLICATE_FOLDER", str(self.WORKING_ROOT / "Duplicates")))
+        self.SUSPICIOUS_FOLDER = Path(os.getenv("SUSPICIOUS_FOLDER", str(self.QUARANTINE_ROOT / "Suspicious")))
         self.LOG_DIR = Path(os.getenv("LOG_DIR", str(base_path / "logs")))
 
         # Social Media Watch Paths (Optional overrides)
@@ -181,15 +193,23 @@ class Settings:
         self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
         self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")
+        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
         self.HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
         self.HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
         self.OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-        self.OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "anthropic/claude-3-haiku")
+        self.OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-        self.GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+        self.AI_ENABLED = os.getenv("AI_ENABLED", "false").lower() == "true"
         self.AI_ENHANCED_DUPLICATE_DETECTION = os.getenv("AI_ENHANCED_DUPLICATE_DETECTION", "false").lower() == "true"
         self.AI_CLASSIFICATION_ENABLED = os.getenv("AI_CLASSIFICATION_ENABLED", "false").lower() == "true"
+        self.AI_PROVIDER_ORDER = [
+            p.strip().lower() for p in os.getenv(
+                "AI_PROVIDER_ORDER", "gemini,openrouter,groq,openai"
+            ).split(",") if p.strip()
+        ]
+        self.AI_PROVIDER_MAX_ATTEMPTS = int(os.getenv("AI_PROVIDER_MAX_ATTEMPTS", "0"))
+        self.AI_PROVIDER_TIMEOUT_SECONDS = float(os.getenv("AI_PROVIDER_TIMEOUT_SECONDS", "30"))
 
         # Railway-specific settings
         self.MINIO_ENABLED = os.getenv("MINIO_ENABLED", "true").lower() == "true"
