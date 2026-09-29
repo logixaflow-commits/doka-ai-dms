@@ -94,6 +94,16 @@ async def import_status(session_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.get("/imports/{session_id}/search")
+async def search_import(session_id: str, q: str, limit: int = 100):
+    if not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="Invalid limit.")
+    try:
+        return safe_workspace_service.search(session_id, q, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.get("/imports/{session_id}/inventory")
 async def import_inventory(session_id: str, limit: int = 500, offset: int = 0):
     if not 1 <= limit <= 5000 or offset < 0:
