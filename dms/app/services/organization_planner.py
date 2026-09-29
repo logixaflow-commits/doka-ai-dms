@@ -112,4 +112,71 @@ class OrganizationPlanner:
         return {k: v for k, v in plan.items() if k != "proposals"}
 
 
+    def apply(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
+        if not approved_paths:
+            raise ValueError("No approved files were supplied.")
+        plan = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "organization_plan.json"))
+        manifest = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "manifest.json"))
+        if not plan or not manifest:
+            raise ValueError("Organization plan is not available.")
+        if not plan.get("requires_user_approval") or plan.get("organization_allowed") is not False:
+            raise ValueError("Invalid organization plan state.")
+
+        approved = set(approved_paths)
+        proposals = {p["relative_path"]: p for p in plan.get("proposals", [])}
+        root = Path(manifest["working_copy"]).resolve()
+        final_root = settings.FINAL_ROOT.resolve()
+        final_root.mkdir(parents=True, exist_ok=True)
+        audit_path = safe_workspace_service._dir(session_id) / "organization_audit.jsonl"
+        results = []
+
+        for rel in approved:
+            proposal = proposals.get(rel)
+            if not proposal:
+                results.append({"relative_path": rel, "status": "rejected", "reason": "Not in generated plan"})
+                continue
+            source = (root / rel).resolve()
+            if not source.is_file():
+                results.append({"relative_path": rel, "status": "failed", "reason": "Working-copy file missing"})
+                continue
+            try:
+                source.relative_to(root)
+                target = (final_root / proposal["target"].split("/", 1)[1]).resolve()
+                target.parent.mkdir(parents=True, exist_ok=True)
+                source_hash = __import__("hashlib").sha256(source.read_bytes()).hexdigest()
+                if target.exists():
+                    target_hash = __import__("hashlib").sha256(target.read_bytes()).hexdigest()
+                    if target_hash == source_hash:
+                        result = {"relative_path": rel, "status": "already_present", "target": str(target), "sha256": source_hash}
+                    else:
+                        result = {"relative_path": rel, "status": "conflict", "target": str(target), "sha256": source_hash}
+                else:
+                    import shutil
+                    shutil.copy2(source, target)
+                    target_hash = __import__("hashlib").sha256(target.read_bytes()).hexdigest()
+                    if target_hash != source_hash:
+                        target.unlink(missing_ok=True)
+                        raise IOError("Final copy SHA-256 verification failed")
+                    result = {"relative_path": rel, "status": "copied", "target": str(target), "sha256": source_hash}
+            except Exception as exc:
+                result = {"relative_path": rel, "status": "failed", "reason": str(exc)}
+
+            with audit_path.open("a", encoding="utf-8") as audit:
+                audit.write(json.dumps({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "session_id": session_id,
+                    "action": "COPY_TO_FINAL",
+                    **result,
+                }, ensure_ascii=False) + "\n")
+            results.append(result)
+
+        return {
+            "session_id": session_id,
+            "approved_count": len(approved),
+            "results": results,
+            "source_copy_preserved": True,
+            "source_root_modified": False,
+        }
+
+
 organization_planner = OrganizationPlanner()
