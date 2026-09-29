@@ -161,8 +161,8 @@ For access from another location, do not expose the FastAPI/React server directl
 Target flow:
 
 Office browser
-→ private secure connection
-→ home PC DMS web server
+→ private secure connection (VPN/secure tunnel)
+→ home PC React web server
 → local API
 → local database + local files
 
@@ -175,3 +175,17 @@ Viewing metadata should not require copying the whole D: drive. A document downl
 ### Future cloud mode
 
 When the personal edition is stable, the same frontend/API contracts can be moved to Vercel + Render + Supabase/object storage without deleting the local mode. Local and cloud storage should remain separate adapters behind the same document/storage interfaces.
+
+
+## Recommended personal web setup
+
+For development/testing on the home PC:
+
+1. Start FastAPI on the home PC at port 8000.
+2. Start the React app with `npm run dev:network` so it listens on the private network interface.
+3. Use a private VPN/overlay such as Tailscale between the home PC and office device.
+4. From the office browser, open the home PC's private VPN address on port 3000.
+5. Keep the FastAPI API behind the Vite proxy; do not publish port 8000 directly.
+6. Do not port-forward 3000/8000 from the home router during the personal phase.
+
+The repository keeps both local and web code. Nothing is removed merely because a feature is not currently needed; advanced modules remain available for later activation.
