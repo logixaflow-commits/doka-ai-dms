@@ -374,6 +374,8 @@ class Settings:
 
         # Personal mode safety boundary: SOURCE_ROOT is always treated as read-only,
         # and every writable organization/quarantine path must stay inside WORKING_ROOT.
+        if self.ALLOW_SOURCE_WRITE:
+            raise ValueError("Unsafe workspace configuration: ALLOW_SOURCE_WRITE must remain false in personal local mode.")
         if self.SOURCE_ROOT:
             source = self.SOURCE_ROOT.resolve()
             working = self.WORKING_ROOT.resolve()
@@ -383,8 +385,6 @@ class Settings:
                 overlap = source == working or str(working).startswith(str(source) + os.sep) or str(source).startswith(str(working) + os.sep)
             if overlap:
                 raise ValueError(f"Unsafe workspace configuration: SOURCE_ROOT ({source}) and WORKING_ROOT ({working}) overlap.")
-            if self.ALLOW_SOURCE_WRITE:
-                raise ValueError("Unsafe workspace configuration: ALLOW_SOURCE_WRITE must remain false in personal local mode.")
         working = self.WORKING_ROOT.resolve()
         backup = self.BACKUP_ROOT.resolve()
         if backup == working or backup.is_relative_to(working):
