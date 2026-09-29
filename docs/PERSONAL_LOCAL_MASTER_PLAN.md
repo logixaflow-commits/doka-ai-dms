@@ -189,3 +189,17 @@ For development/testing on the home PC:
 6. Do not port-forward 3000/8000 from the home router during the personal phase.
 
 The repository keeps both local and web code. Nothing is removed merely because a feature is not currently needed; advanced modules remain available for later activation.
+
+
+## External Services / Deployment Boundary
+
+The personal edition keeps the data plane local. External services are integration targets, not required dependencies for local operation.
+
+- **Vercel**: React/Vite web frontend deployment target only; do not move the local document data plane to Vercel.
+- **Render**: optional future remote FastAPI/worker deployment for a cloud edition; not required for the personal local edition.
+- **Supabase**: optional future managed PostgreSQL/auth/storage target; do not migrate the local SQLite/workspace until the personal edition is stable.
+- **Sentry**: recommended optional error monitoring integration; must never receive document contents, OCR text, file paths containing sensitive names, or secrets.
+- **Private VPN**: required before office-to-home browser access; prefer a private network such as Tailscale rather than public port forwarding.
+- **AI providers**: optional and disabled by default; provider order remains configurable and AI must not perform destructive filesystem operations without explicit user approval.
+
+Integration rule: all external services must fail closed for the local data plane. The DMS must remain usable without Vercel, Render, Supabase, Sentry, or AI provider credentials.
