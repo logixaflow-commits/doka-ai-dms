@@ -179,4 +179,35 @@ class OrganizationPlanner:
         }
 
 
+    def undo(self, session_id: str) -> Dict[str, Any]:
+        audit_path = safe_workspace_service._dir(session_id) / "organization_audit.jsonl"
+        if not audit_path.exists():
+            raise ValueError("No organization audit journal exists.")
+        results = []
+        for line in audit_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            if entry.get("action") != "COPY_TO_FINAL" or entry.get("status") != "copied":
+                continue
+            target = Path(entry["target"]).resolve()
+            if not target.exists():
+                results.append({"target": str(target), "status": "already_missing"})
+                continue
+            try:
+                if sha256_file(target) != entry.get("sha256"):
+                    results.append({"target": str(target), "status": "skipped_changed_since_apply"})
+                    continue
+                target.unlink()
+                results.append({"target": str(target), "status": "removed"})
+            except Exception as exc:
+                results.append({"target": str(target), "status": "failed", "reason": str(exc)})
+        return {
+            "session_id": session_id,
+            "results": results,
+            "source_copy_preserved": True,
+            "source_root_modified": False,
+        }
+
+
 organization_planner = OrganizationPlanner()
