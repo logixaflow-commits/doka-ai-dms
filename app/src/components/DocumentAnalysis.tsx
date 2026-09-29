@@ -35,7 +35,7 @@ const DocumentAnalysis: React.FC<DocumentAnalysisProps> = ({ documentId, onAnaly
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       let endpoint = '/api/analysis/analyze-document';
       
       if (documentId) {
