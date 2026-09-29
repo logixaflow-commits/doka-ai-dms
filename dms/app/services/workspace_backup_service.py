@@ -64,6 +64,23 @@ class WorkspaceBackupService:
             expected = json.loads(manifest_path.read_text(encoding="utf-8")).get("sha256")
         return {"archive": str(archive), "sha256": digest, "verified": expected in (None, digest)}
 
+    def restore_to_recovery(self, archive_name: str) -> dict[str, Any]:
+        root = self._backup_root()
+        archive = (root / archive_name).resolve()
+        try:
+            archive.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("Backup path is outside BACKUP_ROOT.") from exc
+        if not archive.is_file() or archive.suffix != ".zip":
+            raise ValueError("Backup archive does not exist.")
+        recovery_root = settings.WORKING_ROOT.resolve() / "Recovery"
+        recovery_root.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        target = recovery_root / f"restore_{stamp}"
+        target.mkdir(parents=True, exist_ok=False)
+        shutil.unpack_archive(str(archive), str(target), "zip")
+        return {"archive": str(archive), "recovery_path": str(target), "active_workspace_changed": False}
+
     def prune(self) -> dict[str, Any]:
         root = self._backup_root()
         cutoff = datetime.now(timezone.utc).timestamp() - settings.BACKUP_RETENTION_DAYS * 86400
