@@ -24,7 +24,7 @@ from app.api.dependencies import get_optional_user
 from app.api.routes import auth, documents, search, sop, reminders, audit, admin, realtime
 from app.api.routes import analytics, admin_activity, auth_2fa, permissions, reports
 from app.api.routes import settings as settings_routes
-from app.api.routes import workspace
+from app.api.routes import workspace, workspace_files
 from app.routes import analysis, preview, realtime_updates, document_versions, advanced_reports, rate_limiting, external_integrations
 # from app.api.routes import tags, rules, templates  # Temporarily disabled due to missing dependencies
 # from app.api.routes import versions, integrations, monitoring
@@ -170,6 +170,7 @@ def create_app() -> FastAPI:
     app.include_router(realtime.router, prefix="/api/realtime", tags=["Real-time"])
     app.include_router(settings_routes.router, prefix="/api/settings", tags=["Settings"])
     app.include_router(workspace.router)
+    app.include_router(workspace_files.router)
     app.include_router(analytics.router, prefix="/api/admin/analytics", tags=["Analytics"])
     app.include_router(admin_activity.router, prefix="/api/admin/activity", tags=["Admin Activity"])
     app.include_router(auth_2fa.router, prefix="/api/2fa", tags=["2FA Authentication"])
