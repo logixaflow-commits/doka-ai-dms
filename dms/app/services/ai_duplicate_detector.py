@@ -14,8 +14,8 @@ class AIDuplicateDetector:
     """AI-powered duplicate detection using multiple AI providers"""
 
     def __init__(self):
-        self.enabled = settings.AI_ENHANCED_DUPLICATE_DETECTION
-        self.classification_enabled = settings.AI_CLASSIFICATION_ENABLED
+        self.enabled = settings.AI_ENABLED and settings.AI_ENHANCED_DUPLICATE_DETECTION
+        self.classification_enabled = settings.AI_ENABLED and settings.AI_CLASSIFICATION_ENABLED
 
         if self.enabled:
             available_providers = ai_service.get_available_providers()
