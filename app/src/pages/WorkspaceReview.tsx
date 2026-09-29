@@ -112,6 +112,21 @@ export default function WorkspaceReview() {
     finally { setBusy(false); }
   }
 
+  async function downloadFile(relativePath: string) {
+    try {
+      const encoded = relativePath.split('/').map(encodeURIComponent).join('/');
+      const response = await api(`/imports/${encodeURIComponent(sessionId)}/files/${encoded}?download=true`);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = relativePath.split('/').pop() || 'document';
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'Download failed'); }
+  }
+
   async function previewFile(relativePath: string) {
     try {
       const response = await api(`/imports/${encodeURIComponent(sessionId)}/files/${relativePath.split('/').map(encodeURIComponent).join('/')}`);
@@ -228,7 +243,7 @@ export default function WorkspaceReview() {
               {searchResults.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {searchResults.map((item) => <div key={item.relative_path} className="rounded border p-3">
-                    <div className="flex items-start justify-between gap-3"><div className="font-medium break-all">{item.relative_path}</div><Button variant="outline" size="sm" onClick={() => previewFile(item.relative_path)}>Preview</Button></div>
+                    <div className="flex items-start justify-between gap-3"><div className="font-medium break-all">{item.relative_path}</div><div className="flex gap-1"><Button variant="outline" size="sm" onClick={() => previewFile(item.relative_path)}>Preview</Button><Button variant="outline" size="sm" onClick={() => downloadFile(item.relative_path)}>Download</Button></div></div>
                     {item.text_preview && <div className="text-xs text-slate-500 mt-1 line-clamp-2">{item.text_preview}</div>}
                   </div>)}
                 </div>
