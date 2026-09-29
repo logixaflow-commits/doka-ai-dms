@@ -55,8 +55,8 @@ def test_safe_import_scan_search_and_resume(tmp_path, monkeypatch):
     inventory = service.scan(created["session_id"])
     assert inventory["files_total"] == 1
 
-    results = service.search(created["session_id"], "INV-001")
-    assert results["total"] == 0  # text is searchable after understanding/OCR enrichment
+    results = service.search(created["session_id"], "invoice")
+    assert results["total"] == 1
 
     assert (source / "invoice.txt").read_bytes() == original
     listed = service.list_sessions()
