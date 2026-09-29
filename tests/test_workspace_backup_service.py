@@ -41,3 +41,25 @@ def test_backup_excludes_recovery_artifacts(tmp_path, monkeypatch):
 
     assert "active.txt" in names
     assert not any(name.startswith("Recovery/") for name in names)
+
+
+
+def test_restore_to_recovery_does_not_change_active_workspace(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    workspace.mkdir()
+    (workspace / "active.txt").write_text("active-before", encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+
+    service = WorkspaceBackupService()
+    manifest = service.create()
+    (workspace / "active.txt").write_text("active-after", encoding="utf-8")
+    before = (workspace / "active.txt").read_bytes()
+
+    restored = service.restore_to_recovery(Path(manifest["archive"]).name)
+
+    assert (workspace / "active.txt").read_bytes() == before
+    assert restored["active_workspace_changed"] is False
+    recovery_file = Path(restored["recovery_path"]) / "active.txt"
+    assert recovery_file.read_text(encoding="utf-8") == "active-before"
