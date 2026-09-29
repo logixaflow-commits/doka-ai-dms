@@ -75,6 +75,15 @@ class OrganizationPlanner:
 
         duplicate_paths = {p for group in inventory.get("duplicate_groups", []) for p in group}
         collision_paths = {p for group in inventory.get("filename_collision_groups_detail", []) for p in group}
+        # Detect likely versions even when filenames differ by copy/final/v2/new suffixes.
+        stem_groups: Dict[str, List[str]] = {}
+        for item in inventory.get("inventory", []):
+            stem_groups.setdefault(normalize_stem(item["filename"]), []).append(item["relative_path"])
+        version_paths = {
+            p for paths in stem_groups.values() if len(paths) > 1
+            for p in paths
+            if p not in duplicate_paths
+        }
         proposals: List[Dict[str, Any]] = []
 
         for item in inventory.get("inventory", []):
@@ -85,6 +94,20 @@ class OrganizationPlanner:
                     "relative_path": rel, "action": "review_duplicate",
                     "confidence": 0.99, "reason": "Exact SHA-256 duplicate",
                     "target": None,
+                })
+                continue
+            if rel in version_paths:
+                category, confidence, reason = self._category(enriched)
+                target_folder = self._folder(category, enriched)
+                safe_name = Path(item["filename"]).name
+                proposals.append({
+                    "relative_path": rel, "action": "review_version",
+                    "confidence": max(0.75, confidence),
+                    "reason": "Filename normalization indicates a possible copy/version family; compare contents before approval",
+                    "category": category,
+                    "target_folder": target_folder,
+                    "suggested_filename": safe_name,
+                    "target": f"{target_folder}/{safe_name}",
                 })
                 continue
             category, confidence, reason = self._category(enriched)
@@ -102,7 +125,7 @@ class OrganizationPlanner:
             })
 
         plan = {
-            "schema_version": 1,
+            "schema_version": 2,
             "session_id": session_id,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "ai_used": False,
