@@ -137,7 +137,7 @@ class OrganizationPlanner:
         }
         session = safe_workspace_service._dir(session_id)
         safe_workspace_service._write(session / "organization_plan.json", plan)
-        return {k: v for k, v in plan.items() if k != "proposals"}
+        return plan
 
 
     def apply(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
