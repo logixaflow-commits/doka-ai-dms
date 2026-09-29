@@ -10,6 +10,11 @@ from app.services.safe_workspace_service import safe_workspace_service\nfrom app
 router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencies=[Depends(require_staff)])
 
 
+class OrganizationApplyRequest(BaseModel):
+    approved_paths: list[str] = Field(default_factory=list, min_length=1)
+    confirm: bool = Field(default=False, description="Must be true to copy approved files into Final.")
+
+
 class ImportRequest(BaseModel):
     source: Optional[str] = Field(default=None, description="Local source folder; defaults to SOURCE_ROOT.")
 
@@ -48,6 +53,17 @@ async def organization_plan(session_id: str):
     try:
         from app.services.organization_planner import organization_planner
         return organization_planner.plan(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/imports/{session_id}/apply")
+async def apply_organization(session_id: str, request: OrganizationApplyRequest):
+    if request.confirm is not True:
+        raise HTTPException(status_code=400, detail="Explicit confirm=true is required.")
+    try:
+        from app.services.organization_planner import organization_planner
+        return organization_planner.apply(session_id, request.approved_paths)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
