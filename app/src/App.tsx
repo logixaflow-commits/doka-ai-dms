@@ -16,6 +16,7 @@ import AdvancedSearch, { type SearchFilters } from '@/components/AdvancedSearch'
 import ToastContainer from '@/components/Toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AdminLayout from '@/layouts/AdminLayout';
+import WorkspaceReview from '@/pages/WorkspaceReview';
 import { Dashboard as AdminDashboard, Documents, Users, Analytics, Permissions, Audit, Settings } from '@/pages/admin';
 
 const API_BASE = '/api';
@@ -487,6 +488,7 @@ export default function App() {
           <Route path="permissions" element={<Permissions />} />
           <Route path="audit" element={<Audit />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="workspace" element={<WorkspaceReview />} />
           <Route path="" element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
         <Route
