@@ -186,7 +186,7 @@ def create_app() -> FastAPI:
     
     # =============================================================================
     # Metrics Endpoint
-    =============================================================================
+    # =============================================================================
     app.mount("/metrics", make_asgi_app(get_prometheus_metrics().registry))
     
     # Temporarily disabled due to missing dependencies
