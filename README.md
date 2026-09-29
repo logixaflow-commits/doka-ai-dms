@@ -225,7 +225,47 @@ For remote access from the office, the personal setup should use a private VPN/s
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Installation
+## 🚀 Current Local Setup Boundary
+
+The personal edition is intentionally local-first. The original source drive is read-only, and the application writes only to the configured working area.
+
+### Current flow
+
+```
+Original source drive (read-only)
+        ↓
+Verified import / copy session
+        ↓
+Working Copy
+        ↓
+Inventory + SHA-256
+        ↓
+OCR / local text extraction
+        ↓
+Duplicate + version analysis
+        ↓
+Review / approval
+        ↓
+Safe copy to Final
+        ↓
+Backup + audit history
+```
+
+### Current deployment boundary
+
+- **Backend + document data:** local/home machine.
+- **Frontend:** React/Vite, usable locally and deployable to Vercel later.
+- **Office access:** private VPN/tunnel (recommended: Tailscale), not public port forwarding.
+- **Storage:** local filesystem + SQLite for the personal edition.
+- **AI:** optional and disabled by default.
+- **Sentry:** optional; telemetry is scrubbed to avoid document content/OCR/sensitive paths.
+- **Render / Supabase:** reserved for the later cloud/multi-user edition; they are not required for personal local operation.
+
+### What is deliberately deferred
+
+Existing enterprise capabilities remain in the repository, but are not part of the current personal-core workflow: mobile, advanced RBAC/multi-user, external integrations, cloud storage, distributed workers, advanced reporting/realtime, and AI-heavy automation.
+
+## 🗃️ Legacy / Enterprise Reference Setup
 
 ### Prerequisites
 - Python 3.14+
