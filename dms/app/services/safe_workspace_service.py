@@ -127,7 +127,9 @@ class SafeWorkspaceService:
             files = list(self._files(source))
             status.update({
                 "state": "running", "files_total": len(files),
+                "files_copied": 0, "files_verified": 0, "files_failed": 0,
                 "bytes_total": sum(p.stat().st_size for p in files if p.exists()),
+                "bytes_copied": 0, "progress": 0.0,
                 "updated_at": utc_now(), "error": None,
             })
             self._write(status_path, status)
