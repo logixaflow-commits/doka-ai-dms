@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:network": "VITE_HOST=0.0.0.0 vite",
+    "dev:network": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "test": "echo \"No frontend tests configured yet\" && exit 0",
     "lint": "eslint .",
     "preview": "vite preview",
-    "preview:network": "VITE_PREVIEW_HOST=0.0.0.0 vite preview"
+    "preview:network": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
