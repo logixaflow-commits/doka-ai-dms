@@ -54,4 +54,4 @@ jobs:
           SECRET_KEY: test-secret-key
           PYTHONPATH: dms
         run: |
-          pytest -q tests/test_safe_workspace_service.py tests/test_workspace_backup_service.py tests/test_organization_planner.py tests/test_workspace_security.py tests/test_unified_ai_fallback.py
+          pytest -q tests/test_safe_workspace_service.py tests/test_workspace_backup_service.py tests/test_organization_planner.py tests/test_workspace_security.py tests/test_unified_ai_fallback.py tests/test_observability.py
