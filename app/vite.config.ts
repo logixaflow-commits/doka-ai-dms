@@ -8,7 +8,8 @@ export default defineConfig({
   base: './',
   plugins: [inspectAttr(), react()],
   server: {
-    port: 3000,
+    host: process.env.VITE_HOST || "127.0.0.1",
+    port: Number(process.env.VITE_PORT || 3000),
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
@@ -19,6 +20,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  preview: {
+    host: process.env.VITE_PREVIEW_HOST || process.env.VITE_HOST || "127.0.0.1",
+    port: Number(process.env.VITE_PREVIEW_PORT || 4173),
   },
   resolve: {
     alias: {
