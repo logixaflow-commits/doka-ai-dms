@@ -37,7 +37,7 @@ interface Template {
 }
 
 interface TemplateStep {
-  id: number;
+  id?: number;
   title: string;
   description: string;
   required_fields: string[];
@@ -277,9 +277,13 @@ export default function TemplateLibrary() {
     setTemplateSteps(templateSteps.filter((_, i) => i !== index));
   }
 
-  function updateStep(index: number, field: keyof TemplateStep, value: any) {
+  function updateStep<K extends Exclude<keyof TemplateStep, 'id'>>(
+    index: number,
+    field: K,
+    value: TemplateStep[K]
+  ) {
     const newSteps = [...templateSteps];
-    newSteps[index][field] = value;
+    newSteps[index] = { ...newSteps[index], [field]: value };
     setTemplateSteps(newSteps);
   }
 
