@@ -1,4 +1,5 @@
-from app.services.organization_planner import normalize_stem
+from app.services.organization_planner import OrganizationPlanner, normalize_stem
+from app.core.config import settings
 
 
 def test_normalize_stem_groups_common_versions():
