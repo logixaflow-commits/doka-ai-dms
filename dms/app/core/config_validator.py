@@ -145,7 +145,7 @@ class Phase4ConfigModel(BaseModel):
 
 class ConfigYamlModel(BaseModel):
     """Main config.yaml model."""
-    watch_sources: List[str] = Field(default_factory=list, description="Watch source paths")
+    watch_sources: List[Union[str, Dict[str, Any]]] = Field(default_factory=list, description="Watch source paths or watch-source definitions")
     social_media: SocialMediaConfigModel = Field(default_factory=SocialMediaConfigModel, description="Social media config")
     suppliers: List[SupplierConfigModel] = Field(default_factory=list, description="Supplier configurations")
     keyword_mapping: Dict[str, KeywordConfigModel] = Field(default_factory=dict, description="Keyword mappings")
