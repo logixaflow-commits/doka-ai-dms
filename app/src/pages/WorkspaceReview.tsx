@@ -227,8 +227,8 @@ export default function WorkspaceReview() {
               <div className="h-2 rounded bg-slate-100 overflow-hidden"><div className="h-full bg-blue-600" style={{ width: `${Math.round((status?.progress || 0) * 100)}%` }} /></div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => runStep('scan')} disabled={busy || status?.state === 'running'}>Scan Copy</Button>
-                <Button variant="outline" onClick={() => runStep('understand')} disabled={busy}>Read / OCR</Button>
-                <Button onClick={() => runStep('plan')} disabled={busy}>Build Review Plan</Button>
+                <Button variant="outline" onClick={() => runStep('understand')} disabled={busy || status?.state === 'running'}>Read / OCR</Button>
+                <Button onClick={() => runStep('plan')} disabled={busy || status?.state === 'running'}>Build Review Plan</Button>
                 <Button variant="outline" onClick={undo} disabled={busy}>Undo Applied Copies</Button>
                 <Button variant="outline" onClick={createBackup} disabled={busy}>Backup Workspace</Button>
                 <Button variant="outline" onClick={validateOcr} disabled={busy}>Check OCR</Button>
