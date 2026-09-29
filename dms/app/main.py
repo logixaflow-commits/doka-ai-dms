@@ -535,6 +535,7 @@ def create_app() -> FastAPI:
     # =============================================================================
     def seed_admin_user():
         """Create default admin user if not exists."""
+        db = None
         try:
             db = SessionLocal()
             
@@ -573,7 +574,8 @@ def create_app() -> FastAPI:
             logger.error(f"✗ Failed to seed admin user: {e}")
             # Don't raise exception - allow app to start even if seeding fails
         finally:
-            db.close()
+            if db is not None:
+                db.close()
 
     # =============================================================================
     # Startup Event
