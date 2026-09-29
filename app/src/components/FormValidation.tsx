@@ -100,13 +100,11 @@ export function ValidationMessage({ validation, touched }: ValidationMessageProp
 interface ValidatedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   validation: FieldValidation;
   touched: boolean;
-  onBlur?: () => void;
 }
 
 export function ValidatedInput({
   validation,
   touched,
-  onBlur,
   className,
   ...props
 }: ValidatedInputProps) {
@@ -121,10 +119,7 @@ export function ValidatedInput({
             : 'border-slate-300 dark:border-slate-600',
           className
         )}
-        onBlur={(e) => {
-          onBlur?.();
-          props.onBlur?.(e);
-        }}
+        onBlur={props.onBlur}
         aria-invalid={!validation.isValid && touched}
         aria-describedby={
           !validation.isValid && touched ? `${props.id}-error` : undefined
