@@ -49,6 +49,8 @@ export default function WorkspaceReview() {
   const [message, setMessage] = useState('');
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [ocrStatus, setOcrStatus] = useState<any>(null);
+  const [backupStatus, setBackupStatus] = useState<string>('');
 
   const selectedCount = selected.size;
   const reviewCount = useMemo(() => proposals.filter(p => p.action.startsWith('review')).length, [proposals]);
@@ -83,6 +85,30 @@ export default function WorkspaceReview() {
       if (step === 'plan') setProposals(data.proposals || []);
       setMessage(`${step} completed.`);
     } catch (e) { setMessage(e instanceof Error ? e.message : `${step} failed`); }
+    finally { setBusy(false); }
+  }
+
+  async function validateOcr() {
+    setBusy(true); setMessage('');
+    try {
+      const response = await api('/ocr/validate');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'OCR validation failed');
+      setOcrStatus(data);
+      setMessage(data.available ? 'Myanmar + English OCR environment is available.' : 'OCR environment needs attention; see checks below.');
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'OCR validation failed'); }
+    finally { setBusy(false); }
+  }
+
+  async function createBackup() {
+    setBusy(true); setMessage('');
+    try {
+      const response = await api('/backups', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Backup failed');
+      setBackupStatus(data.sha256 || '');
+      setMessage('Workspace backup created and SHA-256 recorded.');
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'Backup failed'); }
     finally { setBusy(false); }
   }
 
@@ -173,7 +199,11 @@ export default function WorkspaceReview() {
                 <Button variant="outline" onClick={() => runStep('understand')} disabled={busy}>Read / OCR</Button>
                 <Button onClick={() => runStep('plan')} disabled={busy}>Build Review Plan</Button>
                 <Button variant="outline" onClick={undo} disabled={busy}>Undo Applied Copies</Button>
+                <Button variant="outline" onClick={createBackup} disabled={busy}>Backup Workspace</Button>
+                <Button variant="outline" onClick={validateOcr} disabled={busy}>Check OCR</Button>
               </div>
+              {ocrStatus && <div className="text-xs text-slate-500">OCR: {ocrStatus.available ? 'Myanmar + English ready' : 'Needs attention'} · {ocrStatus.executable}</div>}
+              {backupStatus && <div className="text-xs text-slate-500 break-all">Backup SHA-256: {backupStatus}</div>}
             </CardContent>
           </Card>
 
