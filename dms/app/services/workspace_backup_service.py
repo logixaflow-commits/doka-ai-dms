@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -78,7 +79,15 @@ class WorkspaceBackupService:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         target = recovery_root / f"restore_{stamp}"
         target.mkdir(parents=True, exist_ok=False)
-        shutil.unpack_archive(str(archive), str(target), "zip")
+        with zipfile.ZipFile(archive) as zf:
+            for member in zf.infolist():
+                member_path = (target / member.filename).resolve()
+                try:
+                    member_path.relative_to(target)
+                except ValueError as exc:
+                    shutil.rmtree(target, ignore_errors=True)
+                    raise ValueError("Backup contains an unsafe path.") from exc
+            zf.extractall(target)
         return {"archive": str(archive), "recovery_path": str(target), "active_workspace_changed": False}
 
     def prune(self) -> dict[str, Any]:
@@ -86,9 +95,12 @@ class WorkspaceBackupService:
         cutoff = datetime.now(timezone.utc).timestamp() - settings.BACKUP_RETENTION_DAYS * 86400
         removed = []
         for path in root.iterdir():
-            if path.is_file() and path.stat().st_mtime < cutoff:
-                path.unlink(missing_ok=True)
-                removed.append(path.name)
+            if not path.is_file() or path.stat().st_mtime >= cutoff:
+                continue
+            if path.suffix.lower() not in {".zip", ".json"} or not path.name.startswith("workspace_"):
+                continue
+            path.unlink(missing_ok=True)
+            removed.append(path.name)
         return {"retention_days": settings.BACKUP_RETENTION_DAYS, "removed": removed}
 
 
