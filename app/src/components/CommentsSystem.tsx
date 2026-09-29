@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, At, Trash2, Edit2, Reply } from 'lucide-react';
+import { MessageSquare, Send, AtSign, Trash2, Edit2, Reply } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -225,7 +225,7 @@ export default function CommentsSystem({ documentId, documentName }: CommentsSys
         {/* New Comment */}
         <div className="space-y-3">
           <div className="flex gap-2 items-center text-sm text-slate-500 dark:text-slate-400">
-            <At className="w-4 h-4" />
+            <AtSign className="w-4 h-4" />
             <span>Mention users with @username</span>
           </div>
           
