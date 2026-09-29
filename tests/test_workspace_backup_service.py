@@ -63,3 +63,28 @@ def test_restore_to_recovery_does_not_change_active_workspace(tmp_path, monkeypa
     assert restored["active_workspace_changed"] is False
     recovery_file = Path(restored["recovery_path"]) / "active.txt"
     assert recovery_file.read_text(encoding="utf-8") == "active-before"
+
+
+def test_restore_rejects_zip_path_traversal(tmp_path, monkeypatch):
+    import zipfile
+    from app.core.config import settings
+    from app.services.workspace_backup_service import WorkspaceBackupService
+
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    workspace.mkdir()
+    backups.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+
+    archive = backups / "malicious.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("../escape.txt", "must not escape")
+
+    service = WorkspaceBackupService()
+    try:
+        service.restore_to_recovery(archive.name)
+        assert False, "Expected unsafe archive rejection"
+    except ValueError as exc:
+        assert "unsafe path" in str(exc).lower()
+    assert not (tmp_path / "escape.txt").exists()
