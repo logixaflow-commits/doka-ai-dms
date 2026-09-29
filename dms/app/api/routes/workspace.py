@@ -1,0 +1,60 @@
+from __future__ import annotations
+
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from pydantic import BaseModel, Field
+
+from app.services.safe_workspace_service import safe_workspace_service
+
+router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"])
+
+
+class ImportRequest(BaseModel):
+    source: Optional[str] = Field(default=None, description="Local source folder; defaults to SOURCE_ROOT.")
+
+
+@router.post("/imports")
+async def create_import(request: ImportRequest, background_tasks: BackgroundTasks):
+    try:
+        status = safe_workspace_service.create_import(request.source)
+        background_tasks.add_task(safe_workspace_service.run_import, status["session_id"])
+        return {"message": "Import started. Source is read-only; work happens on a verified copy.", **status}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/imports/{session_id}/resume")
+async def resume_import(session_id: str, background_tasks: BackgroundTasks):
+    try:
+        status = safe_workspace_service.status(session_id)
+        background_tasks.add_task(safe_workspace_service.run_import, session_id)
+        return {"message": "Import resumed.", **status}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/imports/{session_id}/scan")
+async def scan_import(session_id: str):
+    try:
+        return safe_workspace_service.scan(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/imports/{session_id}")
+async def import_status(session_id: str):
+    try:
+        return safe_workspace_service.status(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/imports/{session_id}/inventory")
+async def import_inventory(session_id: str, limit: int = 500, offset: int = 0):
+    if not 1 <= limit <= 5000 or offset < 0:
+        raise HTTPException(status_code=400, detail="Invalid limit/offset.")
+    try:
+        return safe_workspace_service.inventory(session_id, limit, offset)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
