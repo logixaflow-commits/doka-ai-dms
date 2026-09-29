@@ -47,6 +47,8 @@ export default function WorkspaceReview() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   const selectedCount = selected.size;
   const reviewCount = useMemo(() => proposals.filter(p => p.action.startsWith('review')).length, [proposals]);
@@ -81,6 +83,18 @@ export default function WorkspaceReview() {
       if (step === 'plan') setProposals(data.proposals || []);
       setMessage(`${step} completed.`);
     } catch (e) { setMessage(e instanceof Error ? e.message : `${step} failed`); }
+    finally { setBusy(false); }
+  }
+
+  async function searchWorkingCopy() {
+    if (!sessionId || !query.trim()) return;
+    setBusy(true); setMessage('');
+    try {
+      const response = await api(`/imports/${encodeURIComponent(sessionId)}/search?q=${encodeURIComponent(query.trim())}&limit=100`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Search failed');
+      setSearchResults(data.results || []);
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'Search failed'); }
     finally { setBusy(false); }
   }
 
@@ -160,6 +174,24 @@ export default function WorkspaceReview() {
                 <Button onClick={() => runStep('plan')} disabled={busy}>Build Review Plan</Button>
                 <Button variant="outline" onClick={undo} disabled={busy}>Undo Applied Copies</Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Search working copy</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchWorkingCopy()} placeholder="Filename, folder, OCR/text keyword..." />
+                <Button onClick={searchWorkingCopy} disabled={busy || !query.trim()}>Search</Button>
+              </div>
+              {searchResults.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {searchResults.map((item) => <div key={item.relative_path} className="rounded border p-3">
+                    <div className="font-medium break-all">{item.relative_path}</div>
+                    {item.text_preview && <div className="text-xs text-slate-500 mt-1 line-clamp-2">{item.text_preview}</div>}
+                  </div>)}
+                </div>
+              )}
             </CardContent>
           </Card>
 
