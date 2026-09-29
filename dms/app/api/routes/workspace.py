@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.safe_workspace_service import safe_workspace_service
+from app.services.safe_workspace_service import safe_workspace_service\nfrom app.core.security import require_staff
 
-router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"])
+router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencies=[Depends(require_staff)])
 
 
 class ImportRequest(BaseModel):
