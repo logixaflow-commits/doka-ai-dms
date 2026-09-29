@@ -110,7 +110,7 @@ class Settings:
     def _load_env(self):
         """Load configuration from environment variables."""
         self.ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-        self.DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+        self.DEBUG = os.getenv("DEBUG", "False" if os.getenv("ENVIRONMENT", "development") == "production" else "True").lower() == "true"
         self.SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
         self.ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
@@ -188,6 +188,8 @@ class Settings:
         self.SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@enterprise-dms.local")
         self.SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Enterprise DMS")
         self.ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@enterprise-dms.local")
+        # Optional one-time bootstrap. Never ship a usable default password.
+        self.BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
 
         # AI Services Configuration
         self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -361,7 +363,9 @@ class Settings:
             logger.warning("ENCRYPTION_KEY not set in production. Sensitive documents will NOT be encrypted.")
 
         if self.SECRET_KEY == "dev-secret-key-change-in-production" and self.ENVIRONMENT == "production":
-            logger.error("CRITICAL: Using default SECRET_KEY in production. Change immediately!")
+            raise ValueError("SECRET_KEY must be changed before starting in production.")
+        if self.BOOTSTRAP_ADMIN_PASSWORD and len(self.BOOTSTRAP_ADMIN_PASSWORD) < 12:
+            raise ValueError("BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters.")
 
         # Validate storage configuration
         if self.STORAGE_TYPE == "local" and not self.MINIO_ENABLED:
