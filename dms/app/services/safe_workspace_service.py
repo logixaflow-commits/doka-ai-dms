@@ -196,6 +196,9 @@ class SafeWorkspaceService:
             raise ValueError(f"Unknown import session: {session_id}")
         with self._lock(session_id):
             manifest = self._read(manifest_path)
+            status = self._read(status_path)
+            if status.get("state") not in {"completed", "completed_with_errors", "scanned"}:
+                raise ValueError("Import is not complete. Finish the safe import before scanning.")
             root = Path(manifest["working_copy"]).resolve()
             if not root.is_dir():
                 raise ValueError("Working copy does not exist.")
