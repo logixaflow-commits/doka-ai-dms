@@ -18,7 +18,7 @@
 
 ## 🎯 Overview
 
-Enterprise AI Document Management System (DMS) is a comprehensive, production-ready document management solution powered by artificial intelligence. It provides advanced document classification, OCR, workflow automation, real-time collaboration, and seamless integration with external systems.
+Enterprise AI Document Management System (DMS) is being developed first as a safe, single-user local document organizer and DMS for real office testing. The initial workflow protects original source data, works on a verified copy, analyzes Myanmar/English documents, and requires human approval before organization changes are applied. Cloud, multi-user, enterprise integrations, and AI-heavy features are intentionally deferred until the personal edition is stable.
 
 ### Key Capabilities
 - **AI-Powered Document Processing**: Automatic classification, function detection, and quality assessment
@@ -31,6 +31,14 @@ Enterprise AI Document Management System (DMS) is a comprehensive, production-re
 - **Mobile Access**: React Native mobile application
 - **Comprehensive Analytics**: Prometheus and Grafana monitoring
 - **Enterprise Security**: Role-based access control, audit logging, and encryption
+
+## 🛡️ Personal Local Mode (Current Priority)
+
+The current development priority is a safe local workflow:
+
+`Original D: drive (read-only) → verified working copy → scan → OCR/content analysis → duplicate/version review → user approval → organized working library`
+
+Core organization must work without paid AI services. AI is optional and uses a configurable free-first provider fallback chain when enabled. The application should never permanently delete or overwrite the original source as part of organization.
 
 ## ✨ Features
 
