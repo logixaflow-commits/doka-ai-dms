@@ -34,3 +34,11 @@ def test_backup_restore_rejects_zip_slip(tmp_path: Path, monkeypatch):
         service.restore_to_recovery(archive.name)
     assert not (workspace / "escaped.txt").exists()
     assert not (tmp_path / "escaped.txt").exists()
+
+
+def test_source_write_is_rejected_even_without_source_root(monkeypatch):
+    monkeypatch.setattr(settings, "SOURCE_ROOT", None)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", True)
+    with pytest.raises(ValueError, match="ALLOW_SOURCE_WRITE"):
+        settings._validate()
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
