@@ -95,6 +95,7 @@ Thumbs.db
 Desktop.ini
 
 # Project specific
+dms/processing_workspace/
 uploads/
 storage/
 backups/
