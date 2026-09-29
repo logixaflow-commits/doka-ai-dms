@@ -169,7 +169,14 @@ class OrganizationPlanner:
                 continue
             try:
                 source.relative_to(root)
-                target = (final_root / proposal["target"].split("/", 1)[1]).resolve()
+                target_folder = proposal.get("target_folder")
+                suggested_filename = proposal.get("suggested_filename") or Path(rel).name
+                if not target_folder or not suggested_filename:
+                    raise ValueError("Organization proposal is missing a safe target.")
+                folder = Path(target_folder)
+                if folder.name != final_root.name:
+                    raise ValueError("Planned target folder is invalid.")
+                target = (final_root / Path(*folder.parts[1:]) / Path(suggested_filename).name).resolve()
                 try:
                     target.relative_to(final_root)
                 except ValueError as exc:
