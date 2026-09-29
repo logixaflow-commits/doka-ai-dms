@@ -13,7 +13,12 @@ router = APIRouter(prefix="/api/workspace", tags=["Workspace Files"], dependenci
 
 
 def _safe_file(session_id: str, relative_path: str) -> Path:
-    manifest = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "manifest.json"))
+    try:
+        manifest = safe_workspace_service._read(
+            safe_workspace_service._json_path(session_id, "manifest.json")
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Unknown import session.") from exc
     if not manifest:
         raise HTTPException(status_code=404, detail="Unknown import session.")
     root = Path(manifest["working_copy"]).resolve()
