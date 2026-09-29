@@ -270,6 +270,40 @@ class SafeWorkspaceService:
                     break
         return {"session_id": session_id, "query": query, "total": len(results), "results": results}
 
+    def search(self, session_id: str, query: str, limit: int = 100) -> Dict[str, Any]:
+        value = self._read(self._json_path(session_id, "inventory.json"))
+        if not value:
+            raise ValueError("Inventory is not available. Run scan first.")
+        q = query.casefold().strip()
+        if not q:
+            return {"session_id": session_id, "query": query, "total": 0, "results": []}
+        understanding = self._read(self._json_path(session_id, "understanding.json"))
+        understood = {x.get("relative_path"): x for x in understanding.get("results", [])}
+        results = []
+        for item in value.get("inventory", []):
+            rel = item.get("relative_path", "")
+            enriched = understood.get(rel, {})
+            haystack = " ".join([
+                item.get("filename", ""),
+                rel,
+                enriched.get("text_preview", ""),
+                json.dumps(enriched.get("metadata", {}), ensure_ascii=False),
+            ]).casefold()
+            if q in haystack:
+                results.append({
+                    "relative_path": rel,
+                    "filename": item.get("filename"),
+                    "extension": item.get("extension"),
+                    "size": item.get("size"),
+                    "sha256": item.get("sha256"),
+                    "modified_at": item.get("modified_at"),
+                    "category": enriched.get("metadata", {}).get("document_type") if isinstance(enriched.get("metadata"), dict) else None,
+                    "text_preview": enriched.get("text_preview", "")[:500],
+                })
+                if len(results) >= limit:
+                    break
+        return {"session_id": session_id, "query": query, "total": len(results), "results": [] if not results else results}
+
     def status(self, session_id: str) -> Dict[str, Any]:
         value = self._read(self._json_path(session_id, "status.json"))
         if not value:
