@@ -212,8 +212,8 @@ class Settings:
         self.AI_PROVIDER_TIMEOUT_SECONDS = float(os.getenv("AI_PROVIDER_TIMEOUT_SECONDS", "30"))
 
         # Railway-specific settings
-        self.MINIO_ENABLED = os.getenv("MINIO_ENABLED", "true").lower() == "true"
-        self.STORAGE_TYPE = os.getenv("STORAGE_TYPE", "minio")  # "minio" or "local"
+        self.MINIO_ENABLED = os.getenv("MINIO_ENABLED", "false").lower() == "true"
+        self.STORAGE_TYPE = os.getenv("STORAGE_TYPE", "local")  # "minio" or "local"
         self.RAILWAY_ENABLE_WORKER = os.getenv("RAILWAY_ENABLE_WORKER", "false").lower() == "true"
 
     def _load_yaml(self):
@@ -381,6 +381,13 @@ class Settings:
             if self.ALLOW_SOURCE_WRITE:
                 raise ValueError("Unsafe workspace configuration: ALLOW_SOURCE_WRITE must remain false in personal local mode.")
         working = self.WORKING_ROOT.resolve()
+        backup = self.BACKUP_ROOT.resolve()
+        if backup == working or backup.is_relative_to(working):
+            raise ValueError(f"Unsafe workspace configuration: BACKUP_ROOT ({backup}) must not be inside WORKING_ROOT ({working}).")
+        if self.SOURCE_ROOT:
+            source = self.SOURCE_ROOT.resolve()
+            if backup == source or backup.is_relative_to(source):
+                raise ValueError(f"Unsafe workspace configuration: BACKUP_ROOT ({backup}) must not be inside SOURCE_ROOT ({source}).")
         for writable_root in (self.FINAL_ROOT, self.QUARANTINE_ROOT):
             try:
                 inside = writable_root.resolve().is_relative_to(working)
