@@ -88,7 +88,7 @@ class SafeWorkspaceService:
             "session_id": session_id, "state": "created",
             "source_root": str(source_path), "working_copy": str(copy_root),
             "started_at": utc_now(), "updated_at": utc_now(),
-            "files_total": 0, "files_copied": 0, "files_verified": 0,
+            "files_total": 0, "files_copied": 0, "progress": 0.0, "files_verified": 0,
             "files_failed": 0, "bytes_total": 0, "bytes_copied": 0, "error": None,
         }
         self._write(self._json_path(session_id, "status.json"), status)
@@ -164,9 +164,11 @@ class SafeWorkspaceService:
                         }
                         status["files_failed"] += 1
                         logger.exception("Import failed for %s", src)
+                    status["progress"] = (status["files_verified"] / len(files)) if files else 1.0
                     status["updated_at"] = utc_now()
                     self._write(manifest_path, manifest)
                     self._write(status_path, status)
+                status["progress"] = 1.0
                 status["state"] = "completed" if status["files_failed"] == 0 else "completed_with_errors"
             except Exception as exc:
                 status["state"] = "failed"
