@@ -6,6 +6,7 @@ import os
 import shutil
 import threading
 import uuid
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
@@ -41,8 +42,13 @@ class SafeWorkspaceService:
         root.mkdir(parents=True, exist_ok=True)
         return root
 
+    def _validate_session_id(self, session_id: str) -> str:
+        if not re.fullmatch(r"[0-9a-f]{32}", session_id or ""):
+            raise ValueError(f"Invalid import session id: {session_id}")
+        return session_id
+
     def _dir(self, session_id: str) -> Path:
-        return self.root / "imports" / session_id
+        return self.root / "imports" / self._validate_session_id(session_id)
 
     def _json_path(self, session_id: str, name: str) -> Path:
         return self._dir(session_id) / name
@@ -242,40 +248,8 @@ class SafeWorkspaceService:
         value = self._read(self._json_path(session_id, "inventory.json"))
         if not value:
             raise ValueError("Inventory is not available. Run scan first.")
-        q = query.casefold().strip()
-        if not q:
-            return {"session_id": session_id, "query": query, "total": 0, "results": []}
-        understanding = self._read(self._json_path(session_id, "understanding.json"))
-        understood = {x.get("relative_path"): x for x in understanding.get("results", [])}
-        results = []
-        for item in value.get("inventory", []):
-            rel = item.get("relative_path", "")
-            enriched = understood.get(rel, {})
-            haystack = " ".join([
-                item.get("filename", ""),
-                rel,
-                enriched.get("text_preview", ""),
-                json.dumps(enriched.get("metadata", {}), ensure_ascii=False),
-            ]).casefold()
-            if q in haystack:
-                results.append({
-                    "relative_path": rel,
-                    "filename": item.get("filename"),
-                    "extension": item.get("extension"),
-                    "size": item.get("size"),
-                    "sha256": item.get("sha256"),
-                    "modified_at": item.get("modified_at"),
-                    "category": enriched.get("metadata", {}).get("document_type") if isinstance(enriched.get("metadata"), dict) else None,
-                    "text_preview": enriched.get("text_preview", "")[:500],
-                })
-                if len(results) >= limit:
-                    break
-        return {"session_id": session_id, "query": query, "total": len(results), "results": results}
-
-    def search(self, session_id: str, query: str, limit: int = 100) -> Dict[str, Any]:
-        value = self._read(self._json_path(session_id, "inventory.json"))
-        if not value:
-            raise ValueError("Inventory is not available. Run scan first.")
+        if limit < 1 or limit > 1000:
+            raise ValueError("limit must be between 1 and 1000.")
         q = query.casefold().strip()
         if not q:
             return {"session_id": session_id, "query": query, "total": 0, "results": []}
