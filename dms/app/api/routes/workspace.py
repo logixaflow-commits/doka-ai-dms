@@ -22,6 +22,12 @@ class ImportRequest(BaseModel):
     source: Optional[str] = Field(default=None, description="Local source folder; defaults to SOURCE_ROOT.")
 
 
+@router.get("/imports")
+async def list_imports(limit: int = 50):
+    if not 1 <= limit <= 200:
+        raise HTTPException(status_code=400, detail="Invalid limit.")
+    return {"imports": safe_workspace_service.list_sessions(limit)}
+
 @router.post("/imports")
 async def create_import(request: ImportRequest, background_tasks: BackgroundTasks):
     try:
