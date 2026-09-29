@@ -43,6 +43,15 @@ async def understand_import(session_id: str):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/imports/{session_id}/plan")
+async def organization_plan(session_id: str):
+    try:
+        from app.services.organization_planner import organization_planner
+        return organization_planner.plan(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/imports/{session_id}/scan")
 async def scan_import(session_id: str):
     try:
