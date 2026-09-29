@@ -40,6 +40,12 @@ The current development priority is a safe local workflow:
 
 Core organization must work without paid AI services. AI is optional and uses a configurable free-first provider fallback chain when enabled. The application should never permanently delete or overwrite the original source as part of organization.
 
+## 🌐 Web Access + Local Data (Current Direction)
+
+The application is local-first, but it is also web-accessible. The home/office PC keeps the original files, working copy, database, OCR data, and backups locally. The React/Vite web interface is used from a browser for search, review, viewing, and downloads.
+
+For remote access from the office, the personal setup should use a private VPN/secure tunnel rather than exposing the DMS directly to the public Internet. Local storage is not being removed; web access is an interface over the local data plane.
+
 ## ✨ Features
 
 ### Core Features
