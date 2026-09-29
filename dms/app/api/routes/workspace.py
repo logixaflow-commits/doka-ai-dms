@@ -5,7 +5,8 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.safe_workspace_service import safe_workspace_service\nfrom app.core.security import require_staff
+from app.services.safe_workspace_service import safe_workspace_service
+from app.core.security import require_staff
 
 router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencies=[Depends(require_staff)])
 
