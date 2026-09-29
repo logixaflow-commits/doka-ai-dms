@@ -9,7 +9,8 @@ import {
   Shield, 
   Activity,
   LogOut,
-  Search
+  Search,
+  FolderKanban
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,11 @@ const menuItems = [
     title: 'Dashboard',
     url: '/admin/dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'Safe Workspace',
+    url: '/admin/workspace',
+    icon: FolderKanban,
   },
   {
     title: 'Documents',
