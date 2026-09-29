@@ -289,6 +289,29 @@ class SafeWorkspaceService:
                     break
         return {"session_id": session_id, "query": query, "total": total_matches, "results": results}
 
+    def list_sessions(self, limit: int = 50) -> list[Dict[str, Any]]:
+        imports_root = self.root / "imports"
+        if not imports_root.exists():
+            return []
+        sessions = []
+        for session_dir in imports_root.iterdir():
+            if not session_dir.is_dir() or not re.fullmatch(r"[0-9a-f]{32}", session_dir.name):
+                continue
+            status = self._read(session_dir / "status.json")
+            if status:
+                sessions.append({
+                    "session_id": session_dir.name,
+                    "state": status.get("state", "unknown"),
+                    "source_root": status.get("source_root"),
+                    "files_total": status.get("files_total", 0),
+                    "files_verified": status.get("files_verified", 0),
+                    "files_failed": status.get("files_failed", 0),
+                    "progress": status.get("progress", 0.0),
+                    "updated_at": status.get("updated_at"),
+                })
+        sessions.sort(key=lambda item: item.get("updated_at") or "", reverse=True)
+        return sessions[:limit]
+
     def status(self, session_id: str) -> Dict[str, Any]:
         value = self._read(self._json_path(session_id, "status.json"))
         if not value:
