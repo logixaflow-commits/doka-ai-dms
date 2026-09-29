@@ -24,8 +24,19 @@ class WorkspaceBackupService:
         source = safe_workspace_service.root.resolve()
         backup_root = self._backup_root()
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        archive_base = backup_root / f"workspace_{timestamp}"
-        archive = Path(shutil.make_archive(str(archive_base), "zip", root_dir=source))
+        archive = backup_root / f"workspace_{timestamp}.zip"
+        # Snapshot only the active writable workspace. Recovery copies are derived
+        # artifacts and must not recursively inflate future backups.
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for path in source.rglob("*"):
+                if path.is_dir():
+                    continue
+                rel = path.relative_to(source)
+                if rel.parts and rel.parts[0] == "Recovery":
+                    continue
+                if path.name.endswith(".tmp"):
+                    continue
+                zf.write(path, rel.as_posix())
         digest = hashlib.sha256(archive.read_bytes()).hexdigest()
         manifest = {
             "schema_version": 1,
