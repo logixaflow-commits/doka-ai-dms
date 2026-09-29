@@ -170,6 +170,10 @@ class OrganizationPlanner:
             try:
                 source.relative_to(root)
                 target = (final_root / proposal["target"].split("/", 1)[1]).resolve()
+                try:
+                    target.relative_to(final_root)
+                except ValueError as exc:
+                    raise ValueError("Planned target is outside FINAL_ROOT.") from exc
                 target.parent.mkdir(parents=True, exist_ok=True)
                 source_hash = sha256_file(source)
                 if target.exists():
