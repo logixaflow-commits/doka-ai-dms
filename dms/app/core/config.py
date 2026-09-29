@@ -3,6 +3,7 @@ Office DMS - Configuration Loader
 Loads and merges .env and config.yaml into a unified settings object.
 """
 import os
+import secrets
 import yaml
 from pathlib import Path
 from dotenv import load_dotenv
@@ -111,7 +112,7 @@ class Settings:
         """Load configuration from environment variables."""
         self.ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
         self.DEBUG = os.getenv("DEBUG", "False" if os.getenv("ENVIRONMENT", "development") == "production" else "True").lower() == "true"
-        self.SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+        self.SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_urlsafe(32)
         self.ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
         # Database
@@ -127,8 +128,8 @@ class Settings:
 
         # MinIO
         self.MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-        self.MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-        self.MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
+        self.MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
+        self.MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
         self.MINIO_SECURE = os.getenv("MINIO_SECURE", "False").lower() == "true"
         self.MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "logistics-documents")
 
@@ -362,8 +363,8 @@ class Settings:
         if not self.ENCRYPTION_KEY and self.ENVIRONMENT == "production":
             logger.warning("ENCRYPTION_KEY not set in production. Sensitive documents will NOT be encrypted.")
 
-        if self.SECRET_KEY == "dev-secret-key-change-in-production" and self.ENVIRONMENT == "production":
-            raise ValueError("SECRET_KEY must be changed before starting in production.")
+        if self.ENVIRONMENT == "production" and not os.getenv("SECRET_KEY"):
+            raise ValueError("SECRET_KEY must be explicitly configured in production.")
         if self.BOOTSTRAP_ADMIN_PASSWORD and len(self.BOOTSTRAP_ADMIN_PASSWORD) < 12:
             raise ValueError("BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters.")
 
