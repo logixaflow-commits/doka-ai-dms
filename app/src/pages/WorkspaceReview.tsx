@@ -112,6 +112,17 @@ export default function WorkspaceReview() {
     finally { setBusy(false); }
   }
 
+  async function previewFile(relativePath: string) {
+    try {
+      const response = await api(`/imports/${encodeURIComponent(sessionId)}/files/${relativePath.split('/').map(encodeURIComponent).join('/')}`);
+      if (!response.ok) throw new Error('Preview failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'Preview failed'); }
+  }
+
   async function searchWorkingCopy() {
     if (!sessionId || !query.trim()) return;
     setBusy(true); setMessage('');
@@ -217,7 +228,7 @@ export default function WorkspaceReview() {
               {searchResults.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {searchResults.map((item) => <div key={item.relative_path} className="rounded border p-3">
-                    <div className="font-medium break-all">{item.relative_path}</div>
+                    <div className="flex items-start justify-between gap-3"><div className="font-medium break-all">{item.relative_path}</div><Button variant="outline" size="sm" onClick={() => previewFile(item.relative_path)}>Preview</Button></div>
                     {item.text_preview && <div className="text-xs text-slate-500 mt-1 line-clamp-2">{item.text_preview}</div>}
                   </div>)}
                 </div>
