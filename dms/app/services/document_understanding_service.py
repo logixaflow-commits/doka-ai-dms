@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import mimetypes
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
 from loguru import logger
 
 from app.services.metadata_extractor import metadata_extractor
-from app.services.safe_workspace_service import SafeWorkspaceService
+from app.services.safe_workspace_service import SafeWorkspaceService, safe_workspace_service
 
 
 TEXT_EXTENSIONS = {
@@ -85,7 +86,7 @@ class DocumentUnderstandingService:
             "schema_version": 1,
             "session_id": session_id,
             "analyzed_files": len(results),
-            "analyzed_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+            "analyzed_at": datetime.now(timezone.utc).isoformat(),
             "ai_used": False,
             "results": results,
         }
@@ -93,4 +94,4 @@ class DocumentUnderstandingService:
         return {k: v for k, v in result.items() if k != "results"}
 
 
-document_understanding_service = DocumentUnderstandingService(SafeWorkspaceService())
+document_understanding_service = DocumentUnderstandingService(safe_workspace_service)
