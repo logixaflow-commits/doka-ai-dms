@@ -32,3 +32,33 @@ def test_source_outside_workspace_is_allowed(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
     service = SafeWorkspaceService()
     assert service.validate_source(source) == source.resolve()
+
+
+def test_safe_import_scan_search_and_resume(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    (source / "invoice.txt").write_text("Invoice INV-001 for shipping", encoding="utf-8")
+    original = (source / "invoice.txt").read_bytes()
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    completed = service.run_import(created["session_id"])
+    assert completed["state"] == "completed"
+
+    inventory = service.scan(created["session_id"])
+    assert inventory["files_total"] == 1
+
+    results = service.search(created["session_id"], "INV-001")
+    assert results["total"] == 0  # text is searchable after understanding/OCR enrichment
+
+    assert (source / "invoice.txt").read_bytes() == original
+    listed = service.list_sessions()
+    assert listed[0]["session_id"] == created["session_id"]
+    assert listed[0]["state"] == "scanned"
