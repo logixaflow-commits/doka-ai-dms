@@ -285,8 +285,9 @@ class SafeWorkspaceService:
                     "category": enriched.get("metadata", {}).get("document_type") if isinstance(enriched.get("metadata"), dict) else None,
                     "text_preview": enriched.get("text_preview", "")[:500],
                 })
+                # Keep scanning so total reflects all matches even when the result page is full.
                 if len(results) >= limit:
-                    break
+                    continue
         return {"session_id": session_id, "query": query, "total": total_matches, "results": results}
 
     def list_sessions(self, limit: int = 50) -> list[Dict[str, Any]]:
