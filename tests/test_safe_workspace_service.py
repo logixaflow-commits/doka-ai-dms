@@ -62,3 +62,26 @@ def test_safe_import_scan_search_and_resume(tmp_path, monkeypatch):
     listed = service.list_sessions()
     assert listed[0]["session_id"] == created["session_id"]
     assert listed[0]["state"] == "scanned"
+
+
+def test_search_total_counts_matches_beyond_limit(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    for index in range(3):
+        (source / f"invoice-{index}.txt").write_text("invoice shipping", encoding="utf-8")
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    service.run_import(created["session_id"])
+    service.scan(created["session_id"])
+
+    results = service.search(created["session_id"], "invoice", limit=1)
+    assert results["total"] == 3
+    assert len(results["results"]) == 1
