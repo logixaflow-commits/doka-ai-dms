@@ -50,3 +50,30 @@ def test_organization_apply_and_undo_preserves_source(tmp_path, monkeypatch):
     undo = planner.undo(created["session_id"])
     assert any(item["status"] == "removed" for item in undo["results"])
     assert (source / "Invoice ABC 2025.txt").read_bytes() == original
+
+
+def test_organization_apply_rejects_tampered_target(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    workspace = tmp_path / "workspace"
+    source.mkdir()
+    (source / "invoice.txt").write_text("invoice payment", encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "FINAL_ROOT", workspace / "Final")
+    monkeypatch.setattr(settings, "QUARANTINE_ROOT", workspace / "Quarantine")
+
+    service = SafeWorkspaceService()
+    session = service.create_import(str(source))
+    service.run_import(session["session_id"])
+    service.scan(session["session_id"])
+    planner = OrganizationPlanner()
+    planner.plan(session["session_id"])
+
+    plan_path = workspace / "imports" / session["session_id"] / "organization_plan.json"
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    proposal = next(p for p in plan["proposals"] if p["action"] == "suggest_move")
+    proposal["target_folder"] = f"{settings.FINAL_ROOT.name}/../../Outside"
+    plan_path.write_text(json.dumps(plan), encoding="utf-8")
+
+    result = planner.apply(session["session_id"], [proposal["relative_path"]])
+    assert result["results"][0]["status"] == "failed"
+    assert not (workspace.parent / "Outside").exists()
