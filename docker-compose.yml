@@ -134,7 +134,7 @@ services:
       MINIO_SECURE: "false"
       # IMPORTANT: Set strong random values for production deployment
       # Generate SECRET_KEY with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY before starting the stack}
       ENVIRONMENT: production
       DEBUG: "false"
       TESSERACT_CMD: tesseract
@@ -170,7 +170,7 @@ services:
       MINIO_SECURE: "false"
       # IMPORTANT: Set strong random values for production deployment
       # Generate SECRET_KEY with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY before starting the stack}
       ENVIRONMENT: production
       DEBUG: "false"
     volumes:
