@@ -62,7 +62,7 @@ class OrganizationPlanner:
             year = modified[:4] if len(modified) >= 4 else "Unknown Year"
         parts = [settings.FINAL_ROOT.name, safe_segment(category, "Review")]
         if supplier:
-            parts.append(re.sub(r'[<>:"/\\|?*]', "_", str(supplier)).strip()[:80])
+            parts.append(safe_segment(str(supplier), "Unknown Supplier"))
         parts.append(year)
         return "/".join(parts)
 
