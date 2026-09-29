@@ -9,7 +9,7 @@ import {
   RefreshCw, 
   ArrowLeft, 
   Download, 
-  Restore, 
+  RotateCcw, 
   Eye,
   FileText,
   Calendar,
@@ -358,7 +358,7 @@ export default function DocumentVersioning() {
                               size="icon"
                               title="Restore"
                             >
-                              <Restore className="w-4 h-4" />
+                              <RotateCcw className="w-4 h-4" />
                             </Button>
                           )}
                           {!version.is_current && (
