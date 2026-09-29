@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.services.safe_workspace_service import safe_workspace_service
 from app.services.workspace_backup_service import workspace_backup_service
+from app.services.ocr_validation_service import ocr_validation_service
 from app.core.security import require_staff
 
 router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencies=[Depends(require_staff)])
@@ -29,6 +30,11 @@ async def create_import(request: ImportRequest, background_tasks: BackgroundTask
         return {"message": "Import started. Source is read-only; work happens on a verified copy.", **status}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/ocr/validate")
+async def validate_ocr():
+    return ocr_validation_service.validate()
 
 
 @router.post("/backups")
