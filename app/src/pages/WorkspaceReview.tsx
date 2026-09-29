@@ -55,9 +55,27 @@ export default function WorkspaceReview() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [ocrStatus, setOcrStatus] = useState<any>(null);
   const [backupStatus, setBackupStatus] = useState<string>('');
+  const [sessions, setSessions] = useState<any[]>([]);
 
   const selectedCount = selected.size;
   const reviewCount = useMemo(() => proposals.filter(p => p.action.startsWith('review')).length, [proposals]);
+
+  async function loadSessions() {
+    try {
+      const response = await api('/imports?limit=50');
+      if (response.ok) setSessions((await response.json()).imports || []);
+    } catch {
+      // Session history is optional; the active session remains usable.
+    }
+  }
+
+  function resumeSession(id: string) {
+    setSessionId(id);
+    setProposals([]);
+    setSelected(new Set());
+    setSearchResults([]);
+    setMessage('Existing workspace session loaded.');
+  }
 
   async function startImport() {
     setBusy(true); setMessage('');
@@ -67,6 +85,7 @@ export default function WorkspaceReview() {
       if (!response.ok) throw new Error(data.detail || 'Import failed');
       setSessionId(data.session_id);
       setStatus(data);
+      loadSessions();
       setProposals([]);
       setSelected(new Set());
       setMessage('Import started. The original source is not modified.');
@@ -183,6 +202,10 @@ export default function WorkspaceReview() {
   }
 
   useEffect(() => {
+    loadSessions();
+  }, []);
+
+  useEffect(() => {
     if (!sessionId) return;
     loadStatus();
     const timer = window.setInterval(loadStatus, 3000);
@@ -209,6 +232,27 @@ export default function WorkspaceReview() {
           <div className="flex gap-2">
             <Button onClick={startImport} disabled={busy}>Start Safe Import</Button>
             {sessionId && <Badge variant="outline">{sessionId}</Badge>}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Resume an existing workspace session</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex gap-2 items-center">
+            <select
+              className="flex-1 rounded-md border px-3 py-2 text-sm"
+              value=""
+              onChange={e => e.target.value && resumeSession(e.target.value)}
+            >
+              <option value="">Select a previous session…</option>
+              {sessions.map(s => (
+                <option key={s.session_id} value={s.session_id}>
+                  {s.session_id.slice(0, 8)} · {s.state} · {s.files_verified}/{s.files_total} verified
+                </option>
+              ))}
+            </select>
+            <Button variant="outline" onClick={loadSessions}>Refresh</Button>
           </div>
         </CardContent>
       </Card>
