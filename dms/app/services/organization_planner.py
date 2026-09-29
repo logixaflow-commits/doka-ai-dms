@@ -28,6 +28,11 @@ def normalize_stem(name: str) -> str:
     return re.sub(r"[^\w\u1000-\u109f]+", " ", stem).strip()
 
 
+def safe_segment(value: str, fallback: str = "Unknown") -> str:
+    cleaned = re.sub(r'[<>:"/\\|?*]+', "_", str(value)).strip(" .")
+    return (cleaned[:100] or fallback)
+
+
 class OrganizationPlanner:
     """Generate reviewable organization proposals. Never changes files."""
 
@@ -55,7 +60,7 @@ class OrganizationPlanner:
         if not year:
             modified = item.get("modified_at", "")
             year = modified[:4] if len(modified) >= 4 else "Unknown Year"
-        parts = [settings.FINAL_ROOT.name, category]
+        parts = [settings.FINAL_ROOT.name, safe_segment(category, "Review")]
         if supplier:
             parts.append(re.sub(r'[<>:"/\\|?*]', "_", str(supplier)).strip()[:80])
         parts.append(year)
