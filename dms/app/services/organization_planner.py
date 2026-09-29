@@ -176,7 +176,10 @@ class OrganizationPlanner:
                 folder = Path(target_folder)
                 if folder.name != final_root.name:
                     raise ValueError("Planned target folder is invalid.")
-                target = (final_root / Path(*folder.parts[1:]) / Path(suggested_filename).name).resolve()
+                folder_parts = folder.parts
+                if not folder_parts or folder_parts[0] != final_root.name or any(part in ("", ".", "..") for part in folder_parts):
+                    raise ValueError("Planned target folder is invalid.")
+                target = (final_root / Path(*folder_parts[1:]) / Path(suggested_filename).name).resolve()
                 try:
                     target.relative_to(final_root)
                 except ValueError as exc:
