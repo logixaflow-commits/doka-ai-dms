@@ -1,5 +1,6 @@
 from app.services.organization_planner import OrganizationPlanner, normalize_stem
 from app.core.config import settings
+from app.services.safe_workspace_service import SafeWorkspaceService
 
 
 def test_normalize_stem_groups_common_versions():
