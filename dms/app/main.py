@@ -544,17 +544,17 @@ def create_app() -> FastAPI:
                 logger.info("✓ Admin user already exists - skipping seed")
                 return
             
-            # Create default admin user
+            bootstrap_password = settings.BOOTSTRAP_ADMIN_PASSWORD
+            if not bootstrap_password:
+                logger.info("No BOOTSTRAP_ADMIN_PASSWORD configured; skipping admin bootstrap.")
+                return
+
             from app.core.security import hash_password
-            
+
             admin_username = "admin"
-            admin_password = "admin123"
-            admin_email = "admin@example.com"
-            
-            # Hash the password using the security module
-            hashed_password = hash_password(admin_password)
-            
-            # Create admin user
+            admin_email = settings.ADMIN_EMAIL
+            hashed_password = hash_password(bootstrap_password)
+
             new_admin = User(
                 username=admin_username,
                 email=admin_email,
@@ -563,13 +563,10 @@ def create_app() -> FastAPI:
                 is_active=True,
                 totp_enabled=False
             )
-            
+
             db.add(new_admin)
             db.commit()
-            
-            logger.info(f"✓ Default admin user created: {admin_username}")
-            logger.warning("⚠️  Please change the default admin password immediately!")
-            logger.warning(f"   Default credentials: {admin_username} / {admin_password}")
+            logger.info("Admin bootstrap user created from BOOTSTRAP_ADMIN_PASSWORD.")
             
         except Exception as e:
             logger.error(f"✗ Failed to seed admin user: {e}")
@@ -592,12 +589,6 @@ def create_app() -> FastAPI:
 
         init_database()
         seed_admin_user()
-
-    # Simple health check endpoint
-    @app.get("/health")
-    async def health_check():
-        """Simple health check endpoint."""
-        return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
 
     return app
 
