@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.services.safe_workspace_service import safe_workspace_service
+from app.services.workspace_backup_service import workspace_backup_service
 from app.core.security import require_staff
 
 router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencies=[Depends(require_staff)])
@@ -28,6 +29,32 @@ async def create_import(request: ImportRequest, background_tasks: BackgroundTask
         return {"message": "Import started. Source is read-only; work happens on a verified copy.", **status}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/backups")
+async def create_backup():
+    try:
+        return workspace_backup_service.create()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Backup failed: {exc}") from exc
+
+
+@router.get("/backups")
+async def list_backups():
+    return {"backups": workspace_backup_service.list_backups()}
+
+
+@router.post("/backups/verify")
+async def verify_backup(archive_name: str):
+    try:
+        return workspace_backup_service.verify(archive_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/backups/prune")
+async def prune_backups():
+    return workspace_backup_service.prune()
 
 
 @router.post("/imports/{session_id}/resume")
