@@ -80,3 +80,69 @@ def test_organization_apply_rejects_tampered_target(tmp_path, monkeypatch):
     result = planner.apply(session["session_id"], [proposal["relative_path"]])
     assert result["results"][0]["status"] == "failed"
     assert not (workspace.parent / "Outside").exists()
+
+
+def test_organization_apply_conflict_does_not_overwrite(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    final = workspace / "Final"
+    workspace.mkdir()
+    source.mkdir()
+    source_file = source / "invoice.txt"
+    source_file.write_text("Invoice ABC 2025\nPayment due", encoding="utf-8")
+    original = source_file.read_bytes()
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "FINAL_ROOT", final)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    workspace_service = SafeWorkspaceService()
+    created = workspace_service.create_import()
+    workspace_service.run_import(created["session_id"])
+    workspace_service.scan(created["session_id"])
+    planner = OrganizationPlanner()
+    plan = planner.plan(created["session_id"])
+
+    proposal = next(p for p in plan["proposals"] if p["action"] == "suggest_move")
+    target = final / Path(proposal["target_folder"]).relative_to(final.name) / proposal["suggested_filename"]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("pre-existing different content", encoding="utf-8")
+
+    result = planner.apply(created["session_id"], [proposal["relative_path"]])
+    assert result["results"][0]["status"] == "conflict"
+    assert target.read_text(encoding="utf-8") == "pre-existing different content"
+    assert source_file.read_bytes() == original
+
+
+def test_organization_category_uses_document_content(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    final = workspace / "Final"
+    workspace.mkdir()
+    source.mkdir()
+    (source / "2025_001.txt").write_text(
+        "COMMERCIAL INVOICE\nInvoice Number: 001\nPayment due date: 2025-12-31",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "FINAL_ROOT", final)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    workspace_service = SafeWorkspaceService()
+    created = workspace_service.create_import()
+    workspace_service.run_import(created["session_id"])
+    workspace_service.scan(created["session_id"])
+    workspace_service._write(
+        workspace_service._json_path(created["session_id"], "understanding.json"),
+        {"results": [{"relative_path": "2025_001.txt", "text_preview": "Commercial invoice. Invoice Number: 001. Payment due date: 2025-12-31"}]},
+    )
+    planner = OrganizationPlanner()
+    plan = planner.plan(created["session_id"])
+    proposal = plan["proposals"][0]
+    assert proposal["category"] == "Invoices"
+    assert "Invoices" in proposal["target_folder"]
