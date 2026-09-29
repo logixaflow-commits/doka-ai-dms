@@ -20,6 +20,7 @@ from app.core.logging import get_logger
 from app.core.celery_app import celery_app
 from app.core.storage import storage_manager
 from app.core.rate_limiter import rate_limit_middleware
+from app.core.observability import init_observability
 from app.api.dependencies import get_optional_user
 from app.api.routes import auth, documents, search, sop, reminders, audit, admin, realtime
 from app.api.routes import analytics, admin_activity, auth_2fa, permissions, reports
@@ -589,6 +590,7 @@ def create_app() -> FastAPI:
 
         init_database()
         seed_admin_user()
+        init_observability()
 
     return app
 
