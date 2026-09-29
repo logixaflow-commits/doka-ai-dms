@@ -261,6 +261,7 @@ class SafeWorkspaceService:
         understanding = self._read(self._json_path(session_id, "understanding.json"))
         understood = {x.get("relative_path"): x for x in understanding.get("results", [])}
         results = []
+        total_matches = 0
         for item in value.get("inventory", []):
             rel = item.get("relative_path", "")
             enriched = understood.get(rel, {})
@@ -271,6 +272,9 @@ class SafeWorkspaceService:
                 json.dumps(enriched.get("metadata", {}), ensure_ascii=False),
             ]).casefold()
             if q in haystack:
+                total_matches += 1
+                if len(results) >= limit:
+                    continue
                 results.append({
                     "relative_path": rel,
                     "filename": item.get("filename"),
@@ -283,7 +287,7 @@ class SafeWorkspaceService:
                 })
                 if len(results) >= limit:
                     break
-        return {"session_id": session_id, "query": query, "total": len(results), "results": [] if not results else results}
+        return {"session_id": session_id, "query": query, "total": total_matches, "results": results}
 
     def status(self, session_id: str) -> Dict[str, Any]:
         value = self._read(self._json_path(session_id, "status.json"))
