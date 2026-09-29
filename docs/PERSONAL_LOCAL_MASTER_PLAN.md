@@ -145,3 +145,33 @@ A provider failure must not fail the document workflow. If all providers fail, t
 ## Future-proofing
 
 The core document model should remain provider-neutral. AI results should store the provider/model/method and confidence, so the AI vendor can be changed later without rewriting document storage or organization logic.
+
+
+## Web Access While Data Stays Local
+
+The personal edition has two separate concerns:
+
+- **Local data plane:** files, SQLite database, OCR workspace, backups, and organization operations remain on the home/office PC that owns the data.
+- **Web interface:** the React/Vite frontend remains the browser UI for viewing, searching, reviewing, downloading, and later managing documents.
+
+### Remote-office access
+
+For access from another location, do not expose the FastAPI/React server directly to the public Internet during the personal phase. Prefer a private network/VPN overlay (for example, Tailscale) or an equivalent private tunnel.
+
+Target flow:
+
+Office browser
+→ private secure connection
+→ home PC DMS web server
+→ local API
+→ local database + local files
+
+This keeps the original D: drive and working data local while still allowing browser access from the office.
+
+### Data transfer rule
+
+Viewing metadata should not require copying the whole D: drive. A document download is an explicit action from the web UI. The server should stream the requested file from the working/final library and log the download.
+
+### Future cloud mode
+
+When the personal edition is stable, the same frontend/API contracts can be moved to Vercel + Render + Supabase/object storage without deleting the local mode. Local and cloud storage should remain separate adapters behind the same document/storage interfaces.
