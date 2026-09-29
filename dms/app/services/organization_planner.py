@@ -174,8 +174,6 @@ class OrganizationPlanner:
                 if not target_folder or not suggested_filename:
                     raise ValueError("Organization proposal is missing a safe target.")
                 folder = Path(target_folder)
-                if folder.name != final_root.name:
-                    raise ValueError("Planned target folder is invalid.")
                 folder_parts = folder.parts
                 if not folder_parts or folder_parts[0] != final_root.name or any(part in ("", ".", "..") for part in folder_parts):
                     raise ValueError("Planned target folder is invalid.")
