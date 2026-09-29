@@ -20,6 +20,7 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
   preview: {
     host: process.env.VITE_PREVIEW_HOST || process.env.VITE_HOST || "127.0.0.1",
     port: Number(process.env.VITE_PREVIEW_PORT || 4173),
