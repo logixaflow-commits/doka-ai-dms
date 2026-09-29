@@ -19,12 +19,16 @@ type Proposal = {
 
 type Status = {
   session_id: string;
-  status: string;
+  state: string;
   progress?: number;
-  total_files?: number;
-  processed_files?: number;
-  verified_files?: number;
+  files_total?: number;
+  files_copied?: number;
+  files_verified?: number;
+  files_failed?: number;
+  bytes_total?: number;
+  bytes_copied?: number;
   working_copy?: string;
+  error?: string | null;
 };
 
 function authHeaders() {
@@ -215,13 +219,14 @@ export default function WorkspaceReview() {
             <CardHeader><CardTitle>2. Processing status</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap gap-3 text-sm">
-                <span>Status: <strong>{status?.status || 'unknown'}</strong></span>
+                <span>Status: <strong>{status?.state || 'unknown'}</strong></span>
                 <span>Progress: <strong>{Math.round((status?.progress || 0) * 100)}%</strong></span>
-                <span>Verified: <strong>{status?.verified_files || 0}/{status?.total_files || 0}</strong></span>
+                <span>Verified: <strong>{status?.files_verified || 0}/{status?.files_total || 0}</strong></span>
+                <span>Failed: <strong>{status?.files_failed || 0}</strong></span>
               </div>
               <div className="h-2 rounded bg-slate-100 overflow-hidden"><div className="h-full bg-blue-600" style={{ width: `${Math.round((status?.progress || 0) * 100)}%` }} /></div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => runStep('scan')} disabled={busy}>Scan Copy</Button>
+                <Button variant="outline" onClick={() => runStep('scan')} disabled={busy || status?.state === 'running'}>Scan Copy</Button>
                 <Button variant="outline" onClick={() => runStep('understand')} disabled={busy}>Read / OCR</Button>
                 <Button onClick={() => runStep('plan')} disabled={busy}>Build Review Plan</Button>
                 <Button variant="outline" onClick={undo} disabled={busy}>Undo Applied Copies</Button>
