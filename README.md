@@ -348,6 +348,8 @@ npm run android
 
 ## ⚙️ Configuration
 
+> The sections below are retained as legacy/enterprise reference material. They are **not** required for the current personal-local workflow. Do not use the example credentials below as real secrets.
+
 ### Environment Variables
 
 #### Backend (.env)
@@ -355,36 +357,36 @@ npm run android
 # Application
 APP_NAME=Enterprise AI DMS
 DEBUG=False
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=<generate-a-random-secret>
 ENVIRONMENT=production
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/dms
+DATABASE_URL=<enterprise-postgresql-url>
 
 # Redis
 REDIS_URL=redis://localhost:6379/0
 
 # MinIO
 MINIO_ENDPOINT=localhost:9000
-MINIO_ACCESS_KEY=your-access-key
-MINIO_SECRET_KEY=your-secret-key
+MINIO_ACCESS_KEY=<configured-minio-user>
+MINIO_SECRET_KEY=<configured-minio-secret>
 MINIO_BUCKET=dms-documents
 
 # AI Services
-GEMINI_API_KEY=your-gemini-api-key
-HUGGINGFACE_API_KEY=your-huggingface-api-key
-OPENROUTER_API_KEY=your-openrouter-api-key
-GROQ_API_KEY=your-groq-api-key
+GEMINI_API_KEY=<optional>
+HUGGINGFACE_API_KEY=<optional>
+OPENROUTER_API_KEY=<optional>
+GROQ_API_KEY=<optional>
 
 # Email
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+SMTP_USER=<optional>
+SMTP_PASSWORD=<optional>
 SMTP_FROM=noreply@yourdomain.com
 
 # Security
-JWT_SECRET_KEY=your-jwt-secret-key
+JWT_SECRET_KEY=<generate-a-random-secret>
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=60
 ```
@@ -558,7 +560,7 @@ docker-compose -f docker-compose.monitoring.yml up -d
 ```
 
 Access dashboards:
-- Grafana: http://localhost:3001 (admin/admin123)
+- Grafana: use the credentials configured for your monitoring deployment
 - Prometheus: http://localhost:9090
 
 ### Available Dashboards
