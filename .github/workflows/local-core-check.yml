@@ -45,10 +45,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest==8.0.0 pytest-asyncio==0.23.0 pytest-cov pydantic pyyaml python-dotenv loguru httpx
       - name: Run local safety regression tests
-        working-directory: dms
         env:
           ENVIRONMENT: development
           DEBUG: "false"
           SECRET_KEY: test-secret-key
+          PYTHONPATH: dms
         run: |
           pytest -q tests/test_safe_workspace_service.py tests/test_workspace_backup_service.py tests/test_organization_planner.py tests/test_workspace_security.py tests/test_unified_ai_fallback.py
