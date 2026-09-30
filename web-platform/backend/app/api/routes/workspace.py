@@ -116,6 +116,63 @@ async def apply_organization(session_id: str, request: OrganizationApplyRequest)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+class OCRCorrectionRequest(BaseModel):
+    text: str = Field(default="", max_length=1000000)
+
+
+@router.get("/imports/{session_id}/understanding")
+async def get_understanding(session_id: str):
+    try:
+        session = safe_workspace_service._dir(session_id)
+        value = safe_workspace_service._read(session / "understanding.json")
+        if not value:
+            raise ValueError("Understanding is not available. Run Read / OCR first.")
+        corrections = safe_workspace_service._read(session / "ocr_corrections.json")
+        for item in value.get("results", []):
+            rel = item.get("relative_path")
+            if rel in corrections.get("results", {}):
+                item["corrected_text"] = corrections["results"][rel]
+                item["ocr_corrected"] = True
+        return value
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.put("/imports/{session_id}/understanding/{relative_path:path}")
+async def save_ocr_correction(session_id: str, relative_path: str, request: OCRCorrectionRequest):
+    try:
+        manifest = safe_workspace_service._read(
+            safe_workspace_service._json_path(session_id, "manifest.json")
+        )
+        if not manifest:
+            raise ValueError("Unknown import session.")
+        if relative_path not in manifest.get("files", {}):
+            raise ValueError("File is not a verified import-manifest entry.")
+        if manifest["files"][relative_path].get("verified") is not True:
+            raise ValueError("Only verified imported files can receive OCR corrections.")
+
+        session = safe_workspace_service._dir(session_id)
+        corrections_path = session / "ocr_corrections.json"
+        corrections = safe_workspace_service._read(corrections_path)
+        corrections.setdefault("schema_version", 1)
+        corrections.setdefault("session_id", session_id)
+        corrections.setdefault("results", {})
+        if request.text.strip():
+            corrections["results"][relative_path] = request.text
+        else:
+            corrections["results"].pop(relative_path, None)
+        corrections["updated_at"] = safe_workspace_service.utc_now()
+        safe_workspace_service._write(corrections_path, corrections)
+        return {
+            "session_id": session_id,
+            "relative_path": relative_path,
+            "saved": bool(request.text.strip()),
+            "message": "OCR correction saved as metadata; source and working document are unchanged.",
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/imports/{session_id}/undo")
 async def undo_organization(session_id: str):
     try:
