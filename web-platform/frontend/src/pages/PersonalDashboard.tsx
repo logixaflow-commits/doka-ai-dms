@@ -34,7 +34,7 @@ export default function PersonalDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Personal Local DMS</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Doka</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Safe local document organization with the original source kept read-only.</p>
         </div>
         <div className="flex gap-2">
@@ -47,7 +47,7 @@ export default function PersonalDashboard() {
         <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="h-5 w-5" />Source protection</CardTitle></CardHeader><CardContent><Badge variant={health?.source_read_only ? 'secondary' : 'destructive'}>{health?.source_read_only ? 'READ-ONLY' : 'CHECK CONFIG'}</Badge><p className="mt-2 text-xs text-slate-500">Original source is never used as a writable workspace.</p></CardContent></Card>
         <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><FileCheck2 className="h-5 w-5" />Local workflow</CardTitle></CardHeader><CardContent><p className="font-medium">Copy → Verify → Read → Review → Approve</p><p className="mt-2 text-xs text-slate-500">Organization copies approved files into Final.</p></CardContent></Card>
         <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Bot className="h-5 w-5" />AI</CardTitle></CardHeader><CardContent><Badge variant={health?.ai_enabled ? 'secondary' : 'outline'}>{health?.ai_enabled ? 'ENABLED' : 'OFF BY DEFAULT'}</Badge><p className="mt-2 text-xs text-slate-500">Local processing works without AI providers.</p></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-base">Backend status</CardTitle></CardHeader><CardContent><Badge variant={health?.status === 'healthy' ? 'secondary' : 'destructive'}>{health?.status || 'CHECKING'}</Badge><p className="mt-2 text-xs text-slate-500">Edition: {config?.edition || health?.edition || 'personal-local'}</p></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-base">Backend status</CardTitle></CardHeader><CardContent><Badge variant={health?.status === 'healthy' ? 'secondary' : 'destructive'}>{health?.status || 'CHECKING'}</Badge><p className="mt-2 text-xs text-slate-500">Doka · {config?.edition || health?.edition || 'personal-local'}</p></CardContent></Card>
       </div>
       <Card>
         <CardHeader><CardTitle>What to do next</CardTitle></CardHeader>
