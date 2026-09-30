@@ -1,5 +1,9 @@
 from pathlib import Path
 
+import pytest
+
+from app.core.config import settings
+
 
 def test_personal_local_runtime_files_exist():
     repo_root = Path(__file__).resolve().parents[2]
@@ -13,3 +17,30 @@ def test_personal_local_safety_defaults_are_present_in_template():
     assert "ORIGINAL_READ_ONLY=true" in env
     assert "ALLOW_SOURCE_WRITE=false" in env
     assert "AI_ENABLED=false" in env
+    assert "BOOTSTRAP_ADMIN_PASSWORD=" in env
+
+
+def test_personal_local_rejects_writable_roots_outside_workspace(tmp_path: Path, monkeypatch):
+    working = tmp_path / "workspace"
+    working.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", working)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", tmp_path / "source")
+    monkeypatch.setattr(settings, "BACKUP_ROOT", tmp_path / "backups")
+    monkeypatch.setattr(settings, "FINAL_ROOT", tmp_path / "unsafe-final")
+    monkeypatch.setattr(settings, "QUARANTINE_ROOT", working / "Quarantine")
+
+    with pytest.raises(ValueError, match="FINAL_ROOT"):
+        settings._validate()
+
+
+def test_personal_local_rejects_backup_inside_workspace(tmp_path: Path, monkeypatch):
+    working = tmp_path / "workspace"
+    working.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", working)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", tmp_path / "source")
+    monkeypatch.setattr(settings, "BACKUP_ROOT", working / "Backups")
+    monkeypatch.setattr(settings, "FINAL_ROOT", working / "Final")
+    monkeypatch.setattr(settings, "QUARANTINE_ROOT", working / "Quarantine")
+
+    with pytest.raises(ValueError, match="BACKUP_ROOT"):
+        settings._validate()
