@@ -19,19 +19,19 @@ From the repository root:
 start_application.bat
 ```
 
-The script creates `dms\\.venv`, installs the smaller Personal Local dependency set, creates `dms\\.env` from the template, and starts:
+The script creates `web-platform\\backend\\.venv`, installs the smaller Personal Local dependency set, creates `web-platform\\backend\\.env` from the template, and starts:
 
 - Backend: `http://127.0.0.1:8000`
 - Frontend: `http://127.0.0.1:3000`
 
-Before login, set `BOOTSTRAP_ADMIN_PASSWORD` in `dms\\.env`.
+Before login, set `BOOTSTRAP_ADMIN_PASSWORD` in `web-platform\\backend\\.env`.
 
 ## Manual start
 
 ### Backend
 
 ```bat
-cd dms
+cd web-platform\\backend
 .venv\\Scripts\\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -40,7 +40,7 @@ cd dms
 In another terminal:
 
 ```bat
-cd app
+cd web-platform\\frontend
 npm ci
 npm run dev
 ```
