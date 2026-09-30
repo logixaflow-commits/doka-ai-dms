@@ -28,14 +28,14 @@
 
 ```bash
 # Clone and enter directory
-cd dms/
+cd web-platform/backend/
 
 # Copy and configure environment
 cp .env.example .env
 # Edit .env with your settings
 
 # Start all services
-docker-compose up -d
+docker-compose -f infrastructure/docker/docker-compose.yml up -d
 
 # Access the application
 open http://localhost:8000
@@ -63,7 +63,7 @@ brew install tesseract tesseract-lang
 # Windows
 # Download from: https://github.com/UB-Mannheim/tesseract/wiki
 
-cd dms/
+cd web-platform/backend/
 
 # Setup environment
 cp .env.example .env
@@ -296,7 +296,7 @@ redis-cli ping  # Should return PONG
 docker logs dms_celery_worker
 
 # Restart Celery
-docker-compose restart celery_worker celery_beat
+docker-compose -f infrastructure/docker/docker-compose.yml restart celery_worker celery_beat
 ```
 
 ---
