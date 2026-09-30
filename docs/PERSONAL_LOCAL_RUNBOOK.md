@@ -129,3 +129,14 @@ Verify the private VPN connection and that the local backend/frontend are runnin
 ## Current boundary
 
 This runbook describes the Personal Local Edition. Enterprise multi-user, cloud storage, billing, tenant isolation, and advanced integrations are intentionally deferred until the personal workflow is stable with real office data.
+
+## Local browser login
+
+The Personal Local Edition uses a small local JWT auth boundary and does not require the deferred enterprise ORM/user-model stack.
+
+Set these in the local `.env` before starting the backend:
+- `LOCAL_ADMIN_USERNAME=admin` (or another local username)
+- `BOOTSTRAP_ADMIN_PASSWORD=<strong password>` (12+ characters)
+
+The React login screen uses `/api/auth/login`. Workspace APIs require the resulting bearer token. The password is never embedded in the frontend or repository.
+
