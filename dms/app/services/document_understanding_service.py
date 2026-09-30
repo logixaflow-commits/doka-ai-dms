@@ -5,9 +5,6 @@ import mimetypes
 import re
 import zipfile
 import xml.etree.ElementTree as ET
-import re
-import zipfile
-import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
@@ -46,35 +43,7 @@ class DocumentUnderstandingService:
                     xml = archive.read("word/document.xml")
                 root = ET.fromstring(xml)
                 text = " ".join(node.text or "" for node in root.iter() if node.tag.endswith("}t"))
-                return re.sub(r"\\s+", " ", text).strip(), "docx"
-            except Exception as exc:
-                logger.warning("DOCX extraction failed for %s: %s", path, exc)
-                return "", "docx_failed"
-
-        if ext in {".xlsx", ".xlsm"}:
-            try:
-                from openpyxl import load_workbook
-                workbook = load_workbook(path, read_only=True, data_only=True)
-                chunks = []
-                for sheet in workbook.worksheets:
-                    chunks.append(f"[Sheet: {sheet.title}]")
-                    for row in sheet.iter_rows(values_only=True):
-                        values = [str(value) for value in row if value is not None]
-                        if values:
-                            chunks.append(" | ".join(values))
-                workbook.close()
-                return "\n".join(chunks), "xlsx"
-            except Exception as exc:
-                logger.warning("Excel extraction failed for %s: %s", path, exc)
-                return "", "xlsx_failed"
-
-        if ext == ".docx":
-            try:
-                with zipfile.ZipFile(path) as archive:
-                    xml = archive.read("word/document.xml")
-                root = ET.fromstring(xml)
-                text = " ".join(node.text or "" for node in root.iter() if node.tag.endswith("}t"))
-                return re.sub(r"\\s+", " ", text).strip(), "docx"
+                return re.sub(r"\s+", " ", text).strip(), "docx"
             except Exception as exc:
                 logger.warning("DOCX extraction failed for %s: %s", path, exc)
                 return "", "docx_failed"
