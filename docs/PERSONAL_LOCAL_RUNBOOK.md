@@ -1,8 +1,8 @@
-# Personal Local DMS Runbook
+# Doka Personal Local Runbook
 
 ## Purpose
 
-This edition is a single-user local/office document management system. The original source drive is treated as read-only.
+Doka is a single-user local/office document management system. The original source drive is treated as read-only.
 
 ## Safe data flow
 
@@ -128,7 +128,7 @@ Verify the private VPN connection and that the local backend/frontend are runnin
 
 ## Current boundary
 
-This runbook describes the Personal Local Edition. Enterprise multi-user, cloud storage, billing, tenant isolation, and advanced integrations are intentionally deferred until the personal workflow is stable with real office data.
+This runbook describes the Doka Personal Local Edition. Enterprise multi-user, cloud storage, billing, tenant isolation, and advanced integrations are intentionally deferred until the personal workflow is stable with real office data.
 
 ## Local browser login
 
