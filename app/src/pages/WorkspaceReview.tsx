@@ -69,8 +69,9 @@ export default function WorkspaceReview() {
     try {
       const response = await api('/imports?limit=50');
       if (response.ok) setSessions((await response.json()).imports || []);
+      else if (response.status === 401 || response.status === 403) setMessage('Please sign in with a staff account to use Safe Workspace.');
     } catch {
-      // Session history is optional; the active session remains usable.
+      setMessage('Safe Workspace is unavailable. Check that the local backend is running.');
     }
   }
 
@@ -111,6 +112,7 @@ export default function WorkspaceReview() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || `${step} failed`);
       if (step === 'plan') setProposals(data.proposals || []);
+      await loadStatus();
       setMessage(`${step} completed.`);
     } catch (e) { setMessage(e instanceof Error ? e.message : `${step} failed`); }
     finally { setBusy(false); }
@@ -174,6 +176,7 @@ export default function WorkspaceReview() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Search failed');
       setSearchResults(data.results || []);
+      setMessage(data.total ? `Found ${data.total} matching file(s).` : 'No matching files found.');
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Search failed'); }
     finally { setBusy(false); }
   }
@@ -190,6 +193,7 @@ export default function WorkspaceReview() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Apply failed');
       setMessage(`Apply completed: ${(data.results || []).filter((r: any) => r.status === 'copied').length} copied.`);
+      setSelected(new Set());
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Apply failed'); }
     finally { setBusy(false); }
   }
