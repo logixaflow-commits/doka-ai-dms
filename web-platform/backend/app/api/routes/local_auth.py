@@ -25,9 +25,9 @@ class LocalRefresh(BaseModel):
 
 
 @router.post("/login")
-async def login(credentials: LocalLogin, request: Request | None = None):
+async def login(credentials: LocalLogin, request: Request):
     username = credentials.username.strip()
-    client_host = request.client.host if request and request.client else None
+    client_host = request.client.host if request.client else None
 
     if login_is_locked(username, client_host):
         raise HTTPException(
