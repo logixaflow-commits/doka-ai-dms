@@ -95,13 +95,13 @@ Thumbs.db
 Desktop.ini
 
 # Project specific
-dms/processing_workspace/
-uploads/
+web-platform/backend/processing_workspace/
+web-platform/backend/uploads/
 storage/
 backups/
 Office_DMS/
-dms/app/static/uploads/
-dms/app/static/storage/
+web-platform/backend/app/static/uploads/
+web-platform/backend/app/static/storage/
 
 # AI/ML models
 models/
@@ -124,5 +124,5 @@ mobile/.env.local
 mobile/dist/
 
 # Monitoring
-monitoring/prometheus/data/
-monitoring/grafana/data/
+infrastructure/monitoring/prometheus/data/
+infrastructure/monitoring/grafana/data/
