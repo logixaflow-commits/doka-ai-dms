@@ -4,19 +4,23 @@ from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
 from app.api.routes.local_auth import LocalLogin, login
 
+def _request(host: str = "127.0.0.1") -> Request:
+    return Request({"type": "http", "headers": [], "client": (host, 12345)})
+
+
 
 @pytest.mark.asyncio
 async def test_local_login_requires_configured_password(monkeypatch):
     monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "")
     with pytest.raises(Exception, match="not configured"):
-        await login(LocalLogin(username="admin", password="anything"))
+        await login(LocalLogin(username="admin", password="anything"), _request())
 
 
 @pytest.mark.asyncio
 async def test_local_login_and_token_roundtrip(monkeypatch):
     monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "admin")
     monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "local-test-password-123")
-    result = await login(LocalLogin(username="admin", password="local-test-password-123"))
+    result = await login(LocalLogin(username="admin", password="local-test-password-123"), _request())
     assert result["token_type"] == "bearer"
     payload = decode_local_token(result["access_token"])
     assert payload and payload["sub"] == "admin" and payload["role"] == "admin"
@@ -37,12 +41,7 @@ async def test_local_login_lockout_after_repeated_failures(monkeypatch):
     monkeypatch.setattr(settings, "LOCKOUT_DURATION_MINUTES", 30)
     clear_login_failures("admin", "127.0.0.1")
 
-    from fastapi import Request
-    from starlette.datastructures import Headers
-    from starlette.requests import Request as StarletteRequest
-
-    scope = {"type": "http", "headers": [], "client": ("127.0.0.1", 12345)}
-    request = StarletteRequest(scope)
+    request = _request()
 
     for _ in range(3):
         with pytest.raises(Exception, match="Invalid username or password"):
