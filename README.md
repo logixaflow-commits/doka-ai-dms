@@ -1,7 +1,11 @@
-# Enterprise AI Document Management System
+# Doka — Personal Local Document Organizer
+
+## Product identity
+
+**Doka** is the working product name for the Personal Local Document Organizer.
 
 ## Current goal
-The repository is being finished first as a **Personal Local Edition** for safe real-office testing.
+The repository is being finished first as a **Doka Personal Local Edition** for safe real-office testing.
 
 **Original source → verified working copy → inspect/OCR → duplicate & version review → user approval → organized working library → backup/recovery**
 
