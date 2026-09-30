@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Office DMS — Personal Local Edition",
+        title="Doka — Personal Local Edition",
         description="Safe local document workspace with read-only source protection.",
         version="2.0.0-personal-local",
         docs_url="/api/docs" if settings.DEBUG else None,
@@ -84,7 +84,7 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def startup_event():
-        logger.info("Office DMS Personal Local Edition starting")
+        logger.info("Doka Personal Local Edition starting")
         init_observability()
 
     return app
