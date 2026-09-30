@@ -142,11 +142,25 @@ async def import_status(session_id: str):
 
 
 @router.get("/imports/{session_id}/search")
-async def search_import(session_id: str, q: str, limit: int = 100):
+async def search_import(
+    session_id: str,
+    q: str = "",
+    limit: int = 100,
+    extension: str | None = None,
+    category: str | None = None,
+    review_only: bool = False,
+):
     if not 1 <= limit <= 500:
         raise HTTPException(status_code=400, detail="Invalid limit.")
     try:
-        return safe_workspace_service.search(session_id, q, limit)
+        return safe_workspace_service.search(
+            session_id,
+            q,
+            limit,
+            extension=extension,
+            category=category,
+            review_only=review_only,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
