@@ -1,8 +1,8 @@
-# Personal Local DMS — Master Plan
+# Doka — Personal Local Master Plan
 
 ## Product direction
 
-The current product is being developed first as a **single-user local document organizer and DMS** for real office use and testing. Commercial/multi-user/cloud features are deliberately deferred until the personal edition is stable.
+The current Doka product is being developed first as a **single-user local document organizer and DMS** for real office use and testing. Commercial/multi-user/cloud features are deliberately deferred until the personal edition is stable.
 
 The core problem is a messy office drive containing old files, duplicated filenames, near-duplicates, different document versions, and mixed Myanmar/English content.
 
@@ -33,6 +33,10 @@ D:\OfficeFiles (ORIGINAL / READ ONLY)
 → Safe rename/move
 → Final organized library
 → Backup + audit history
+
+## Doka delivery phases
+
+A→E is the current delivery sequence: A) security hardening, B) local workflow usability, C) OCR/search quality, D) real-world pilot and tuning, E) later enterprise/cloud architecture. A phase is not considered complete merely because code exists; it must pass its relevant tests and, where applicable, real-machine validation.
 
 ## Implementation phases
 
