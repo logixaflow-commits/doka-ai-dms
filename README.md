@@ -289,7 +289,7 @@ git clone <repository-url>
 cd Enterprise-AI-DMS-Blueprint
 
 # Navigate to backend
-cd dms
+cd web-platform/backend
 
 # Create virtual environment
 python -m venv venv
@@ -318,7 +318,7 @@ alembic upgrade head
 
 ```bash
 # Navigate to frontend
-cd app
+cd web-platform/frontend
 
 # Install dependencies
 npm install
@@ -414,23 +414,23 @@ const API_BASE_URL = 'http://localhost:8000/api';
 
 ```bash
 # Build and start all services
-docker-compose up -d
+docker-compose -f infrastructure/docker/docker-compose.yml up -d
 
 # View logs
-docker-compose logs -f
+docker-compose -f infrastructure/docker/docker-compose.yml logs -f
 
 # Stop services
-docker-compose down
+docker-compose -f infrastructure/docker/docker-compose.yml down
 
 # Stop and remove volumes
-docker-compose down -v
+docker-compose -f infrastructure/docker/docker-compose.yml down -v
 ```
 
 ### Production Deployment
 
 ```bash
 # Use production compose file
-docker-compose -f docker-compose.production.yml up -d
+docker-compose -f infrastructure/docker/docker-compose.production.yml up -d
 
 # Run setup script
 ./scripts/deploy.sh
@@ -561,7 +561,7 @@ eas build --platform android
 
 Start monitoring stack:
 ```bash
-cd monitoring
+cd infrastructure/monitoring
 docker-compose -f docker-compose.monitoring.yml up -d
 ```
 
@@ -578,7 +578,7 @@ Access dashboards:
 
 ### Run All Tests
 ```bash
-cd dms
+cd web-platform/backend
 pytest
 ```
 
