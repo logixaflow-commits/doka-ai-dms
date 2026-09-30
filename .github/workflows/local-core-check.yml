@@ -46,7 +46,7 @@ jobs:
       - name: Install lightweight test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest==8.0.0 pytest-asyncio==0.23.0 pytest-cov pydantic pyyaml python-dotenv loguru httpx
+          pip install pytest==8.0.0 pytest-asyncio==0.23.0 pytest-cov pydantic pyyaml python-dotenv loguru httpx fastapi sqlalchemy python-jose bcrypt
       - name: Run local safety regression tests
         env:
           ENVIRONMENT: development
