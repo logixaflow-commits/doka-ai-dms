@@ -203,3 +203,29 @@ The personal edition keeps the data plane local. External services are integrati
 - **AI providers**: optional and disabled by default; provider order remains configurable and AI must not perform destructive filesystem operations without explicit user approval.
 
 Integration rule: all external services must fail closed for the local data plane. The DMS must remain usable without Vercel, Render, Supabase, Sentry, or AI provider credentials.
+
+
+## Current implementation status
+
+The Personal Local Edition core is implemented and covered by repeatable CI checks.
+
+Completed in the repository:
+- safe read-only source import with verified SHA-256 copies
+- resumable workspace sessions and inventory
+- local text/PDF/image OCR understanding
+- local DOCX and XLSX/XLSM extraction
+- duplicate and likely-version review
+- deterministic category/folder recommendations
+- explicit approval before organization
+- copy-only Final organization with no-overwrite conflicts
+- organization audit and safe undo
+- working-copy search and file preview/download boundaries
+- workspace backup, SHA-256 verification, recovery-only restore, and retention
+- AI disabled by default with configurable free-first provider fallback
+- privacy-safe optional Sentry integration
+- frontend Safe Workspace review UI
+- backend/frontend local-core CI regression checks
+
+Final validation still requires a real machine with the local runtime and a copy of representative office data. Browser verification cannot be substituted by unit tests; it should be run against the actual local frontend/backend before the first real-data pilot.
+
+No branch is required for this work; the repository's default branch remains the implementation target.
