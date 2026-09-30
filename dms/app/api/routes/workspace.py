@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 from app.services.safe_workspace_service import safe_workspace_service
 from app.services.workspace_backup_service import workspace_backup_service
 from app.services.ocr_validation_service import ocr_validation_service
-from app.core.security import require_staff
+from app.core.local_security import require_local_staff
 
-router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencies=[Depends(require_staff)])
+router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencies=[Depends(require_local_staff)])
 
 
 class OrganizationApplyRequest(BaseModel):
