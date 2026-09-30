@@ -54,11 +54,11 @@ export default function Login({ onLogin }: { onLogin: (token: string) => void })
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex justify-between items-center mb-2">
-            <CardTitle className="text-2xl dark:text-slate-100">Office DMS Login</CardTitle>
+            <CardTitle className="text-2xl dark:text-slate-100">Personal Local DMS Login</CardTitle>
             <ThemeToggle />
           </div>
           <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
-            Enterprise AI Document Management System
+            Safe local document workspace
           </p>
         </CardHeader>
         <CardContent>
