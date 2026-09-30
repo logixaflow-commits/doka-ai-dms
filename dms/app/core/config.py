@@ -189,6 +189,7 @@ class Settings:
         self.SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@enterprise-dms.local")
         self.SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Enterprise DMS")
         self.ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@enterprise-dms.local")
+        self.LOCAL_ADMIN_USERNAME = os.getenv("LOCAL_ADMIN_USERNAME", "admin")
         # Optional one-time bootstrap. Never ship a usable default password.
         self.BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
 
