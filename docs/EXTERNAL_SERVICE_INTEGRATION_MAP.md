@@ -31,7 +31,7 @@ No external service may become a required dependency for:
 The existing Vercel project is retained as a future frontend deployment target. It should not receive the local document data plane.
 
 Before activation:
-1. Configure the project root as `app/`.
+1. Configure the project root as `web-platform/frontend/`.
 2. Configure only frontend-safe environment variables.
 3. Point API traffic to the future backend endpoint.
 4. Do not put local filesystem paths or document contents in Vercel environment variables.
