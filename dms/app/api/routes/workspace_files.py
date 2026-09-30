@@ -6,10 +6,10 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
-from app.core.security import require_staff
+from app.core.local_security import require_local_staff
 from app.services.safe_workspace_service import safe_workspace_service
 
-router = APIRouter(prefix="/api/workspace", tags=["Workspace Files"], dependencies=[Depends(require_staff)])
+router = APIRouter(prefix="/api/workspace", tags=["Workspace Files"], dependencies=[Depends(require_local_staff)])
 
 
 def _safe_file(session_id: str, relative_path: str) -> Path:
