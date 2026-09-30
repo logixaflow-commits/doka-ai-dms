@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN tesseract --version && tesseract --list-langs
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY web-platform/backend/requirements-dev.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -42,9 +42,9 @@ RUN mkdir -p Office_DMS/{Watch_Folder,Processing_Workspace,Organized,Duplicate,S
     app/templates
 
 # Copy application code
-COPY app/ ./app/
-COPY config.yaml .
-COPY .env.example .env
+COPY web-platform/backend/ ./
+COPY web-platform/backend/config.yaml ./config.yaml
+COPY web-platform/backend/.env.example .env
 
 # Expose port
 EXPOSE 8000
