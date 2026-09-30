@@ -1,75 +1,62 @@
 @echo off
-REM Enterprise DMS - Application Startup Script
-REM Starts both Backend (FastAPI) and Frontend (React)
+setlocal
+cd /d "%~dp0"
 
 echo ========================================
-echo Enterprise DMS - Application Startup
+echo Personal Local DMS - Startup
 echo ========================================
 echo.
 
-REM Check if Node.js is installed
-node --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Node.js not found. Please install Node.js first.
-    pause
-    exit /b 1
-)
-
-REM Check if npm is installed
-npm --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: npm not found. Please install Node.js first.
-    pause
-    exit /b 1
-)
-
-REM Check Python is installed
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: Python not found. Please install Python first.
-    pause
-    exit /b 1
+  echo ERROR: Python was not found.
+  exit /b 1
 )
 
-echo Starting Backend (FastAPI) on port 8000...
-echo Starting Frontend (React) on port 3000...
-echo.
-
-REM Start Backend in background
-cd /d "%~dp0dms"
-start "DMS Backend" cmd /k "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
-
-REM Wait a moment for backend to start
-timeout /t 3 /nobreak >nul
-
-REM Start Frontend
-cd /d "%~dp0app"
-echo Installing frontend dependencies if needed...
-if not exist "node_modules" (
-    echo Installing dependencies...
-    npm install
+node --version >nul 2>&1
+if errorlevel 1 (
+  echo ERROR: Node.js was not found.
+  exit /b 1
 )
 
-echo Starting React development server...
-start "DMS Frontend" cmd /k "npm run dev"
+if not exist "dms\.venv\Scripts\python.exe" (
+  echo Creating Python virtual environment...
+  python -m venv dms\.venv
+  if errorlevel 1 exit /b 1
+)
+
+if not exist "dms\.env" (
+  copy /Y "dms\.env.example" "dms\.env" >nul
+  echo Created dms\.env from the template.
+  echo IMPORTANT: Set BOOTSTRAP_ADMIN_PASSWORD in dms\.env before login.
+)
+
+echo Installing local Python dependencies...
+"dms\.venv\Scripts\python.exe" -m pip install -r dms\requirements-local.txt
+if errorlevel 1 exit /b 1
+
+if not exist "app\node_modules" (
+  echo Installing frontend dependencies...
+  cd app
+  npm ci
+  if errorlevel 1 exit /b 1
+  cd ..
+)
 
 echo.
-echo ========================================
-echo Application Started!
-echo ========================================
-echo.
-echo Backend API: http://localhost:8000
-echo Frontend:   http://localhost:3000
-echo API Docs:   http://localhost:8000/docs
-echo.
-echo Press Ctrl+C to stop the servers, or close the windows.
-echo.
-echo Note: This script opens two command windows.
-echo Close both windows to stop the application completely.
-echo.
+echo Starting backend on http://127.0.0.1:8000 ...
+start "Personal DMS Backend" cmd /k "cd /d "%~dp0dms" && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
 
-REM Open browser automatically
 timeout /t 2 /nobreak >nul
-start http://localhost:3000
 
-pause
+echo Starting frontend on http://127.0.0.1:3000 ...
+start "Personal DMS Frontend" cmd /k "cd /d "%~dp0app" && npm run dev"
+
+echo.
+echo Backend:  http://127.0.0.1:8000/health
+echo Frontend: http://127.0.0.1:3000
+echo.
+echo Original source protection: ALLOW_SOURCE_WRITE=false
+echo AI: OFF by default
+echo.
+endlocal
