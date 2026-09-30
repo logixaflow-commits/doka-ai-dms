@@ -61,8 +61,8 @@ services:
   # FastAPI Web Application
   web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
       target: app
     container_name: dms-web
     environment:
@@ -89,8 +89,8 @@ services:
       SMTP_FROM_NAME: "Enterprise DMS"
       ADMIN_EMAIL: admin@enterprise-dms.local
     volumes:
-      - ./Office_DMS:/app/Office_DMS
-      - ./logs:/app/logs
+      - ../../Office_DMS:/app/Office_DMS
+      - ../../logs:/app/logs
       - static_data:/app/static
       - template_data:/app/templates
       # Social Media Source Folders (Optional - Mount host directories if needed)
@@ -121,8 +121,8 @@ services:
   # Celery Worker
   celery-worker:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
       target: celery-worker
     container_name: dms-celery-worker
     environment:
@@ -140,8 +140,8 @@ services:
       TESSERACT_CMD: tesseract
       MYANMAR_LANG: mya
     volumes:
-      - ./Office_DMS:/app/Office_DMS
-      - ./logs:/app/logs
+      - ../../Office_DMS:/app/Office_DMS
+      - ../../logs:/app/logs
       # Social Media Source Folders (Optional - Uncomment if needed)
       # Update these paths to match your actual download folders
     depends_on:
@@ -157,8 +157,8 @@ services:
   # Celery Beat Scheduler
   celery-beat:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
       target: celery-beat
     container_name: dms-celery-beat
     environment:
@@ -174,8 +174,8 @@ services:
       ENVIRONMENT: production
       DEBUG: "false"
     volumes:
-      - ./Office_DMS:/app/Office_DMS
-      - ./logs:/app/logs
+      - ../../Office_DMS:/app/Office_DMS
+      - ../../logs:/app/logs
       # Social Media Source Folders (Optional - Uncomment if needed)
       # Update these paths to match your actual download folders
     depends_on:
