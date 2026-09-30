@@ -5,6 +5,7 @@
 - [Features](#features)
 - [Architecture](#architecture)
 - [Installation](#installation)
+- [Personal Local Runbook](#personal-local-runbook)
 - [Configuration](#configuration)
 - [Deployment](#deployment)
 - [API Documentation](#api-documentation)
@@ -20,17 +21,18 @@
 
 Enterprise AI Document Management System (DMS) is being developed first as a safe, single-user local document organizer and DMS for real office testing. The initial workflow protects original source data, works on a verified copy, analyzes Myanmar/English documents, and requires human approval before organization changes are applied. Cloud, multi-user, enterprise integrations, and AI-heavy features are intentionally deferred until the personal edition is stable.
 
-### Key Capabilities
-- **AI-Powered Document Processing**: Automatic classification, function detection, and quality assessment
-- **Multi-Language OCR**: Support for English, Myanmar, and other languages
-- **Real-time Collaboration**: SSE-based real-time updates and notifications
-- **Advanced Search**: Natural language and semantic search capabilities
-- **Workflow Automation**: Custom approval workflows and task management
-- **Version Control**: Complete document version history and rollback
-- **External Integrations**: ERP, CRM, and accounting system integrations
-- **Mobile Access**: React Native mobile application
-- **Comprehensive Analytics**: Prometheus and Grafana monitoring
-- **Enterprise Security**: Role-based access control, audit logging, and encryption
+### Current Personal Edition Capabilities
+- **Read-only source protection**: Original source folders are never modified by organization.
+- **Verified working copy**: Recursive import with SHA-256 verification and resumable sessions.
+- **Myanmar + English document understanding**: Local text extraction, OCR, PDF/image handling, DOCX, and XLSX/XLSM extraction.
+- **Duplicate/version review**: Exact duplicates and likely version families are surfaced for human review.
+- **Safe organization**: Category/folder/filename proposals require explicit approval and copy into Final without overwriting different files.
+- **Recovery**: Organization audit journal, safe undo, workspace backups, SHA-256 verification, and recovery-only restore.
+- **Local search and preview**: Search the verified working copy and preview/download individual files.
+- **Optional AI**: Disabled by default; configurable free-first provider fallback when explicitly enabled.
+- **Browser UI**: React/Vite Safe Workspace interface for the local data plane.
+
+The repository also contains legacy/enterprise modules (RBAC, realtime, mobile, integrations, reporting, workflow automation, cloud infrastructure, and advanced AI). They are retained for later phases and are not the current personal-edition readiness boundary.
 
 ## 🛡️ Personal Local Mode (Current Priority)
 
@@ -45,6 +47,10 @@ Core organization must work without paid AI services. AI is optional and uses a 
 The application is local-first, but it is also web-accessible. The home/office PC keeps the original files, working copy, database, OCR data, and backups locally. The React/Vite web interface is used from a browser for search, review, viewing, and downloads.
 
 For remote access from the office, the personal setup should use a private VPN/secure tunnel rather than exposing the DMS directly to the public Internet. Local storage is not being removed; web access is an interface over the local data plane.
+
+## 📘 Personal Local Runbook
+
+See `docs/PERSONAL_LOCAL_RUNBOOK.md` for the safe import, review, organization, backup/recovery, OCR, AI, and private-network operating workflow.
 
 ## ✨ Features
 
