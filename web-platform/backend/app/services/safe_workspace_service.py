@@ -249,32 +249,60 @@ class SafeWorkspaceService:
                 "inventory", "unreadable", "duplicate_groups", "filename_collision_groups_detail"
             }}
 
-    def search(self, session_id: str, query: str, limit: int = 100) -> Dict[str, Any]:
+    def search(
+        self,
+        session_id: str,
+        query: str,
+        limit: int = 100,
+        extension: Optional[str] = None,
+        category: Optional[str] = None,
+        review_only: bool = False,
+    ) -> Dict[str, Any]:
         value = self._read(self._json_path(session_id, "inventory.json"))
         if not value:
             raise ValueError("Inventory is not available. Run scan first.")
         if limit < 1 or limit > 1000:
             raise ValueError("limit must be between 1 and 1000.")
+
         q = query.casefold().strip()
-        if not q:
-            return {"session_id": session_id, "query": query, "total": 0, "results": []}
+        extension_filter = extension.casefold().strip() if extension else ""
+        category_filter = category.casefold().strip() if category else ""
         understanding = self._read(self._json_path(session_id, "understanding.json"))
+        corrections = self._read(self._json_path(session_id, "ocr_corrections.json"))
         understood = {x.get("relative_path"): x for x in understanding.get("results", [])}
+        corrected = corrections.get("results", {})
+
         results = []
         total_matches = 0
         for item in value.get("inventory", []):
             rel = item.get("relative_path", "")
             enriched = understood.get(rel, {})
+            metadata = enriched.get("metadata", {}) if isinstance(enriched.get("metadata", {}), dict) else {}
+            corrected_text = corrected.get(rel, "")
+            category_value = str(metadata.get("category") or metadata.get("document_type") or "").casefold()
+
+            if extension_filter and str(item.get("extension", "")).casefold() != extension_filter:
+                continue
+            if category_filter and category_filter not in category_value:
+                continue
+            if review_only and not (
+                bool(enriched.get("review_required"))
+                or enriched.get("extraction_method") in {"ocr_failed", "text_unreadable"}
+            ):
+                continue
+
             haystack = " ".join([
                 item.get("filename", ""),
                 rel,
                 enriched.get("text_preview", ""),
-                json.dumps(enriched.get("metadata", {}), ensure_ascii=False),
+                corrected_text,
+                json.dumps(metadata, ensure_ascii=False),
             ]).casefold()
-            if q in haystack:
-                total_matches += 1
-                if len(results) >= limit:
-                    continue
+            if q and q not in haystack:
+                continue
+
+            total_matches += 1
+            if len(results) < limit:
                 results.append({
                     "relative_path": rel,
                     "filename": item.get("filename"),
@@ -282,13 +310,22 @@ class SafeWorkspaceService:
                     "size": item.get("size"),
                     "sha256": item.get("sha256"),
                     "modified_at": item.get("modified_at"),
-                    "category": enriched.get("metadata", {}).get("document_type") if isinstance(enriched.get("metadata"), dict) else None,
-                    "text_preview": enriched.get("text_preview", "")[:500],
+                    "category": metadata.get("document_type") or metadata.get("category"),
+                    "text_preview": (corrected_text or enriched.get("text_preview", ""))[:500],
+                    "ocr_corrected": bool(corrected_text),
                 })
-                # Keep scanning so total reflects all matches even when the result page is full.
-                if len(results) >= limit:
-                    continue
-        return {"session_id": session_id, "query": query, "total": total_matches, "results": results}
+
+        return {
+            "session_id": session_id,
+            "query": query,
+            "filters": {
+                "extension": extension,
+                "category": category,
+                "review_only": review_only,
+            },
+            "total": total_matches,
+            "results": results,
+        }
 
     def list_sessions(self, limit: int = 50) -> list[Dict[str, Any]]:
         imports_root = self.root / "imports"
