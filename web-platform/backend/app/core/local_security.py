@@ -1,34 +1,110 @@
-"""Personal Local Edition authentication helpers.
+"""Authentication helpers for the Doka Personal Local Edition.
 
-This module intentionally does not depend on the deferred enterprise ORM models.
+The local edition intentionally keeps authentication state in process memory.
+A database/Redis-backed session architecture belongs to the later multi-user edition.
 """
+
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+import threading
+import time
+
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+
 from app.core.config import settings
 
 bearer = HTTPBearer(auto_error=False)
 
+_login_guard = threading.Lock()
+_login_failures: dict[str, list[float]] = {}
+
+
+def _login_key(username: str, client_host: str | None) -> str:
+    return f"{(username or '').strip().casefold()}|{client_host or 'unknown'}"
+
+
+def login_is_locked(username: str, client_host: str | None = None) -> bool:
+    key = _login_key(username, client_host)
+    now = time.monotonic()
+    window = max(1, int(settings.LOCKOUT_DURATION_MINUTES)) * 60
+    with _login_guard:
+        failures = [stamp for stamp in _login_failures.get(key, []) if now - stamp < window]
+        if failures:
+            _login_failures[key] = failures
+        else:
+            _login_failures.pop(key, None)
+        return len(failures) >= max(1, int(settings.MAX_LOGIN_ATTEMPTS))
+
+
+def record_login_failure(username: str, client_host: str | None = None) -> None:
+    key = _login_key(username, client_host)
+    now = time.monotonic()
+    window = max(1, int(settings.LOCKOUT_DURATION_MINUTES)) * 60
+    with _login_guard:
+        failures = [stamp for stamp in _login_failures.get(key, []) if now - stamp < window]
+        failures.append(now)
+        _login_failures[key] = failures
+
+
+def clear_login_failures(username: str, client_host: str | None = None) -> None:
+    with _login_guard:
+        _login_failures.pop(_login_key(username, client_host), None)
+
+
 def create_local_access_token(username: str) -> str:
     now = datetime.now(timezone.utc)
-    return jwt.encode({"sub": username, "role": "admin", "type": "access", "iat": now, "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)}, settings.SECRET_KEY, algorithm="HS256")
+    return jwt.encode(
+        {
+            "sub": username,
+            "role": "admin",
+            "type": "access",
+            "iat": now,
+            "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        },
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
 
 def create_local_refresh_token(username: str) -> str:
     now = datetime.now(timezone.utc)
-    return jwt.encode({"sub": username, "role": "admin", "type": "refresh", "iat": now, "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)}, settings.SECRET_KEY, algorithm="HS256")
+    return jwt.encode(
+        {
+            "sub": username,
+            "role": "admin",
+            "type": "refresh",
+            "iat": now,
+            "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        },
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
 
 def decode_local_token(token: str, expected_type: str = "access") -> Optional[dict]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        if payload.get("type") != expected_type or payload.get("role") != "admin": return None
+        if payload.get("type") != expected_type or payload.get("role") != "admin":
+            return None
         return payload
     except JWTError:
         return None
 
-async def require_local_staff(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer)) -> str:
-    if credentials is None: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+async def require_local_staff(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer),
+) -> str:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required.",
+        )
     payload = decode_local_token(credentials.credentials)
-    if not payload: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token.")
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token.",
+        )
     return str(payload["sub"])
