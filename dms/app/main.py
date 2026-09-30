@@ -1,1 +1,93 @@
-"""FastAPI entry point for the Personal Local Edition.\n\nLegacy enterprise routes remain in the repository but are intentionally not loaded\nby this runtime until their deferred ORM/model stack is restored.\n"""\nimport os\nimport time\nfrom datetime import datetime\nfrom fastapi import FastAPI, Request\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom fastapi.responses import JSONResponse\nfrom app.core.config import settings\nfrom app.core.logging import get_logger\nfrom app.core.observability import init_observability\nfrom app.api.routes import local_auth, workspace, workspace_files\nlogger = get_logger(__name__)\n\ndef create_app() -> FastAPI:\n    app = FastAPI(title="Office DMS — Personal Local Edition", description="Safe local document workspace with read-only source protection.", version="2.0.0-personal-local", docs_url="/api/docs" if settings.DEBUG else None)\n    cors_origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8000").split(",") if x.strip()]\n    app.add_middleware(CORSMiddleware, allow_origins=cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])\n    @app.middleware("http")\n    async def request_context(request: Request, call_next):\n        start = time.time(); request_id = request.headers.get("X-Request-ID", f"req_{time.time():.6f}"); request.state.request_id = request_id\n        try: response = await call_next(request)\n        except Exception as exc:\n            logger.error(f"Unhandled request error: {exc}")\n            return JSONResponse(status_code=500, content={"error": "Internal Server Error", "request_id": request_id})\n        response.headers["X-Request-ID"] = request_id; response.headers["X-Response-Time"] = f"{time.time()-start:.3f}s"; return response\n    app.include_router(local_auth.router, prefix="/api/auth", tags=["Authentication"])\n    app.include_router(workspace.router)\n    app.include_router(workspace_files.router)\n    @app.get("/health", tags=["System"])\n    async def health():\n        return {"status":"healthy","edition":"personal-local","timestamp":datetime.utcnow().isoformat(),"ai_enabled":bool(settings.AI_ENABLED),"source_read_only":bool(settings.ORIGINAL_READ_ONLY and not settings.ALLOW_SOURCE_WRITE)}\n    @app.get("/api/config", tags=["System"])\n    async def public_config():\n        return {"edition":"personal-local","ai_enabled":bool(settings.AI_ENABLED),"source_read_only":bool(settings.ORIGINAL_READ_ONLY and not settings.ALLOW_SOURCE_WRITE),"workspace_root_configured":bool(settings.WORKING_ROOT)}\n    @app.on_event("startup")\n    async def startup_event():\n        logger.info("Office DMS Personal Local Edition starting"); init_observability()\n    return app\napp = create_app()\n
+"""FastAPI entry point for the Personal Local Edition.
+
+Legacy enterprise routes remain in the repository but are intentionally not loaded
+by this runtime until their deferred ORM/model stack is restored.
+"""
+import os
+import time
+from datetime import datetime
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.api.routes import local_auth, workspace, workspace_files
+from app.core.config import settings
+from app.core.logging import get_logger
+from app.core.observability import init_observability
+
+logger = get_logger(__name__)
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="Office DMS — Personal Local Edition",
+        description="Safe local document workspace with read-only source protection.",
+        version="2.0.0-personal-local",
+        docs_url="/api/docs" if settings.DEBUG else None,
+    )
+    cors_origins = [
+        x.strip()
+        for x in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+        ).split(",")
+        if x.strip()
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.middleware("http")
+    async def request_context(request: Request, call_next):
+        start = time.time()
+        request_id = request.headers.get("X-Request-ID", f"req_{time.time():.6f}")
+        request.state.request_id = request_id
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            logger.error(f"Unhandled request error: {exc}")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal Server Error", "request_id": request_id},
+            )
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Response-Time"] = f"{time.time() - start:.3f}s"
+        return response
+
+    app.include_router(local_auth.router, prefix="/api/auth", tags=["Authentication"])
+    app.include_router(workspace.router)
+    app.include_router(workspace_files.router)
+
+    @app.get("/health", tags=["System"])
+    async def health():
+        return {
+            "status": "healthy",
+            "edition": "personal-local",
+            "timestamp": datetime.utcnow().isoformat(),
+            "ai_enabled": bool(settings.AI_ENABLED),
+            "source_read_only": bool(settings.ORIGINAL_READ_ONLY and not settings.ALLOW_SOURCE_WRITE),
+        }
+
+    @app.get("/api/config", tags=["System"])
+    async def public_config():
+        return {
+            "edition": "personal-local",
+            "ai_enabled": bool(settings.AI_ENABLED),
+            "source_read_only": bool(settings.ORIGINAL_READ_ONLY and not settings.ALLOW_SOURCE_WRITE),
+            "workspace_root_configured": bool(settings.WORKING_ROOT),
+        }
+
+    @app.on_event("startup")
+    async def startup_event():
+        logger.info("Office DMS Personal Local Edition starting")
+        init_observability()
+
+    return app
+
+
+app = create_app()
