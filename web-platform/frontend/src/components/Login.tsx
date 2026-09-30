@@ -54,7 +54,7 @@ export default function Login({ onLogin }: { onLogin: (token: string) => void })
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex justify-between items-center mb-2">
-            <CardTitle className="text-2xl dark:text-slate-100">Personal Local DMS Login</CardTitle>
+            <CardTitle className="text-2xl dark:text-slate-100">Doka Login</CardTitle>
             <ThemeToggle />
           </div>
           <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
@@ -98,7 +98,7 @@ export default function Login({ onLogin }: { onLogin: (token: string) => void })
               {loading ? 'Logging in...' : 'Login'}
             </Button>
             <div className="text-center text-sm text-slate-500">
-              <p>Personal Local Edition: use the configured local admin credentials.</p>
+              <p>Doka Personal Local Edition · use the configured local admin credentials.</p>
             </div>
           </form>
         </CardContent>
