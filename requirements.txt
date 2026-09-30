@@ -1,4 +1,4 @@
 # Legacy Enterprise Edition dependency set.
 # Personal Local Edition uses dms/requirements-local.txt.
 
--r dms/requirements-dev.txt
+-r web-platform/backend/requirements-dev.txt
