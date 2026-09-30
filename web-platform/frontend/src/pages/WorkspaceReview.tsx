@@ -57,6 +57,11 @@ export default function WorkspaceReview() {
   const [backupStatus, setBackupStatus] = useState<string>('');
   const [sessions, setSessions] = useState<any[]>([]);
   const [showReviewOnly, setShowReviewOnly] = useState(false);
+  const [extensionFilter, setExtensionFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [ocrResults, setOcrResults] = useState<any[]>([]);
+  const [editingOcr, setEditingOcr] = useState<string | null>(null);
+  const [ocrDraft, setOcrDraft] = useState('');
 
   const visibleProposals = useMemo(
     () => showReviewOnly ? proposals.filter(p => p.action.startsWith('review')) : proposals,
@@ -112,6 +117,10 @@ export default function WorkspaceReview() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || `${step} failed`);
       if (step === 'plan') setProposals(data.proposals || []);
+      if (step === 'understand') {
+        const detail = await api(`/imports/${encodeURIComponent(sessionId)}/understanding`);
+        if (detail.ok) setOcrResults((await detail.json()).results || []);
+      }
       await loadStatus();
       setMessage(`${step} completed.`);
     } catch (e) { setMessage(e instanceof Error ? e.message : `${step} failed`); }
@@ -168,11 +177,38 @@ export default function WorkspaceReview() {
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Preview failed'); }
   }
 
+  async function saveOcrCorrection(relativePath: string) {
+    if (!sessionId) return;
+    setBusy(true); setMessage('');
+    try {
+      const encoded = relativePath.split('/').map(encodeURIComponent).join('/');
+      const response = await api(`/imports/${encodeURIComponent(sessionId)}/understanding/${encoded}`, {
+        method: 'PUT',
+        body: JSON.stringify({ text: ocrDraft }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'OCR correction failed');
+      setOcrResults(prev => prev.map(item => item.relative_path === relativePath
+        ? { ...item, corrected_text: ocrDraft, ocr_corrected: Boolean(ocrDraft.trim()) }
+        : item));
+      setEditingOcr(null);
+      setMessage('OCR correction saved as metadata; the document file was not changed.');
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'OCR correction failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function searchWorkingCopy() {
     if (!sessionId || !query.trim()) return;
     setBusy(true); setMessage('');
     try {
-      const response = await api(`/imports/${encodeURIComponent(sessionId)}/search?q=${encodeURIComponent(query.trim())}&limit=100`);
+      const params = new URLSearchParams({ q: query.trim(), limit: '100' });
+      if (extensionFilter.trim()) params.set('extension', extensionFilter.trim());
+      if (categoryFilter.trim()) params.set('category', categoryFilter.trim());
+      if (showReviewOnly) params.set('review_only', 'true');
+      const response = await api(`/imports/${encodeURIComponent(sessionId)}/search?${params.toString()}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Search failed');
       setSearchResults(data.results || []);
@@ -298,9 +334,14 @@ export default function WorkspaceReview() {
           <Card>
             <CardHeader><CardTitle>Search working copy</CardTitle></CardHeader>
             <CardContent>
-              <div className="flex gap-2">
+              <div className="grid gap-2 md:grid-cols-3">
                 <Input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchWorkingCopy()} placeholder="Filename, folder, OCR/text keyword..." />
-                <Button onClick={searchWorkingCopy} disabled={busy || !query.trim()}>Search</Button>
+                <Input value={extensionFilter} onChange={e => setExtensionFilter(e.target.value)} placeholder="Type, e.g. .pdf" />
+                <Input value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} placeholder="Category, e.g. Invoice" />
+              </div>
+              <div className="mt-2 flex gap-2 items-center">
+                <Button onClick={searchWorkingCopy} disabled={busy}>Search</Button>
+                <span className="text-xs text-slate-500">Review-only filter uses the same review flag as Safe Workspace.</span>
               </div>
               {searchResults.length > 0 && (
                 <div className="mt-4 space-y-2">
@@ -312,6 +353,33 @@ export default function WorkspaceReview() {
               )}
             </CardContent>
           </Card>
+
+          {ocrResults.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>OCR review & correction</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {ocrResults.filter((item: any) => item.extraction_method?.startsWith('ocr') || item.language).slice(0, 20).map((item: any) => (
+                  <div key={item.relative_path} className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium break-all">{item.relative_path}</span>
+                      <Button size="sm" variant="outline" onClick={() => { setEditingOcr(item.relative_path); setOcrDraft(item.corrected_text || item.text_preview || ''); }}>Edit OCR</Button>
+                    </div>
+                    {editingOcr === item.relative_path ? (
+                      <div className="space-y-2">
+                        <textarea className="min-h-32 w-full rounded-md border p-2 text-sm" value={ocrDraft} onChange={e => setOcrDraft(e.target.value)} />
+                        <div className="flex gap-2">
+                          <Button onClick={() => saveOcrCorrection(item.relative_path)} disabled={busy}>Save correction</Button>
+                          <Button variant="outline" onClick={() => setEditingOcr(null)}>Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-600 whitespace-pre-wrap line-clamp-5">{item.corrected_text || item.text_preview || 'No extracted text.'}</p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {proposals.length > 0 && (
             <Card>
