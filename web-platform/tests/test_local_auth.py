@@ -1,8 +1,10 @@
 import pytest
+from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
 from app.api.routes.local_auth import LocalLogin, login
+
 
 def _request(host: str = "127.0.0.1") -> Request:
     return Request({"type": "http", "headers": [], "client": (host, 12345)})
