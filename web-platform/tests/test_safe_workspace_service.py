@@ -85,3 +85,25 @@ def test_search_total_counts_matches_beyond_limit(tmp_path, monkeypatch):
     results = service.search(created["session_id"], "invoice", limit=1)
     assert results["total"] == 3
     assert len(results["results"]) == 1
+
+
+def test_search_filters_extension_and_review(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    (source / "invoice.pdf").write_text("invoice", encoding="utf-8")
+    (source / "notes.txt").write_text("notes", encoding="utf-8")
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    service.run_import(created["session_id"])
+    service.scan(created["session_id"])
+
+    assert service.search(created["session_id"], "invoice", extension=".pdf")["total"] == 1
+    assert service.search(created["session_id"], "invoice", extension=".txt")["total"] == 0
