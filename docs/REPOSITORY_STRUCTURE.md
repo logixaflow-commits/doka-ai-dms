@@ -27,7 +27,6 @@ enterprise-ai-dms/
 │   ├── nginx/
 │   ├── railway/
 │   └── env/
-├── scripts/             # maintenance/deployment helpers
 └── archive/
     └── legacy-enterprise/
 ```
