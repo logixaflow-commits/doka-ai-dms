@@ -6,7 +6,7 @@ The current readiness target is the **Personal Local Edition**. It uses a React 
 
 - Python 3.12 recommended.
 - Node.js 20+ for the Vite frontend.
-- Tesseract OCR is optional for the first smoke test, but required for Myanmar/English OCR. On Windows, install Tesseract and make sure `tesseract --list-langs` includes `eng` and `mya`. citeturn2search0
+- Tesseract OCR is optional for the first smoke test, but required for Myanmar/English OCR. On Windows, install Tesseract and make sure `tesseract --list-langs` includes `eng` and `mya`.
 - Git.
 
 You do **not** need PostgreSQL, Redis, MinIO, Supabase, Render, Vercel, or AI API keys for the Personal Local smoke test.
@@ -45,7 +45,7 @@ npm ci
 npm run dev
 ```
 
-The frontend is **Vite, not Next.js**. Its production build is `npm run build`. citeturn4search0turn4search2
+The frontend is **Vite, not Next.js**. Its production build is `npm run build`.
 
 ## Safe test workflow
 
