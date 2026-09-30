@@ -98,7 +98,7 @@ export default function Login({ onLogin }: { onLogin: (token: string) => void })
               {loading ? 'Logging in...' : 'Login'}
             </Button>
             <div className="text-center text-sm text-slate-500">
-              <p>Demo credentials: admin / admin123</p>
+              <p>Personal Local Edition: use the configured local admin credentials.</p>
             </div>
           </form>
         </CardContent>
