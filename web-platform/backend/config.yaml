@@ -1,218 +1,22 @@
-# =============================================================================
-# Office DMS - User Configuration
-# =============================================================================
-# This file contains user-editable configuration for document classification,
-# supplier mapping, regex patterns, SOP templates, and processing thresholds.
-# =============================================================================
+# Personal Local DMS configuration
+# Keep this file small. Deferred enterprise/social/SOP configuration is preserved
+# under archive/legacy-enterprise/backend/config.yaml and is not part of the
+# current Personal Local runtime.
 
-# --- Social Media Watch Sources (Multi-Source Folder Watching) ------------------
-# Configure multiple social media download folders to watch for automatic ingestion
-# Files from these sources will be organized by date: Organized/Social_Media/YYYY-MM-DD/
-# Naming convention: {Date}_{Source}_{Category}_{OriginalName}.pdf
-watch_sources:
-  - name: "Viber"
-    path: "C:/Users/User/Documents/ViberDownloads"
-    enabled: true
-    auto_rename: true
-    preserve_original: true
-    description: "Viber downloads folder for documents shared via Viber"
-
-  - name: "WhatsApp"
-    path: "C:/Users/User/Downloads/WhatsApp"
-    enabled: true
-    auto_rename: true
-    preserve_original: true
-    description: "WhatsApp downloads folder for documents shared via WhatsApp"
-
-  - name: "Facebook"
-    path: "C:/Users/User/Downloads/Facebook"
-    enabled: false
-    auto_rename: true
-    preserve_original: true
-    description: "Facebook downloads folder for documents from Facebook"
-
-  - name: "Telegram"
-    path: "C:/Users/User/Downloads/Telegram"
-    enabled: false
-    auto_rename: true
-    preserve_original: true
-    description: "Telegram downloads folder for documents shared via Telegram"
-
-# --- Social Media Organization Configuration ----------------------------------
-social_media:
-  # Base folder for organized social media documents
-  base_folder: "Organized/Social_Media"
-  # Date format for folder naming (YYYY-MM-DD)
-  date_format: "%Y-%m-%d"
-  # Naming template for social media files
-  naming_template: "{date}_{source}_{category}_{original_name}"
-  # Whether to create daily folders automatically
-  create_daily_folders: true
-
-# --- Supplier Configuration --------------------------------------------------
-suppliers:
-  - name: "ABC Logistics"
-    aliases: ["ABC", "ABC Logi", "ABC Logistics Co.", "ABC Logistics Company"]
-    folder: "Supplier_A"
-    contact_email: "contact@abclogistics.com"
-
-  - name: "XYZ Shipping"
-    aliases: ["XYZ", "XYZ Ship", "XYZ Shipping Ltd", "XYZ Shipping Limited"]
-    folder: "Supplier_B"
-    contact_email: "ops@xyzshipping.com"
-
-  - name: "Myanmar Import Export"
-    aliases: ["MIE", "Myanmar Import", "Myanmar Import Export Co.", "MIE Co Ltd"]
-    folder: "Supplier_C"
-    contact_email: "info@myanmarie.com"
-
-  - name: "Golden Star Logistics"
-    aliases: ["Golden Star", "GSL", "Golden Star Logi"]
-    folder: "Supplier_D"
-    contact_email: "support@goldenstar.com"
-
-  - name: "Asia Freight Solutions"
-    aliases: ["AFS", "Asia Freight", "Asia Freight Sol"]
-    folder: "Supplier_E"
-    contact_email: "cargo@asiafreight.com"
-
-# --- Document Classification: Keyword Mapping --------------------------------
-keyword_mapping:
-  invoice:
-    keywords: ["invoice", "inv", "bill", "commercial invoice", "proforma invoice", "tax invoice", "debit note", "credit note", "payment request", "billing statement"]
-    category: "Invoices"
-    confidence_boost: 0.25
-    sensitive: true
-
-  bl:
-    keywords: ["bill of lading", "bl", "b/l", "waybill", " airwaybill", "awb", "ocean bill", "master bill of lading", "house bill of lading", "cargo manifest", "shipping order"]
-    category: "BL"
-    confidence_boost: 0.28
-    sensitive: false
-
-  nrc:
-    keywords: ["nrc", "national registration card", "citizen card", "national id", "myanmar id", "citizenship certificate", "nrc card", "identification card"]
-    category: "NRC"
-    confidence_boost: 0.30
-    sensitive: true
-
-  fda:
-    keywords: ["fda", "food and drug", "fda approval", "fda certificate", "food and drug administration", "health certificate", "sanitary certificate", "phytosanitary"]
-    category: "FDA"
-    confidence_boost: 0.28
-    sensitive: false
-
-  license:
-    keywords: ["license", "permit", "import license", "export license", "business license", "trade permit", "operating license", "customs permit", "clearance permit"]
-    category: "Licenses"
-    confidence_boost: 0.26
-    sensitive: false
-
-  household:
-    keywords: ["household", "goods declaration", "personal effects", "household goods", "unaccompanied baggage", "personal belongings", "residential move"]
-    category: "Household"
-    confidence_boost: 0.22
-    sensitive: false
-
-  customs:
-    keywords: ["customs declaration", "customs form", "cusdec", "import declaration", "export declaration", "customs entry", "single administrative document", "sad form"]
-    category: "Government"
-    confidence_boost: 0.27
-    sensitive: true
-
-  certificate:
-    keywords: ["certificate of origin", "co", "origin cert", "form a", "form d", "form e", "preferential certificate", "non-preferential certificate", "generic certificate"]
-    category: "Association"
-    confidence_boost: 0.24
-    sensitive: false
-
-  packing_list:
-    keywords: ["packing list", "pl", "packing slip", "delivery note", "shipping list", "cargo list", "itemized list", "packing manifest"]
-    category: "Export"
-    confidence_boost: 0.20
-    sensitive: false
-
-  insurance:
-    keywords: ["insurance certificate", "insurance policy", "cargo insurance", "marine insurance", "freight insurance", "insurance cover note", "insurance declaration"]
-    category: "Other"
-    confidence_boost: 0.20
-    sensitive: false
-
-# --- Folder Mapping (Category -> Directory) ----------------------------------
-folder_mapping:
-  Invoices: "Invoices"
-  BL: "BL"
-  NRC: "NRC"
-  FDA: "FDA"
-  Licenses: "Licenses"
-  Household: "Household"
-  Government: "Government"
-  Association: "Association"
-  Import: "Import"
-  Export: "Export"
-  Other: "Other"
-  Unknown: "Review"
-
-# --- Regex Patterns for Metadata Extraction ----------------------------------
-# These regex patterns extract structured data from OCR text.
-# Myanmar NRC format: ၁၂/ကကက(နိုင်)၁၂၃၄၅၆
-patterns:
-  # Myanmar NRC: e.g., ၁၂/ကကက(နိုင်)၀၁၂၃၄၅ or 1/KaKaKa(Naing)012345
-  nrc_mm: '(?i)([၀-၉]{1,2}[/\s][က-အ][က-အ]{2}\s*\([^)]{2,10}\)\s*[၀-၉]{6,10}|[0-9]{1,2}[/\\][A-Za-z][A-Za-z]{2}\s*\([A-Za-z]{3,20}\)\s*[0-9]{6,10})'
-
-  # Invoice number variations
-  invoice_number: '(?i)(?:invoice\s*(?:no|number|#|ref)\.?\s*[:\-\s]*([A-Z0-9\-/]{3,30})|inv\s*(?:no|#)?\.?\s*[:\-\s]*([A-Z0-9\-/]{3,30})|bill\s*(?:no|number|#)\.?\s*[:\-\s]*([A-Z0-9\-/]{3,30}))'
-
-  # Bill of Lading number
-  bl_number: '(?i)(?:bill\s*of\s*lading\s*(?:no|number|#)\.?\s*[:\-\s]*([A-Z0-9\-/]{5,30})|b/l\s*(?:no|#)?\.?\s*[:\-\s]*([A-Z0-9\-/]{5,30})|mbl\s*(?:no|#)?\.?\s*[:\-\s]*([A-Z0-9\-/]{5,30})|hbl\s*(?:no|#)?\.?\s*[:\-\s]*([A-Z0-9\-/]{5,30}))'
-
-  # ETA / ETD dates
-  eta: '(?i)(?:eta|estimated\s*time\s*of\s*arrival|expected\s*arrival|arrival\s*date)\s*[:\-\s]*(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})'
-
-  etd: '(?i)(?:etd|estimated\s*time\s*of\s*departure|departure\s*date|shipped\s*date)\s*[:\-\s]*(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})'
-
-  # Generic date extraction (ISO or common formats)
-  date: '(\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4})'
-
-  # Supplier / Vendor extraction
-  supplier: '(?i)(?:supplier|vendor|from|sold\s*by|shipper|consignor|exporter)\s*[:\-\s]*([A-Za-z0-9\s&.,]{3,80})'
-
-  # Consignee extraction
-  consignee: '(?i)(?:consignee|to|sold\s*to|notify\s*party|importer|buyer)\s*[:\-\s]*([A-Za-z0-9\s&.,]{3,80})'
-
-  # Container number
-  container_number: '(?i)(?:container\s*(?:no|number|#)?\.?\s*[:\-\s]*([A-Z]{4}\d{7}))'
-
-  # Port of loading / discharge
-  port_loading: '(?i)(?:port\s*of\s*loading|pol|loading\s*port|from\s*port)\s*[:\-\s]*([A-Za-z\s]{3,50})'
-  port_discharge: '(?i)(?:port\s*of\s*discharge|pod|discharge\s*port|to\s*port)\s*[:\-\s]*([A-Za-z\s]{3,50})'
-
-  # Myanmar-specific: Customs registration number
-  customs_reg: '(?i)(?:customs\s*reg\s*(?:no|number|#)?\.?\s*[:\-\s]*([A-Z0-9\-/]{3,20}))'
-
-  # Amount / Value extraction
-  amount: '(?i)(?:total\s*amount|grand\s*total|amount\s*due|balance\s*due)\s*[:\-\s]*([A-Z]{2,4}\s*[\d,]+\.?\d{0,2})'
-
-  # Currency
-  currency: '(?i)(?:currency|in\s*[A-Z]{3}|USD|EUR|MMK|SGD|THB|CNY|JPY)'
-
-# --- Confidence Thresholds ---------------------------------------------------
 thresholds:
-  unknown: 0.4          # Below 0.4 -> "Unknown" category
-  review: 0.7           # 0.4-0.7 -> "Review" (low confidence)
-  approved: 0.85        # 0.85+ -> Auto-suggest (still requires human approval)
+  unknown: 0.4
+  review: 0.7
+  approved: 0.85
 
-# --- OCR Configuration -------------------------------------------------------
 ocr:
   tesseract_cmd: "tesseract"
   myanmar_lang: "mya"
   eng_lang: "eng"
   preprocessing: true
   dpi: 300
-  oem: 3                # OCR Engine Mode: 3=Default, 1=LSTM only
-  psm: 6                # Page Seg Mode: 6=Uniform block of text
+  oem: 3
+  psm: 6
 
-# --- Duplicate Detection -----------------------------------------------------
 duplicate:
   similarity_threshold: 0.85
   near_duplicate_threshold: 0.75
@@ -220,258 +24,39 @@ duplicate:
   hash_algorithm: "sha256"
   min_text_length: 50
 
-# --- SOP (Standard Operating Procedure) Templates ----------------------------
-sop_defaults:
-  import_shipment:
-    name: "Import Shipment"
-    description: "Standard procedure for processing import shipments from arrival to delivery"
-    document_types: ["Licenses", "FDA", "BL", "Invoices", "Government"]
-    steps:
-      - name: "Import License Verification"
-        description: "Verify valid import license for the goods"
-        required_doc_types: ["Licenses"]
-        duration_days: 7
-        order: 1
-
-      - name: "FDA / Health Approval"
-        description: "Submit and obtain FDA or health department approval"
-        required_doc_types: ["FDA"]
-        duration_days: 10
-        order: 2
-
-      - name: "Shipping & BL Verification"
-        description: "Verify Bill of Lading and shipping documents"
-        required_doc_types: ["BL"]
-        duration_days: 14
-        order: 3
-
-      - name: "Customs Clearance"
-        description: "Prepare customs declaration and pay duties"
-        required_doc_types: ["Invoices", "Government"]
-        duration_days: 5
-        order: 4
-
-      - name: "Final Delivery"
-        description: "Arrange inland transport and deliver to consignee"
-        required_doc_types: []
-        duration_days: 3
-        order: 5
-
-  export_shipment:
-    name: "Export Shipment"
-    description: "Standard procedure for processing export shipments"
-    document_types: ["Licenses", "BL", "Invoices", "Association"]
-    steps:
-      - name: "Export License Verification"
-        description: "Verify valid export license"
-        required_doc_types: ["Licenses"]
-        duration_days: 5
-        order: 1
-
-      - name: "Certificate of Origin"
-        description: "Obtain certificate of origin from chamber of commerce"
-        required_doc_types: ["Association"]
-        duration_days: 3
-        order: 2
-
-      - name: "Shipping Documentation"
-        description: "Prepare BL and shipping instructions"
-        required_doc_types: ["BL"]
-        duration_days: 7
-        order: 3
-
-      - name: "Customs Export Declaration"
-        description: "File export customs declaration"
-        required_doc_types: ["Invoices", "Government"]
-        duration_days: 3
-        order: 4
-
-      - name: "Cargo Handover"
-        description: "Deliver cargo to port/airport"
-        required_doc_types: []
-        duration_days: 2
-        order: 5
-
-  household_relocation:
-    name: "Household Relocation"
-    description: "Procedure for household goods import/export"
-    document_types: ["Household", "NRC", "Invoices"]
-    steps:
-      - name: "NRC & Identity Verification"
-        description: "Verify owner NRC and identity documents"
-        required_doc_types: ["NRC"]
-        duration_days: 3
-        order: 1
-
-      - name: "Household Goods Declaration"
-        description: "Submit detailed household goods declaration"
-        required_doc_types: ["Household"]
-        duration_days: 5
-        order: 2
-
-      - name: "Duty Exemption Application"
-        description: "Apply for duty exemption if eligible"
-        required_doc_types: ["Invoices"]
-        duration_days: 7
-        order: 3
-
-      - name: "Customs Inspection"
-        description: "Physical inspection by customs officers"
-        required_doc_types: []
-        duration_days: 3
-        order: 4
-
-      - name: "Delivery"
-        description: "Deliver goods to residence"
-        required_doc_types: []
-        duration_days: 2
-        order: 5
-
-# --- Notification Settings ---------------------------------------------------
-notifications:
-  eta_warning_days: 3
-  overdue_alert_days: 1
-  reminder_check_interval_hours: 6
-
-# --- Cleanup Settings --------------------------------------------------------
-cleanup:
-  processing_workspace_max_age_hours: 24
-  log_retention_days: 90
-  audit_log_retention_days: 2555
-  backup_retention_days: 30
-
-# --- Phase 2: Two-Factor Authentication (2FA) Settings -------------------------
-two_factor_auth:
-  # Whether 2FA is mandatory for admin users
-  mandatory_for_admin: false
-  # Maximum failed OTP attempts before account lockout
-  max_failed_attempts: 5
-  # Account lockout duration in minutes
-  lockout_duration_minutes: 15
-  # TOTP time step in seconds (standard is 30)
-  totp_time_step: 30
-  # Number of backup codes to generate
-  backup_codes_count: 10
-
-# --- Phase 2: Default Folder Permissions ---------------------------------------
-default_folder_permissions:
-  # Staff default permissions (read, write, admin)
-  staff_folders:
-    - folder_path: "Organized/Invoices"
-      permission: "write"
-    - folder_path: "Organized/BL"
-      permission: "write"
-    - folder_path: "Organized/NRC"
-      permission: "write"
-    - folder_path: "Organized/FDA"
-      permission: "read"
-    - folder_path: "Organized/Licenses"
-      permission: "read"
-    - folder_path: "Organized/Contracts"
-      permission: "read"
-  
-  # Customer permissions (typically no folder access, uses uploaded_by filter)
-  customer_folders: []
-  
-  # Admin always has full access to all folders (handled in code)
-  admin_all_access: true
-
-# --- Phase 2: Report Generation Settings --------------------------------------
-reports:
-  # Report retention period in days
-  retention_days: 30
-  # Maximum records for synchronous report generation (larger reports use Celery)
-  sync_generation_max_records: 10000
-  # Reports directory (relative to ORGANIZED_ROOT)
-  reports_directory: "reports"
-  # Default report format (excel, pdf, json)
-  default_format: "excel"
-  
-  # Scheduled reports configuration
-  scheduled_reports:
-    daily_report:
-      enabled: true
-      time: "09:00"
-      recipient_email: "admin@enterprise-dms.local"
-      
-    weekly_report:
-      enabled: true
-      day: "Monday"
-      time: "08:00"
-      recipient_email: "admin@enterprise-dms.local"
-
-# --- Phase 4: Document Versioning Settings ---------------------------------
-document_versioning:
-  # Maximum versions to keep per document
-  max_versions_per_document: 10
-  # Archive versions older than this many days (0 = no auto-archive)
-  auto_archive_days: 365
-  # Enable automatic version detection on upload
-  auto_version_on_duplicate: true
-
-# --- Phase 4: External API Integration --------------------------------------
-external_integrations:
-  # Pre-configured API providers
-  providers:
-    - name: "Myanmar Customs"
-      provider_type: "customs"
-      base_url: "https://api.customs.gov.mm/v1"
-      auth_type: "api_key"
-      endpoints:
-        status: "/declarations/{id}/status"
-        submit: "/declarations/submit"
-      enabled: false
-    
-    - name: "DHL Tracking"
-      provider_type: "shipping"
-      base_url: "https://api.dhl.com/tracking/v1"
-      auth_type: "api_key"
-      endpoints:
-        track: "/shipments/{tracking_number}"
-      enabled: false
-    
-    - name: "Maersk Line"
-      provider_type: "shipping"
-      base_url: "https://api.maersk.com/v1"
-      auth_type: "api_key"
-      endpoints:
-        track: "/containers/{container_number}"
-        schedule: "/schedules"
-      enabled: false
-
-# --- Phase 4: PWA Configuration ---------------------------------------------
-pwa:
-  # PWA app name
-  app_name: "Enterprise DMS"
-  # PWA short name
-  short_name: "DMS"
-  # Theme color
-  theme_color: "#2563eb"
-  # Background color
-  background_color: "#ffffff"
-  # Display mode
-  display: "standalone"
-  # Cache strategy (cache_first, network_first, stale_while_revalidate)
-  cache_strategy: "network_first"
-  # Enable background sync for offline uploads
-  background_sync_enabled: true
-
-# --- Phase 4: Monitoring & Health -------------------------------------------
-monitoring:
-  # Health check interval in minutes
-  health_check_interval_minutes: 5
-  # Metrics retention in days
-  metrics_retention_days: 15
-  # Alert thresholds
-  thresholds:
-    cpu_percent: 80
-    memory_percent: 85
-    disk_percent: 90
-    queue_depth: 1000
-    db_connections: 80
-  # Enable email alerts
-  email_alerts_enabled: true
-  # Prometheus metrics endpoint
-  prometheus_enabled: true
-  # Grafana dashboard
-  grafana_enabled: false
+keyword_mapping:
+  invoice:
+    keywords: ["invoice", "inv", "commercial invoice", "proforma invoice", "tax invoice", "debit note", "credit note", "payment request", "billing statement"]
+    category: "Invoices"
+    confidence_boost: 0.25
+    sensitive: true
+  contract:
+    keywords: ["contract", "agreement", "စာချုပ်", "သဘောတူ"]
+    category: "Contracts"
+    confidence_boost: 0.25
+    sensitive: false
+  license:
+    keywords: ["license", "licence", "import license", "export license", "permit", "လိုင်စင်", "ခွင့်ပြု"]
+    category: "Licenses"
+    confidence_boost: 0.25
+    sensitive: false
+  identity:
+    keywords: ["nrc", "national id", "passport", "national registration card", "မှတ်ပုံတင်", "နိုင်ငံကူး"]
+    category: "Identity"
+    confidence_boost: 0.30
+    sensitive: true
+  customs:
+    keywords: ["customs", "declaration", "customs declaration", "အကောက်ခွန်"]
+    category: "Customs"
+    confidence_boost: 0.25
+    sensitive: false
+  shipping:
+    keywords: ["bill of lading", "b/l", "bl", "container", "vessel", "shipment", "waybill", "awb"]
+    category: "Shipping"
+    confidence_boost: 0.25
+    sensitive: false
+  finance:
+    keywords: ["receipt", "payment", "statement", "payment request", "ငွေချေ", "ငွေလွှဲ"]
+    category: "Finance"
+    confidence_boost: 0.25
+    sensitive: true
