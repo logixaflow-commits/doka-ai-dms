@@ -426,15 +426,9 @@ docker-compose -f infrastructure/docker/docker-compose.yml down
 docker-compose -f infrastructure/docker/docker-compose.yml down -v
 ```
 
-### Production Deployment
+### Deferred Enterprise Deployment
 
-```bash
-# Use production compose file
-docker-compose -f infrastructure/docker/docker-compose.production.yml up -d
-
-# Run setup script
-./scripts/deploy.sh
-```
+The production/multi-user deployment stack is intentionally deferred while Personal Local is the active edition. Its Docker, Railway, monitoring, and deployment helpers are preserved under `infrastructure/` and `archive/legacy-enterprise/`.
 
 ### Manual Deployment
 
