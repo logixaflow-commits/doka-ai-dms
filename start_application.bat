@@ -19,25 +19,25 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist "dms\.venv\Scripts\python.exe" (
+if not exist "web-platform\backend\.venv\Scripts\python.exe" (
   echo Creating Python virtual environment...
-  python -m venv dms\.venv
+  python -m venv web-platform\backend\.venv
   if errorlevel 1 exit /b 1
 )
 
-if not exist "dms\.env" (
-  copy /Y "dms\.env.example" "dms\.env" >nul
-  echo Created dms\.env from the template.
-  echo IMPORTANT: Set BOOTSTRAP_ADMIN_PASSWORD in dms\.env before login.
+if not exist "web-platform\backend\.env" (
+  copy /Y "web-platform\backend\.env.example" "web-platform\backend\.env" >nul
+  echo Created web-platform\backend\.env from the template.
+  echo IMPORTANT: Set BOOTSTRAP_ADMIN_PASSWORD in web-platform\backend\.env before login.
 )
 
 echo Installing local Python dependencies...
-"dms\.venv\Scripts\python.exe" -m pip install -r dms\requirements-local.txt
+"web-platform\backend\.venv\Scripts\python.exe" -m pip install -r web-platform\backend\requirements-local.txt
 if errorlevel 1 exit /b 1
 
-if not exist "app\node_modules" (
+if not exist "web-platform\frontend\node_modules" (
   echo Installing frontend dependencies...
-  cd app
+  cd web-platform\frontend
   npm ci
   if errorlevel 1 exit /b 1
   cd ..
@@ -45,12 +45,12 @@ if not exist "app\node_modules" (
 
 echo.
 echo Starting backend on http://127.0.0.1:8000 ...
-start "Personal DMS Backend" cmd /k "cd /d "%~dp0dms" && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
+start "Personal DMS Backend" cmd /k "cd /d "%~dp0web-platform\backend" && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
 
 timeout /t 2 /nobreak >nul
 
 echo Starting frontend on http://127.0.0.1:3000 ...
-start "Personal DMS Frontend" cmd /k "cd /d "%~dp0app" && npm run dev"
+start "Personal DMS Frontend" cmd /k "cd /d "%~dp0web-platform\frontend" && npm run dev"
 
 echo.
 echo Backend:  http://127.0.0.1:8000/health
