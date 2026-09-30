@@ -44,7 +44,7 @@ FROM base as python-deps
 WORKDIR /app
 
 # Copy requirements file
-COPY dms/requirements-dev.txt .
+COPY web-platform/backend/requirements-dev.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements-dev.txt
@@ -55,7 +55,7 @@ FROM python-deps as app
 WORKDIR /app
 
 # Copy application code
-COPY dms/ .
+COPY web-platform/backend/ .
 
 # Create necessary directories
 RUN mkdir -p logs Office_DMS/Watch_Folder Office_DMS/Processing_Workspace Office_DMS/Organized Office_DMS/Duplicate Office_DMS/Suspicious
@@ -79,7 +79,7 @@ FROM python-deps as celery-worker
 WORKDIR /app
 
 # Copy application code
-COPY dms/ .
+COPY web-platform/backend/ .
 
 # Create necessary directories
 RUN mkdir -p logs Office_DMS/Watch_Folder Office_DMS/Processing_Workspace Office_DMS/Organized Office_DMS/Duplicate Office_DMS/Suspicious
@@ -96,7 +96,7 @@ FROM python-deps as celery-beat
 WORKDIR /app
 
 # Copy application code
-COPY dms/ .
+COPY web-platform/backend/ .
 
 # Create necessary directories
 RUN mkdir -p logs Office_DMS/Watch_Folder Office_DMS/Processing_Workspace Office_DMS/Organized Office_DMS/Duplicate Office_DMS/Suspicious
