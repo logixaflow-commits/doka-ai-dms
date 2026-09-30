@@ -33,9 +33,27 @@ def test_workspace_file_preview_rejects_path_escape(tmp_path: Path, monkeypatch)
     outside.write_text("secret", encoding="utf-8")
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
 
-    assert _safe_file(session_id, "safe.txt") == (working_copy / "safe.txt").resolve()
+    manifest = json.loads((imports / session_id / "manifest.json").read_text(encoding="utf-8"))
+    import hashlib
+    manifest["files"] = {
+        "safe.txt": {
+            "relative_path": "safe.txt",
+            "verified": True,
+            "sha256": hashlib.sha256(b"safe").hexdigest(),
+        }
+    }
+    (imports / session_id / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    path, entry = _safe_file(session_id, "safe.txt")
+    assert path == (working_copy / "safe.txt").resolve()
+    assert entry["verified"] is True
+
     with pytest.raises(Exception, match="outside the working copy"):
         _safe_file(session_id, "../outside.txt")
+
+    (working_copy / "safe.txt").write_text("tampered", encoding="utf-8")
+    with pytest.raises(Exception, match="integrity check failed"):
+        _safe_file(session_id, "safe.txt")
 
 
 def test_backup_restore_rejects_zip_slip(tmp_path: Path, monkeypatch):
