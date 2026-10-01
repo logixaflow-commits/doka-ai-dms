@@ -46,4 +46,7 @@ def test_doka_pilot_gate_preserves_source_and_creates_reproducible_report(tmp_pa
     assert report["understanding"]["analyzed_files"] == 1
     assert report["organization_plan"]["requires_user_approval"] is True
     assert report["backup"]["sha256"]
+    assert report["backup"]["verified"] is True
+    assert report["backup"]["recovery_verified"] is True
+    assert report["backup"]["recovery_active_workspace_changed"] is False
     assert (source / "invoice.txt").read_bytes() == before
