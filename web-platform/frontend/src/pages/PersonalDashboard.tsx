@@ -40,6 +40,7 @@ export default function PersonalDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={refresh}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
+          <Button variant="outline" onClick={() => navigate('/admin/cloud-documents')}>Cloud Documents</Button>
           <Button onClick={() => navigate('/admin/workspace')}><FolderKanban className="mr-2 h-4 w-4" />Open Safe Workspace</Button>
         </div>
       </div>
