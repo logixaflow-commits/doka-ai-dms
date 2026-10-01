@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { LayoutDashboard, LogOut, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, LogOut, FolderKanban, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -10,6 +10,7 @@ import { getStoredUser, signOut } from '@/lib/supabaseAuth';
 const menuItems = [
   { title: 'Dashboard', url: '/admin/dashboard', icon: LayoutDashboard },
   { title: 'Safe Workspace', url: '/admin/workspace', icon: FolderKanban },
+  { title: 'Cloud Documents', url: '/admin/cloud-documents', icon: Cloud },
 ];
 
 export default function AdminLayout() {
