@@ -12,11 +12,11 @@
 | Service | Store here | What belongs here |
 |---|---|---|
 | Doka web frontend | Vercel Project → Settings → Environment Variables | VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_API_BASE_URL only |
-| Python API (once its host is selected) | That host's server-side environment / secret manager | SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, storage provider credentials, AI/OCR provider secrets |
+| Python API (once its host is selected) | That host's server-side environment / secret manager | SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, CORS_ORIGINS, storage provider credentials, AI/OCR provider secrets |
 | Supabase Edge Functions (only if a provider call is moved there) | Supabase Dashboard → Edge Functions → Secrets | Only secrets used by those Edge Functions |
 | Local development | ignored .env file based on .env.example | local-only test credentials; never commit |
 
-The current Vercel project is the frontend deployment. Do not assume it is also hosting the Python API. The backend host is still a separate architecture decision.
+The current Vercel project is the frontend deployment. Do not assume it is also hosting the Python API. The backend host is still a separate architecture decision. Vercel's current catch-all rewrite serves the Vite SPA; it is not a Python API proxy. Until a backend host and route are configured, leave VITE_API_BASE_URL unset in production rather than assuming /api reaches FastAPI.
 
 ## Supabase values for this project
 
