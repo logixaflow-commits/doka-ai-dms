@@ -41,9 +41,16 @@ ENV/
 
 # Environment Variables
 .env
-.env.local
-.env.*.local
-.env.production
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.docker
+
+# Private key / service-account material
+*.pem
+*.key
+credentials*.json
+service-account*.json
 
 # Database
 *.db
