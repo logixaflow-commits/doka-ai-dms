@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import re
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 import httpx
@@ -54,7 +55,9 @@ async def create_document(
         raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
 
     digest = hashlib.sha256(data).hexdigest()
-    object_key = f"users/{user_id}/documents/{digest}/{file.filename or 'document'}"
+    raw_name = (file.filename or "document").replace("\\", "/").rsplit("/", 1)[-1]
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name).strip("._") or "document"
+    object_key = f"users/{user_id}/documents/{digest}/{safe_name}"
     storage = None
     try:
         storage = build_object_storage(access_token=credentials.credentials)
