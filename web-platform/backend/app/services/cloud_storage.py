@@ -5,7 +5,6 @@ import io
 import os
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import BinaryIO, Protocol
 from urllib.parse import quote
 
@@ -42,6 +41,7 @@ class StoredObject:
 
 class ObjectStorage(Protocol):
     def put(self, key: str, body: BinaryIO, *, content_type: str, expected_sha256: str | None = None) -> StoredObject: ...
+    def total_bytes(self) -> int: ...
     def get(self, key: str) -> bytes: ...
     def delete(self, key: str) -> None: ...
     def head(self, key: str) -> StoredObject: ...
@@ -105,6 +105,7 @@ class R2ObjectStorage:
         self.quota.check_object(size)
         if expected_sha256 and digest.lower() != expected_sha256.lower():
             raise StorageIntegrityError("Upload content does not match the expected SHA-256.")
+        self.quota.check_total(self.total_bytes(), size, 0)
         self.client.put_object(
             Bucket=self.bucket,
             Key=key,
@@ -113,6 +114,13 @@ class R2ObjectStorage:
             Metadata={"sha256": digest},
         )
         return StoredObject(key, size, digest, content_type or "application/octet-stream")
+
+    def total_bytes(self) -> int:
+        total = 0
+        paginator = self.client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self.bucket):
+            total += sum(int(item.get("Size", 0)) for item in page.get("Contents", []))
+        return total
 
     def get(self, key: str) -> bytes:
         key = normalize_key(key)
@@ -166,6 +174,7 @@ class SupabaseObjectStorage:
         self.quota.check_object(size)
         if expected_sha256 and digest.lower() != expected_sha256.lower():
             raise StorageIntegrityError("Upload content does not match the expected SHA-256.")
+        self.quota.check_total(self.total_bytes(), size, 0)
         url = f"{self.base_url}/storage/v1/object/{quote(self.bucket, safe='')}/{quote(key, safe='/')}"
         response = httpx.post(
             url,
@@ -176,6 +185,26 @@ class SupabaseObjectStorage:
         if response.status_code >= 300:
             raise StorageError(f"Supabase Storage upload failed ({response.status_code}).")
         return StoredObject(key, size, digest, content_type or "application/octet-stream")
+
+    def total_bytes(self) -> int:
+        total = 0
+        offset = 0
+        while True:
+            response = httpx.post(
+                f"{self.base_url}/storage/v1/object/list/{quote(self.bucket, safe='')}",
+                headers=self._headers("application/json"),
+                json={"prefix": "", "limit": 1000, "offset": offset, "sortBy": {"column": "name", "order": "asc"}},
+                timeout=30.0,
+            )
+            if response.status_code >= 300:
+                raise StorageError(f"Supabase Storage usage check failed ({response.status_code}).")
+            items = response.json()
+            if not items:
+                return total
+            total += sum(int(item.get("metadata", {}).get("size", item.get("size", 0)) or 0) for item in items)
+            if len(items) < 1000:
+                return total
+            offset += len(items)
 
     def get(self, key: str) -> bytes:
         key = normalize_key(key)
@@ -193,7 +222,7 @@ class SupabaseObjectStorage:
 
     def delete(self, key: str) -> None:
         url = f"{self.base_url}/storage/v1/object/{quote(self.bucket, safe='')}"
-        response = httpx.delete(url, headers=self._headers("application/json"), json={"prefixes": [normalize_key(key)]}, timeout=30.0)
+        response = httpx.post(url.replace("/object/", "/object/remove/"), headers=self._headers("application/json"), json={"prefixes": [normalize_key(key)]}, timeout=30.0)
         if response.status_code >= 300:
             raise StorageError(f"Supabase Storage delete failed ({response.status_code}).")
 
