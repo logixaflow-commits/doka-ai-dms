@@ -222,7 +222,7 @@ class SupabaseObjectStorage:
 
     def delete(self, key: str) -> None:
         url = f"{self.base_url}/storage/v1/object/{quote(self.bucket, safe='')}"
-        response = httpx.post(url.replace("/object/", "/object/remove/"), headers=self._headers("application/json"), json={"prefixes": [normalize_key(key)]}, timeout=30.0)
+        response = httpx.delete(url, headers=self._headers("application/json"), json={"prefixes": [normalize_key(key)]}, timeout=30.0)
         if response.status_code >= 300:
             raise StorageError(f"Supabase Storage delete failed ({response.status_code}).")
 
