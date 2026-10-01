@@ -82,7 +82,16 @@ Do not migrate the Personal Local data plane to cloud infrastructure merely to s
 | B | Implemented + regression covered | End-to-end local browser workflow on a real running instance |
 | C | Implemented + regression covered | Representative Myanmar/English quality test |
 | D | Pilot harness added + deterministic CI regression | Real machine + copied office dataset |
-| E | Boundary documented; Vercel + Supabase Auth integration prepared; free cloud-first architecture documented; runtime selection deferred | Architecture review after D + real workload measurements |
+| E | Boundary documented; Vercel + Supabase Auth integration prepared; free cloud-first architecture documented; provider-neutral storage code implemented; runtime selection deferred | Architecture review after D + real workload measurements |
 
 ## Main-branch rule
 All Doka work is committed directly to main as requested. No feature branch is required for this delivery sequence.
+
+### Code completion update
+- Provider-neutral cloud storage interface: implemented.
+- Supabase Storage adapter: implemented; uses the signed-in user's access token and private-bucket model.
+- Cloudflare R2 adapter: implemented behind the same interface.
+- Storage key/path validation, SHA-256 checks, object-size guard, optional total quota guard, and signed GET URLs: implemented.
+- Authenticated cloud-storage API primitives: implemented.
+- Storage is still disabled by default and requires manual bucket/provider configuration before real-data use.
+- Cloud document metadata persistence, remote OCR execution, real copied-office pilot, browser E2E, and downloadable thin client remain validation/integration work rather than missing low-level storage code.
