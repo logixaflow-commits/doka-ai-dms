@@ -5,6 +5,7 @@ import io
 import os
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+import httpx
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
@@ -86,11 +87,11 @@ async def create_document(
 async def download_document(
     document_id: str,
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    user_id: str = Depends(require_authenticated_user),
 ):
     try:
         service = build_cloud_document_service(credentials.credentials)
-        rows = service.list_documents(limit=1, offset=0)
-        target = next((row for row in rows if row.get("id") == document_id), None)
+        target = service.get_document(owner_id=user_id, document_id=document_id)
         if not target:
             raise HTTPException(status_code=404, detail="Document not found.")
         storage = build_object_storage(access_token=credentials.credentials)
@@ -107,19 +108,23 @@ async def update_document(
     document_id: str,
     request: DocumentMetadataUpdate,
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    user_id: str = Depends(require_authenticated_user),
 ):
     try:
         service = build_cloud_document_service(credentials.credentials)
+        target = service.get_document(owner_id=user_id, document_id=document_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="Document not found.")
         # Update is intentionally limited to status/metadata; object identity and hashes are immutable.
         headers = service._headers()
         payload = {}
         if request.status is not None:
             payload["status"] = request.status
         payload["metadata"] = request.metadata
-        response = __import__("httpx").patch(
+        response = httpx.patch(
             f"{service.base_url}/rest/v1/doka_documents",
             headers={**headers, "Prefer": "return=representation"},
-            params={"id": f"eq.{document_id}"},
+            params={"id": f"eq.{document_id}", "owner_id": f"eq.{user_id}"},
             json=payload,
             timeout=15.0,
         )
