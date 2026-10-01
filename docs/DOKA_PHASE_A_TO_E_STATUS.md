@@ -100,6 +100,8 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Cloud document metadata persistence: API and live database schema implemented; authenticated real-user upload/list/download verification remains outstanding.
 - Remote OCR execution, real copied-office pilot, browser E2E, and downloadable thin client remain validation/integration work.
 - Vercel project environment variables cannot currently be inspected or configured through the connected Vercel tools; frontend runtime API URL and Supabase public settings must be checked before production cloud use.
+- Frontend Sentry React SDK integration is still pending; this frontend is Vite/React, so the supplied Next.js wizard command is not applicable. See `docs/DOKA_SENTRY_AND_CLOUDFLARE_SETUP.md`.
+- Cloudflare R2 remains optional and is not activated; current Cloudflare onboarding requires an R2 subscription checkout before API token creation. Do not proceed if it requires a card or paid billing under the free-only project constraint.
 - The latest observed READY Vercel production deployment still points to commit `f2b2c75` (provider inventory documentation); subsequent main commits have not yet appeared in the deployment list. Do not treat the current production deployment as containing the newest changes.
 - The connected GitHub status tool returned no status records for the latest commits; do not claim the newest workflow run passed until its Actions result is confirmed.
 - Python API hosting is still deliberately unselected; Vercel is the frontend host, not the Python OCR runtime.
