@@ -68,7 +68,8 @@ Phase E is intentionally architecture-only until Phase D passes.
 - React/Vite remains the web UI.
 - Vercel now hosts the React/Vite UI; Speed Insights is integrated.
 - Supabase Auth now provides the production browser login/session and the API verifies those sessions when Supabase is configured.
-- Render remains a future remote FastAPI/worker target. Do not use a free Render filesystem as the Doka data plane because free services have ephemeral storage.
+- A free-cloud architecture decision is documented in `docs/DOKA_FREE_CLOUD_ARCHITECTURE.md`: Vercel for UI, Supabase Auth/Postgres, Supabase Storage initially, provider-neutral object storage with Cloudflare R2 as the larger-storage option, and a remote Python/OCR runtime to be selected only after Phase D workload measurements.
+- Render Free is explicitly not selected as the durable Doka data plane because its filesystem is ephemeral.
 - External services must remain optional and must not be required for local operation.
 - Local and cloud storage should be separate adapters behind stable document/storage interfaces.
 - AI provider identity/model/method/confidence should remain provider-neutral.
@@ -81,7 +82,7 @@ Do not migrate the Personal Local data plane to cloud infrastructure merely to s
 | B | Implemented + regression covered | End-to-end local browser workflow on a real running instance |
 | C | Implemented + regression covered | Representative Myanmar/English quality test |
 | D | Pilot harness added + deterministic CI regression | Real machine + copied office dataset |
-| E | Boundary documented; Vercel + Supabase Auth integration prepared; Render intentionally deferred | Architecture review after D |
+| E | Boundary documented; Vercel + Supabase Auth integration prepared; free cloud-first architecture documented; runtime selection deferred | Architecture review after D + real workload measurements |
 
 ## Main-branch rule
 All Doka work is committed directly to main as requested. No feature branch is required for this delivery sequence.
