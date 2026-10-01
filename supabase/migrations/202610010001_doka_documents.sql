@@ -88,3 +88,7 @@ drop trigger if exists doka_documents_set_updated_at on public.doka_documents;
 create trigger doka_documents_set_updated_at
 before update on public.doka_documents
 for each row execute function public.doka_set_updated_at();
+
+-- Explicit Data API privileges; RLS remains the row-level authorization boundary.
+grant select, insert, update, delete on public.doka_documents to authenticated;
+grant select, insert on public.doka_document_versions to authenticated;
