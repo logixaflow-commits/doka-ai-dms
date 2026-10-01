@@ -8,6 +8,7 @@ import ToastContainer from '@/components/Toast';
 import AdminLayout from '@/layouts/AdminLayout';
 import PersonalDashboard from '@/pages/PersonalDashboard';
 import WorkspaceReview from '@/pages/WorkspaceReview';
+import CloudDocuments from '@/pages/CloudDocuments';
 import {
   getCurrentUser,
   isSupabaseConfigured,
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/admin/*" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
           <Route path="dashboard" element={<PersonalDashboard />} />
           <Route path="workspace" element={<WorkspaceReview />} />
+          <Route path="cloud-documents" element={<CloudDocuments />} />
           <Route path="" element={<Navigate to="dashboard" replace />} />
         </Route>
         <Route path="/" element={<Navigate to={isAuthenticated ? '/admin/dashboard' : '/login'} replace />} />
