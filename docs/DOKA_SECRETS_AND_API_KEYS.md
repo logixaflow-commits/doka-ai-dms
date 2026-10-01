@@ -31,10 +31,14 @@ Project ref: jkobgssaqifzrqfirdfu
 
 Add only keys for providers that are actually selected and used:
 
-- OPENAI_API_KEY
-- ANTHROPIC_API_KEY
-- GOOGLE_API_KEY (Gemini)
-- MISTRAL_API_KEY
+- GEMINI_API_KEY (already supported by the local AI fallback)
+- OPENROUTER_API_KEY (already supported)
+- GROQ_API_KEY (already supported)
+- OPENAI_API_KEY (already supported)
+- HUGGINGFACE_API_KEY (already supported)
+- ANTHROPIC_API_KEY (reserved; adapter not yet confirmed)
+- GOOGLE_API_KEY (reserved alternate Gemini name; current code uses GEMINI_API_KEY)
+- MISTRAL_API_KEY (reserved; adapter not yet confirmed)
 - AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
 - AZURE_DOCUMENT_INTELLIGENCE_KEY
 - GOOGLE_CLOUD_PROJECT
@@ -45,6 +49,17 @@ Add only keys for providers that are actually selected and used:
 - R2_ENDPOINT_URL
 - R2_ACCESS_KEY_ID
 - R2_SECRET_ACCESS_KEY
+
+Existing AI settings in backend .env.example:
+- AI_ENABLED=false (AI stays off until deliberately enabled)
+- AI_PROVIDER_ORDER=gemini,openrouter,groq,openai
+- AI_PROVIDER_MAX_ATTEMPTS=0
+- AI_PROVIDER_TIMEOUT_SECONDS=30
+- GEMINI_MODEL=gemini-2.5-flash-lite
+- OPENROUTER_MODEL=openrouter/free
+- GROQ_MODEL=openai/gpt-oss-20b
+- OPENAI_MODEL=gpt-4o-mini
+- HUGGINGFACE_MODEL=sentence-transformers/all-MiniLM-L6-v2
 
 Existing optional Doka controls:
 - DOKA_STORAGE_PROVIDER=disabled|supabase|r2
