@@ -24,7 +24,7 @@ router = APIRouter(
 
 class DocumentMetadataUpdate(BaseModel):
     status: str | None = Field(default=None, pattern="^(active|review|quarantined|archived)$")
-    metadata: dict = Field(default_factory=dict)
+    metadata: dict | None = None
 
 
 @router.get("")
@@ -123,7 +123,8 @@ async def update_document(
         payload = {}
         if request.status is not None:
             payload["status"] = request.status
-        payload["metadata"] = request.metadata
+        if request.metadata is not None:
+            payload["metadata"] = request.metadata
         response = httpx.patch(
             f"{service.base_url}/rest/v1/doka_documents",
             headers={**headers, "Prefer": "return=representation"},
