@@ -155,3 +155,20 @@ The current committed direction is:
 - **Render Free** → not used as the durable Doka data plane
 
 This avoids locking Doka into a fragile free filesystem while keeping the application ready for a true downloadable client later.
+
+
+## Code-side cloud storage foundation (implemented)
+The backend now contains a provider-neutral object-storage boundary at
+`web-platform/backend/app/services/cloud_storage.py`.
+
+Implemented adapters:
+- Supabase Storage adapter using the authenticated user's Supabase access token.
+- Cloudflare R2 adapter using S3-compatible `boto3`.
+- Safe object-key normalization and traversal rejection.
+- Per-object size guard and optional total logical quota guard.
+- SHA-256 verification on uploads; R2 metadata verification on downloads.
+- Temporary signed GET URL support with a maximum seven-day expiry.
+- Authenticated Doka API routes for upload, binary download, and signed download URL.
+- Cloud storage remains disabled by default until the manual provider/bucket setup is completed.
+
+This is deliberately a storage layer only. Document metadata/database persistence, cloud OCR execution, and the thin downloadable client remain separate implementation steps so the durable data model is not coupled to one provider.
