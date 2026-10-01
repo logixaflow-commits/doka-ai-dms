@@ -21,7 +21,7 @@ Vercel remains the web UI host for the React/Vite frontend.
 It is a good fit for the lightweight UI, but the existing Doka backend cannot simply be moved into Vercel Functions because the current backend relies on a persistent workspace model, local SQLite/files, OCR binaries, backup/recovery, and filesystem safety checks.
 
 ### Supabase
-Supabase remains the authentication and cloud metadata layer.
+Supabase remains the authentication, cloud metadata, and initial private document storage layer. The frontend now calls Supabase PostgREST and Storage directly with the signed-in user's access token and the public publishable key; RLS and Storage policies remain the authorization boundary. The new `/admin/cloud-documents` page supports account-scoped listing, upload, signed download, and status updates without a separate Python API host. The service-role key is not used in the browser.
 
 The current free plan includes 500 MB database, 1 GB file storage, and 5 GB egress, but free projects can be paused after one week of inactivity. Therefore Supabase is suitable for auth/metadata and can initially hold a small document set, but it should not be treated as unlimited document storage.
 
@@ -87,16 +87,17 @@ The safest free-first design is therefore:
               |
         Supabase Auth
               |
-              +----> [Supabase Postgres]
+              +----> [Supabase Postgres via RLS]
               |
-              +----> [Supabase Storage]
+              +----> [Supabase Storage via RLS]
               |
               +----> [Object Storage Adapter]
                          |
-                         +----> Cloudflare R2 (when needed)
+                         +----> Cloudflare R2 (only if user later enables it)
               |
               v
        [Remote Doka API/Worker]
+       (OCR / extraction / job orchestration only)
               |
               +----> OCR / extraction
               +----> organization planner
@@ -126,11 +127,12 @@ A local cache may exist for usability, but cache loss must never mean document l
 1. Keep the existing Phase A-D local safety implementation intact.
 2. Finish the real-machine Phase D pilot using a copied office dataset.
 3. Add a provider-neutral object-storage interface to the backend.
-4. Add Supabase Storage as the first cloud storage implementation for small personal datasets.
-5. Add an R2 implementation behind the same interface, with quota/usage safeguards.
-6. Refactor document processing so durable state is cloud-backed and temporary files are disposable.
-7. Choose the remote Python/OCR runtime only after measuring the real pilot workload.
-8. Build the downloadable thin client after the cloud API is stable.
+4. Use Supabase Storage as the first cloud storage implementation for small personal datasets; the private bucket and RLS policies are provisioned.
+5. Complete the browser cloud-document lifecycle against Supabase Auth/PostgREST/Storage; code and UI are implemented, while authenticated real-user E2E remains open.
+6. Keep R2 optional and inactive unless the user can enable it without card/billing requirements; do not make it a baseline dependency.
+7. Refactor document processing so durable state is cloud-backed and temporary files are disposable.
+8. Choose the remote Python/OCR runtime only after measuring the real pilot workload.
+9. Build the downloadable thin client after the cloud API is stable.
 9. Never make the desktop client depend on a local Docker daemon.
 
 ## Important boundary
@@ -182,3 +184,21 @@ Implemented adapters:
 - Cloud storage remains disabled by default in the backend configuration; the live Supabase private bucket and policies have now been provisioned. A deployment must still set the provider configuration and verify authenticated requests before cloud storage is considered operational.
 
 This is deliberately a storage layer only. Document metadata/database persistence, cloud OCR execution, and the thin downloadable client remain separate implementation steps so the durable data model is not coupled to one provider.
+
+
+## 2026-10-01 browser cloud-document implementation update
+
+The React/Vite frontend now has a direct Supabase cloud-document path so basic document storage does not wait on a Python host:
+
+- Authenticates requests with the current user's Supabase access token and the publishable API key only.
+- Lists `public.doka_documents` through PostgREST; RLS scopes rows to `auth.uid()`.
+- Uploads to the private `doka-documents` bucket under `users/<uid>/documents/<sha256>/<filename>`.
+- Enforces the configured 50 MiB bucket limit client-side and computes SHA-256 before upload.
+- Inserts metadata after Storage upload and attempts owner-scoped Storage cleanup if the metadata insert fails.
+- Creates short-lived (5-minute) signed download URLs only after an RLS-scoped metadata lookup.
+- Updates only `status` and `metadata`, matching the live column-level grants.
+- Adds an authenticated `/admin/cloud-documents` page with upload, list, download, and status controls.
+
+Verification: GitHub Actions run `36844944100` on commit `4114285` passed 46 backend tests and the frontend TypeScript/Vite build plus cloud integration/UI smoke checks. The separate Local Core Checks run `36844944299` also passed 43 backend tests, Python syntax compilation, and frontend build/smoke tests.
+
+Not yet verified: an actual signed-in user's upload/download and cross-user isolation E2E. The Vercel production deployment has not yet picked up the new UI commits due to the current build-rate-limit status. The remote Python OCR/workspace runtime remains unselected.
