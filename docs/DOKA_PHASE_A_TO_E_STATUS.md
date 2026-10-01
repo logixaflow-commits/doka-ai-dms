@@ -80,7 +80,7 @@ Do not migrate the Personal Local data plane to cloud infrastructure merely to s
 ## Current status
 | Phase | Repository state | Final gate |
 |---|---|---|
-| A | Implemented + regression covered | Automated security tests (green on latest main CI) |
+| A | Implemented + regression covered | Automated security tests (previously green; latest cloud-storage changes still need a confirmed CI run) |
 | B | Implemented + regression covered | End-to-end local browser workflow on a real running instance |
 | C | Implemented + regression covered | Representative Myanmar/English quality test |
 | D | Pilot harness added + deterministic CI regression | Real machine + copied office dataset |
@@ -100,4 +100,6 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Cloud document metadata persistence: API and live database schema implemented; authenticated real-user upload/list/download verification remains outstanding.
 - Remote OCR execution, real copied-office pilot, browser E2E, and downloadable thin client remain validation/integration work.
 - Vercel project environment variables cannot currently be inspected or configured through the connected Vercel tools; frontend runtime API URL and Supabase public settings must be checked before production cloud use.
+- The latest observed READY Vercel production deployment still points to commit `f2b2c75` (provider inventory documentation); subsequent main commits have not yet appeared in the deployment list. Do not treat the current production deployment as containing the newest changes.
+- The connected GitHub status tool returned no status records for the latest commits; do not claim the newest workflow run passed until its Actions result is confirmed.
 - Python API hosting is still deliberately unselected; Vercel is the frontend host, not the Python OCR runtime.
