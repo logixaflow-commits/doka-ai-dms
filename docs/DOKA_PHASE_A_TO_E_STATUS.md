@@ -76,10 +76,10 @@ Do not migrate the Personal Local data plane to cloud infrastructure merely to s
 ## Current status
 | Phase | Repository state | Final gate |
 |---|---|---|
-| A | Implemented + regression covered | Automated security tests |
-| B | Implemented + regression covered | End-to-end local browser workflow |
+| A | Implemented + regression covered | Automated security tests (green on latest main CI) |
+| B | Implemented + regression covered | End-to-end local browser workflow on a real running instance |
 | C | Implemented + regression covered | Representative Myanmar/English quality test |
-| D | Pilot harness added | Real machine + copied office dataset |
+| D | Pilot harness added + deterministic CI regression | Real machine + copied office dataset |
 | E | Boundary documented/deferred | Architecture review after D |
 
 ## Main-branch rule
