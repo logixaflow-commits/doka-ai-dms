@@ -8,7 +8,7 @@ on storage.objects for select
 to authenticated
 using (
   bucket_id = 'doka-documents'
-  and (storage.foldername(name))[1] = (select auth.uid()::text)
+  and (storage.foldername(name))[1] = 'users'\n  and (storage.foldername(name))[2] = (select auth.uid()::text)
 );
 
 drop policy if exists "doka_documents_storage_insert" on storage.objects;
