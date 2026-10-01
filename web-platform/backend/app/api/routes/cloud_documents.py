@@ -15,6 +15,21 @@ from app.core.supabase_auth import require_authenticated_user
 from app.services.cloud_documents import CloudDocumentError, build_cloud_document_service
 from app.services.cloud_storage import StorageError, StorageNotConfigured, build_object_storage
 
+def _cleanup_failed_upload(storage, object_key: str, *, upload_completed: bool) -> None:
+    """Delete only an object this request successfully created.
+
+    Supabase uploads use x-upsert=false. If put() fails because the object already
+    exists, cleanup must never delete that pre-existing object.
+    """
+    if not upload_completed:
+        return
+    try:
+        storage.delete(object_key)
+    except Exception:
+        # Preserve the original metadata error; orphan cleanup can be retried later.
+        pass
+
+
 router = APIRouter(
     prefix="/api/documents",
     tags=["Cloud Documents"],
@@ -59,6 +74,7 @@ async def create_document(
     safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name).strip("._") or "document"
     object_key = f"users/{user_id}/documents/{digest}/{safe_name}"
     storage = None
+    upload_completed = False
     try:
         storage = build_object_storage(access_token=credentials.credentials)
         stored = storage.put(
@@ -67,6 +83,7 @@ async def create_document(
             content_type=file.content_type or "application/octet-stream",
             expected_sha256=digest,
         )
+        upload_completed = True
         service = build_cloud_document_service(credentials.credentials)
         document = service.create_document(
             owner_id=user_id,
@@ -79,10 +96,7 @@ async def create_document(
         return {"document": document}
     except (StorageError, CloudDocumentError, StorageNotConfigured) as exc:
         if storage is not None:
-            try:
-                storage.delete(object_key)
-            except Exception:
-                pass
+            _cleanup_failed_upload(storage, object_key, upload_completed=upload_completed)
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
