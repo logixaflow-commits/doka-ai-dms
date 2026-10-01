@@ -38,6 +38,18 @@ class CloudDocumentService:
             raise CloudDocumentError(f"Document listing failed ({response.status_code}).")
         return response.json()
 
+    def get_document(self, *, owner_id: str, document_id: str) -> dict[str, Any] | None:
+        response = httpx.get(
+            f"{self.base_url}/rest/v1/doka_documents",
+            headers={**self._headers(), "Accept": "application/json"},
+            params={"select": "*", "id": f"eq.{document_id}", "owner_id": f"eq.{owner_id}", "limit": 1},
+            timeout=15.0,
+        )
+        if response.status_code >= 300:
+            raise CloudDocumentError(f"Document lookup failed ({response.status_code}).")
+        rows = response.json()
+        return rows[0] if rows else None
+
     def create_document(self, *, owner_id: str, object_key: str, filename: str, content_type: str, size_bytes: int, sha256: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         payload = {
             "owner_id": owner_id,
