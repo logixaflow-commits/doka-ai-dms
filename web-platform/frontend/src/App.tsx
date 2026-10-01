@@ -8,24 +8,52 @@ import ToastContainer from '@/components/Toast';
 import AdminLayout from '@/layouts/AdminLayout';
 import PersonalDashboard from '@/pages/PersonalDashboard';
 import WorkspaceReview from '@/pages/WorkspaceReview';
+import {
+  getCurrentUser,
+  isSupabaseConfigured,
+  signOut,
+  type SupabaseUser,
+} from '@/lib/supabaseAuth';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setIsAuthenticated(Boolean(localStorage.getItem('access_token')));
-    setLoading(false);
+    let mounted = true;
+
+    async function restoreAuth() {
+      if (!isSupabaseConfigured()) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
+      const currentUser = await getCurrentUser();
+      if (mounted) {
+        setUser(currentUser);
+        setLoading(false);
+      }
+    }
+
+    restoreAuth();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Skeleton className="h-8 w-32" /></div>;
+
+  const isAuthenticated = Boolean(user);
 
   return (
     <ErrorBoundary>
       <ToastContainer />
       <SpeedInsights />
       <Routes>
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <Login onLogin={() => setIsAuthenticated(true)} />} />
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <Login onLogin={async () => setUser(await getCurrentUser())} />}
+        />
         <Route path="/admin/*" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
           <Route path="dashboard" element={<PersonalDashboard />} />
           <Route path="workspace" element={<WorkspaceReview />} />
