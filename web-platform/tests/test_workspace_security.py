@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 import json
 import zipfile
 
@@ -19,28 +20,27 @@ def test_invalid_session_id_cannot_escape_imports(tmp_path: Path, monkeypatch):
         service.status("..")
 
 
-def test_workspace_file_preview_rejects_path_escape(tmp_path: Path, monkeypatch):
+def test_workspace_file_preview_rejects_path_escape_and_tampering(tmp_path: Path, monkeypatch):
     workspace = tmp_path / "workspace"
     imports = workspace / "imports"
     session_id = "a" * 32
     working_copy = imports / session_id / "working_copy"
     working_copy.mkdir(parents=True)
     (working_copy / "safe.txt").write_text("safe", encoding="utf-8")
-    (imports / session_id / "manifest.json").write_text(
-        json.dumps({"working_copy": str(working_copy)}), encoding="utf-8"
-    )
     outside = workspace / "outside.txt"
     outside.write_text("secret", encoding="utf-8")
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
 
-    manifest = json.loads((imports / session_id / "manifest.json").read_text(encoding="utf-8"))
-    import hashlib
-    manifest["files"] = {
-        "safe.txt": {
-            "relative_path": "safe.txt",
-            "verified": True,
-            "sha256": hashlib.sha256(b"safe").hexdigest(),
-        }
+    digest = hashlib.sha256(b"safe").hexdigest()
+    manifest = {
+        "working_copy": str(working_copy),
+        "files": {
+            "safe.txt": {
+                "relative_path": "safe.txt",
+                "verified": True,
+                "sha256": digest,
+            }
+        },
     }
     (imports / session_id / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
@@ -73,6 +73,25 @@ def test_backup_restore_rejects_zip_slip(tmp_path: Path, monkeypatch):
         service.restore_to_recovery(archive.name)
     assert not (workspace / "escaped.txt").exists()
     assert not (tmp_path / "escaped.txt").exists()
+
+
+def test_backup_verify_detects_modified_archive(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    workspace.mkdir()
+    backups.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+
+    (workspace / "state.json").write_text("original", encoding="utf-8")
+    service = WorkspaceBackupService()
+    manifest = service.create()
+    assert service.verify(Path(manifest["archive"]).name)["verified"] is True
+
+    with Path(manifest["archive"]).open("ab") as handle:
+        handle.write(b"tampered")
+    result = service.verify(Path(manifest["archive"]).name)
+    assert result["verified"] is False
 
 
 def test_source_write_is_rejected_even_without_source_root(monkeypatch):
