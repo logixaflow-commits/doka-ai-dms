@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { FolderKanban, ShieldCheck, Bot, FileCheck2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+const HEALTH_BASE = API_BASE.endsWith('/api') ? API_BASE.slice(0, -4) : API_BASE;
 
 type SystemConfig = { edition: string; ai_enabled: boolean; source_read_only: boolean; workspace_root_configured: boolean; };
 type Health = { status: string; edition: string; ai_enabled: boolean; source_read_only: boolean; };
@@ -19,7 +20,7 @@ export default function PersonalDashboard() {
   async function refresh() {
     setError('');
     try {
-      const [healthResponse, configResponse] = await Promise.all([fetch('/health'), fetch(`${API_BASE}/config`)]);
+      const [healthResponse, configResponse] = await Promise.all([fetch(`${HEALTH_BASE}/health`), fetch(`${API_BASE}/config`)]);
       if (!healthResponse.ok || !configResponse.ok) throw new Error('Local backend is not reachable.');
       setHealth(await healthResponse.json());
       setConfig(await configResponse.json());
