@@ -68,6 +68,8 @@ Phase E is intentionally architecture-only until Phase D passes.
 - React/Vite remains the web UI.
 - Vercel now hosts the React/Vite UI; Speed Insights is integrated.
 - Supabase Auth now provides the production browser login/session and the API verifies those sessions when Supabase is configured.
+- Live Supabase project now has `public.doka_documents`, `public.doka_document_versions`, a private `doka-documents` Storage bucket (50 MiB per-object cap), owner-scoped RLS policies, and Storage path policies. Three Doka migrations are applied and verified against the live project.
+- Post-migration Supabase Security Advisor reports only the previously acknowledged leaked-password-protection warning; no other Doka security lint remains. Performance Advisor reports only unused indexes, expected before real data/query traffic exists.
 - A free-cloud architecture decision is documented in `docs/DOKA_FREE_CLOUD_ARCHITECTURE.md`: Vercel for UI, Supabase Auth/Postgres, Supabase Storage initially, provider-neutral object storage with Cloudflare R2 as the larger-storage option, and a remote Python/OCR runtime to be selected only after Phase D workload measurements.
 - Render Free is explicitly not selected as the durable Doka data plane because its filesystem is ephemeral.
 - External services must remain optional and must not be required for local operation.
@@ -89,9 +91,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 ### Code completion update
 - Provider-neutral cloud storage interface: implemented.
+- Live Supabase schema and private bucket: provisioned with SQL migrations and verified.
 - Supabase Storage adapter: implemented; uses the signed-in user's access token and private-bucket model.
 - Cloudflare R2 adapter: implemented behind the same interface.
 - Storage key/path validation, SHA-256 checks, object-size guard, optional total quota guard, and signed GET URLs: implemented.
 - Authenticated cloud-storage API primitives: implemented.
 - Storage is still disabled by default and requires manual bucket/provider configuration before real-data use.
-- Cloud document metadata persistence, remote OCR execution, real copied-office pilot, browser E2E, and downloadable thin client remain validation/integration work rather than missing low-level storage code.
+- Cloud document metadata persistence: API and live database schema implemented; authenticated real-user upload/list/download verification remains outstanding.
+- Remote OCR execution, real copied-office pilot, browser E2E, and downloadable thin client remain validation/integration work.
+- Vercel project environment variables cannot currently be inspected or configured through the connected Vercel tools; frontend runtime API URL and Supabase public settings must be checked before production cloud use.
+- Python API hosting is still deliberately unselected; Vercel is the frontend host, not the Python OCR runtime.
