@@ -21,6 +21,7 @@ interface SupabaseContext {
   url: string;
   publishableKey: string;
   accessToken: string;
+  userId: string;
 }
 
 function encodeStoragePath(path: string) {
@@ -33,7 +34,7 @@ async function getContext(): Promise<SupabaseContext> {
   if (!user || !accessToken) throw new Error('Authentication required.');
 
   const config = getSupabaseApiConfig();
-  return { ...config, accessToken };
+  return { ...config, accessToken, userId: user.id };
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -119,28 +120,32 @@ export async function uploadCloudDocument(file: File) {
   }
 
   const context = await getContext();
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Authentication required.');
 
   const digest = await sha256(file);
   const filename = safeFilename(file.name);
-  const objectKey = `users/${user.id}/documents/${digest}/${filename}`;
+  const objectKey = `users/${context.userId}/documents/${digest}/${filename}`;
   const storagePath = `/storage/v1/object/${BUCKET}/${encodeStoragePath(objectKey)}`;
 
-  const uploadResponse = await fetch(`${context.url}${storagePath}`, {
+  const sendUpload = (accessToken: string) => fetch(`${context.url}${storagePath}`, {
     method: 'POST',
     headers: {
       apikey: context.publishableKey,
-      Authorization: `Bearer ${context.accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': file.type || 'application/octet-stream',
       'x-upsert': 'false',
     },
     body: file,
   });
+  let uploadResponse = await sendUpload(context.accessToken);
+  if (uploadResponse.status === 401) {
+    const refreshed = await refreshSession();
+    if (!refreshed?.access_token) throw new Error('Session expired.');
+    uploadResponse = await sendUpload(refreshed.access_token);
+  }
   await parseResponse<{ Key?: string }>(uploadResponse);
 
   const row = {
-    owner_id: user.id,
+    owner_id: context.userId,
     object_key: objectKey,
     filename,
     content_type: file.type || 'application/octet-stream',
@@ -199,7 +204,7 @@ export async function getCloudDocumentDownloadUrl(documentId: string) {
   const signedPath = signed.signedURL || signed.signedUrl;
   if (!signedPath) throw new Error('Supabase did not return a signed download URL.');
 
-  const { url } = await getContext();
+  const { url } = getSupabaseApiConfig();
   const downloadUrl = signedPath.startsWith('http')
     ? signedPath
     : `${url}/storage/v1${signedPath.startsWith('/') ? signedPath : `/${signedPath}`}`;
