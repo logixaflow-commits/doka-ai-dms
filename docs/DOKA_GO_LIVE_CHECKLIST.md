@@ -5,7 +5,7 @@ Last reviewed: 2026-10-01
 ## Already completed
 
 - GitHub main branch is the source of truth; no feature branch workflow is used.
-- Vercel project `enterprise-ai-dms` exists and has produced READY production deployments. It hosts the Vite frontend only.
+- Vercel project `enterprise-ai-dms` exists and has produced READY production deployments. It hosts the Vite frontend only. The latest observed READY production deployment still points to commit `f2b2c75`; newer main commits have not yet appeared in the deployment list, so production is not confirmed to contain the latest code.
 - Supabase project `jkobgssaqifzrqfirdfu` is active in `ap-southeast-1`.
 - Four Doka SQL migrations are applied to the live Supabase project, and their repository filenames are aligned with the applied migration versions.
 - `public.doka_documents` and `public.doka_document_versions` exist with RLS enabled.
@@ -81,6 +81,7 @@ Store keys only in the server-side environment of the service that calls them. N
 - Verify SHA-256 values and confirm a different user cannot read, modify, or download the first user's records or objects.
 - Test 413 behavior at the 50 MiB object limit.
 - Run the Phase D pilot only against a separate copy of representative office data; never use the original source folder.
+- Confirm the latest GitHub Actions workflow run is green and trigger/verify a Vercel production deployment from the current main commit before browser E2E.
 - Run browser E2E after code and cloud configuration are stable.
 - Keep the leaked-password-protection advisor warning acknowledged as a Free-plan limitation per project decision; do not treat it as an unresolved code migration.
 
