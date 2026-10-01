@@ -214,7 +214,7 @@ class SupabaseObjectStorage:
                     name = str(item.get("name", ""))
                     if not name:
                         continue
-                    if item.get("id") is None and item.get("metadata") is None:
+                    if item.get("id") is None:
                         pending.append(f"{prefix}{name}/")
                     else:
                         metadata = item.get("metadata") or {}
