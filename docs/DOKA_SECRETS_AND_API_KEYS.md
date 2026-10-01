@@ -70,3 +70,32 @@ Existing optional Doka controls:
 ## Important
 
 A key is not automatically usable just because it is stored in Vercel or Supabase. The deployed backend/Edge Function must read that exact variable, and its code must implement the provider adapter. Keep unused keys out until their integration is selected. Do not paste keys into this chat; provide only provider names and (if needed) masked key labels.
+
+## User-provided provider and service inventory (2026-10-01)
+
+The following services are in the planned integration inventory. Possessing an API key does not mean Doka has an adapter for it yet.
+
+| Service | Intended Doka role | Current code status | Secret / credential handling |
+|---|---|---|---|
+| Gemini | General-purpose LLM / document assistance | Existing adapter documented as supported | `GEMINI_API_KEY` |
+| OpenRouter | Multi-model LLM gateway and fallback | Existing adapter documented as supported | `OPENROUTER_API_KEY` |
+| Hugging Face | Embeddings / inference | Existing adapter documented as supported; validate the selected task/model before production use | `HUGGINGFACE_API_KEY` |
+| NVIDIA Build / NVIDIA API | Hosted model inference (exact product/API endpoint to confirm) | Not yet integrated | Candidate: `NVIDIA_API_KEY`; endpoint/model configuration must be confirmed |
+| Cerebras | Fast hosted LLM inference | Not yet integrated | Candidate: `CEREBRAS_API_KEY` |
+| Mistral | LLM and document understanding | Not yet integrated | `MISTRAL_API_KEY` is reserved |
+| Cohere | Embeddings, reranking, and language models | Not yet integrated | Candidate: `COHERE_API_KEY` |
+| Groq | Hosted LLM inference | Existing adapter documented as supported | `GROQ_API_KEY` |
+| Canva | Design/export integration, not a general-purpose LLM provider | Not yet integrated; OAuth/app setup may be required rather than a simple API key | Do not add a secret until the Canva app/OAuth flow is designed |
+| Voyage AI | Embeddings and reranking | Not yet integrated | Candidate: `VOYAGE_API_KEY` |
+| Cloudflare | Object storage via R2; potential edge/AI services | R2 adapter is implemented; Workers AI and other Cloudflare services are not thereby enabled | R2: `R2_BUCKET`, `R2_ENDPOINT_URL`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; account/token variables only for a feature that needs them |
+
+### Integration and privacy rules
+
+- Keep the current local/rule-based workflow usable without any external AI provider.
+- Keep `AI_ENABLED=false` by default. Enabling AI must be an explicit operator choice.
+- Do not send document contents to a provider merely because its key is configured. Each document-processing feature must explicitly opt in, disclose the destination/provider, and use only the minimum required content.
+- Embedding and reranking providers (for example Voyage AI or Cohere) must be configured as separate capabilities; do not treat them as interchangeable chat-completion providers.
+- Canva must be handled as a separate OAuth/product integration, not inserted into the LLM provider fallback chain.
+- Cloudflare R2 object storage credentials are separate from Cloudflare Workers AI credentials. Implementing one does not enable the other.
+- Before adding any new key to `.env.example`, implement and test the corresponding adapter and document its exact supported endpoint, model/task, timeout, and failure behavior.
+- The exact NVIDIA product meant by “NVIDIA Build” must be confirmed before implementation so Doka uses the correct API base URL and authentication scheme.
