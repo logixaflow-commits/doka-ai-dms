@@ -82,8 +82,10 @@ Use a quota guard and usage alerts before storing real files. Cloudflare's publi
 ## Remaining Doka platform work
 
 - Select a free/no-card Python API runtime that supports FastAPI and the required OCR workload.
-- Configure Vercel's public Supabase values and later `VITE_API_BASE_URL`.
+- Vercel's public Supabase URL and publishable key are already present in the compiled frontend bundle. The `/admin/cloud-documents` page now calls Supabase PostgREST/Storage directly; it does not require `VITE_API_BASE_URL`.
+- Complete a real signed-in upload/download and cross-user isolation E2E test for the direct Supabase browser flow.
+- Select a free/no-card Python runtime only for remote OCR, extraction, and workspace processing; set `VITE_API_BASE_URL` only when that API is actually deployed and routed.
 - Complete frontend Sentry React SDK integration and source-map upload configuration.
 - Configure the backend Sentry DSN on the selected API host.
-- Perform authenticated Supabase/R2 isolation and document-integrity tests.
+- Keep R2 inactive unless the user confirms activation can be done without card/payment requirements.
 - Confirm latest GitHub Actions and Vercel production deployment before browser E2E.
