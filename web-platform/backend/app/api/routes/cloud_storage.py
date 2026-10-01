@@ -3,10 +3,12 @@ from __future__ import annotations
 import hashlib
 import io
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Response
 from pydantic import BaseModel, Field
 
 from app.core.supabase_auth import require_authenticated_user
+from app.core.local_security import bearer
+from fastapi.security import HTTPAuthorizationCredentials
 from app.services.cloud_storage import (
     StorageError,
     StorageNotConfigured,
@@ -36,12 +38,18 @@ async def upload_object(
     key: str,
     file: UploadFile = File(...),
     user_id: str = Depends(require_authenticated_user),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
 ):
     try:
         object_key = _user_key(user_id, key)
-        data = await file.read()
+        max_bytes = int(__import__("os").getenv("DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024)))
+        if file.size is not None and file.size > max_bytes:
+            raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
+        data = await file.read(max_bytes + 1)
+        if len(data) > max_bytes:
+            raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
         digest = hashlib.sha256(data).hexdigest()
-        storage = build_object_storage(access_token=None)
+        storage = build_object_storage(access_token=credentials.credentials)
         stored = storage.put(
             object_key,
             io.BytesIO(data),
@@ -56,11 +64,13 @@ async def upload_object(
 
 
 @router.get("/objects/{key:path}")
-async def download_object(key: str, user_id: str = Depends(require_authenticated_user)):
+async def download_object(key: str, user_id: str = Depends(require_authenticated_user), credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     try:
-        storage = build_object_storage(access_token=None)
-        data = storage.get(_user_key(user_id, key))
-        return {"key": key, "sha256": hashlib.sha256(data).hexdigest(), "content": data.decode("utf-8", errors="replace")}
+        storage = build_object_storage(access_token=credentials.credentials)
+        object_key = _user_key(user_id, key)
+        data = storage.get(object_key)
+        stored = storage.head(object_key)
+        return Response(content=data, media_type=stored.content_type, headers={"Content-Disposition": f'inline; filename="{key.rsplit("/", 1)[-1]}"', "X-Doka-SHA256": hashlib.sha256(data).hexdigest()})
     except StorageNotConfigured as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except StorageError as exc:
@@ -68,9 +78,9 @@ async def download_object(key: str, user_id: str = Depends(require_authenticated
 
 
 @router.post("/signed-url")
-async def signed_url(request: SignedUrlRequest, user_id: str = Depends(require_authenticated_user)):
+async def signed_url(request: SignedUrlRequest, user_id: str = Depends(require_authenticated_user), credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     try:
-        storage = build_object_storage(access_token=None)
+        storage = build_object_storage(access_token=credentials.credentials)
         return {"key": request.key, "url": storage.signed_get_url(_user_key(user_id, request.key), expires_seconds=request.expires_seconds)}
     except StorageNotConfigured as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
