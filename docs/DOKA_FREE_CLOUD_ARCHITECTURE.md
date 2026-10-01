@@ -66,6 +66,16 @@ Cloud Run is technically the strongest fallback for the backend because it suppo
 
 Not selected for the Doka backend. Current free compute/storage behavior and Space visibility/runtime constraints are oriented toward ML demos rather than a private personal document-management backend. Space local disk is ephemeral, and current personal-account rules require paid plans for ordinary Gradio/Docker compute Spaces (with limited exceptions).
 
+## Other free services: what to add and what not to add
+
+- **Cloudflare R2** is the only additional infrastructure service currently justified for document objects/backups. Its published Standard free allowance is 10 GB-month, 1 million Class A requests and 10 million Class B requests per month, with no egress fee. Usage above the allowance is billable, so keep usage visible and set a logical guard. See [R2 pricing](https://developers.cloudflare.com/r2/pricing/).
+- **Cloudflare Workers Free** can later host lightweight edge routing, signed-link helpers, or small orchestration endpoints. The current published free limits include 100,000 requests/day, 10 ms CPU/request and 128 MB memory; that is not a suitable runtime for Python/Tesseract OCR. See [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) and [Workers limits](https://developers.cloudflare.com/workers/platform/limits/).
+- **GitHub Actions** already provides CI for syntax, backend regression tests, and frontend builds. GitHub Free currently includes 2,000 Actions minutes/month for private repositories; monitor usage and avoid adding redundant CI services. See [GitHub included usage](https://docs.github.com/en/billing/reference/product-usage-included).
+- **Sentry** is optional because the repository already has privacy-scrubbed telemetry integration. Keep it disabled until an account/DSN is intentionally configured; never send document contents, names, paths, tokens, or auth headers. Its free Developer plan is available, but quotas apply. See [Sentry Developer plan changes](https://www.sentry.help/en/articles/16738709-changes-to-legacy-developer-plans-september-2026).
+- Do **not** add a second database, Redis, a separate vector database, an email provider, or another frontend host yet. Supabase Postgres/pgvector and existing providers can cover future needs until real usage demonstrates a gap. Canva is a separate OAuth/design integration, not core DMS infrastructure.
+
+These free allowances are provider quotas, not a guarantee that every account feature is available without payment-method checks. Do not activate paid usage, billing, or card-required services for the baseline.
+
 ## Current architecture target
 
 The safest free-first design is therefore:
@@ -169,6 +179,6 @@ Implemented adapters:
 - SHA-256 verification on uploads; R2 metadata verification on downloads.
 - Temporary signed GET URL support with a maximum seven-day expiry.
 - Authenticated Doka API routes for upload, binary download, and signed download URL.
-- Cloud storage remains disabled by default until the manual provider/bucket setup is completed.
+- Cloud storage remains disabled by default in the backend configuration; the live Supabase private bucket and policies have now been provisioned. A deployment must still set the provider configuration and verify authenticated requests before cloud storage is considered operational.
 
 This is deliberately a storage layer only. Document metadata/database persistence, cloud OCR execution, and the thin downloadable client remain separate implementation steps so the durable data model is not coupled to one provider.
