@@ -25,7 +25,17 @@ def _scrub_event(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] 
                 if key.lower() in {"authorization", "cookie", "x-api-key", "x-auth-token"}:
                     headers.pop(key, None)
 
-    # Do not ship arbitrary breadcrumbs or runtime contexts from the document plane.
+    # URL paths and query strings can contain private document names or identifiers.
+    request = event.get("request")
+    if isinstance(request, dict):
+        request.pop("url", None)
+        request.pop("query_string", None)
+        request.pop("env", None)
+
+    # Do not attach user identity, arbitrary breadcrumbs, runtime contexts,
+    # or custom extras from the document plane.
+    event.pop("user", None)
+    event.pop("extra", None)
     event.pop("breadcrumbs", None)
     event.pop("contexts", None)
     return event
