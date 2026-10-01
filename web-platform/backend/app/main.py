@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import cloud_storage, local_auth, workspace, workspace_files
+from app.api.routes import cloud_documents, cloud_storage, local_auth, workspace, workspace_files
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.observability import init_observability
@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(workspace.router)
     app.include_router(workspace_files.router)
     app.include_router(cloud_storage.router)
+    app.include_router(cloud_documents.router)
 
     @app.get("/health", tags=["System"])
     async def health():
