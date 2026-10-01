@@ -88,7 +88,7 @@ async function sha256(file: File) {
 
 function safeFilename(filename: string) {
   const basename = filename.replace(/\\\\/g, '/').split('/').pop() || 'document';
-  return basename.replace(/[^\\p{L}\\p{N}._-]+/gu, '_').replace(/^[._-]+|[._-]+$/g, '') || 'document';
+  return basename.replace(/[^\p{L}\p{N}._-]+/gu, '_').replace(/^[._-]+|[._-]+$/g, '') || 'document';
 }
 
 function documentQuery(values: Record<string, string>) {
