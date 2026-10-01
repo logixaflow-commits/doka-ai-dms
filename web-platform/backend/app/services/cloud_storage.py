@@ -105,7 +105,8 @@ class R2ObjectStorage:
         self.quota.check_object(size)
         if expected_sha256 and digest.lower() != expected_sha256.lower():
             raise StorageIntegrityError("Upload content does not match the expected SHA-256.")
-        self.quota.check_total(self.total_bytes(), size, 0)
+        if self.quota.max_total_bytes:
+            self.quota.check_total(self.total_bytes(), size, 0)
         self.client.put_object(
             Bucket=self.bucket,
             Key=key,
@@ -174,7 +175,8 @@ class SupabaseObjectStorage:
         self.quota.check_object(size)
         if expected_sha256 and digest.lower() != expected_sha256.lower():
             raise StorageIntegrityError("Upload content does not match the expected SHA-256.")
-        self.quota.check_total(self.total_bytes(), size, 0)
+        if self.quota.max_total_bytes:
+            self.quota.check_total(self.total_bytes(), size, 0)
         url = f"{self.base_url}/storage/v1/object/{quote(self.bucket, safe='')}/{quote(key, safe='/')}"
         response = httpx.post(
             url,
@@ -187,24 +189,40 @@ class SupabaseObjectStorage:
         return StoredObject(key, size, digest, content_type or "application/octet-stream")
 
     def total_bytes(self) -> int:
+        # Storage list results contain immediate children only. Recurse into
+        # folder entries so the optional quota covers nested users/<uid>/ paths.
         total = 0
-        offset = 0
-        while True:
-            response = httpx.post(
-                f"{self.base_url}/storage/v1/object/list/{quote(self.bucket, safe='')}",
-                headers=self._headers("application/json"),
-                json={"prefix": "", "limit": 1000, "offset": offset, "sortBy": {"column": "name", "order": "asc"}},
-                timeout=30.0,
-            )
-            if response.status_code >= 300:
-                raise StorageError(f"Supabase Storage usage check failed ({response.status_code}).")
-            items = response.json()
-            if not items:
-                return total
-            total += sum(int(item.get("metadata", {}).get("size", item.get("size", 0)) or 0) for item in items)
-            if len(items) < 1000:
-                return total
-            offset += len(items)
+        pending = [""]
+        visited: set[str] = set()
+        while pending:
+            prefix = pending.pop()
+            if prefix in visited:
+                continue
+            visited.add(prefix)
+            offset = 0
+            while True:
+                response = httpx.post(
+                    f"{self.base_url}/storage/v1/object/list/{quote(self.bucket, safe='')}",
+                    headers=self._headers("application/json"),
+                    json={"prefix": prefix, "limit": 1000, "offset": offset, "sortBy": {"column": "name", "order": "asc"}},
+                    timeout=30.0,
+                )
+                if response.status_code >= 300:
+                    raise StorageError(f"Supabase Storage usage check failed ({response.status_code}).")
+                items = response.json()
+                for item in items:
+                    name = str(item.get("name", ""))
+                    if not name:
+                        continue
+                    if item.get("id") is None and item.get("metadata") is None:
+                        pending.append(f"{prefix}{name}/")
+                    else:
+                        metadata = item.get("metadata") or {}
+                        total += int(metadata.get("size", item.get("size", 0)) or 0)
+                if len(items) < 1000:
+                    break
+                offset += len(items)
+        return total
 
     def get(self, key: str) -> bytes:
         key = normalize_key(key)
