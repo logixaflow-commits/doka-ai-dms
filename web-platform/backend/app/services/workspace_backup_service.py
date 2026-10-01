@@ -23,7 +23,7 @@ class WorkspaceBackupService:
     def create(self, session_id: str | None = None) -> dict[str, Any]:
         source = safe_workspace_service.root.resolve()
         backup_root = self._backup_root()
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         archive = backup_root / f"workspace_{timestamp}.zip"
         # Snapshot only the active writable workspace. Recovery copies are derived
         # artifacts and must not recursively inflate future backups.
@@ -87,7 +87,7 @@ class WorkspaceBackupService:
             raise ValueError("Backup archive does not exist.")
         recovery_root = settings.WORKING_ROOT.resolve() / "Recovery"
         recovery_root.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         target = recovery_root / f"restore_{stamp}"
         target.mkdir(parents=True, exist_ok=False)
         with zipfile.ZipFile(archive) as zf:
