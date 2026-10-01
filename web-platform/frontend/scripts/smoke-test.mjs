@@ -18,3 +18,21 @@ if (!workspace.includes('/imports')) throw new Error('Workspace session API wiri
 if (!workspace.includes('approve')) throw new Error('Workspace approval UI wiring is missing.');
 
 console.log('Frontend smoke test passed.');
+
+const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
+for (const required of [
+  '/rest/v1/doka_documents',
+  '/storage/v1/object/',
+  '/storage/v1/object/sign/',
+  'crypto.subtle.digest',
+  'getCurrentUser',
+  'x-upsert',
+]) {
+  if (!cloudDocuments.includes(required)) {
+    throw new Error(`Cloud document Supabase integration is missing: ${required}`);
+  }
+}
+if (cloudDocuments.includes("|| '/api'")) {
+  throw new Error('Cloud documents must not silently route to the frontend SPA /api fallback.');
+}
+console.log('Supabase cloud document integration smoke test passed.');
