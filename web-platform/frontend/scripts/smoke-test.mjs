@@ -36,3 +36,14 @@ if (cloudDocuments.includes("|| '/api'")) {
   throw new Error('Cloud documents must not silently route to the frontend SPA /api fallback.');
 }
 console.log('Supabase cloud document integration smoke test passed.');
+
+const app = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
+const layout = fs.readFileSync(path.resolve('src/layouts/AdminLayout.tsx'), 'utf8');
+const cloudPage = fs.readFileSync(path.resolve('src/pages/CloudDocuments.tsx'), 'utf8');
+if (!app.includes('path="cloud-documents"') || !layout.includes('/admin/cloud-documents')) {
+  throw new Error('Cloud Documents page is not reachable from the authenticated app navigation.');
+}
+for (const required of ['uploadCloudDocument', 'listCloudDocuments', 'getCloudDocumentDownloadUrl', 'updateCloudDocument']) {
+  if (!cloudPage.includes(required)) throw new Error(`Cloud Documents UI is missing ${required}.`);
+}
+console.log('Cloud Documents UI route smoke test passed.');
