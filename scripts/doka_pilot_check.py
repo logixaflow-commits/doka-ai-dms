@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -81,7 +82,19 @@ def main() -> int:
         ]
         apply_result = organization_planner.apply(session_id, safe_paths) if safe_paths else {"results": []}
 
-    backup = workspace_backup_service.create()
+    workspace_before_backup = source_snapshot(workspace)
+    backup = workspace_backup_service.create(session_id=session_id)
+    backup_name = Path(backup["archive"]).name
+    backup_verify = workspace_backup_service.verify(backup_name)
+    recovery = workspace_backup_service.restore_to_recovery(backup_name)
+    recovery_root = Path(recovery["recovery_path"])
+    recovery_snapshot = source_snapshot(recovery_root)
+    recovery_verified = (
+        backup_verify.get("verified") is True
+        and recovery_snapshot == workspace_before_backup
+        and recovery.get("active_workspace_changed") is False
+    )
+    shutil.rmtree(recovery_root, ignore_errors=True)
     after = source_snapshot(source)
 
     source_unchanged = before == after
@@ -117,11 +130,14 @@ def main() -> int:
         "backup": {
             "archive": backup.get("archive"),
             "sha256": backup.get("sha256"),
+            "verified": backup_verify.get("verified"),
+            "recovery_verified": recovery_verified,
+            "recovery_active_workspace_changed": recovery.get("active_workspace_changed"),
         },
         "apply_safe": apply_result,
     }
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if source_unchanged else 3
+    return 0 if source_unchanged and recovery_verified else 3
 
 
 if __name__ == "__main__":
