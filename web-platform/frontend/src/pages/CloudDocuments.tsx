@@ -11,8 +11,6 @@ import {
   type CloudDocument,
 } from '@/lib/cloudDocuments';
 
-const MAX_BYTES = 50 * 1024 * 1024;
-
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -57,7 +55,7 @@ export default function CloudDocuments() {
       setFile(null);
       const input = document.getElementById('doka-cloud-file') as HTMLInputElement | null;
       if (input) input.value = '';
-      setMessage(`Uploaded ${result.document.filename} and verified its SHA-256.`);
+      setMessage(`Uploaded ${result.document.filename}; its SHA-256 fingerprint was calculated and stored.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
     } finally {
