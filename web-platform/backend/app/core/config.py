@@ -394,13 +394,17 @@ class Settings:
             source = self.SOURCE_ROOT.resolve()
             if backup == source or backup.is_relative_to(source):
                 raise ValueError(f"Unsafe workspace configuration: BACKUP_ROOT ({backup}) must not be inside SOURCE_ROOT ({source}).")
-        for writable_root in (self.FINAL_ROOT, self.QUARANTINE_ROOT):
+        for root_attr in ("FINAL_ROOT", "QUARANTINE_ROOT"):
+            writable_root = getattr(self, root_attr)
             try:
                 inside = writable_root.resolve().is_relative_to(working)
             except AttributeError:
                 inside = str(writable_root.resolve()).startswith(str(working) + os.sep)
             if not inside:
-                raise ValueError(f"Unsafe workspace configuration: {writable_root} must be inside WORKING_ROOT ({working}).")
+                raise ValueError(
+                    f"Unsafe workspace configuration: {root_attr} ({writable_root}) "
+                    f"must be inside WORKING_ROOT ({working})."
+                )
 
         # Ensure directories exist
         for path_attr in ["WATCH_FOLDER", "PROCESSING_WORKSPACE", "ORGANIZED_ROOT",
