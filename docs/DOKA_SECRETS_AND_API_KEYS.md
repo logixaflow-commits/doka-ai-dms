@@ -99,3 +99,16 @@ The following services are in the planned integration inventory. Possessing an A
 - Cloudflare R2 object storage credentials are separate from Cloudflare Workers AI credentials. Implementing one does not enable the other.
 - Before adding any new key to `.env.example`, implement and test the corresponding adapter and document its exact supported endpoint, model/task, timeout, and failure behavior.
 - The exact NVIDIA product meant by “NVIDIA Build” must be confirmed before implementation so Doka uses the correct API base URL and authentication scheme.
+
+
+## Verified production environment configuration (2026-10-01)
+
+The live Supabase project is active at `https://jkobgssaqifzrqfirdfu.supabase.co`. The current production Vite bundle was verified to contain:
+- `VITE_SUPABASE_URL` for this project.
+- `VITE_SUPABASE_PUBLISHABLE_KEY` using an active `sb_publishable_` key. This is public by design; do not treat it as a server secret.
+
+The Vercel production build therefore had the two required browser-safe Supabase values at build time. The connected Vercel tools available in this session do not expose an environment-variable inventory or mutation operation, so the dashboard's full Production/Preview/Development variable list could not be inspected or edited directly. If these values are rotated, set both in Vercel Project → Settings → Environment Variables, scoped to Production and Preview as required, then redeploy.
+
+`VITE_API_BASE_URL` is intentionally not set: the Python API host and HTTPS proxy route have not been selected. Do not point it at `/api`; Vercel currently rewrites unknown paths to the SPA. Do not add AI-provider keys, R2 credentials, `SUPABASE_SERVICE_ROLE_KEY`, or any other server-only secret to Vercel's Vite `VITE_` environment.
+
+Supabase live authorization was also tightened on 2026-10-01. Migration `20261001100118_doka_least_privilege_grants` revokes all table privileges from `anon`/PUBLIC and grants only the operations used by the app to `authenticated`; owner-scoped RLS remains the row-level boundary. The live effective grants were queried after applying the migration.
