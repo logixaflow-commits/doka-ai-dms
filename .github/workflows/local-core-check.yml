@@ -56,4 +56,4 @@ jobs:
           SECRET_KEY: test-secret-key
           PYTHONPATH: web-platform/backend
         run: |
-          pytest -q web-platform/tests/test_safe_workspace_service.py web-platform/tests/test_workspace_backup_service.py web-platform/tests/test_organization_planner.py web-platform/tests/test_workspace_security.py web-platform/tests/test_document_understanding.py web-platform/tests/test_local_auth.py web-platform/tests/test_unified_ai_fallback.py web-platform/tests/test_observability.py web-platform/tests/test_hardening.py web-platform/tests/test_doka_pilot.py
+          pytest -q web-platform/tests/test_safe_workspace_service.py web-platform/tests/test_workspace_backup_service.py web-platform/tests/test_organization_planner.py web-platform/tests/test_workspace_security.py web-platform/tests/test_document_understanding.py web-platform/tests/test_local_auth.py web-platform/tests/test_unified_ai_fallback.py web-platform/tests/test_observability.py web-platform/tests/test_hardening.py web-platform/tests/test_doka_pilot.py web-platform/tests/test_cloud_storage.py
