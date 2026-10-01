@@ -64,6 +64,11 @@ export function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_KEY);
 }
 
+export function getSupabaseApiConfig() {
+  assertConfigured();
+  return { url: SUPABASE_URL!, publishableKey: SUPABASE_KEY! };
+}
+
 export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
