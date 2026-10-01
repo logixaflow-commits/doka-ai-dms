@@ -26,7 +26,6 @@ def _scrub_event(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] 
                     headers.pop(key, None)
 
     # URL paths and query strings can contain private document names or identifiers.
-    request = event.get("request")
     if isinstance(request, dict):
         request.pop("url", None)
         request.pop("query_string", None)
