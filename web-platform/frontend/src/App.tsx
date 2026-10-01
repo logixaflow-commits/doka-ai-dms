@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Login from '@/components/Login';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ToastContainer />
+      <SpeedInsights />
       <Routes>
         <Route path="/login" element={isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <Login onLogin={() => setIsAuthenticated(true)} />} />
         <Route path="/admin/*" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
