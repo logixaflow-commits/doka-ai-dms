@@ -15,7 +15,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile Python sources
-        run: python -m compileall -q web-platform/backend
+        run: |
+          python -m compileall -q web-platform/backend
+          python -m py_compile scripts/doka_pilot_check.py
 
   frontend-build:
     runs-on: ubuntu-latest
