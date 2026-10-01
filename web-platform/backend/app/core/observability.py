@@ -1,7 +1,7 @@
 """Safe, optional observability integration for the local-first DMS.
 
-Sentry is opt-in. Document contents, OCR text, sensitive filesystem paths,
-request bodies, and secrets are intentionally excluded from telemetry.
+Sentry is opt-in. Document contents, OCR text, filesystem paths, request bodies,
+secrets, exception messages, and stack-frame locals are excluded from telemetry.
 """
 
 from __future__ import annotations
@@ -13,30 +13,72 @@ from loguru import logger
 from app.core.config import settings
 
 
+def _scrub_stacktrace(stacktrace: Any) -> None:
+    if not isinstance(stacktrace, dict):
+        return
+    frames = stacktrace.get("frames")
+    if not isinstance(frames, list):
+        return
+    for frame in frames:
+        if not isinstance(frame, dict):
+            continue
+        # Frame locals and source paths can expose document names and local usernames.
+        frame.pop("vars", None)
+        frame.pop("filename", None)
+        frame.pop("abs_path", None)
+
+
 def _scrub_event(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
-    """Remove potentially sensitive request data before an event is sent."""
+    """Keep operational error metadata while stripping document/user payloads."""
     request = event.get("request")
     if isinstance(request, dict):
-        request.pop("data", None)
-        request.pop("cookies", None)
+        for key in ("data", "cookies", "url", "query_string", "env", "fragment"):
+            request.pop(key, None)
         headers = request.get("headers")
         if isinstance(headers, dict):
-            for key in list(headers):
-                if key.lower() in {"authorization", "cookie", "x-api-key", "x-auth-token"}:
-                    headers.pop(key, None)
+            # Allow only a non-sensitive content type; discard arbitrary headers.
+            content_type = next(
+                (value for key, value in headers.items() if key.lower() == "content-type"),
+                None,
+            )
+            request["headers"] = {"Content-Type": content_type} if content_type else {}
 
-    # URL paths and query strings can contain private document names or identifiers.
-    if isinstance(request, dict):
-        request.pop("url", None)
-        request.pop("query_string", None)
-        request.pop("env", None)
+    # Exception values frequently embed absolute document paths or filenames.
+    exception = event.get("exception")
+    if isinstance(exception, dict):
+        values = exception.get("values")
+        if isinstance(values, list):
+            for value in values:
+                if not isinstance(value, dict):
+                    continue
+                if "value" in value:
+                    value["value"] = "[Filtered]"
+                mechanism = value.get("mechanism")
+                if isinstance(mechanism, dict):
+                    mechanism.pop("data", None)
+                _scrub_stacktrace(value.get("stacktrace"))
 
-    # Do not attach user identity, arbitrary breadcrumbs, runtime contexts,
-    # or custom extras from the document plane.
-    event.pop("user", None)
-    event.pop("extra", None)
-    event.pop("breadcrumbs", None)
-    event.pop("contexts", None)
+    threads = event.get("threads")
+    if isinstance(threads, dict):
+        values = threads.get("values")
+        if isinstance(values, list):
+            for value in values:
+                if isinstance(value, dict):
+                    _scrub_stacktrace(value.get("stacktrace"))
+
+    # Log messages, transaction names, tags, and custom metadata can contain
+    # user-supplied filenames or identifiers. Preserve level/logger/release only.
+    logentry = event.get("logentry")
+    if isinstance(logentry, dict):
+        logentry.pop("message", None)
+        logentry.pop("formatted", None)
+        logentry.pop("params", None)
+    for key in (
+        "message", "transaction", "culprit", "tags", "user", "extra",
+        "breadcrumbs", "contexts", "fingerprint", "modules",
+    ):
+        event.pop(key, None)
+
     return event
 
 
@@ -61,4 +103,4 @@ def init_observability() -> None:
         logger.info("Sentry enabled with document-data-safe event scrubbing.")
     except Exception as exc:
         # Observability must never prevent the local DMS from starting.
-        logger.warning(f"Sentry initialization skipped: {exc}")
+        logger.warning(f"Sentry initialization skipped: {type(exc).__name__}")
