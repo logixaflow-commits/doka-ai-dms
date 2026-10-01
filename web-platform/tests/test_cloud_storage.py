@@ -4,6 +4,7 @@ import pytest
 
 from app.services.cloud_storage import (
     QuotaGuard,
+    SupabaseObjectStorage,
     StorageError,
     StorageIntegrityError,
     StorageQuotaError,
@@ -48,3 +49,35 @@ def test_expected_sha256_is_calculable_before_provider_upload():
 
 def test_integrity_error_type_is_storage_error():
     assert issubclass(StorageIntegrityError, StorageError)
+
+
+def test_supabase_total_bytes_recurses_through_user_folders(monkeypatch):
+    import app.services.cloud_storage as cloud_storage
+
+    storage = SupabaseObjectStorage(
+        project_url="https://example.supabase.co",
+        bucket="doka-documents",
+        access_token="user-token",
+        api_key="publishable-key",
+        quota=QuotaGuard(max_total_bytes=100),
+    )
+    responses = {
+        "": [{"name": "users", "id": None, "metadata": None}],
+        "users/": [{"name": "user-1", "id": None, "metadata": None}],
+        "users/user-1/": [{"name": "report.pdf", "id": "object-id", "metadata": {"size": 7}}],
+    }
+
+    class Response:
+        status_code = 200
+
+        def __init__(self, payload):
+            self.payload = payload
+
+        def json(self):
+            return self.payload
+
+    def fake_post(url, *, headers, json, timeout):
+        return Response(responses[json["prefix"]])
+
+    monkeypatch.setattr(cloud_storage.httpx, "post", fake_post)
+    assert storage.total_bytes() == 7
