@@ -44,7 +44,7 @@ Phase D cannot be honestly marked complete from repository tests alone.
 
 Use: python scripts/doka_pilot_check.py --source <COPY_OF_REAL_OFFICE_DATA> --require-ocr
 
-The pilot gate hashes the supplied source copy before processing, imports and verifies a separate working copy, scans inventory and duplicate/collision groups, runs local document understanding/OCR, builds the organization review plan, creates a workspace backup, hashes the source copy again, and fails if the source changed.
+The pilot gate hashes the supplied source copy before processing, imports and verifies a separate working copy, scans inventory and duplicate/collision groups, runs local document understanding/OCR, builds the organization review plan, creates a workspace backup, verifies the backup SHA-256, restores it into an isolated recovery directory and compares the restored file manifest, hashes the source copy again, and fails if the source changed or recovery verification fails.
 
 Optional organization testing is explicit: python scripts/doka_pilot_check.py --source <COPY_OF_REAL_OFFICE_DATA> --require-ocr --apply-safe
 Only proposals already classified as suggest_move are applied by that optional flag. Review/duplicate/version proposals are never auto-approved.
@@ -55,7 +55,7 @@ Pilot evidence to record:
 - OCR availability and representative Myanmar/English results;
 - exact duplicate and likely-version false positives;
 - organization proposals accepted/rejected;
-- backup SHA-256 and recovery result;
+- backup SHA-256, archive verification, restored-file manifest match, and recovery result;
 - browser workflow result;
 - regression fixtures added after tuning.
 
