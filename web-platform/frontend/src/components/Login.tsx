@@ -4,46 +4,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { isSupabaseConfigured, signIn, signUp } from '@/lib/supabaseAuth';
 
-const API_BASE = '/api';
-
-interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-}
-
-export default function Login({ onLogin }: { onLogin: (token: string) => void }) {
-  const [username, setUsername] = useState('');
+export default function Login({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setMessage('');
 
     try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      if (!isSupabaseConfigured()) {
+        throw new Error('Supabase Auth is not configured. Add the Supabase environment variables in Vercel.');
+      }
 
-      if (response.ok) {
-        const data: LoginResponse = await response.json();
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        localStorage.setItem('username', username);
-        onLogin(data.access_token);
+      if (mode === 'login') {
+        await signIn(email.trim(), password);
+        onLogin();
       } else {
-        const errorData = await response.json();
-        setError(errorData.detail || 'Login failed');
+        const session = await signUp(email.trim(), password);
+        if (session.access_token) {
+          onLogin();
+        } else {
+          setMessage('Account created. Check your email to confirm the account, then sign in.');
+          setMode('login');
+        }
       }
     } catch (err) {
-      setError('Connection error. Please try again.');
+      setMessage(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -58,19 +51,20 @@ export default function Login({ onLogin }: { onLogin: (token: string) => void })
             <ThemeToggle />
           </div>
           <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
-            Safe local document workspace
+            Secure document workspace
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
                 required
               />
             </div>
@@ -79,27 +73,32 @@ export default function Login({ onLogin }: { onLogin: (token: string) => void })
               <Input
                 id="password"
                 type="password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
               />
             </div>
-            {error && (
-              <div className="text-red-500 text-sm bg-red-50 p-3 rounded-md">
-                {error}
+            {message && (
+              <div className="text-sm bg-slate-100 dark:bg-slate-800 p-3 rounded-md">
+                {message}
               </div>
             )}
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loading}
-            >
-              {loading ? 'Logging in...' : 'Login'}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}
             </Button>
-            <div className="text-center text-sm text-slate-500">
-              <p>Doka Personal Local Edition · use the configured local admin credentials.</p>
-            </div>
+            <button
+              type="button"
+              className="w-full text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+              onClick={() => {
+                setMode(mode === 'login' ? 'signup' : 'login');
+                setMessage('');
+              }}
+            >
+              {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
+            </button>
           </form>
         </CardContent>
       </Card>
