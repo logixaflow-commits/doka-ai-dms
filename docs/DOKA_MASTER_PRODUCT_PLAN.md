@@ -67,7 +67,7 @@ Key deployed services:
 |---|---|---|
 | `/login` | Login | Supabase sign-in/sign-up entry |
 | `/admin/dashboard` | PersonalDashboard | Cloud health/config check, document counts/size, recent documents, download shortcut |
-| `/admin/cloud-documents` | CloudDocuments | Upload, list, status update, download |
+| `/admin/cloud-documents` | CloudDocuments | Upload, search/filter/paginate, rename, logical folder move, status update, preview, download, Trash/Restore/permanent delete, bulk status/Trash, version history/create/restore |\n| `/admin/activity` | CloudAudit | Owner-scoped upload/download/preview/update/trash/restore/permanent-delete/version activity |
 | `/admin/workspace` | WorkspaceReview | Local workspace route; development/local boundary only, not a hosted cloud workspace |
 
 The active router in `web-platform/frontend/src/App.tsx` currently mounts only these authenticated application pages. The production sidebar currently exposes Overview and Cloud documents; local workspace is intentionally hidden in production.
@@ -81,11 +81,11 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 | `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |
 | `POST /api/documents` | Authenticated upload | Cloud Documents |
 | `PATCH /api/documents/{id}` | Status, metadata, rename and folder-path update | Cloud Documents |
-| `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |
+| `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |\n| `GET /api/documents/{id}/preview` | Five-minute signed URL for passive allowlisted formats only | Cloud Documents |\n| `GET /api/documents/{id}/versions` | Owner-scoped version history | Cloud Documents |\n| `POST /api/documents/{id}/versions` | Upload a new version and atomically preserve the previous object | Cloud Documents |\n| `POST /api/documents/{id}/versions/{version_id}/restore` | Restore a prior version while snapshotting the current object | Cloud Documents |\n| `GET /api/audit` | Owner-scoped activity log | Activity |\n| `DELETE /api/documents/{id}/permanent` | Permanently remove only trashed docs and stored version objects | Cloud Documents |
 | `DELETE /api/documents/{id}` | Recoverable Trash (soft delete) | Cloud Documents |
 | `POST /api/documents/{id}/restore` | Restore from Trash | Cloud Documents |
 
-Cloud UI/API parity for the currently implemented list/search/filter/pagination, upload, download, status/metadata/rename/folder-path update, Trash and Restore endpoints is present at code level. The current frontend/Worker commits are being deployed; real authenticated end-to-end validation remains a release gate. A successful signed-in upload, update, download, and cross-user isolation test has **not** yet been completed in a real browser session.
+Cloud UI/API parity for list/search/filter/pagination, upload, safe preview, download, status/metadata/rename/folder-path update, Trash/Restore/permanent deletion, version history/create/restore, bulk status/Trash and Activity is present at code level. The current frontend/Worker commits are being deployed; real authenticated end-to-end validation remains a release gate. A successful signed-in upload, update, download, and cross-user isolation test has **not** yet been completed in a real browser session.
 
 ### 4.3 Supabase foundation
 
