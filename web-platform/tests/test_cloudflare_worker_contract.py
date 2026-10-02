@@ -93,3 +93,9 @@ def test_worker_version_upload_reuses_existing_objects_without_deleting_them_on_
     assert 'uploaded_new_object = False' in WORKER_SOURCE
     assert 'uploaded_new_object = True' in WORKER_SOURCE
     assert 'if uploaded_new_object:' in WORKER_SOURCE
+
+
+def test_worker_version_upload_validates_filename_and_content_type():
+    assert 'Filename must be a plain file name up to 255 characters.' in WORKER_SOURCE
+    assert 'content_type = (file.content_type or "application/octet-stream")' in WORKER_SOURCE
+    assert 'p_object_key not like' not in WORKER_SOURCE  # SQL-level object-key validation lives in migrations.
