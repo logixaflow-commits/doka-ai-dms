@@ -257,3 +257,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Security Advisor still shows two intentional authenticated SECURITY DEFINER RPC warnings and the leaked-password-protection warning. The two RPCs remain narrow, owner-checked and unavailable to `anon`; leaked-password protection is a project Auth setting and current Supabase documentation limits it to Pro and above. No paid plan change was made.
 - The connected GitHub integration did not expose the private repository's Dependabot alert listing. The npm audit findings above are fixed, but the separate Dependabot alert count is not claimed as cleared.
 - ESLint baseline remains 172 errors and 5 warnings across 51 files (primarily unused variables and React/TypeScript rule findings); this is tracked as separate code-quality debt and was not hidden by the dependency remediation.
+
+### Latest security and rollout verification — 2026-10-02 10:14 UTC
+
+- Final live Supabase version RPC inspection confirms both functions use the pinned `pg_catalog, public, pg_temp` search path, reject missing auth, enforce the safe SHA-bound single-segment key pattern, deny `anon` execution and allow only the intended authenticated Worker calls.
+- Live SQL regex probes accepted a valid user-owned object key and rejected nested paths, traversal, another user's prefix and SHA mismatch.
+- Latest Doka Quality Checks run `36994164252` passed backend regression tests, Worker/database contract tests, frontend build, frontend smoke tests and `npm audit --audit-level=low`. The npm audit gate reports zero vulnerabilities after the lockfile fix.
+- Current Vercel production deployment `dpl_AQKs3XXaQnjipmWqq4sRPyjyDmhX` is READY at commit `ee1def5b`, which includes the patched npm lockfile. Current Cloudflare Worker version `b48c93bc-2a73-4e5f-bb27-2e49cc3bc2d2` (version 113) receives 100% traffic.
+- Supabase organization plan is Free. Current Supabase documentation makes leaked-password protection a Pro+ feature, so it cannot be enabled on the current plan without a paid upgrade; no upgrade was made.
+- Security Advisor still reports the two intentionally narrow owner-checked SECURITY DEFINER version RPCs and leaked-password protection. Performance Advisor reports five unused indexes as INFO; these are retained pending real document/audit workload rather than removed prematurely.
+- Live Doka document tables currently contain zero active document rows. Authenticated lifecycle and two-user isolation therefore remain unverified against real user data and are still explicit acceptance gates.
