@@ -88,6 +88,7 @@ for (const required of [
   'doka_restore_document_version',
   'version_create',
   'version_restore',
+  'doka_bulk_update_documents',
 ]) {
   if (!cloudApi.includes(required)) throw new Error(`Cloud Worker is missing ${required}.`);
 }
