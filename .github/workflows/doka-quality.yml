@@ -6,14 +6,18 @@ on:
     paths:
       - "web-platform/backend/**"
       - "web-platform/tests/**"
-      - "web-platform/frontend/**"\n      - "cloudflare_worker/**"\n      - "supabase/migrations/**"
+      - "web-platform/frontend/**"
+      - "cloudflare_worker/**"
+      - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
   pull_request:
     branches: [main]
     paths:
       - "web-platform/backend/**"
       - "web-platform/tests/**"
-      - "web-platform/frontend/**"\n      - "cloudflare_worker/**"\n      - "supabase/migrations/**"
+      - "web-platform/frontend/**"
+      - "cloudflare_worker/**"
+      - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
   workflow_dispatch:
 
@@ -37,6 +41,8 @@ jobs:
       - name: Run backend regression suite
         working-directory: web-platform/backend
         run: python -m pytest
+      - name: Run Worker and database contract tests
+        run: python -m pytest web-platform/tests/test_cloudflare_worker_contract.py
 
   frontend-checks:
     name: Frontend build and smoke tests
@@ -67,3 +73,13 @@ jobs:
       - name: Run frontend smoke tests
         working-directory: web-platform/frontend
         run: npm test
+      - name: Upload dependency and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-security-and-lint-reports
+          path: |
+            web-platform/frontend/npm-audit.json
+            web-platform/frontend/eslint-report.json
+          if-no-files-found: ignore
+          retention-days: 7
