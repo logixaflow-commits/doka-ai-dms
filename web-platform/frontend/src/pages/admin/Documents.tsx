@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -131,11 +131,7 @@ export default function DocumentManagement() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [uploadComplete, setUploadComplete] = useState(false);
 
-  useEffect(() => {
-    loadDocuments();
-  }, [statusFilter, categoryFilter, uploadComplete]);
-
-  async function loadDocuments() {
+  const loadDocuments = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -270,7 +266,11 @@ export default function DocumentManagement() {
         <Skeleton className="h-64" />
       </div>
     );
-  }
+  }, [statusFilter, categoryFilter]);
+
+  useEffect(() => {
+    void loadDocuments();
+  }, [loadDocuments, uploadComplete]);
 
   return (
     <div className="space-y-6">
