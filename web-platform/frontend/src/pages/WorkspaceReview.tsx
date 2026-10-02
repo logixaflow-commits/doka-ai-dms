@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,6 +31,19 @@ type Status = {
   error?: string | null;
 };
 
+type ImportSession = Pick<Status, 'session_id' | 'state' | 'files_verified' | 'files_total'>;
+type SearchResult = { relative_path: string; text_preview?: string | null };
+type OcrResult = {
+  relative_path: string;
+  extraction_method?: string | null;
+  language?: string | null;
+  corrected_text?: string | null;
+  text_preview?: string | null;
+  ocr_corrected?: boolean;
+};
+type OcrValidationStatus = { available: boolean; executable?: string | null };
+type ActionResult = { status: string };
+
 function authHeaders() {
   const token = localStorage.getItem('access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -52,14 +65,14 @@ function LocalWorkspaceReview() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [ocrStatus, setOcrStatus] = useState<any>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [ocrStatus, setOcrStatus] = useState<OcrValidationStatus | null>(null);
   const [backupStatus, setBackupStatus] = useState<string>('');
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<ImportSession[]>([]);
   const [showReviewOnly, setShowReviewOnly] = useState(false);
   const [extensionFilter, setExtensionFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [ocrResults, setOcrResults] = useState<any[]>([]);
+  const [ocrResults, setOcrResults] = useState<OcrResult[]>([]);
   const [editingOcr, setEditingOcr] = useState<string | null>(null);
   const [ocrDraft, setOcrDraft] = useState('');
 
@@ -70,15 +83,19 @@ function LocalWorkspaceReview() {
   const selectedCount = selected.size;
   const reviewCount = useMemo(() => proposals.filter(p => p.action.startsWith('review')).length, [proposals]);
 
-  async function loadSessions() {
+  const loadSessions = useCallback(async () => {
     try {
       const response = await api('/imports?limit=50');
-      if (response.ok) setSessions((await response.json()).imports || []);
-      else if (response.status === 401 || response.status === 403) setMessage('Please sign in with a staff account to use Safe Workspace.');
+      if (response.ok) {
+        const data = await response.json() as { imports?: ImportSession[] };
+        setSessions(data.imports || []);
+      } else if (response.status === 401 || response.status === 403) {
+        setMessage('Please sign in with a staff account to use Safe Workspace.');
+      }
     } catch {
       setMessage('Safe Workspace is unavailable. Check that the local backend is running.');
     }
-  }
+  }, []);
 
   function resumeSession(id: string) {
     setSessionId(id);
@@ -104,11 +121,11 @@ function LocalWorkspaceReview() {
     finally { setBusy(false); }
   }
 
-  async function loadStatus() {
+  const loadStatus = useCallback(async () => {
     if (!sessionId) return;
     const response = await api(`/imports/${encodeURIComponent(sessionId)}`);
-    if (response.ok) setStatus(await response.json());
-  }
+    if (response.ok) setStatus(await response.json() as Status);
+  }, [sessionId]);
 
   async function runStep(step: 'scan' | 'understand' | 'plan') {
     setBusy(true); setMessage('');
@@ -228,7 +245,8 @@ function LocalWorkspaceReview() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Apply failed');
-      setMessage(`Apply completed: ${(data.results || []).filter((r: any) => r.status === 'copied').length} copied.`);
+      const results = (data.results || []) as ActionResult[];
+      setMessage(`Apply completed: ${results.filter(result => result.status === 'copied').length} copied.`);
       setSelected(new Set());
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Apply failed'); }
     finally { setBusy(false); }
@@ -241,25 +259,27 @@ function LocalWorkspaceReview() {
       const response = await api(`/imports/${encodeURIComponent(sessionId)}/undo`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Undo failed');
-      setMessage(`Undo completed: ${(data.results || []).filter((r: any) => r.status === 'removed').length} removed.`);
+      const results = (data.results || []) as ActionResult[];
+      setMessage(`Undo completed: ${results.filter(result => result.status === 'removed').length} removed.`);
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Undo failed'); }
     finally { setBusy(false); }
   }
 
   useEffect(() => {
-    loadSessions();
-  }, []);
+    void Promise.resolve().then(loadSessions);
+  }, [loadSessions]);
 
   useEffect(() => {
     if (!sessionId) return;
-    loadStatus();
-    const timer = window.setInterval(loadStatus, 3000);
+    void Promise.resolve().then(loadStatus);
+    const timer = window.setInterval(() => void loadStatus(), 3000);
     return () => window.clearInterval(timer);
-  }, [sessionId]);
+  }, [loadStatus, sessionId]);
 
   function toggle(path: string) {
     const next = new Set(selected);
-    next.has(path) ? next.delete(path) : next.add(path);
+    if (next.has(path)) next.delete(path);
+    else next.add(path);
     setSelected(next);
   }
 
@@ -358,7 +378,7 @@ function LocalWorkspaceReview() {
             <Card>
               <CardHeader><CardTitle>OCR review & correction</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {ocrResults.filter((item: any) => item.extraction_method?.startsWith('ocr') || item.language).slice(0, 20).map((item: any) => (
+                {ocrResults.filter(item => item.extraction_method?.startsWith('ocr') || item.language).slice(0, 20).map(item => (
                   <div key={item.relative_path} className="rounded-md border p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium break-all">{item.relative_path}</span>
