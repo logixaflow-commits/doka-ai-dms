@@ -171,3 +171,10 @@ export async function listCloudAuditEvents(limit = 100) {
   if (!Number.isInteger(limit) || limit < 1 || limit > 500) throw new Error('Invalid audit pagination.');
   return request<{ events: CloudAuditEvent[] }>(`/audit?limit=${limit}`);
 }
+
+export async function permanentlyDeleteCloudDocument(documentId: string) {
+  return request<{ deleted: boolean; document_id: string; objects_deleted: number }>(
+    `/documents/${encodeURIComponent(documentId)}/permanent`,
+    { method: 'DELETE' },
+  );
+}
