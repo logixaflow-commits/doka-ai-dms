@@ -421,10 +421,10 @@ export default function CloudDocuments() {
         </CardContent>
       </Card>
       {versionsDocument && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Document version history">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="doka-version-dialog-title">
           <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-background p-5 shadow-2xl sm:p-6">
             <div className="flex items-start justify-between gap-4">
-              <div><h2 className="text-lg font-semibold">Version history</h2><p className="mt-1 break-all text-sm text-muted-foreground">{versionsDocument.filename}</p></div>
+              <div><h2 id="doka-version-dialog-title" className="text-lg font-semibold">Version history</h2><p className="mt-1 break-all text-sm text-muted-foreground">{versionsDocument.filename}</p></div>
               <Button size="icon" variant="ghost" onClick={() => { setVersionsDocument(null); setVersions([]); setVersionFile(null); }} aria-label="Close version history"><X className="h-4 w-4" /></Button>
             </div>
             <div className="mt-5 rounded-xl border border-border/70 p-4">
