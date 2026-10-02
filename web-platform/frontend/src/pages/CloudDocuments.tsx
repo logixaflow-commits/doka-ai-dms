@@ -276,6 +276,10 @@ export default function CloudDocuments() {
       if (!nextFolder || nextFolder.includes('\\\\')) {
         throw new Error('Enter a valid folder path.');
       }
+      if (nextName === item.filename && nextFolder === (item.folder_path || '/')) {
+        cancelEdit();
+        return;
+      }
       // Apply both metadata fields in one PATCH to avoid racing two updates
       // against the same row and accidentally overwriting one another.
       const result = await updateCloudDocument(item.id, {
