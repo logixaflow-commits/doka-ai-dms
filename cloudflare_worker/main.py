@@ -169,6 +169,21 @@ async def list_audit(
     return {"events": rows if isinstance(rows, list) else []}
 
 
+@app.get("/api/folders")
+async def list_document_folders(request: Request, user_id: str = Depends(require_user)):
+    query = f"select=folder_path&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&order=folder_path.asc&limit=500"
+    status, rows = await _fetch(
+        request, f"{_base(request)}/rest/v1/doka_documents?{query}",
+        headers={**_supabase_headers(request, _token_from_request(request)), "Accept": "application/json"},
+    )
+    if status >= 300 or not isinstance(rows, list):
+        raise HTTPException(status_code=503, detail=f"Folder lookup failed ({status}).")
+    folders = sorted({str(row.get("folder_path") or "/") for row in rows})
+    if "/" not in folders:
+        folders.insert(0, "/")
+    return {"folders": folders}
+
+
 @app.post("/api/documents/bulk")
 async def bulk_update_documents(request: Request, action: BulkDocumentAction, user_id: str = Depends(require_user)):
     if len(set(action.document_ids)) != len(action.document_ids):
