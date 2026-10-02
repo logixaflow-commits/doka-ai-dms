@@ -53,3 +53,32 @@ def test_worker_folder_listing_is_owner_scoped():
 def test_worker_version_events_use_distinct_audit_actions():
     assert '_audit(request, user_id, "version_create"' in WORKER_SOURCE
     assert '_audit(request, user_id, "version_restore"' in WORKER_SOURCE
+
+VERSION_RPC_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "supabase"
+    / "migrations"
+    / "20261002095530_doka_harden_version_rpc_guards.sql"
+).read_text(encoding="utf-8")
+
+
+def test_version_rpc_privilege_boundary_and_input_guards_are_explicit():
+    assert "security definer" in VERSION_RPC_MIGRATION.lower()
+    assert "set search_path = pg_catalog, public, pg_temp" in VERSION_RPC_MIGRATION
+    assert VERSION_RPC_MIGRATION.count("if auth.uid() is null") == 2
+    assert "p_object_key is null" in VERSION_RPC_MIGRATION
+    assert "chosen.object_key is null" in VERSION_RPC_MIGRATION
+    assert VERSION_RPC_MIGRATION.count("owner_id = auth.uid()") >= 2
+    assert "from public, anon" in VERSION_RPC_MIGRATION
+    assert "to authenticated" in VERSION_RPC_MIGRATION
+
+
+def test_version_rpc_does_not_grant_direct_storage_pointer_updates():
+    least_privilege = (
+        Path(__file__).resolve().parents[2]
+        / "supabase"
+        / "migrations"
+        / "20261001100118_doka_least_privilege_grants.sql"
+    ).read_text(encoding="utf-8")
+    assert "grant update (status, metadata) on table public.doka_documents to authenticated" in least_privilege
+    assert "grant update (object_key" not in least_privilege.lower()
