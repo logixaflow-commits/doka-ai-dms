@@ -157,6 +157,6 @@ Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Tras
 - A trashed document is excluded from normal listing and download.
 - Folder paths are labels/organization metadata, not filesystem paths.
 - Filename/folder updates cannot change owner ID, storage object key, SHA-256 or object bytes.
-- The only operations that switch a document's active object pointer are the two owner-checked version RPCs. They validate `auth.uid()`, active document ownership and the per-user object-key prefix; execute is revoked from `public` and `anon` and granted only to `authenticated`.
+- The only operations that switch a document's active object pointer are the two owner-checked version RPCs. They validate `auth.uid()`, active document ownership, SHA-256-bound per-user object keys with one safe filename segment, and filename/MIME metadata; execute is revoked from `public` and `anon` and granted only to `authenticated`.
 - Bulk status/Trash uses a `SECURITY INVOKER` RPC, validates every unique owner-owned active document before updating, and writes audit events in the same transaction.
 - New endpoint = contract + RLS/authorization test + frontend state + regression test + docs.
