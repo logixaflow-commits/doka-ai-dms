@@ -121,6 +121,8 @@ def _object_key(user_id: str, digest: str, filename: str) -> str:
 class DocumentUpdate(BaseModel):
     status: str | None = Field(default=None, pattern="^(active|review|quarantined|archived)$")
     metadata: dict | None = None
+    filename: str | None = Field(default=None, min_length=1, max_length=255)
+    folder_path: str | None = Field(default=None, max_length=512)
 
 
 @app.get("/health")
@@ -147,9 +149,29 @@ async def list_documents(
     user_id: str = Depends(require_user),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
+    search: str | None = Query(default=None, max_length=200),
+    status_filter: str | None = Query(default=None, alias="status", pattern="^(active|review|quarantined|archived)$"),
+    trash: bool = Query(default=False),
+    folder_path: str | None = Query(default=None, max_length=512),
 ):
     base = _base(request)
-    query = f"select=*&owner_id=eq.{quote(user_id, safe='')}&order=created_at.desc&limit={limit}&offset={offset}"
+    filters = [
+        "select=*",
+        f"owner_id=eq.{quote(user_id, safe='')}",
+        f"deleted_at={'not.is.null' if trash else 'is.null'}",
+        "order=created_at.desc",
+        f"limit={limit}",
+        f"offset={offset}",
+    ]
+    if status_filter:
+        filters.append(f"status=eq.{quote(status_filter, safe='')}")
+    if search and search.strip():
+        # URL-encode the user value so PostgREST filter syntax cannot be injected.
+        filters.append(f"filename=ilike.*{quote(search.strip(), safe='')}*")
+    if folder_path is not None:
+        normalized_folder = _normalize_folder_path(folder_path)
+        filters.append(f"folder_path=eq.{quote(normalized_folder, safe='')}")
+    query = "&".join(filters)
     status, rows = await _fetch(
         request, f"{base}/rest/v1/doka_documents?{query}",
         headers={**_supabase_headers(request, _token_from_request(request)), "Accept": "application/json"},
@@ -157,6 +179,18 @@ async def list_documents(
     if status >= 300:
         raise HTTPException(status_code=503, detail=f"Document listing failed ({status}).")
     return {"documents": rows if isinstance(rows, list) else []}
+
+
+def _normalize_folder_path(value: str) -> str:
+    raw = value.strip()
+    if not raw or raw == "/":
+        return "/"
+    if "\\x00" in raw or "\\\\" in raw:
+        raise HTTPException(status_code=400, detail="Invalid folder path.")
+    segments = [part for part in raw.split("/") if part]
+    if not segments or any(part in {".", ".."} for part in segments):
+        raise HTTPException(status_code=400, detail="Invalid folder path.")
+    return "/" + "/".join(segments)
 
 
 def _token_from_request(request) -> str:
@@ -246,21 +280,58 @@ async def document_download(request: Request, document_id: str, user_id: str = D
 
 @app.patch("/api/documents/{document_id}")
 async def update_document(request: Request, document_id: str, update: DocumentUpdate, user_id: str = Depends(require_user)):
-    if update.status is None and update.metadata is None:
+    payload = update.model_dump(exclude_none=True)
+    if not payload:
         raise HTTPException(status_code=400, detail="No document fields were provided.")
+    if "filename" in payload:
+        filename = payload["filename"].strip()
+        if not filename or filename in {".", ".."} or "/" in filename or "\\\\" in filename or "\\x00" in filename:
+            raise HTTPException(status_code=400, detail="Filename must be a plain file name.")
+        payload["filename"] = filename
+    if "folder_path" in payload:
+        payload["folder_path"] = _normalize_folder_path(payload["folder_path"])
+    return await _update_document_fields(request, document_id, user_id, payload)
+
+
+async def _update_document_fields(request: Request, document_id: str, user_id: str, payload: dict):
     base = _base(request)
     token = _token_from_request(request)
-    query = f"id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}"
+    query = f"id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null"
     status, rows = await _fetch(
         request, f"{base}/rest/v1/doka_documents?select=*&{query}",
         method="PATCH",
         headers={**_supabase_headers(request, token, "application/json"), "Prefer": "return=representation"},
-        body=json.dumps(update.model_dump(exclude_none=True)),
+        body=json.dumps(payload),
     )
     if status >= 300:
         raise HTTPException(status_code=503, detail=f"Document update failed ({status}).")
     if not isinstance(rows, list) or not rows:
         raise HTTPException(status_code=404, detail="Document not found.")
+    return {"document": rows[0]}
+
+
+@app.delete("/api/documents/{document_id}")
+async def trash_document(request: Request, document_id: str, user_id: str = Depends(require_user)):
+    return await _update_document_fields(
+        request, document_id, user_id, {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    )
+
+
+@app.post("/api/documents/{document_id}/restore")
+async def restore_document(request: Request, document_id: str, user_id: str = Depends(require_user)):
+    base = _base(request)
+    token = _token_from_request(request)
+    query = f"id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=not.is.null"
+    status, rows = await _fetch(
+        request, f"{base}/rest/v1/doka_documents?select=*&{query}",
+        method="PATCH",
+        headers={**_supabase_headers(request, token, "application/json"), "Prefer": "return=representation"},
+        body=json.dumps({"deleted_at": None}),
+    )
+    if status >= 300:
+        raise HTTPException(status_code=503, detail=f"Document restore failed ({status}).")
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=404, detail="Trashed document not found.")
     return {"document": rows[0]}
 
 
