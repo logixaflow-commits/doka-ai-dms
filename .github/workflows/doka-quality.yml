@@ -31,6 +31,11 @@ on:
       - ".github/workflows/cloudflare-worker-deploy.yml"
   workflow_dispatch:
 
+# Cancel superseded runs of this workflow on the same ref to conserve monthly runner minutes.
+concurrency:
+  group: doka-quality-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -107,6 +112,7 @@ jobs:
   backend-tests:
     name: Backend regression tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -126,6 +132,7 @@ jobs:
   frontend-checks:
     name: Frontend build and smoke tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
