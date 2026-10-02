@@ -53,6 +53,12 @@ The Worker rejects files larger than 50 MiB, computes SHA-256, uploads to privat
 
 Response: `{"document": CloudDocument}`.
 
+### `GET /api/folders` — authenticated
+
+Returns the distinct logical folder paths used by the signed-in owner's active documents. The result is owner-scoped and capped at 500 rows for bounded response size.
+
+Response: `{"folders": string[]}`.
+
 ### `POST /api/documents/bulk` — authenticated
 
 JSON body: `{"document_ids": string[], "action": "status" | "trash", "status"?: "active" | "review" | "quarantined" | "archived"}`.
@@ -139,9 +145,9 @@ See `shared/contracts/cloud-document.schema.json`.
 
 ## Implemented vs planned contract surface
 
-Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, safe preview, status/metadata/rename/folder-path update, trash, restore, version history/create/restore.
+Implemented in the current Worker: health, config, list/search/filter/pagination, folder listing, upload, download, safe preview, status/metadata/rename/folder-path update, trash, restore, version history/create/restore and atomic bulk status/Trash.
 
-Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash through a single owner-scoped atomic database transaction. Planned: server-side atomic batch APIs, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
+Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash through a single owner-scoped atomic database transaction. Planned: richer folder-tree CRUD, batch upload queue/retry, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
 
 ## Security invariants
 
