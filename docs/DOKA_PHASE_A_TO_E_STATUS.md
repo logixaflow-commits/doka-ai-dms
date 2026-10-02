@@ -208,3 +208,12 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Remaining acceptance gates: authenticated real-user upload/download/preview/version/trash/restore flows, two-user isolation, representative Myanmar/English OCR pilot, leaked-password protection review, and a verified review/remediation of the Dependabot/npm advisory set. A private-repository Dependabot alert listing was not available through the connected GitHub read endpoint in this check; no alert is claimed fixed.
 
 - Deployment automation note: the Vercel GitHub Actions workflow's invalid job-level `secrets` condition was corrected to a step-level token check. The corrected run `36991704683` passed, but its deploy/build steps were intentionally skipped because the `VERCEL_TOKEN` GitHub secret is not configured. Vercel's connected Git integration remains the active deployment path; do not interpret the workflow's successful token-check run as a fresh deployment.
+
+
+### Folder filters, atomic bulk and batch queue — 2026-10-02
+
+- Added `GET /api/folders` for distinct active folder paths scoped to the authenticated owner and a matching folder filter in Cloud Documents.
+- Bulk status and Trash now call one atomic database RPC for up to 100 unique IDs. It validates every document before updating and writes audit events in the same transaction; no partial batch is applied.
+- Added sequential multi-file upload queue with 50 MiB per-file checks, per-file queued/uploading/complete/failed states and retry of failed items. Byte-level progress and resumable chunk upload remain open.
+- Added Vercel production deploy workflow using a pinned CLI and the existing project/team IDs. The workflow ran successfully but skipped deployment because the GitHub Actions `VERCEL_TOKEN` secret is not configured; production still needs that secret before new frontend code can be published automatically.
+- Cloudflare Worker deployment for the latest folder/bulk/version API changes is queued; only mark these APIs production-live after the build reaches success and 100% traffic is confirmed.
