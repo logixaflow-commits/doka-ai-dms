@@ -156,3 +156,18 @@ export async function moveCloudDocument(documentId: string, folderPath: string) 
   }
   return updateCloudDocument(documentId, { folder_path: normalized === '/' ? '/' : `/${segments.join('/')}` });
 }
+
+
+export interface CloudAuditEvent {
+  id: string;
+  document_id: string | null;
+  action: 'upload' | 'download' | 'update' | 'trash' | 'restore';
+  filename: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export async function listCloudAuditEvents(limit = 100) {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 500) throw new Error('Invalid audit pagination.');
+  return request<{ events: CloudAuditEvent[] }>(`/audit?limit=${limit}`);
+}
