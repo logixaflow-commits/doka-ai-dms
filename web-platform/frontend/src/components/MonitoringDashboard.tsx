@@ -4,24 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Activity, 
-  RefreshCw, 
-  Server, 
-  Database, 
-  HardDrive, 
-  Cpu,
-  MemoryStick,
-  Globe,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Zap,
-  FileText,
-  Users,
-  TrendingUp,
-  TrendingDown
-} from 'lucide-react';
+import { Activity, RefreshCw, Server, HardDrive, Cpu, MemoryStick, AlertTriangle, CheckCircle, Clock, Zap, FileText, Users, TrendingUp, TrendingDown } from 'lucide-react';
 
 // Mock Switch component for now (imported from ui/switch in real app)
 function Switch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (checked: boolean) => void }) {
