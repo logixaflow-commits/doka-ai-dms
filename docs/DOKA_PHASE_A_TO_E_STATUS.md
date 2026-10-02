@@ -267,3 +267,6 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Supabase organization plan is Free. Current Supabase documentation makes leaked-password protection a Pro+ feature, so it cannot be enabled on the current plan without a paid upgrade; no upgrade was made.
 - Security Advisor still reports the two intentionally narrow owner-checked SECURITY DEFINER version RPCs and leaked-password protection. Performance Advisor reports five unused indexes as INFO; these are retained pending real document/audit workload rather than removed prematurely.
 - Live Doka document tables currently contain zero active document rows. Authenticated lifecycle and two-user isolation therefore remain unverified against real user data and are still explicit acceptance gates.
+
+- Post-remediation production browser-surface check: `https://enterprise-ai-dms.vercel.app` returned HTTP 200. The current production JavaScript bundle contains Version History, Preview, folder filtering, batch upload retry and Activity UI.
+- Latest Doka Quality Checks run `36994469212` completed successfully after the CI lockfile-push retry/rebase improvement; backend regression, Worker/database contract tests, frontend build/smoke tests and the low-severity npm audit gate all passed.
