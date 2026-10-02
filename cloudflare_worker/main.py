@@ -377,7 +377,7 @@ async def create_document_version(request: Request, document_id: str, file: Uplo
         await _fetch(request, f"{base}/storage/v1/object/{bucket}", method="DELETE", headers=_supabase_headers(request, token, "application/json"), body=json.dumps({"prefixes": [key]}))
         raise HTTPException(status_code=503, detail=f"Version metadata update failed ({status}).")
     document = updated[0] if isinstance(updated, list) and updated else updated
-    await _audit(request, user_id, "version_create", document_id, filename, {"sha256": digest, "size_bytes": len(data)})
+    await _audit(request, user_id, "update", document_id, filename, {"sha256": digest, "size_bytes": len(data)})
     return {"document": document}
 
 
@@ -396,7 +396,7 @@ async def restore_document_version(request: Request, document_id: str, version_i
             raise HTTPException(status_code=404, detail="Document or version not found.")
         raise HTTPException(status_code=503, detail=f"Version restore failed ({status}).")
     document = updated[0] if isinstance(updated, list) and updated else updated
-    await _audit(request, user_id, "version_restore", document_id, document.get("filename") if isinstance(document, dict) else None, {"version_id": version_id})
+    await _audit(request, user_id, "update", document_id, document.get("filename") if isinstance(document, dict) else None, {"version_id": version_id})
     return {"document": document}
 
 
