@@ -22,7 +22,7 @@ export default function CloudAudit() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => { void Promise.resolve().then(refresh); }, [refresh]);
 
   return (
     <div className="space-y-7">

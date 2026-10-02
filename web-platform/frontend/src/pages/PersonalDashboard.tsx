@@ -64,7 +64,7 @@ export default function PersonalDashboard() {
     }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { void Promise.resolve().then(refresh); }, [refresh]);
 
   const totalBytes = useMemo(() => documents.reduce((sum, item) => sum + (item.size_bytes || 0), 0), [documents]);
   const reviewCount = useMemo(() => documents.filter(item => item.status === 'review').length, [documents]);

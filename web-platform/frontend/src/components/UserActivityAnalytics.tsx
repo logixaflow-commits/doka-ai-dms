@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, TrendingUp, Activity, Eye } from 'lucide-react';
 
@@ -15,16 +16,22 @@ interface UserActivityAnalyticsProps {
 }
 
 export default function UserActivityAnalytics({ data }: UserActivityAnalyticsProps) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setNow(Date.now()), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const currentTime = now ?? 0;
   const totalUploads = data.reduce((sum, user) => sum + user.uploads, 0);
   const totalDownloads = data.reduce((sum, user) => sum + user.downloads, 0);
   const totalViews = data.reduce((sum, user) => sum + user.views, 0);
   const activeUsers = data.filter(user => {
-    const hoursSinceActive = (Date.now() - user.lastActive.getTime()) / (1000 * 60 * 60);
+    const hoursSinceActive = (currentTime - user.lastActive.getTime()) / (1000 * 60 * 60);
     return hoursSinceActive < 24;
   }).length;
 
   const formatTime = (date: Date) => {
-    const hoursSinceActive = (Date.now() - date.getTime()) / (1000 * 60 * 60);
+    const hoursSinceActive = (currentTime - date.getTime()) / (1000 * 60 * 60);
     if (hoursSinceActive < 1) return 'Active now';
     if (hoursSinceActive < 24) return `${Math.floor(hoursSinceActive)}h ago`;
     return date.toLocaleDateString();
