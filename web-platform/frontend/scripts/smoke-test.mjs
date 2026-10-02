@@ -77,6 +77,7 @@ for (const required of [
   'listCloudDocumentVersions',
   'createCloudDocumentVersion',
   'restoreCloudDocumentVersion',
+  'bulkUpdateCloudDocuments',
   'permanentlyDeleteCloudDocument',
 ]) {
   if (!cloudDocuments.includes(required)) throw new Error(`Cloud client is missing ${required}.`);
