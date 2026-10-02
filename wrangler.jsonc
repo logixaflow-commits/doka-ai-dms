@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "doka-cloud-api",
+  "name": "doka",
   "main": "cloudflare_worker/main.py",
   "compatibility_date": "2026-10-02",
   "compatibility_flags": ["python_workers"],
