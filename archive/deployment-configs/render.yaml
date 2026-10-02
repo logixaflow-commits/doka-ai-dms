@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: doka-cloud-api
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    buildCommand: pip install -r web-platform/backend/requirements-cloud.txt
+    startCommand: cd web-platform/backend && uvicorn app.cloud_main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: DOKA_STORAGE_PROVIDER
+        value: supabase
+      - key: SUPABASE_STORAGE_BUCKET
+        value: doka-documents
+      - key: DOKA_STORAGE_MAX_OBJECT_BYTES
+        value: "52428800"
+      - key: CORS_ORIGINS
+        value: https://enterprise-ai-dms.vercel.app
+      - key: ORIGINAL_READ_ONLY
+        value: "true"
+      - key: ALLOW_SOURCE_WRITE
+        value: "false"
