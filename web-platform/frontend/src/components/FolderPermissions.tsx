@@ -398,7 +398,7 @@ export default function FolderPermissions() {
 
                 <div className="space-y-2">
                   <Label>Permission Level</Label>
-                  <Select value={selectedPermission} onValueChange={(value: any) => setSelectedPermission(value)}>
+                  <Select value={selectedPermission} onValueChange={(value) => setSelectedPermission(value as 'read' | 'write' | 'admin')}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -453,7 +453,7 @@ export default function FolderPermissions() {
                     <div className="flex items-center gap-3">
                       <Select
                         value={permission.permission}
-                        onValueChange={(value: any) => updatePermission(permission.id, value)}
+                        onValueChange={(value) => updatePermission(permission.id, value as 'read' | 'write' | 'admin')}
                       >
                         <SelectTrigger className="w-40">
                           <SelectValue />

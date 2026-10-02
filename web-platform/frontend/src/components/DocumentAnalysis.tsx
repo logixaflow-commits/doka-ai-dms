@@ -19,9 +19,14 @@ interface FractureDetectionResult {
   recommended_actions: string[];
 }
 
+interface DocumentAnalysisSummary {
+  function_detection: FunctionDetectionResult;
+  fracture_detection: FractureDetectionResult;
+}
+
 interface DocumentAnalysisProps {
   documentId?: number;
-  onAnalysisComplete?: (results: any) => void;
+  onAnalysisComplete?: (results: DocumentAnalysisSummary) => void;
 }
 
 const DocumentAnalysis: React.FC<DocumentAnalysisProps> = ({ documentId, onAnalysisComplete }) => {

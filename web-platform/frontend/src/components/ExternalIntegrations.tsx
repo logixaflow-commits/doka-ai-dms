@@ -41,7 +41,7 @@ const INTEGRATION_TYPES = [
   { value: 'shipping', label: 'Shipping API', icon: Ship, description: 'Logistics and shipping provider integration' },
   { value: 'email', label: 'Email Service', icon: Globe, description: 'Transactional email service' },
   { value: 'storage', label: 'Cloud Storage', icon: Globe, description: 'External cloud storage integration' },
-];
+] as const;
 
 export default function ExternalIntegrations() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -258,7 +258,7 @@ export default function ExternalIntegrations() {
                           ? 'bg-blue-50 dark:bg-blue-950 border-blue-500'
                           : 'hover:bg-slate-50 dark:hover:bg-slate-900'
                       }`}
-                      onClick={() => setIntegrationType(type.value as any)}
+                      onClick={() => setIntegrationType(type.value)}
                     >
                       <div className="flex items-center gap-2">
                         <type.icon className="w-4 h-4" />
