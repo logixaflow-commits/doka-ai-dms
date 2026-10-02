@@ -36,3 +36,10 @@ def test_worker_version_history_is_owner_scoped_and_uses_atomic_database_functio
     assert 'rpc/doka_restore_document_version' in WORKER_SOURCE
     assert '_audit(request, user_id, "version_create"' in WORKER_SOURCE
     assert '_audit(request, user_id, "version_restore"' in WORKER_SOURCE
+
+
+def test_worker_bulk_actions_use_single_atomic_owner_scoped_rpc():
+    assert '@app.post("/api/documents/bulk")' in WORKER_SOURCE
+    assert 'rpc/doka_bulk_update_documents' in WORKER_SOURCE
+    assert 'Duplicate document IDs are not allowed.' in WORKER_SOURCE
+    assert 'action: Literal["status", "trash"]' in WORKER_SOURCE
