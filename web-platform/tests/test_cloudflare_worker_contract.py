@@ -43,3 +43,8 @@ def test_worker_bulk_actions_use_single_atomic_owner_scoped_rpc():
     assert 'rpc/doka_bulk_update_documents' in WORKER_SOURCE
     assert 'Duplicate document IDs are not allowed.' in WORKER_SOURCE
     assert 'action: Literal["status", "trash"]' in WORKER_SOURCE
+
+
+def test_worker_folder_listing_is_owner_scoped():
+    assert '@app.get("/api/folders")' in WORKER_SOURCE
+    assert 'deleted_at=is.null&order=folder_path.asc&limit=500' in WORKER_SOURCE
