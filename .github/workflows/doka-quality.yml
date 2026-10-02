@@ -22,10 +22,13 @@ on:
       - "web-platform/tests/**"
       - "web-platform/frontend/**"
       - "cloudflare_worker/**"
+      - "scripts/**"
       - "pyproject.toml"
       - "web-platform/backend/requirements*.txt"
       - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
+      - ".github/workflows/local-core-check.yml"
+      - ".github/workflows/cloudflare-worker-deploy.yml"
   workflow_dispatch:
 
 permissions:
