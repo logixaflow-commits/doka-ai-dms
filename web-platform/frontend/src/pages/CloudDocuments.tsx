@@ -39,6 +39,7 @@ export default function CloudDocuments() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [hasMore, setHasMore] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editFolder, setEditFolder] = useState('/');
@@ -53,6 +54,7 @@ export default function CloudDocuments() {
         trash: showTrash,
       });
       setDocuments(result.documents || []);
+      setHasMore((result.documents || []).length === 100);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load cloud documents.');
     } finally {
@@ -74,6 +76,22 @@ export default function CloudDocuments() {
       return;
     }
     setFile(next);
+  }
+
+  async function loadMore() {
+    if (loading || busy || !hasMore) return;
+    setBusy(true); setError('');
+    try {
+      const result = await listCloudDocuments({
+        limit: 100, offset: documents.length, search: search.trim() || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter as CloudDocument['status'],
+        trash: showTrash,
+      });
+      setDocuments(current => [...current, ...(result.documents || [])]);
+      setHasMore((result.documents || []).length === 100);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load more documents.');
+    } finally { setBusy(false); }
   }
 
   async function upload() {
@@ -215,7 +233,7 @@ export default function CloudDocuments() {
         <div className="flex flex-col gap-4 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div><h2 className="font-semibold">{showTrash ? 'Deleted documents' : 'Document library'} <span className="ml-1 text-sm font-normal text-muted-foreground">({documents.length})</span></h2><p className="mt-1 text-xs text-muted-foreground">{showTrash ? 'Restore a document to return it to your library.' : 'Only documents belonging to your account are shown.'}</p></div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void refresh(); }} placeholder="Search documents…" className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-56" /></div>
+            <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void refresh(); }} placeholder="Search file names" className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-56" /></div>
             <select aria-label="Filter by status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); void refresh(); }} className="h-10 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary sm:w-36"><option value="all">All statuses</option><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
           </div>
         </div>
@@ -255,6 +273,11 @@ export default function CloudDocuments() {
                 </div>
               </div>)}</div>
           }
+          {!loading && hasMore && documents.length > 0 && (
+            <div className="border-t border-border/70 px-5 py-4 text-center sm:px-6">
+              <Button variant="outline" onClick={() => void loadMore()} disabled={busy} className="rounded-xl">Load more documents</Button>
+            </div>
+          )}
         </CardContent>
       </Card>
       <div className="flex items-start gap-2 text-xs leading-5 text-muted-foreground"><FolderInput className="mt-0.5 h-4 w-4 shrink-0" /><p>Folders are logical metadata paths; moving a document never changes its immutable object key or SHA-256 fingerprint.</p></div>
