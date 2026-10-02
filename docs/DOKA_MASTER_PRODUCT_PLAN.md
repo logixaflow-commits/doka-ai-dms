@@ -393,3 +393,14 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - The live Supabase migration was applied and its DELETE grant, restrictive RLS predicate and audit action constraint were verified.
 - Remaining Phase 1 items: version creation/list/restore, atomic server-side batch APIs, richer folder tree and batch upload progress/retry. Safe inline preview is now available for PDF, common raster images, plain text and CSV; active formats such as HTML and SVG are rejected. Basic bulk status and move-to-Trash actions now exist in the UI using per-document authenticated requests; they are not atomic.
 - Authenticated browser tests and two-user isolation remain mandatory release gates; code deployment alone does not close Phase 0/1.
+
+
+### Cloud versioning implementation — 2026-10-02
+
+- Added authenticated version history listing, replacement upload and restore endpoints to the Cloudflare Worker.
+- New version upload preserves the prior object key as a version record and atomically switches the active document pointer through a SECURITY DEFINER function that validates `auth.uid()` and the parent document owner.
+- Restore first snapshots the current document, then switches to the selected version in the same database transaction.
+- Version objects remain private and are cleaned up by the existing permanent-delete workflow.
+- Frontend exposes version history, 50 MiB replacement upload, per-version SHA-256/date/size and confirmed restore.
+- Audit events include `version_create` and `version_restore`.
+- Remaining release gates: authenticated browser acceptance and two-user isolation; these require separate real user sessions.
