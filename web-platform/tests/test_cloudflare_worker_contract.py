@@ -82,3 +82,10 @@ def test_version_rpc_does_not_grant_direct_storage_pointer_updates():
     ).read_text(encoding="utf-8")
     assert "grant update (status, metadata) on table public.doka_documents to authenticated" in least_privilege
     assert "grant update (object_key" not in least_privilege.lower()
+
+
+def test_worker_version_upload_reuses_existing_objects_without_deleting_them_on_failure():
+    assert 'version_query = f"select=id&document_id=eq.' in WORKER_SOURCE
+    assert 'uploaded_new_object = False' in WORKER_SOURCE
+    assert 'uploaded_new_object = True' in WORKER_SOURCE
+    assert 'if uploaded_new_object:' in WORKER_SOURCE
