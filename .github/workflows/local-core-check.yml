@@ -3,8 +3,28 @@ name: Local Core Checks
 on:
   push:
     branches: [main]
+    paths:
+      - "web-platform/backend/**"
+      - "web-platform/tests/**"
+      - "web-platform/frontend/**"
+      - "cloudflare_worker/**"
+      - "scripts/**"
+      - "pyproject.toml"
+      - "wrangler.jsonc"
+      - "supabase/migrations/**"
+      - ".github/workflows/local-core-check.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "web-platform/backend/**"
+      - "web-platform/tests/**"
+      - "web-platform/frontend/**"
+      - "cloudflare_worker/**"
+      - "scripts/**"
+      - "pyproject.toml"
+      - "wrangler.jsonc"
+      - "supabase/migrations/**"
+      - ".github/workflows/local-core-check.yml"
 
 jobs:
   backend-syntax:
@@ -17,7 +37,7 @@ jobs:
       - name: Compile Python sources
         run: |
           python -m compileall -q web-platform/backend
-          python -m py_compile scripts/doka_pilot_check.py
+          python -m py_compile scripts/doka_pilot_check.py scripts/ocr_benchmark.py
 
   frontend-build:
     runs-on: ubuntu-latest
@@ -56,4 +76,4 @@ jobs:
           SECRET_KEY: doka-local-core-ci-secret-key-32-bytes-minimum
           PYTHONPATH: web-platform/backend
         run: |
-          pytest -q web-platform/tests/test_safe_workspace_service.py web-platform/tests/test_workspace_backup_service.py web-platform/tests/test_organization_planner.py web-platform/tests/test_workspace_security.py web-platform/tests/test_document_understanding.py web-platform/tests/test_local_auth.py web-platform/tests/test_unified_ai_fallback.py web-platform/tests/test_observability.py web-platform/tests/test_hardening.py web-platform/tests/test_doka_pilot.py web-platform/tests/test_cloud_storage.py
+          pytest -q web-platform/tests/test_safe_workspace_service.py web-platform/tests/test_workspace_backup_service.py web-platform/tests/test_organization_planner.py web-platform/tests/test_workspace_security.py web-platform/tests/test_document_understanding.py web-platform/tests/test_local_auth.py web-platform/tests/test_unified_ai_fallback.py web-platform/tests/test_observability.py web-platform/tests/test_hardening.py web-platform/tests/test_doka_pilot.py web-platform/tests/test_ocr_benchmark.py web-platform/tests/test_cloud_storage.py
