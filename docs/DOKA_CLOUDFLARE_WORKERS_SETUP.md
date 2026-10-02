@@ -1,9 +1,24 @@
 # Doka Cloudflare Workers deployment
 
-This repository now contains a dedicated Cloudflare Python Worker entry point at
+This repository contains a dedicated Cloudflare Python Worker entry point at
 `cloudflare_worker/main.py`. It exposes only the stateless Supabase-backed Cloud
 Documents API. The Personal Local Edition, local filesystem, OCR, and backup
 features remain on the user's own computer.
+
+## Current deployment
+
+The Cloudflare Worker is deployed as:
+
+- Worker: `doka`
+- URL: `https://doka.logixaflow.workers.dev`
+- `GET /health`: verified HTTP 200 with `status: healthy`.
+- `GET /api/config`: verified HTTP 200 with `edition: cloud-api`,
+  `auth: supabase`, and `local_workspace_available: false`.
+
+The Worker currently has these runtime bindings configured in Cloudflare:
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_STORAGE_BUCKET`,
+and `DOKA_STORAGE_MAX_OBJECT_BYTES`. The publishable key is browser-safe;
+never configure a Supabase service-role/secret key in this Worker.
 
 ## Cloudflare Workers Builds setup
 
@@ -20,46 +35,45 @@ On the Cloudflare "Set up your application" screen:
 - **Advanced settings:** Keep the Root directory at `/` (repository root).
   Leave the default build environment and compatibility settings unchanged.
 
-The Wrangler configuration sets the Worker name to `doka-cloud-api`, uses
-Python Workers, and points to `cloudflare_worker/main.py`.
+The Wrangler configuration uses the existing Worker name `doka`, points to
+`cloudflare_worker/main.py`, and enables Python Workers.
 
 ## Workers Builds deploy command
 
-After the Worker project is created, open **Settings → Builds** and set
-**Deploy command** to `uv run pywrangler deploy`. This is important: Cloudflare
-Workers Builds defaults to `npx wrangler deploy`, which does not prepare and
-bundle Python dependencies through Pywrangler. Keep the Build command blank.
+In the Worker's **Settings → Builds**, set **Deploy command** to
+`uv run pywrangler deploy`. This is important: Cloudflare Workers Builds
+defaults to `npx wrangler deploy`, which does not prepare and bundle Python
+dependencies through Pywrangler. Keep the Build command blank.
 
 ## Required Worker variables
 
-After the first Worker build/deploy, open the Worker's **Settings → Variables
-and Secrets** and add:
+The current Worker already has the following bindings configured. If recreating
+the Worker, restore these values in **Settings → Variables and Secrets**:
 
 | Name | Value |
 | --- | --- |
-| `SUPABASE_URL` | The project's HTTPS URL, e.g. `https://<project-ref>.supabase.co` |
+| `SUPABASE_URL` | `https://jkobgssaqifzrqfirdfu.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | The project's `sb_publishable_...` key (never the service-role key) |
 | `SUPABASE_STORAGE_BUCKET` | `doka-documents` |
 | `DOKA_STORAGE_MAX_OBJECT_BYTES` | `52428800` |
 
-The first two can be configured as encrypted secrets. Do not add a Supabase
-service-role key. `CORS_ORIGINS` is already set in `wrangler.jsonc` to the
-production Vercel origin `https://enterprise-ai-dms.vercel.app`.
+The first two may be configured as encrypted secrets; the publishable key is
+not a service-role credential. Do not add a Supabase service-role key.
+CORS is restricted in the Worker code to
+`https://enterprise-ai-dms.vercel.app`.
 
-## Vercel
+## Vercel frontend
 
-After the Worker is deployed, copy its HTTPS `workers.dev` URL. In Vercel,
-set the Production environment variable:
-
-- `VITE_API_BASE_URL` = the Worker origin only (no trailing slash and no
-  `/api` suffix).
-
-Then redeploy the Vercel frontend.
+The production frontend now defaults to
+`https://doka.logixaflow.workers.dev`. Local Vite development continues to
+use the local API proxy. `VITE_API_BASE_URL` is optional and can override the
+production API origin (no trailing slash and no `/api` suffix). A new Vercel
+deployment is triggered automatically when the GitHub `main` branch changes.
 
 ## Verification
 
-- Open `https://<worker-name>.<account-subdomain>.workers.dev/health` and
-  confirm `status: healthy` and `edition: cloudflare-workers`.
+- Open `https://doka.logixaflow.workers.dev/health` and confirm
+  `status: healthy` and `edition: cloudflare-workers`.
 - Open `/api/config` and confirm `edition: cloud-api`,
   `auth: supabase`, and `local_workspace_available: false`.
 - Sign in to the frontend and test document list, upload, metadata update,
@@ -74,7 +88,6 @@ through the Workers ASGI adapter. They are not a general-purpose Uvicorn host.
 This Worker uses the Workers Fetch API for outbound Supabase requests and
 keeps cloud objects and metadata in Supabase. It does not depend on a persistent
 Worker filesystem.
-
 
 ## Free-plan performance caution
 
