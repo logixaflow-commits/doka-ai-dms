@@ -82,7 +82,13 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 | `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |
 | `POST /api/documents` | Authenticated upload | Cloud Documents |
 | `PATCH /api/documents/{id}` | Status, metadata, rename and folder-path update | Cloud Documents |
-| `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |\n| `GET /api/documents/{id}/preview` | Five-minute signed URL for passive allowlisted formats only | Cloud Documents |\n| `GET /api/documents/{id}/versions` | Owner-scoped version history | Cloud Documents |\n| `POST /api/documents/{id}/versions` | Upload a new version and atomically preserve the previous object | Cloud Documents |\n| `POST /api/documents/{id}/versions/{version_id}/restore` | Restore a prior version while snapshotting the current object | Cloud Documents |\n| `GET /api/audit` | Owner-scoped activity log | Activity |\n| `DELETE /api/documents/{id}/permanent` | Permanently remove only trashed docs and stored version objects | Cloud Documents |
+| `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |
+| `GET /api/documents/{id}/preview` | Five-minute signed URL for passive allowlisted formats only | Cloud Documents |
+| `GET /api/documents/{id}/versions` | Owner-scoped version history | Cloud Documents |
+| `POST /api/documents/{id}/versions` | Upload a new version and atomically preserve the previous object | Cloud Documents |
+| `POST /api/documents/{id}/versions/{version_id}/restore` | Restore a prior version while snapshotting the current object | Cloud Documents |
+| `GET /api/audit` | Owner-scoped activity log | Activity |
+| `DELETE /api/documents/{id}/permanent` | Permanently remove only trashed docs and stored version objects | Cloud Documents |
 | `DELETE /api/documents/{id}` | Recoverable Trash (soft delete) | Cloud Documents |
 | `POST /api/documents/{id}/restore` | Restore from Trash | Cloud Documents |
 
@@ -153,24 +159,25 @@ These must not be mistaken for production-ready cloud pages:
 
 - Sign in/out: Supabase Auth UI/session.
 - Service status: Dashboard calls Worker health/config.
-- Document upload: Cloud Documents calls authenticated upload.
-- Document list: Cloud Documents calls owner-scoped listing.
-- Document download: Cloud Documents and Dashboard use download flow.
-- Document status: Cloud Documents calls PATCH.
-- Account isolation: enforced in Supabase RLS/Storage policy design; real two-user E2E is still pending.
+- Document upload/list/search/filter/pagination: owner-scoped Worker routes.
+- Document rename/folder-path/status update: owner-scoped PATCH.
+- Safe preview and download: short-lived signed URLs, with preview MIME allowlist.
+- Trash, restore and confirmed permanent deletion with Storage cleanup.
+- Version history, replacement upload and atomic restore via owner-checked database functions.
+- Bulk status and Trash: per-document authenticated calls, not an atomic server-side batch.
+- Activity: owner-scoped audit listing.
+- Account isolation: enforced in Supabase RLS/Storage policies; real two-user E2E is still pending.
 
 ### Not yet available as complete Cloud UI workflows
 
-- Folder/tree organization and move/rename.
-- Full-text search and advanced filters.
-- Document preview and page-level navigation.
-- Delete/trash/restore lifecycle.
-- Version history and compare/restore.
-- Bulk actions and batch upload queue/retry.
-- Editable metadata fields beyond current status/metadata payload.
+- Rich folder-tree CRUD and folder-level permissions (logical folder paths are implemented).
+- Server-side atomic bulk operations; current bulk status/Trash controls send per-document requests and are not atomic.
+- Batch upload queue, progress, retry and resumable transfer.
+- Full-text content search and advanced metadata filters.
+- Version comparison/diff and retention policy.
 - User profile and password management inside Doka.
 - Organization/team membership, roles and permission editor.
-- Audit log and administrative analytics.
+- Team-level audit export and administrative analytics.
 - Cloud OCR/extraction and human review.
 - Cloud backup/restore.
 - AI classification, semantic search and provider controls.
