@@ -12,7 +12,7 @@ import re
 from datetime import datetime, timezone
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
@@ -71,7 +71,7 @@ def _supabase_headers(request, token: str, content_type: str | None = None) -> d
 
 
 async def require_user(
-    request,
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> str:
     if credentials is None:
@@ -123,7 +123,7 @@ async def public_config():
 
 @app.get("/api/documents")
 async def list_documents(
-    request,
+    request: Request,
     user_id: str = Depends(require_user),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
@@ -145,7 +145,7 @@ def _token_from_request(request) -> str:
 
 
 @app.post("/api/documents")
-async def create_document(request, file: UploadFile = File(...), user_id: str = Depends(require_user)):
+async def create_document(request: Request, file: UploadFile = File(...), user_id: str = Depends(require_user)):
     max_bytes = int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024)))
     data = await file.read(max_bytes + 1)
     if len(data) > max_bytes:
@@ -193,7 +193,7 @@ async def create_document(request, file: UploadFile = File(...), user_id: str = 
 
 
 @app.get("/api/documents/{document_id}/download")
-async def document_download(request, document_id: str, user_id: str = Depends(require_user)):
+async def document_download(request: Request, document_id: str, user_id: str = Depends(require_user)):
     base = _base(request)
     token = _token_from_request(request)
     query = f"select=id,owner_id,object_key,sha256&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&limit=1"
@@ -225,7 +225,7 @@ async def document_download(request, document_id: str, user_id: str = Depends(re
 
 
 @app.patch("/api/documents/{document_id}")
-async def update_document(request, document_id: str, update: DocumentUpdate, user_id: str = Depends(require_user)):
+async def update_document(request: Request, document_id: str, update: DocumentUpdate, user_id: str = Depends(require_user)):
     if update.status is None and update.metadata is None:
         raise HTTPException(status_code=400, detail="No document fields were provided.")
     base = _base(request)
@@ -235,7 +235,7 @@ async def update_document(request, document_id: str, update: DocumentUpdate, use
         request, f"{base}/rest/v1/doka_documents?select=*&{query}",
         method="PATCH",
         headers={**_supabase_headers(request, token, "application/json"), "Prefer": "return=representation"},
-        body=update.model_dump(exclude_none=True).__str__().replace("'", '"'),
+        body=json.dumps(update.model_dump(exclude_none=True)),
     )
     if status >= 300:
         raise HTTPException(status_code=503, detail=f"Document update failed ({status}).")
