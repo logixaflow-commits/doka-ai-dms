@@ -71,3 +71,15 @@ if (!cloudPage.includes('Trash') || !cloudPage.includes('Search file names') || 
   throw new Error('Cloud document search, pagination or trash UI is missing.');
 }
 console.log('Cloud library lifecycle smoke test passed.');
+
+const contract = JSON.parse(fs.readFileSync(path.resolve('../../shared/contracts/cloud-document.schema.json'), 'utf8'));
+for (const field of ['id', 'owner_id', 'object_key', 'filename', 'sha256', 'deleted_at', 'folder_path']) {
+  if (!contract.required.includes(field)) throw new Error(`Canonical document contract is missing ${field}.`);
+}
+for (const status of ['active', 'review', 'quarantined', 'archived']) {
+  if (!contract.properties.status.enum.includes(status)) throw new Error(`Canonical document contract is missing status ${status}.`);
+}
+if (!cloudApi.includes('allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"]')) {
+  throw new Error('Cloud API CORS does not allow the authenticated Trash operation.');
+}
+console.log('Doka Cloud API schema and security contract smoke test passed.');
