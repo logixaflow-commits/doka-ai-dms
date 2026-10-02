@@ -9,6 +9,7 @@ import json
 import mimetypes
 import unicodedata
 from pathlib import Path
+from collections.abc import Sequence
 from typing import Any, Callable
 
 
@@ -16,7 +17,7 @@ def normalize_text(value: str) -> str:
     return " ".join(unicodedata.normalize("NFC", value or "").casefold().split())
 
 
-def edit_distance(left: str, right: str) -> int:
+def edit_distance(left: Sequence[str], right: Sequence[str]) -> int:
     """Levenshtein distance using O(min(n, m)) memory."""
     if len(left) < len(right):
         left, right = right, left
@@ -84,8 +85,8 @@ def run_ocr_benchmark(
 
     results: list[dict[str, Any]] = []
     for index, sample in enumerate(samples):
-        if not isinstance(sample, dict) or not isinstance(sample.get("reference"), str):
-            raise ValueError(f"Sample {index + 1} requires a reference string.")
+        if not isinstance(sample, dict) or not isinstance(sample.get("reference"), str) or not sample["reference"].strip():
+            raise ValueError(f"Sample {index + 1} requires a non-empty reference string.")
         path = resolve_sample_path(root, str(sample.get("path", "")))
         mime_type = str(sample.get("mime_type") or mimetypes.guess_type(path.name)[0] or "application/octet-stream")
         language = str(sample.get("language") or "mya+eng")
@@ -93,7 +94,7 @@ def run_ocr_benchmark(
             prediction, detected_language = ocr(str(path), mime_type)
             scores = score_text(sample["reference"], prediction or "")
             results.append({
-                "sample": path.relative_to(root).as_posix(),
+                "sample_id": str(sample.get("id") or f"sample-{index + 1:03d}"),
                 "language": language,
                 "detected_language": detected_language,
                 "status": "scored",
@@ -101,7 +102,7 @@ def run_ocr_benchmark(
             })
         except Exception as exc:
             results.append({
-                "sample": path.relative_to(root).as_posix(),
+                "sample_id": str(sample.get("id") or f"sample-{index + 1:03d}"),
                 "language": language,
                 "status": "error",
                 "error_type": type(exc).__name__,
@@ -120,7 +121,6 @@ def run_ocr_benchmark(
         }
     return {
         "schema_version": 1,
-        "source_root": str(root),
         "sample_count": len(samples),
         "scored_count": sum(row["status"] == "scored" for row in results),
         "error_count": sum(row["status"] == "error" for row in results),
