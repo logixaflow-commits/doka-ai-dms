@@ -53,6 +53,14 @@ The Worker rejects files larger than 50 MiB, computes SHA-256, uploads to privat
 
 Response: `{"document": CloudDocument}`.
 
+### `POST /api/documents/bulk` — authenticated
+
+JSON body: `{"document_ids": string[], "action": "status" | "trash", "status"?: "active" | "review" | "quarantined" | "archived"}`.
+
+Accepts 1–100 unique document IDs. All IDs must belong to the authenticated owner and be active; otherwise the transaction fails without partial updates. Status changes and Trash operations run in one database transaction and write corresponding audit events.
+
+Response: `{"documents": CloudDocument[], "updated_count": number}`.
+
 ### `GET /api/documents/{id}/download` — authenticated
 
 Returns a short-lived signed URL (300 seconds) and SHA-256. The Worker verifies ownership and rejects trashed documents before creating the signed URL.
@@ -133,7 +141,7 @@ See `shared/contracts/cloud-document.schema.json`.
 
 Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, safe preview, status/metadata/rename/folder-path update, trash, restore, version history/create/restore.
 
-Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash, orchestrated as owner-authenticated per-document requests (not an atomic batch). Planned: server-side atomic batch APIs, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
+Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash through a single owner-scoped atomic database transaction. Planned: server-side atomic batch APIs, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
 
 ## Security invariants
 
