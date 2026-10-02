@@ -2,17 +2,14 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
+  PieChart, Pie, Cell, LineChart, Line,
 } from 'recharts';
 import {
   FileText, Users, Clock, CheckCircle, XCircle, AlertTriangle,
-  TrendingUp, Activity, Server, Database, Zap, Download, RefreshCw,
-  Eye, Share2, MoreHorizontal
+  TrendingUp, Activity, Server, Zap
 } from 'lucide-react';
 
 const API_BASE = '/api';
