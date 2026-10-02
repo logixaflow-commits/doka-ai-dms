@@ -59,12 +59,12 @@ for (const required of [
   'deleted_at=is.null',
   'async def trash_document',
   'async def restore_document',
-  'async def _normalize_folder_path',
+  'def _normalize_folder_path',
   'filename: str | None',
 ]) {
   if (!cloudApi.includes(required)) throw new Error(`Cloud API lifecycle feature is missing: ${required}`);
 }
-for (const required of ['trashCloudDocument', 'restoreCloudDocument', 'renameCloudDocument']) {
+for (const required of ['trashCloudDocument', 'restoreCloudDocument', 'renameCloudDocument', 'moveCloudDocument']) {
   if (!cloudDocuments.includes(required)) throw new Error(`Cloud frontend client is missing ${required}.`);
 }
 if (!cloudPage.includes('Trash') || !cloudPage.includes('Search file names') || !cloudPage.includes('Load more documents')) {
