@@ -288,6 +288,86 @@ async def create_document(request: Request, file: UploadFile = File(...), user_i
     return {"document": rows[0]}
 
 
+@app.get("/api/documents/{document_id}/versions")
+async def list_document_versions(request: Request, document_id: str, user_id: str = Depends(require_user)):
+    base = _base(request)
+    token = _token_from_request(request)
+    doc_query = f"select=id&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+    status, docs = await _fetch(request, f"{base}/rest/v1/doka_documents?{doc_query}", headers={**_supabase_headers(request, token), "Accept": "application/json"})
+    if status >= 300:
+        raise HTTPException(status_code=503, detail=f"Document lookup failed ({status}).")
+    if not isinstance(docs, list) or not docs:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    query = f"select=id,version_no,filename,content_type,size_bytes,sha256,created_at&document_id=eq.{quote(document_id, safe='')}&order=version_no.desc&limit=100"
+    status, versions = await _fetch(request, f"{base}/rest/v1/doka_document_versions?{query}", headers={**_supabase_headers(request, token), "Accept": "application/json"})
+    if status >= 300 or not isinstance(versions, list):
+        raise HTTPException(status_code=503, detail=f"Version history lookup failed ({status}).")
+    return {"versions": versions}
+
+
+@app.post("/api/documents/{document_id}/versions")
+async def create_document_version(request: Request, document_id: str, file: UploadFile = File(...), user_id: str = Depends(require_user)):
+    base = _base(request)
+    token = _token_from_request(request)
+    doc_query = f"select=id,object_key,filename,content_type,size_bytes,sha256&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+    status, docs = await _fetch(request, f"{base}/rest/v1/doka_documents?{doc_query}", headers={**_supabase_headers(request, token), "Accept": "application/json"})
+    if status >= 300:
+        raise HTTPException(status_code=503, detail=f"Document lookup failed ({status}).")
+    if not isinstance(docs, list) or not docs:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    current = docs[0]
+    max_bytes = int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024)))
+    data = await file.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
+    digest = hashlib.sha256(data).hexdigest()
+    filename = (file.filename or current.get("filename") or "document").replace("\\", "/").rsplit("/", 1)[-1]
+    key = _object_key(user_id, digest, filename)
+    if key == current.get("object_key"):
+        raise HTTPException(status_code=409, detail="The uploaded content is identical to the current document.")
+    bucket = quote(_bucket(request), safe="")
+    encoded_key = quote(key, safe="/")
+    upload_headers = _supabase_headers(request, token, file.content_type or "application/octet-stream")
+    upload_headers["x-upsert"] = "false"
+    status, _ = await _fetch(request, f"{base}/storage/v1/object/{bucket}/{encoded_key}", method="POST", headers=upload_headers, body=_js_bytes(data))
+    if status >= 300:
+        raise HTTPException(status_code=503, detail=f"Version object upload failed ({status}).")
+    payload = {
+        "p_document_id": document_id,
+        "p_object_key": key,
+        "p_filename": filename,
+        "p_content_type": file.content_type or "application/octet-stream",
+        "p_size_bytes": len(data),
+        "p_sha256": digest,
+    }
+    status, updated = await _fetch(request, f"{base}/rest/v1/rpc/doka_replace_document_version", method="POST", headers=_supabase_headers(request, token, "application/json"), body=json.dumps(payload))
+    if status >= 300:
+        await _fetch(request, f"{base}/storage/v1/object/{bucket}", method="DELETE", headers=_supabase_headers(request, token, "application/json"), body=json.dumps({"prefixes": [key]}))
+        raise HTTPException(status_code=503, detail=f"Version metadata update failed ({status}).")
+    document = updated[0] if isinstance(updated, list) and updated else updated
+    await _audit(request, user_id, "version_create", document_id, filename, {"sha256": digest, "size_bytes": len(data)})
+    return {"document": document}
+
+
+@app.post("/api/documents/{document_id}/versions/{version_id}/restore")
+async def restore_document_version(request: Request, document_id: str, version_id: str, user_id: str = Depends(require_user)):
+    base = _base(request)
+    token = _token_from_request(request)
+    status, updated = await _fetch(
+        request, f"{base}/rest/v1/rpc/doka_restore_document_version",
+        method="POST",
+        headers=_supabase_headers(request, token, "application/json"),
+        body=json.dumps({"p_document_id": document_id, "p_version_id": version_id}),
+    )
+    if status >= 300:
+        if status == 404:
+            raise HTTPException(status_code=404, detail="Document or version not found.")
+        raise HTTPException(status_code=503, detail=f"Version restore failed ({status}).")
+    document = updated[0] if isinstance(updated, list) and updated else updated
+    await _audit(request, user_id, "version_restore", document_id, document.get("filename") if isinstance(document, dict) else None, {"version_id": version_id})
+    return {"document": document}
+
+
 @app.get("/api/documents/{document_id}/preview")
 async def document_preview(request: Request, document_id: str, user_id: str = Depends(require_user)):
     """Create a short-lived inline URL for safe passive document formats only."""
