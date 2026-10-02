@@ -456,3 +456,11 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - GitHub Actions `Doka Quality Checks` passed on commit `5ad3efa7`, including backend regression tests and frontend build/smoke tests. Local Core Checks passed on commit `0807b5c3`.
 - Vercel production deployment `dpl_94Z3TeFYrkfxTZo7XBhziJ2FGSoQ` (commit `1b6ac3a5`) is READY. Its production JavaScript bundle was checked and contains Version history, safe preview, folder filtering and atomic bulk actions. It does not yet contain the later batch upload queue. The GitHub Actions deploy workflow skips without `VERCEL_TOKEN`; add that secret and manually run the workflow to publish the newest frontend commit.
 - Supabase Security Advisor still reports the intentional authenticated `SECURITY DEFINER` version RPCs and disabled leaked-password protection. The version RPCs explicitly validate `auth.uid()`, owner and user-scoped object paths; the warning is retained for review. The bulk RPC is SECURITY INVOKER.
+
+
+### Phase 2 OCR benchmark foundation — 2026-10-02
+
+- Added a local-only OCR benchmark service and CLI for copied Myanmar/English samples.
+- The manifest records sample IDs, relative paths, MIME types, language and reference transcription; the runner rejects path traversal and symlinks.
+- Reports include CER/WER by language, but do not include recognized text, reference text or absolute source paths. The report must be written outside the sample directory.
+- The benchmark code and tests are in place; the actual Phase 2 acceptance gate still requires the user's representative copied sample set and a manual accuracy review.
