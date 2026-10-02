@@ -83,3 +83,9 @@ if (!cloudApi.includes('allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTION
   throw new Error('Cloud API CORS does not allow the authenticated Trash operation.');
 }
 console.log('Doka Cloud API schema and security contract smoke test passed.');
+
+const folderPattern = new RegExp(contract.properties.folder_path.pattern);
+for (const [value, expected] of [['/', true], ['/Finance/Invoices', true], ['/some..name', true], ['/../etc', false], ['/a/../b', false], ['/a/', false], ['//a', false], ['/a\\\\b', false]]) {
+  if (folderPattern.test(value) !== expected) throw new Error(`Folder path schema mismatch for ${value}.`);
+}
+console.log('Doka folder path schema validation passed.');
