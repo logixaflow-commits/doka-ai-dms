@@ -368,7 +368,12 @@ async def create_document_version(request: Request, document_id: str, file: Uplo
     if len(data) > max_bytes:
         raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
     digest = hashlib.sha256(data).hexdigest()
-    filename = (file.filename or current.get("filename") or "document").replace("\\", "/").rsplit("/", 1)[-1]
+    filename = (file.filename or current.get("filename") or "document").replace("\\", "/").rsplit("/", 1)[-1].strip()
+    if not filename or filename in {".", ".."} or "/" in filename or "\\" in filename or len(filename) > 255:
+        raise HTTPException(status_code=400, detail="Filename must be a plain file name up to 255 characters.")
+    content_type = (file.content_type or "application/octet-stream").split(";", 1)[0].strip().lower() or "application/octet-stream"
+    if len(content_type) > 255:
+        raise HTTPException(status_code=400, detail="Content type is too long.")
     key = _object_key(user_id, digest, filename)
     if key == current.get("object_key"):
         raise HTTPException(status_code=409, detail="The uploaded content is identical to the current document.")
@@ -383,7 +388,7 @@ async def create_document_version(request: Request, document_id: str, file: Uplo
         raise HTTPException(status_code=503, detail=f"Existing version lookup failed ({version_status}).")
     uploaded_new_object = False
     if not existing_versions:
-        upload_headers = _supabase_headers(request, token, file.content_type or "application/octet-stream")
+        upload_headers = _supabase_headers(request, token, content_type)
         upload_headers["x-upsert"] = "false"
         status, _ = await _fetch(request, f"{base}/storage/v1/object/{bucket}/{encoded_key}", method="POST", headers=upload_headers, body=_js_bytes(data))
         if status >= 300:
@@ -393,7 +398,7 @@ async def create_document_version(request: Request, document_id: str, file: Uplo
         "p_document_id": document_id,
         "p_object_key": key,
         "p_filename": filename,
-        "p_content_type": file.content_type or "application/octet-stream",
+        "p_content_type": content_type,
         "p_size_bytes": len(data),
         "p_sha256": digest,
     }
