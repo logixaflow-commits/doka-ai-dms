@@ -42,7 +42,7 @@ export default function PersonalDashboard() {
       const [healthResponse, configResponse, documentResult] = await Promise.all([
         fetch(`${API_ORIGIN}/health`, { cache: 'no-store' }),
         fetch(`${API_ORIGIN}/api/config`, { cache: 'no-store' }),
-        listCloudDocuments(100, 0),
+        listCloudDocuments({ limit: 100, offset: 0 }),
       ]);
       if (!healthResponse.ok || !configResponse.ok) {
         throw new Error('The cloud service did not return a healthy response.');
