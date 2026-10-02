@@ -451,7 +451,7 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Cloudflare Worker deployment for the latest folder/bulk/version API changes is queued; only mark these APIs production-live after the build reaches success and 100% traffic is confirmed.
 
 
-### Latest runtime rollout — 2026-10-02 09:51 UTC
+### Latest runtime rollout — 2026-10-02 10:00 UTC
 
 - Cloudflare Worker version `66f1adfc-f43d-4fda-aeaa-12a6a45feec7` (version number 99) is receiving 100% traffic. This version includes the safe reuse fix for an existing prior-version object. This version was uploaded after the folder-listing, atomic bulk and version-audit Worker changes were committed.
 - Supabase schema/function checks confirm the version table, owner-scoped RLS policies and RPC permissions. `anon` cannot execute the version or bulk RPCs; authenticated users can execute only the intended functions. Bulk updates rely on column-level grants and RLS.
