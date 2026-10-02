@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle, ArrowDownToLine, CheckCircle2, CloudUpload, Eye, File,
+  AlertCircle, ArrowDownToLine, CheckCircle2, CloudUpload, Eye, File, History,
   Files, FolderInput, HardDrive, Pencil, RefreshCw, RotateCcw,
   Search, ShieldCheck, Trash2, UploadCloud, X,
 } from 'lucide-react';
@@ -8,9 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocuments, moveCloudDocument, permanentlyDeleteCloudDocument,
-  renameCloudDocument, restoreCloudDocument, trashCloudDocument,
-  updateCloudDocument, uploadCloudDocument, type CloudDocument,
+  createCloudDocumentVersion, getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocumentVersions, listCloudDocuments, moveCloudDocument, permanentlyDeleteCloudDocument,
+  renameCloudDocument, restoreCloudDocument, restoreCloudDocumentVersion, trashCloudDocument,
+  updateCloudDocument, uploadCloudDocument, type CloudDocument, type CloudDocumentVersion,
 } from '@/lib/cloudDocuments';
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -45,6 +45,10 @@ export default function CloudDocuments() {
   const [editFolder, setEditFolder] = useState('/');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState<CloudDocument['status']>('active');
+  const [versionsDocument, setVersionsDocument] = useState<CloudDocument | null>(null);
+  const [versions, setVersions] = useState<CloudDocumentVersion[]>([]);
+  const [versionFile, setVersionFile] = useState<File | null>(null);
+  const [versionsLoading, setVersionsLoading] = useState(false);
 
   async function refresh() {
     setLoading(true);
@@ -137,6 +141,56 @@ export default function CloudDocuments() {
     } catch (err) {
       previewWindow.close();
       setError(err instanceof Error ? err.message : 'Unable to create a preview link.');
+    } finally { setBusy(false); }
+  }
+
+  async function openVersions(item: CloudDocument) {
+    setVersionsDocument(item);
+    setVersions([]);
+    setVersionFile(null);
+    setVersionsLoading(true);
+    setError('');
+    try {
+      const result = await listCloudDocumentVersions(item.id);
+      setVersions(result.versions || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load version history.');
+    } finally { setVersionsLoading(false); }
+  }
+
+  async function saveVersion() {
+    if (!versionsDocument || !versionFile) return;
+    if (versionFile.size > MAX_FILE_BYTES) {
+      setError('This version exceeds the 50 MiB upload limit.');
+      return;
+    }
+    if (!window.confirm(`Upload a new version of “${versionsDocument.filename}”? The current version will be preserved in history.`)) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const result = await createCloudDocumentVersion(versionsDocument.id, versionFile);
+      setDocuments(current => current.map(item => item.id === result.document.id ? result.document : item));
+      setVersionsDocument(result.document);
+      setVersionFile(null);
+      const history = await listCloudDocumentVersions(result.document.id);
+      setVersions(history.versions || []);
+      setMessage(`A new version of “${result.document.filename}” was saved.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to save document version.');
+    } finally { setBusy(false); }
+  }
+
+  async function restoreVersion(version: CloudDocumentVersion) {
+    if (!versionsDocument || !window.confirm(`Restore version ${version.version_no}? The current version will be preserved in history.`)) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const result = await restoreCloudDocumentVersion(versionsDocument.id, version.id);
+      setDocuments(current => current.map(item => item.id === result.document.id ? result.document : item));
+      setVersionsDocument(result.document);
+      const history = await listCloudDocumentVersions(result.document.id);
+      setVersions(history.versions || []);
+      setMessage(`Version ${version.version_no} restored.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to restore this version.');
     } finally { setBusy(false); }
   }
 
@@ -349,6 +403,7 @@ export default function CloudDocuments() {
                   ) : (
                     <>
                       <select aria-label={`Status for ${item.filename}`} className="h-9 min-w-28 rounded-lg border border-input bg-background px-2 text-xs" value={item.status} disabled={busy} onChange={event => void changeStatus(item, event.target.value as CloudDocument['status'])}><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
+                      <Button size="sm" variant="outline" onClick={() => void openVersions(item)} disabled={busy} className="h-9 rounded-lg"><History className="mr-1 h-4 w-4" />Versions</Button>
                       <Button size="sm" variant="ghost" onClick={() => beginEdit(item)} disabled={busy} className="h-9 rounded-lg" aria-label={`Edit ${item.filename}`}><Pencil className="mr-1 h-4 w-4" />Edit</Button>
                       <Button size="sm" variant="ghost" onClick={() => void trash(item)} disabled={busy} className="h-9 rounded-lg text-rose-600 hover:text-rose-700" aria-label={`Trash ${item.filename}`}><Trash2 className="mr-1 h-4 w-4" />Trash</Button>
                       {['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain', 'text/csv'].includes((item.content_type || '').split(';')[0].trim().toLowerCase()) && <Button size="sm" variant="outline" onClick={() => void preview(item)} disabled={busy} className="h-9 rounded-lg"><Eye className="mr-2 h-4 w-4" />Preview</Button>}
@@ -365,6 +420,36 @@ export default function CloudDocuments() {
           )}
         </CardContent>
       </Card>
+      {versionsDocument && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Document version history">
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-background p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div><h2 className="text-lg font-semibold">Version history</h2><p className="mt-1 break-all text-sm text-muted-foreground">{versionsDocument.filename}</p></div>
+              <Button size="icon" variant="ghost" onClick={() => { setVersionsDocument(null); setVersions([]); setVersionFile(null); }} aria-label="Close version history"><X className="h-4 w-4" /></Button>
+            </div>
+            <div className="mt-5 rounded-xl border border-border/70 p-4">
+              <p className="text-sm font-medium">Upload a new version</p>
+              <p className="mt-1 text-xs text-muted-foreground">The current file is retained as a previous version. Maximum size: 50 MiB.</p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input type="file" onChange={event => setVersionFile(event.target.files?.[0] || null)} disabled={busy} className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs" />
+                <Button onClick={() => void saveVersion()} disabled={busy || !versionFile}>Save new version</Button>
+              </div>
+            </div>
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold">Previous versions</h3>
+              {versionsLoading ? <p className="py-6 text-center text-sm text-muted-foreground">Loading history…</p> :
+                versions.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">No previous versions yet.</p> :
+                <div className="mt-2 divide-y divide-border/70 rounded-xl border border-border/70">
+                  {versions.map(version => <div key={version.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0"><p className="text-sm font-medium">Version {version.version_no} · {version.filename || versionsDocument.filename}</p><p className="mt-1 text-xs text-muted-foreground">{formatSize(version.size_bytes)} · {formatDate(version.created_at)} · SHA-256 {version.sha256.slice(0, 12)}…</p></div>
+                    <Button size="sm" variant="outline" onClick={() => void restoreVersion(version)} disabled={busy}>Restore this version</Button>
+                  </div>)}
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-start gap-2 text-xs leading-5 text-muted-foreground"><FolderInput className="mt-0.5 h-4 w-4 shrink-0" /><p>Folders are logical metadata paths; moving a document never changes its immutable object key or SHA-256 fingerprint.</p></div>
     </div>
   );
