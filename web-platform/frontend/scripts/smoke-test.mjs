@@ -98,6 +98,9 @@ for (const required of [
 if (!cloudPage.includes('Version history') || !cloudPage.includes('Restore this version') || !cloudPage.includes('Save new version')) {
   throw new Error('Cloud document version history UI is missing.');
 }
+if (!cloudPage.includes('Batch upload queue') || !cloudPage.includes('Retry failed') || !cloudPage.includes('processBatch')) {
+  throw new Error('Cloud batch upload queue and retry controls are missing.');
+}
 const auditPage = fs.readFileSync(path.resolve('src/pages/CloudAudit.tsx'), 'utf8');
 if (!app.includes('path="activity"') || !auditPage.includes('listCloudAuditEvents')) {
   throw new Error('Owner-scoped Activity page is not wired into the application.');
