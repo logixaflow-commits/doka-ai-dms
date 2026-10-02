@@ -383,3 +383,21 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Commit: `06fe6c10d6535c8c831caa251548b5bb6c6fdf9c`.
 - Vercel production deployment for this commit was observed in `BUILDING` state at the time of this note. The previous production alias still returned HTTP 200, but the corrected sidebar has not yet been visually verified on the live deployment. Do not claim the screenshot issue is fully resolved until the new deployment is READY and the page is rechecked.
 - GitHub Actions workflows were queued for this commit, but the account's monthly Actions minutes are exhausted; no CI test result is available from this change yet.
+
+## 2026-10-02 — UI Phase 1 & 2 implementation work (CI minutes unavailable)
+
+### Phase 1 — Responsive shell and navigation
+- Changed the mobile navigation breakpoint from 768px to 640px so compact desktop/tablet widths retain the persistent icon rail instead of switching prematurely to an overlay drawer.
+- Constrained the mobile drawer width to the viewport minus 2rem, preventing it from exceeding narrow screens.
+- Mobile navigation now dismisses the drawer after a navigation item is selected.
+- The mobile drawer continues to use the existing accessible Sheet overlay; very narrow phone layouts intentionally use an overlay navigation pattern.
+
+### Phase 2 — Cloud document workflow correctness
+- Fixed a concurrent metadata-update race in the document rename/move editor. Previously, rename and folder move were issued simultaneously as separate PATCH requests against the same document row; one request could overwrite the other. The editor now validates both values and sends one PATCH containing both changed fields, so the update is atomic at the API/database row level.
+- Removed the now-unused rename/move helper imports from the page.
+- Existing batch upload, retry, search/filter, folder, version history, preview/download, bulk status, trash/restore and permanent-delete flows remain in place; these still require authenticated browser acceptance with real test accounts.
+
+### Verification boundary
+- Vercel automatically created production deployments for the commits in this sequence; commit `d4376fe` reached READY. A later follow-up commit `c9c43db` contains the final metadata-validation cleanup and must be the deployment used for final UI verification.
+- GitHub Actions jobs for commit `a6ed5df` were unable to allocate a hosted runner (`runner_id=0`, no steps). CI minutes are exhausted, so no test/build result is claimed for these changes.
+- Before Phase 1 & 2 can be called complete, verify the final `main` deployment is READY, then perform desktop/tablet/mobile browser checks, authenticated document upload/edit/search/batch/version/trash/restore checks, and a two-user ownership-isolation test. Do not use production data for destructive acceptance tests.
