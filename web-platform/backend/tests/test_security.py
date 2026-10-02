@@ -12,6 +12,7 @@ from app.core.security import (
     decode_token,
 )
 from app.core.encryption import EncryptionManager
+from app.core.config import Settings
 
 
 class TestPasswordHashing:
@@ -71,3 +72,10 @@ class TestEncryption:
                 decrypted = mgr.decrypt(encrypted)
                 assert decrypted == data
                 assert encrypted != data
+
+
+
+def test_settings_rejects_short_hs256_secret(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "short-test-key")
+    with pytest.raises(ValueError, match="at least 32 bytes"):
+        Settings()
