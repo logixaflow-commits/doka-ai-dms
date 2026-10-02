@@ -65,6 +65,24 @@ Returns a short-lived signed URL (300 seconds) for passive inline formats only: 
 
 Response: `{"url": string, "sha256": string, "expires_seconds": 300}`.
 
+### `GET /api/documents/{id}/versions` — authenticated
+
+Returns up to 100 previous versions, newest version number first. The Worker verifies ownership and active state; version rows are additionally protected by RLS through their parent document.
+
+Response: `{"versions": CloudDocumentVersion[]}`.
+
+### `POST /api/documents/{id}/versions` — authenticated
+
+Multipart form field: `file`. Uploads a replacement object (maximum 50 MiB), then calls an owner-checked database function that atomically snapshots the current object metadata and switches the document pointer. Identical content is rejected with HTTP 409. Failed database updates trigger best-effort cleanup of the newly uploaded object.
+
+Response: `{"document": CloudDocument}`.
+
+### `POST /api/documents/{id}/versions/{version_id}/restore` — authenticated
+
+Restores a previous version while first snapshotting the current active object as a new history entry. The owner-checked database function performs both operations atomically.
+
+Response: `{"document": CloudDocument}`.
+
 ### `PATCH /api/documents/{id}` — authenticated
 
 Supported fields:
@@ -105,7 +123,7 @@ Query:
 
 Each event contains `id`, `document_id`, `action`, `filename`, `metadata`, and `created_at`.
 
-The audit table is owner-scoped with RLS. The Worker records upload, download, preview, update, trash, restore, and permanent_delete events as best-effort side effects; an audit-write failure never breaks the primary document operation. Permanent-delete events retain the original document ID in event metadata because the document row is removed.
+The audit table is owner-scoped with RLS. The Worker records upload, download, preview, update, trash, restore, permanent_delete, version_create, and version_restore events as best-effort side effects; an audit-write failure never breaks the primary document operation. Permanent-delete events retain the original document ID in event metadata because the document row is removed.
 
 ## Canonical document schema
 
@@ -113,9 +131,9 @@ See `shared/contracts/cloud-document.schema.json`.
 
 ## Implemented vs planned contract surface
 
-Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, status/metadata/rename/folder-path update, trash, restore.
+Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, safe preview, status/metadata/rename/folder-path update, trash, restore, version history/create/restore.
 
-Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash, orchestrated as owner-authenticated per-document requests (not an atomic batch). Planned: server-side atomic batch APIs, version creation/list/restore, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
+Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash, orchestrated as owner-authenticated per-document requests (not an atomic batch). Planned: server-side atomic batch APIs, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
 
 ## Security invariants
 
