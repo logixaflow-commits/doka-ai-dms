@@ -42,6 +42,12 @@ for (const forbidden of ['/rest/v1/doka_documents', '/storage/v1/object/', 'x-up
 }
 console.log('FastAPI cloud document integration smoke test passed.');
 
+const sidebar = fs.readFileSync(path.resolve('src/components/ui/sidebar.tsx'), 'utf8');
+if (!sidebar.includes('hidden shrink-0 md:block')) {
+  throw new Error('Desktop sidebar must reserve its layout width instead of shrinking over page content.');
+}
+console.log('Desktop sidebar layout regression test passed.');
+
 const app = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
 const layout = fs.readFileSync(path.resolve('src/layouts/AdminLayout.tsx'), 'utf8');
 const cloudPage = fs.readFileSync(path.resolve('src/pages/CloudDocuments.tsx'), 'utf8');
