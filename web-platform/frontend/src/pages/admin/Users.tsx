@@ -31,9 +31,7 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  Shield, 
   User, 
-  Mail, 
   Calendar,
   CheckCircle,
   XCircle

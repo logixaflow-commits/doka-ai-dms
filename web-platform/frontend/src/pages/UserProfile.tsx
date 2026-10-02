@@ -65,7 +65,7 @@ export default function UserProfile() {
       setSaveSuccess(true);
       success('Profile updated successfully');
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
+    } catch {
       setApiError('Failed to update profile');
       error('Failed to update profile');
     } finally {
@@ -103,7 +103,7 @@ export default function UserProfile() {
       setNewPassword('');
       setConfirmPassword('');
       success('Password changed successfully');
-    } catch (err) {
+    } catch {
       setApiError('Failed to change password');
       error('Failed to change password');
     } finally {
@@ -132,7 +132,7 @@ export default function UserProfile() {
       if (!response.ok) throw new Error('Failed to update notification settings');
 
       success('Notification settings updated');
-    } catch (err) {
+    } catch {
       setApiError('Failed to update notification settings');
       error('Failed to update notification settings');
     } finally {

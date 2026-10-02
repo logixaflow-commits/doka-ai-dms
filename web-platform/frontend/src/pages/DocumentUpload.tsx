@@ -19,15 +19,6 @@ function getToken() {
   return localStorage.getItem('access_token');
 }
 
-async function apiFetch(url: string, options: RequestInit = {}) {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    ...((options.headers as Record<string, string>) || {}),
-  };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  return fetch(url, { ...options, headers });
-}
-
 export default function DocumentUpload() {
   const navigate = useNavigate();
   const [files, setFiles] = useState<UploadFile[]>([]);
@@ -110,7 +101,7 @@ export default function DocumentUpload() {
       }
       xhr.send(formData);
 
-    } catch (error) {
+    } catch {
       setFiles(prev => prev.map((f, i) => 
         i === index ? { ...f, status: 'error', error: 'Upload error' } : f
       ));
@@ -119,7 +110,6 @@ export default function DocumentUpload() {
 
   const handleUploadAll = async () => {
     setUploading(true);
-    const pendingFiles = files.filter(f => f.status === 'pending');
     
     for (let i = 0; i < files.length; i++) {
       if (files[i].status === 'pending') {
