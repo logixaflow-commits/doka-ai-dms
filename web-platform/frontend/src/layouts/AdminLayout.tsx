@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles } from 'lucide-react';
+import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
@@ -15,6 +15,7 @@ import { getStoredUser, signOut } from '@/lib/supabaseAuth';
 const baseMenuItems = [
   { title: 'Overview', url: '/admin/dashboard', icon: LayoutDashboard },
   { title: 'Cloud documents', url: '/admin/cloud-documents', icon: Cloud },
+  { title: 'Activity', url: '/admin/activity', icon: Activity },
 ];
 
 const localMenuItem = { title: 'Safe Workspace', url: '/admin/workspace', icon: FolderKanban };
