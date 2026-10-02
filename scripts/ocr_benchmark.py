@@ -22,7 +22,10 @@ def main() -> int:
     args = parser.parse_args()
 
     report = run_ocr_benchmark(Path(args.root), Path(args.manifest))
+    root = Path(args.root).expanduser().resolve(strict=True)
     output = Path(args.output).expanduser().resolve()
+    if output.is_relative_to(root):
+        raise SystemExit('Refusing to write the benchmark report inside the sample source directory.')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({
