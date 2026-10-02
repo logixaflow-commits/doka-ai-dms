@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -150,13 +150,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
 
-  useEffect(() => {
-    loadDashboard();
-    const interval = setInterval(loadDashboard, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  async function loadDashboard() {
+  const loadDashboard = useCallback(async () => {
     try {
       const statsResp = await apiFetch(`${API_BASE}/admin/stats`);
       if (statsResp.ok) {
@@ -179,7 +173,13 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void loadDashboard();
+    const interval = setInterval(() => void loadDashboard(), 30000);
+    return () => clearInterval(interval);
+  }, [loadDashboard]);
 
   if (loading) {
     return (

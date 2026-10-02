@@ -56,8 +56,6 @@ export default function DocumentPreview({
     
     if (fileType.startsWith('image/')) {
       img.src = documentUrl;
-    } else {
-      setLoading(false);
     }
   }, [documentUrl, fileType]);
 

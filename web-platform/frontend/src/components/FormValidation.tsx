@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Check, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,21 +17,14 @@ export function useFieldValidation(
   rules: ValidationRule[],
   validateOnBlur: boolean = false
 ) {
-  const [validation, setValidation] = useState<FieldValidation>({
-    isValid: true,
-    message: '',
-  });
   const [touched, setTouched] = useState(false);
-
-  useEffect(() => {
-    if (touched || !validateOnBlur) {
-      const failedRule = rules.find((rule) => !rule.validate(value));
-      setValidation({
-        isValid: !failedRule,
-        message: failedRule?.message || '',
-      });
-    }
-  }, [value, rules, touched, validateOnBlur]);
+  const failedRule = touched || !validateOnBlur
+    ? rules.find((rule) => !rule.validate(value))
+    : undefined;
+  const validation: FieldValidation = {
+    isValid: !failedRule,
+    message: failedRule?.message || '',
+  };
 
   const handleBlur = () => {
     setTouched(true);
