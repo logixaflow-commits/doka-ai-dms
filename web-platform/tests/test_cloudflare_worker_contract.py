@@ -1,5 +1,6 @@
 """Regression guard for the Cloudflare Worker safe-preview contract."""
 from pathlib import Path
+import re
 
 
 WORKER_SOURCE = (
@@ -104,3 +105,37 @@ def test_worker_version_upload_validates_filename_and_content_type():
     assert 'content_type = (file.content_type or "application/octet-stream")' in WORKER_SOURCE
     assert 'len(filename) > 255' in WORKER_SOURCE
     assert 'len(content_type) > 255' in WORKER_SOURCE
+
+
+def test_worker_route_method_and_path_pairs_are_unique():
+    route_pairs = re.findall(
+        r'@app\\.(get|post|patch|delete|put)\\("([^"]+)"',
+        WORKER_SOURCE,
+    )
+    assert len(route_pairs) == len(set(route_pairs))
+
+
+AUDIT_ACL_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "supabase"
+    / "migrations"
+    / "20261002114801_doka_audit_least_privilege.sql"
+).read_text(encoding="utf-8")
+
+
+def test_audit_table_is_append_only_for_authenticated_users():
+    assert "revoke all privileges on table public.doka_audit_events from public, anon, authenticated" in AUDIT_ACL_MIGRATION
+    assert "grant select, insert on table public.doka_audit_events to authenticated" in AUDIT_ACL_MIGRATION
+
+
+VERSION_HISTORY_ACL_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "supabase"
+    / "migrations"
+    / "20261002115107_doka_version_history_append_only.sql"
+).read_text(encoding="utf-8")
+
+
+def test_version_history_cannot_be_deleted_directly_by_authenticated_users():
+    assert "revoke delete on table public.doka_document_versions from authenticated" in VERSION_HISTORY_ACL_MIGRATION
+    assert "drop policy if exists doka_versions_owner_delete" in VERSION_HISTORY_ACL_MIGRATION
