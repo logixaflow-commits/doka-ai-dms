@@ -19,28 +19,45 @@ concurrency:
 jobs:
   deploy:
     name: Build and deploy frontend to Vercel
-    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
-      VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
     steps:
+      - name: Check deployment token configuration
+        id: config
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.config.outputs.configured == 'true'
       - uses: actions/setup-node@v4
+        if: steps.config.outputs.configured == 'true'
         with:
           node-version: 24
       - name: Pull production project settings
+        if: steps.config.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
+          VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
         run: npx --yes vercel@59.19.1 pull --yes --environment=production --token="$VERCEL_TOKEN"
       - name: Build production artifact
+        if: steps.config.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
+          VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
         run: npx --yes vercel@59.19.1 build --prod --token="$VERCEL_TOKEN"
       - name: Deploy production artifact
+        if: steps.config.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
+          VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
         run: npx --yes vercel@59.19.1 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
-
-  deployment-secret-missing:
-    name: Vercel token configuration check
-    if: ${{ secrets.VERCEL_TOKEN == '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Report required secret
+      - name: Report missing deployment token
+        if: steps.config.outputs.configured != 'true'
         run: echo "::warning::Set the GitHub Actions secret VERCEL_TOKEN to enable automatic Vercel production deployments."
