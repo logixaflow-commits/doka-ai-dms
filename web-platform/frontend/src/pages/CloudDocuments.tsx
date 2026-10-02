@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle, ArrowDownToLine, CheckCircle2, CloudUpload, File,
+  AlertCircle, ArrowDownToLine, CheckCircle2, CloudUpload, Eye, File,
   Files, FolderInput, HardDrive, Pencil, RefreshCw, RotateCcw,
   Search, ShieldCheck, Trash2, UploadCloud, X,
 } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  getCloudDocumentDownloadUrl, listCloudDocuments, moveCloudDocument, permanentlyDeleteCloudDocument,
+  getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocuments, moveCloudDocument, permanentlyDeleteCloudDocument,
   renameCloudDocument, restoreCloudDocument, trashCloudDocument,
   updateCloudDocument, uploadCloudDocument, type CloudDocument,
 } from '@/lib/cloudDocuments';
@@ -121,6 +121,23 @@ export default function CloudDocuments() {
       setError(err instanceof Error ? err.message : 'Unable to create a download link.');
       setBusy(false);
     }
+  }
+
+  async function preview(item: CloudDocument) {
+    const previewWindow = window.open('about:blank', '_blank');
+    if (!previewWindow) {
+      setError('Allow pop-ups for Doka to open the document preview.');
+      return;
+    }
+    previewWindow.opener = null;
+    setBusy(true); setError('');
+    try {
+      const result = await getCloudDocumentPreviewUrl(item.id);
+      previewWindow.location.href = result.url;
+    } catch (err) {
+      previewWindow.close();
+      setError(err instanceof Error ? err.message : 'Unable to create a preview link.');
+    } finally { setBusy(false); }
   }
 
   async function changeStatus(item: CloudDocument, status: CloudDocument['status']) {
@@ -334,6 +351,7 @@ export default function CloudDocuments() {
                       <select aria-label={`Status for ${item.filename}`} className="h-9 min-w-28 rounded-lg border border-input bg-background px-2 text-xs" value={item.status} disabled={busy} onChange={event => void changeStatus(item, event.target.value as CloudDocument['status'])}><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
                       <Button size="sm" variant="ghost" onClick={() => beginEdit(item)} disabled={busy} className="h-9 rounded-lg" aria-label={`Edit ${item.filename}`}><Pencil className="mr-1 h-4 w-4" />Edit</Button>
                       <Button size="sm" variant="ghost" onClick={() => void trash(item)} disabled={busy} className="h-9 rounded-lg text-rose-600 hover:text-rose-700" aria-label={`Trash ${item.filename}`}><Trash2 className="mr-1 h-4 w-4" />Trash</Button>
+                      {['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain', 'text/csv'].includes((item.content_type || '').split(';')[0].trim().toLowerCase()) && <Button size="sm" variant="outline" onClick={() => void preview(item)} disabled={busy} className="h-9 rounded-lg"><Eye className="mr-2 h-4 w-4" />Preview</Button>}
                       <Button size="sm" variant="outline" onClick={() => void download(item)} disabled={busy} className="h-9 rounded-lg"><ArrowDownToLine className="mr-2 h-4 w-4" />Download</Button>
                     </>
                   )}
