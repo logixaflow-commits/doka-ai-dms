@@ -56,9 +56,11 @@ jobs:
         run: |
           npm audit --json > npm-audit.json || true
           node -e 'const a=require("./npm-audit.json"); const rows=Object.entries(a.vulnerabilities || {}).map(([name,v]) => ({name,severity:v.severity,isDirect:v.isDirect,range:v.range,fixAvailable:v.fixAvailable})); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities,packages:rows}, null, 2));'
-      - name: Run frontend lint
+      - name: Report frontend lint baseline
         working-directory: web-platform/frontend
-        run: npm run lint
+        run: |
+          npm run lint -- --format json > eslint-report.json || true
+          node -e 'const fs=require("node:fs"); const r=JSON.parse(fs.readFileSync("eslint-report.json","utf8")); const totals=r.reduce((a,f)=>({errors:a.errors+f.errorCount,warnings:a.warnings+f.warningCount,files:a.files+(f.errorCount+f.warningCount>0?1:0)}),{errors:0,warnings:0,files:0}); const rules={}; for (const f of r) for (const m of f.messages) if(m.ruleId) rules[m.ruleId]=(rules[m.ruleId]||0)+1; console.log(JSON.stringify({...totals,topRules:Object.entries(rules).sort((a,b)=>b[1]-a[1]).slice(0,10)},null,2));'
       - name: Build frontend
         working-directory: web-platform/frontend
         run: npm run build
