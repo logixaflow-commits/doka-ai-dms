@@ -398,6 +398,6 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Existing batch upload, retry, search/filter, folder, version history, preview/download, bulk status, trash/restore and permanent-delete flows remain in place; these still require authenticated browser acceptance with real test accounts.
 
 ### Verification boundary
-- Vercel automatically created production deployments for the commits in this sequence; commit `d4376fe` reached READY. A later follow-up commit `c9c43db` contains the final metadata-validation cleanup and must be the deployment used for final UI verification.
+- Vercel automatically created production deployments for the commits in this sequence; commit `d4376fe` reached READY. A later follow-up commit `78e071b` contains the final metadata-validation and unchanged-save guards and must be the deployment used for final UI verification.
 - GitHub Actions jobs for commit `a6ed5df` were unable to allocate a hosted runner (`runner_id=0`, no steps). CI minutes are exhausted, so no test/build result is claimed for these changes.
 - Before Phase 1 & 2 can be called complete, verify the final `main` deployment is READY, then perform desktop/tablet/mobile browser checks, authenticated document upload/edit/search/batch/version/trash/restore checks, and a two-user ownership-isolation test. Do not use production data for destructive acceptance tests.
