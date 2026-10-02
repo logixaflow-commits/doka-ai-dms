@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  createCloudDocumentVersion, getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocumentVersions, listCloudDocuments, moveCloudDocument, permanentlyDeleteCloudDocument,
+  bulkUpdateCloudDocuments, createCloudDocumentVersion, getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocumentVersions, listCloudDocuments, moveCloudDocument, permanentlyDeleteCloudDocument,
   renameCloudDocument, restoreCloudDocument, restoreCloudDocumentVersion, trashCloudDocument,
   updateCloudDocument, uploadCloudDocument, type CloudDocument, type CloudDocumentVersion,
 } from '@/lib/cloudDocuments';
@@ -279,10 +279,10 @@ export default function CloudDocuments() {
     if (!selectedIds.length) return;
     setBusy(true); setError(''); setMessage('');
     try {
-      const results = await Promise.all(selectedIds.map(id => updateCloudDocument(id, { status: bulkStatus })));
-      const byId = new Map(results.map(result => [result.document.id, result.document]));
+      const result = await bulkUpdateCloudDocuments(selectedIds, 'status', bulkStatus);
+      const byId = new Map(result.documents.map(document => [document.id, document]));
       setDocuments(current => current.map(item => byId.get(item.id) || item));
-      setMessage(`Updated status for ${results.length} document(s).`);
+      setMessage(`Updated status for ${result.updated_count} document(s) atomically.`);
       setSelectedIds([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bulk status update failed. Refresh the library before retrying.');
@@ -294,10 +294,10 @@ export default function CloudDocuments() {
     if (!selectedIds.length || !window.confirm(`Move ${selectedIds.length} selected document(s) to Trash?`)) return;
     setBusy(true); setError(''); setMessage('');
     try {
-      const ids = [...selectedIds];
-      await Promise.all(ids.map(id => trashCloudDocument(id)));
-      setDocuments(current => current.filter(item => !ids.includes(item.id)));
-      setMessage(`Moved ${ids.length} document(s) to Trash.`);
+      const result = await bulkUpdateCloudDocuments(selectedIds, 'trash');
+      const removedIds = new Set(result.documents.map(document => document.id));
+      setDocuments(current => current.filter(item => !removedIds.has(item.id)));
+      setMessage(`Moved ${result.updated_count} document(s) to Trash atomically.`);
       setSelectedIds([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bulk Trash failed. Refresh the library before retrying.');
