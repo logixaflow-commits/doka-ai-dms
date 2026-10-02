@@ -1,6 +1,6 @@
 # Doka Cloud API Contract
 
-Version: 1.3  
+Version: 1.4  
 Runtime: Cloudflare Python Worker + Supabase Auth/Postgres/Storage  
 Base URL: `https://doka.logixaflow.workers.dev`
 
