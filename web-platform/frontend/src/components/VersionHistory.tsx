@@ -22,7 +22,7 @@ interface VersionHistoryProps {
   documentName: string;
 }
 
-export default function VersionHistory({ documentId }: VersionHistoryProps) {
+export default function VersionHistory({ documentId, documentName }: VersionHistoryProps) {
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(false);
 
