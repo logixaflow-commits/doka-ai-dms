@@ -72,6 +72,34 @@ if (!cloudPage.includes('Trash') || !cloudPage.includes('Search file names') || 
 }
 console.log('Cloud library lifecycle smoke test passed.');
 
+for (const required of [
+  'getCloudDocumentPreviewUrl',
+  'listCloudDocumentVersions',
+  'createCloudDocumentVersion',
+  'restoreCloudDocumentVersion',
+  'permanentlyDeleteCloudDocument',
+]) {
+  if (!cloudDocuments.includes(required)) throw new Error(`Cloud client is missing ${required}.`);
+}
+for (const required of [
+  '/api/documents/{document_id}/preview',
+  '/api/documents/{document_id}/versions',
+  'doka_replace_document_version',
+  'doka_restore_document_version',
+  'version_create',
+  'version_restore',
+]) {
+  if (!cloudApi.includes(required)) throw new Error(`Cloud Worker is missing ${required}.`);
+}
+if (!cloudPage.includes('Version history') || !cloudPage.includes('Restore this version') || !cloudPage.includes('Save new version')) {
+  throw new Error('Cloud document version history UI is missing.');
+}
+const auditPage = fs.readFileSync(path.resolve('src/pages/CloudAudit.tsx'), 'utf8');
+if (!app.includes('path="activity"') || !auditPage.includes('listCloudAuditEvents')) {
+  throw new Error('Owner-scoped Activity page is not wired into the application.');
+}
+console.log('Cloud versioning, preview and audit smoke tests passed.');
+
 const contract = JSON.parse(fs.readFileSync(path.resolve('../../shared/contracts/cloud-document.schema.json'), 'utf8'));
 for (const field of ['id', 'owner_id', 'object_key', 'filename', 'sha256', 'deleted_at', 'folder_path']) {
   if (!contract.required.includes(field)) throw new Error(`Canonical document contract is missing ${field}.`);
