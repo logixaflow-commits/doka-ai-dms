@@ -244,7 +244,7 @@ async def update_document(request: Request, document_id: str, update: DocumentUp
     return {"document": rows[0]}
 
 
-origins = [item.strip() for item in os.getenv("CORS_ORIGINS", "https://enterprise-ai-dms.vercel.app").split(",") if item.strip()]
+origins = ["https://enterprise-ai-dms.vercel.app"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
