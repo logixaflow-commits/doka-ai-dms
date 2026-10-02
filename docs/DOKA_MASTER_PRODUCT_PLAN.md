@@ -78,12 +78,14 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 |---|---|---|
 | `GET /health` | Worker health | Dashboard |
 | `GET /api/config` | Edition and readiness flags | Dashboard |
-| `GET /api/documents` | Owner-scoped document listing | Cloud Documents + Dashboard |
+| `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |
 | `POST /api/documents` | Authenticated upload | Cloud Documents |
-| `PATCH /api/documents/{id}` | Status/metadata update | Cloud Documents status selector |
-| `GET /api/documents/{id}/download` | Authenticated download URL/redirect flow | Cloud Documents + Dashboard |
+| `PATCH /api/documents/{id}` | Status, metadata, rename and folder-path update | Cloud Documents |
+| `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |
+| `DELETE /api/documents/{id}` | Recoverable Trash (soft delete) | Cloud Documents |
+| `POST /api/documents/{id}/restore` | Restore from Trash | Cloud Documents |
 
-Cloud UI/API parity for these currently deployed endpoints is present at code level. A successful signed-in upload, update, download, and cross-user isolation test has **not** yet been completed in a real browser session.
+Cloud UI/API parity for the currently implemented list/search/filter/pagination, upload, download, status/metadata/rename/folder-path update, Trash and Restore endpoints is present at code level. The current frontend/Worker commits are being deployed; real authenticated end-to-end validation remains a release gate. A successful signed-in upload, update, download, and cross-user isolation test has **not** yet been completed in a real browser session.
 
 ### 4.3 Supabase foundation
 
@@ -91,7 +93,7 @@ Cloud UI/API parity for these currently deployed endpoints is present at code le
 - `public.doka_documents` and `public.doka_document_versions` are provisioned.
 - RLS and owner-scoped Storage policies are installed.
 - Storage bucket is private with a 50 MiB per-object limit.
-- Authenticated users can update only document `status` and `metadata`; ownership, object key and hash are not user-editable.
+- Authenticated users can update only approved columns: `status`, `metadata`, `filename`, `folder_path` and `deleted_at`; ownership, object key, content bytes and hash remain protected.
 - Effective grants and relevant policies have been checked.
 - Real signed-in multi-user isolation still requires an end-to-end test.
 
@@ -136,7 +138,7 @@ These must not be mistaken for production-ready cloud pages:
 | Supabase metadata + RLS | Provisioned | Two-user isolation test remains |
 | Supabase private Storage | Provisioned | Real upload/download and size-limit test remains |
 | Cloudflare Worker | Deployed | Health/config and invalid-token authorization checks have passed; authenticated CRUD E2E remains |
-| Cloud UI | Basic pages implemented | Layout repair committed; authenticated visual/browser acceptance remains |
+| Cloud UI | Search, pagination, rename, folder move, Trash/Restore added in code | Latest CI and production deployment + authenticated visual/E2E acceptance remain |
 | Full admin/enterprise UI | Not active | Pages are unmounted and APIs are not deployed |
 | Remote OCR runtime | Not selected | Decide only after Phase D workload measurements |
 | Downloadable thin client | Planned | Build after cloud contracts are stable |
@@ -202,7 +204,7 @@ Do not show these as enabled controls until the backend endpoints and permission
 - Document detail page with metadata and secure preview where supported.
 - Rename and metadata editing with explicit validation.
 - Folder/collection model and move operations.
-- Delete to trash, restore, and permanent-delete policy.
+- Delete to trash and restore (implemented); permanent deletion with object cleanup remains planned.
 - Multi-file upload queue, progress, retry and cancellation.
 - Bulk status and metadata actions.
 - Version history model and download previous version.
@@ -310,3 +312,15 @@ A feature is complete only when all are true:
 ---
 
 **Project rule:** a component file, mockup, route returning the SPA shell, or API returning 401 for an invalid token is not proof that a complete user workflow works. Mark features complete only after authenticated end-to-end verification.
+
+
+## 11. Work completed in the current delivery pass (2026-10-02)
+
+- Stabilized the responsive sidebar shell; the production deployment for the sidebar commit reached READY.
+- Added the cloud-library lifecycle migration: `deleted_at`, `folder_path`, owner/deleted/created index and least-privilege column update grants.
+- Added Cloud Worker API support for filename search, status filter, active/trash listing, folder-path filter, rename, folder move, soft-delete and restore. Trashed files are excluded from normal listing and download.
+- Added matching Cloud Documents UI actions for server-side search, pagination, rename, folder move, Trash and Restore.
+- Added canonical JSON Schema at `shared/contracts/cloud-document.schema.json` and API/security contract at `docs/DOKA_CLOUD_API_CONTRACTS.md`.
+- Latest observed GitHub Doka Quality Checks and Local Core Checks for commit `f787e38` passed; Vercel deployment for that commit reached READY; Cloudflare Worker build for that commit completed successfully.
+- Browser Rendering hit the account rate limit during responsive inspection, so no new visual pass is claimed. Authenticated upload/update/download and two-user isolation still require a signed-in test session.
+- Remaining Phase 0 gate: responsive browser acceptance at 320/375/390/768/1024/1440px, keyboard pass and real-user cloud lifecycle/isolation test.
