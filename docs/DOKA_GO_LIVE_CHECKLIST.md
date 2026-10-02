@@ -1,6 +1,6 @@
 # Doka cloud setup and release checklist
 
-Last reviewed: 2026-10-01
+Last reviewed: 2026-10-02
 
 ## Already completed
 
@@ -27,13 +27,15 @@ Set these public browser configuration values in Vercel Project → Settings →
 
 Do not put service-role/secret keys or AI provider keys in Vercel `VITE_*` variables.
 
-Do not set `VITE_API_BASE_URL` to `/api` for production yet. Vercel currently serves the Vite SPA with a catch-all rewrite; it is not proxying requests to FastAPI. Set `VITE_API_BASE_URL` only after a remote Python API host and HTTPS URL have been selected.
+Set `VITE_API_BASE_URL` to the FastAPI Cloud API origin (for example, `https://doka-cloud-api.onrender.com`) after the Render service has been created and its actual URL is confirmed. Do not append `/api` or use `/api` as the production value. The frontend adds `/api` itself. Leave it unset for local development so Vite continues proxying to `http://localhost:8000`.
 
 The connected Vercel tools currently do not expose project environment-variable read/write operations, so those Vercel values have not been changed or verified from this workflow.
 
-### Python API host (not selected yet)
+### FastAPI Cloud API host (Render blueprint prepared; service not yet created)
 
-Once a suitable free/no-card host is proven, configure server-side secrets there:
+A root-level `render.yaml` now defines a free Singapore Render Web Service running `app.cloud_main:app`. This is a stateless cloud API for Supabase-backed Cloud Documents only; it does not provide the Personal Local filesystem, OCR, workspace import, backup, or recovery runtime. Render Free can spin down when idle and has an ephemeral filesystem. It is not a durable office-file data plane and is not a remote OCR host.
+
+The Blueprint generates a server-only `SECRET_KEY` and prompts for the Supabase project URL and publishable key. Configure these server-side values:
 
 - `ENVIRONMENT=production`
 - `SUPABASE_URL=https://jkobgssaqifzrqfirdfu.supabase.co`
@@ -46,7 +48,7 @@ Once a suitable free/no-card host is proven, configure server-side secrets there
 
 Keep local password login disabled in production. Do not use the Supabase service-role key for ordinary per-user document operations.
 
-No backend host is currently selected because the project requires remote Python/OCR execution, free-only operation, and no payment-card dependency. Vercel is not the Python OCR host. Do not enable a paid plan or provide billing details just to force a deployment.
+The Render workspace must be explicitly confirmed before creating the service. Do not enable a paid plan or provide billing details. Remote OCR is still intentionally unhosted; it remains a local-machine capability until a separately measured and funded runtime is chosen.
 
 ### Optional Cloudflare R2
 
@@ -75,8 +77,8 @@ Store keys only in the server-side environment of the service that calls them. N
 
 ## Required validation before real use
 
-- Confirm Vercel frontend has the two Supabase public values.
-- Select and configure the remote API host; configure its CORS origins and server-only secrets.
+- Confirm Vercel frontend has the two Supabase public values and set `VITE_API_BASE_URL` to the actual Render API origin after service creation.
+- Create the Render service from `render.yaml`; configure the Supabase URL and publishable key as server-side variables and confirm `/health`.
 - Run authenticated upload, list, metadata update, and signed download tests with a real Supabase user.
 - Verify SHA-256 values and confirm a different user cannot read, modify, or download the first user's records or objects.
 - Test 413 behavior at the 50 MiB object limit.
