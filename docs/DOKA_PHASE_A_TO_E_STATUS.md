@@ -195,3 +195,14 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Audit events are inserted in the same transaction.
 - Frontend bulk controls now call the single atomic endpoint rather than issuing parallel per-document requests.
 - Added null-action validation, migration and regression/smoke coverage.
+
+### Current cloud acceptance snapshot — 2026-10-02 09:45 UTC
+
+- Cloud library now has owner-scoped folder-path filtering and a folder-list endpoint. Folder paths remain logical metadata; they do not rewrite immutable Storage object keys or SHA-256 identity.
+- Batch upload queue is available in the UI: sequential uploads, per-file queued/uploading/complete/failed states, 50 MiB per-file validation, and retry of failed items.
+- Version history (list/create/restore), safe preview, permanent deletion, audit history, and atomic bulk status/Trash operations are implemented in the Worker and UI. Bulk requests validate 1–100 unique document IDs and execute through one SECURITY INVOKER Postgres function; audit inserts occur in the same transaction.
+- Live Supabase migration history currently contains 16 applied Doka migrations through `20261002093843_doka_bulk_action_null_guard`, including document lifecycle, folder validation, permanent delete, audit, versions, version RPCs, and atomic bulk actions.
+- Local Core Checks run `36991467934` completed successfully on main commit `a723b4cb6b4cc0ba5ee34e62054c7e50a8b61e25`: backend tests, frontend build/tests, and Python syntax compilation all passed.
+- Vercel production deployment `dpl_94Z3TeFYrkfxTZo7XBhziJ2FGSoQ` is READY for UI commit `1b6ac3a5d85e9f2c7a8fad313c6add879364388c`; the production alias is `https://enterprise-ai-dms.vercel.app`.
+- Cloudflare Worker deployment `aea14f10-1d32-4ae0-8cb0-af509b99502a` (version `f00cb899-9744-4506-a3d2-b51d1c086687`) was created at 09:44:46 UTC and routes 100% traffic to that version. Worker bindings show the Supabase publishable key as a secret binding; no service-role key is configured in the Worker.
+- Remaining acceptance gates: authenticated real-user upload/download/preview/version/trash/restore flows, two-user isolation, representative Myanmar/English OCR pilot, leaked-password protection review, and a verified review/remediation of the Dependabot/npm advisory set. A private-repository Dependabot alert listing was not available through the connected GitHub read endpoint in this check; no alert is claimed fixed.
