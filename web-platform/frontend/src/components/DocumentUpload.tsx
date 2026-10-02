@@ -215,7 +215,7 @@ export default function DocumentUpload({ onUploadComplete }: DocumentUploadProps
       await Promise.allSettled(pendingFiles.map(uploadFile));
       setSuccess(true);
       if (onUploadComplete) onUploadComplete();
-    } catch (err) {
+    } catch {
       setError('Some files failed to upload');
     } finally {
       setUploading(false);

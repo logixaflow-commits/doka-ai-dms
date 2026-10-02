@@ -49,7 +49,7 @@ export default function ForgotPassword() {
 
       setStep('success');
       success('Password reset email sent successfully');
-    } catch (err) {
+    } catch {
       setApiError('Failed to send reset email. Please try again.');
       error('Failed to send reset email');
     } finally {

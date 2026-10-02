@@ -6,24 +6,6 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, RefreshCw, Server, HardDrive, Cpu, MemoryStick, AlertTriangle, CheckCircle, Clock, Zap, FileText, Users, TrendingUp, TrendingDown } from 'lucide-react';
 
-// Mock Switch component for now (imported from ui/switch in real app)
-function Switch({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (checked: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onCheckedChange(!checked)}
-      className={`w-11 h-6 rounded-full p-1 transition-colors ${
-        checked ? 'bg-blue-600' : 'bg-slate-300'
-      }`}
-    >
-      <div
-        className={`w-4 h-4 rounded-full bg-white transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
-      />
-    </button>
-  );
-}
-
 const API_BASE = '/api';
 
 interface SystemHealth {
@@ -93,7 +75,7 @@ export default function MonitoringDashboard() {
   const [services, setServices] = useState<ServiceStatus[]>([]);
   const [performance, setPerformance] = useState<PerformanceMetrics | null>(null);
   const [storage, setStorage] = useState<StorageMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   useEffect(() => {
     loadMonitoringData();
     

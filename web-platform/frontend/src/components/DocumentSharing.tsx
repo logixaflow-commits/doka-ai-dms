@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Share2, Clock, Copy, Check, X, Calendar } from 'lucide-react';
+import { Share2, Clock, Copy, Check, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ interface DocumentSharingProps {
   documentName: string;
 }
 
-export default function DocumentSharing({ documentId, documentName }: DocumentSharingProps) {
+export default function DocumentSharing({ documentId }: DocumentSharingProps) {
   const [sharedLinks, setSharedLinks] = useState<SharedLink[]>([]);
   const [newLinkExpiry, setNewLinkExpiry] = useState('24h');
   const [customExpiryDate, setCustomExpiryDate] = useState('');
@@ -83,7 +83,7 @@ export default function DocumentSharing({ documentId, documentName }: DocumentSh
 
       setSharedLinks((prev) => [newLink, ...prev]);
       success('Share link generated successfully');
-    } catch (err) {
+    } catch {
       error('Failed to generate share link');
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ export default function DocumentSharing({ documentId, documentName }: DocumentSh
       setCopiedLinkId(link.id);
       success('Link copied to clipboard');
       setTimeout(() => setCopiedLinkId(null), 2000);
-    } catch (err) {
+    } catch {
       error('Failed to copy link');
     }
   };
@@ -115,7 +115,7 @@ export default function DocumentSharing({ documentId, documentName }: DocumentSh
 
       setSharedLinks((prev) => prev.filter((link) => link.id !== linkId));
       success('Share link revoked');
-    } catch (err) {
+    } catch {
       error('Failed to revoke link');
     }
   };
