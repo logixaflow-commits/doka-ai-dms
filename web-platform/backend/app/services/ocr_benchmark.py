@@ -50,6 +50,7 @@ def score_text(reference: str, prediction: str) -> dict[str, float | int]:
 
 
 def resolve_sample_path(root: Path, relative_path: str) -> Path:
+    root = root.resolve(strict=True)
     if not relative_path or Path(relative_path).is_absolute():
         raise ValueError("Sample paths must be relative to the benchmark root.")
     candidate = root / relative_path
