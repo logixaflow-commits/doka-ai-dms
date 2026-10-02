@@ -19,6 +19,8 @@ on:
       - "web-platform/tests/**"
       - "web-platform/frontend/**"
       - "cloudflare_worker/**"
+      - "pyproject.toml"
+      - "web-platform/backend/requirements*.txt"
       - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
   workflow_dispatch:
@@ -47,9 +49,10 @@ jobs:
           from pathlib import Path
           for filename in ("backend-production-audit.json", "backend-full-audit.json"):
               report = json.loads(Path(filename).read_text(encoding="utf-8"))
+              dependencies = report.get("dependencies", []) if isinstance(report, dict) else report
               vulnerabilities = [
                   {"name": item.get("name"), "version": item.get("version"), "id": vuln.get("id"), "fix_versions": vuln.get("fix_versions", [])}
-                  for item in report
+                  for item in dependencies
                   for vuln in item.get("vulns", [])
               ]
               print(f"{filename}: {len(vulnerabilities)} findings")
