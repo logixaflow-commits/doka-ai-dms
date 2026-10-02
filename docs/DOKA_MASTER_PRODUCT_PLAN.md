@@ -81,7 +81,8 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 | `GET /api/config` | Edition and readiness flags | Dashboard |
 | `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |
 | `GET /api/folders` | Owner-scoped distinct logical folder paths | Cloud Documents |
-| `POST /api/documents` | Authenticated upload | Cloud Documents |\n| `POST /api/documents/bulk` | Atomic owner-scoped bulk status/Trash for up to 100 documents | Cloud Documents |
+| `POST /api/documents` | Authenticated upload | Cloud Documents |
+| `POST /api/documents/bulk` | Atomic owner-scoped bulk status/Trash for up to 100 documents | Cloud Documents |
 | `PATCH /api/documents/{id}` | Status, metadata, rename and folder-path update | Cloud Documents |
 | `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |
 | `GET /api/documents/{id}/preview` | Five-minute signed URL for passive allowlisted formats only | Cloud Documents |
@@ -165,7 +166,8 @@ These must not be mistaken for production-ready cloud pages:
 - Safe preview and download: short-lived signed URLs, with preview MIME allowlist.
 - Trash, restore and confirmed permanent deletion with Storage cleanup.
 - Version history, replacement upload and atomic restore via owner-checked database functions.
-- Bulk status and Trash: single owner-scoped atomic database transaction for up to 100 documents.\n- Batch upload queue: sequential per-file queue with status and retry is implemented in source; the current production bundle still awaits the next Vercel deployment.
+- Bulk status and Trash: single owner-scoped atomic database transaction for up to 100 documents.
+- Batch upload queue: sequential per-file queue with status and retry is implemented in source; the current production bundle still awaits the next Vercel deployment.
 - Activity: owner-scoped audit listing.
 - Account isolation: enforced in Supabase RLS/Storage policies; real two-user E2E is still pending.
 
