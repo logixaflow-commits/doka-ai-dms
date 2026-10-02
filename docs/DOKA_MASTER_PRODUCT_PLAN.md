@@ -339,3 +339,14 @@ A feature is complete only when all are true:
 - Enterprise RBAC and tenant isolation design: `docs/DOKA_ENTERPRISE_RBAC_DESIGN.md`.
 - AI privacy and provider safety design: `docs/DOKA_AI_PRIVACY_AND_PROVIDER_DESIGN.md`.
 - Phase 5 code safeguard: external provider calls require the independent consent flag in addition to the global AI enable flag; a test asserts no provider call occurs without consent.
+
+## 13. Latest acceptance evidence — 2026-10-02
+
+- Browser Rendering accessibility inspection of production Login at 390px confirms labelled email/password inputs, secure sign-in action and theme control are exposed to assistive technology.
+- Production Login layout measurements: 390px viewport produced 390px document/body width; 1440px viewport produced 1440px document/body width. No horizontal overflow was detected on the Login page at those two sizes.
+- This is not an authenticated dashboard/sidebar visual pass. The protected dashboard and Cloud Documents pages still require a real signed-in browser session before their responsive layout can be accepted.
+- Doka Quality Checks run 36982859866 on commit 11fe7692c6d23412729dff7106d047fa598fe7c0 passed: 48 backend tests, TypeScript/Vite production build, and frontend smoke checks including cloud API schema/security checks.
+- Local Core Checks passed on 36c14a39abbc6c9a3332ea4ab01fffd18ddfc25d and documentation-only follow-up f459c111d2c2378830df832ea698680854679a86.
+- Vercel production deployment dpl_AGL7K8ejPDYx1rj9bZ6fWAHMMRhB is READY and owns https://enterprise-ai-dms.vercel.app.
+- Cloudflare Worker build 9ab06efb-f44a-41e6-bc85-9345937d46a7 for f787e38cdec8463777012422fc2d8e0a4b9e773d completed successfully.
+- Still open: eight npm audit findings (1 low, 1 moderate, 6 high); leaked-password protection disabled in Supabase Auth; real signed-in upload/list/rename/move/trash/restore/download; two-user isolation; real office-data OCR pilot; team/RBAC APIs; AI consent UX and redaction.
