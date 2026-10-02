@@ -28,11 +28,11 @@ begin
   end if;
 
   if p_action = 'status' then
-    update public.doka_documents set status = p_status, updated_at = now()
+    update public.doka_documents set status = p_status
     where id = any(p_document_ids) and owner_id = auth.uid() and deleted_at is null;
     audit_action := 'update';
   else
-    update public.doka_documents set deleted_at = now(), updated_at = now()
+    update public.doka_documents set deleted_at = now()
     where id = any(p_document_ids) and owner_id = auth.uid() and deleted_at is null;
     audit_action := 'trash';
   end if;
