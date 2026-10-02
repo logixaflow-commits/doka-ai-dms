@@ -276,3 +276,5 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Migrated config_validator.py from deprecated Pydantic v1 @validator/min_items APIs to Pydantic v2 @field_validator, ValidationInfo and min_length; default serialization now uses model_dump().
 - Added regression tests for valid/invalid threshold ordering and non-empty keyword lists.
 - Latest backend CI run passed 64 regression tests plus 10 Worker/database contract tests, with the prior Pydantic deprecation warnings absent.
+
+- Repository root cleanup: archived the inactive Render deployment manifest at archive/deployment-configs/render.yaml and removed render.yaml from the root. The active deployment configs remain vercel.json and wrangler.jsonc, matching the current Vercel + Cloudflare Worker architecture.
