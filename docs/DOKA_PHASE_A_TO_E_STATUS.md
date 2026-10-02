@@ -278,3 +278,15 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Latest backend CI run passed 64 regression tests plus 10 Worker/database contract tests, with the prior Pydantic deprecation warnings absent.
 
 - Repository root cleanup: archived the inactive Render deployment manifest at archive/deployment-configs/render.yaml and removed render.yaml from the root. The active deployment configs remain vercel.json and wrangler.jsonc, matching the current Vercel + Cloudflare Worker architecture.
+
+
+### Follow-up verification — 2026-10-02 11:42 UTC
+
+- Removed the misleading CLI deployment fallback behavior from the Vercel GitHub Actions workflow. The previous workflow reported success while skipping pull/build/deploy because the `VERCEL_TOKEN` secret was absent.
+- Vercel Git Integration independently created production deployment `dpl_DSqnzHbC4vb3z9to8jbsjWnMsP2M` for main commit `3cd0f966` with state READY. The deployment URL returned HTTP 200 and the expected Doka page title.
+- Replaced the secret-dependent workflow with a production smoke check that waits for the Git Integration deployment and verifies the public production alias responds with HTTP 200 and the expected document title. This workflow verifies a deployment; it does not claim to create one.
+- Latest `Doka Quality Checks` and `Local Core Checks` both passed on commit `3cd0f966`, including backend regression, Worker/database contract tests, frontend build, smoke tests, and Python syntax checks.
+- Latest npm audit artifact reports zero vulnerabilities at all severities.
+- ESLint baseline remains 141 errors and 5 warnings across 49 files. The largest categories are unused variables (79), React Refresh export-boundary findings (25), explicit any (18), and React Hooks rule findings. This debt remains open; it is not waived or described as clean.
+- Dependabot's private alert list remains unavailable through the connected GitHub integration. The zero-vulnerability npm audit is verified separately and does not prove every Dependabot alert has been dismissed.
+- Real signed-in cloud lifecycle tests, two-user isolation, and representative Myanmar/English OCR pilot still require valid user sessions and representative copied data; they remain acceptance gates.
