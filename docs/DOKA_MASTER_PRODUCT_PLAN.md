@@ -67,7 +67,8 @@ Key deployed services:
 |---|---|---|
 | `/login` | Login | Supabase sign-in/sign-up entry |
 | `/admin/dashboard` | PersonalDashboard | Cloud health/config check, document counts/size, recent documents, download shortcut |
-| `/admin/cloud-documents` | CloudDocuments | Upload, search/filter/paginate, rename, logical folder move, status update, preview, download, Trash/Restore/permanent delete, bulk status/Trash, version history/create/restore |\n| `/admin/activity` | CloudAudit | Owner-scoped upload/download/preview/update/trash/restore/permanent-delete/version activity |
+| `/admin/cloud-documents` | CloudDocuments | Upload, search/filter/paginate, rename, logical folder move, status update, preview, download, Trash/Restore/permanent delete, bulk status/Trash, version history/create/restore |
+| `/admin/activity` | CloudAudit | Owner-scoped upload/download/preview/update/trash/restore/permanent-delete/version activity |
 | `/admin/workspace` | WorkspaceReview | Local workspace route; development/local boundary only, not a hosted cloud workspace |
 
 The active router in `web-platform/frontend/src/App.tsx` currently mounts only these authenticated application pages. The production sidebar currently exposes Overview and Cloud documents; local workspace is intentionally hidden in production.
