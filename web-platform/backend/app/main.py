@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
             "edition": "personal-local",
             "timestamp": datetime.utcnow().isoformat(),
             "ai_enabled": bool(settings.AI_ENABLED),
+            "ai_external_processing_consent": bool(settings.AI_EXTERNAL_PROCESSING_CONSENT),
             "source_read_only": bool(settings.ORIGINAL_READ_ONLY and not settings.ALLOW_SOURCE_WRITE),
         }
 
