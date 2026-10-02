@@ -37,7 +37,7 @@ export default function AuditTrailViewer({ documentId, userId }: AuditTrailViewe
   const [severityFilter, setSeverityFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   const actionOptions = [
     { value: 'all', label: 'All Actions' },
@@ -87,7 +87,7 @@ export default function AuditTrailViewer({ documentId, userId }: AuditTrailViewe
       const data = await response.json();
       setLogs(data);
       setFilteredLogs(data);
-    } catch (err) {
+    } catch {
       // Use mock data for demo
       const mockLogs = generateMockAuditLogs();
       setLogs(mockLogs);

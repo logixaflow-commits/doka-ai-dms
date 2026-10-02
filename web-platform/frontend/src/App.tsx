@@ -13,7 +13,6 @@ import CloudAudit from '@/pages/CloudAudit';
 import {
   getCurrentUser,
   isSupabaseConfigured,
-  signOut,
   type SupabaseUser,
 } from '@/lib/supabaseAuth';
 

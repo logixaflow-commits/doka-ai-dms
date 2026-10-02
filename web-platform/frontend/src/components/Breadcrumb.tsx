@@ -22,7 +22,7 @@ export default function Breadcrumb() {
     ];
 
     let currentPath = '';
-    pathnames.forEach((segment, index) => {
+    pathnames.forEach((segment) => {
       currentPath += `/${segment}`;
       
       // Convert path segment to readable label

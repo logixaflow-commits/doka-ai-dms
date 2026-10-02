@@ -11,7 +11,7 @@ interface DocumentExportProps {
   documentUrl: string;
 }
 
-export function DocumentDownload({ documentId, documentName, documentUrl }: DocumentExportProps) {
+export function DocumentDownload({ documentName, documentUrl }: DocumentExportProps) {
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -37,7 +37,7 @@ export function DocumentDownload({ documentId, documentName, documentUrl }: Docu
       document.body.removeChild(a);
 
       success('Document downloaded successfully');
-    } catch (err) {
+    } catch {
       error('Failed to download document');
     } finally {
       setDownloading(false);
@@ -72,7 +72,7 @@ export function DocumentShare({ documentId, documentName }: DocumentExportProps)
       setCopied(true);
       success('Link copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       error('Failed to copy link');
     }
   };

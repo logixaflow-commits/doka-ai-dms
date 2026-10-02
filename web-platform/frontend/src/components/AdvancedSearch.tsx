@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { X, Search, Filter, Calendar, FileText, User, Hash, Save, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface AdvancedSearchProps {
@@ -98,24 +97,8 @@ export default function AdvancedSearch({ onSearch }: AdvancedSearchProps) {
     }
   };
 
-  const loadSavedSearch = (savedFilters: SearchFilters) => {
-    setFilters(savedFilters);
-    const active = Object.entries(savedFilters)
-      .filter(([k, v]) => v !== '' && v !== 0 && k !== 'query')
-      .map(([k]) => k);
-    setActiveFilters(active);
-  };
-
   const handleSearch = () => {
     onSearch(filters);
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   return (

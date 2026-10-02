@@ -24,7 +24,7 @@ interface CommentsSystemProps {
   documentName: string;
 }
 
-export default function CommentsSystem({ documentId, documentName }: CommentsSystemProps) {
+export default function CommentsSystem({ documentId }: CommentsSystemProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export default function CommentsSystem({ documentId, documentName }: CommentsSys
 
       const data = await response.json();
       setComments(data);
-    } catch (err) {
+    } catch {
       // Use mock data for demo
       setComments(generateMockComments());
     }
@@ -116,7 +116,7 @@ export default function CommentsSystem({ documentId, documentName }: CommentsSys
 
       setNewComment('');
       success('Comment posted successfully');
-    } catch (err) {
+    } catch {
       error('Failed to post comment');
     } finally {
       setLoading(false);
@@ -156,7 +156,7 @@ export default function CommentsSystem({ documentId, documentName }: CommentsSys
       setEditingId(null);
       setEditContent('');
       success('Comment updated successfully');
-    } catch (err) {
+    } catch {
       error('Failed to edit comment');
     } finally {
       setLoading(false);
@@ -178,7 +178,7 @@ export default function CommentsSystem({ documentId, documentName }: CommentsSys
 
       setComments((prev) => prev.filter((comment) => comment.id !== commentId));
       success('Comment deleted successfully');
-    } catch (err) {
+    } catch {
       error('Failed to delete comment');
     } finally {
       setLoading(false);
