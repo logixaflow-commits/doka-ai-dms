@@ -234,3 +234,8 @@ export async function bulkUpdateCloudDocuments(
     body: JSON.stringify({ document_ids: documentIds, action, status: action === 'status' ? status : null }),
   });
 }
+
+
+export async function listCloudFolders() {
+  return request<{ folders: string[] }>('/folders');
+}
