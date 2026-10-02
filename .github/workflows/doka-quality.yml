@@ -8,6 +8,8 @@ on:
       - "web-platform/tests/**"
       - "web-platform/frontend/**"
       - "cloudflare_worker/**"
+      - "pyproject.toml"
+      - "web-platform/backend/requirements*.txt"
       - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
   pull_request:
@@ -25,6 +27,46 @@ permissions:
   contents: read
 
 jobs:
+  backend-dependency-audit:
+    name: Backend dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip pip-audit
+      - name: Audit backend runtime dependencies
+        run: |
+          pip-audit -r web-platform/backend/requirements-production.txt --format=json > backend-production-audit.json || true
+          pip-audit -r web-platform/backend/requirements.txt --format=json > backend-full-audit.json || true
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for filename in ("backend-production-audit.json", "backend-full-audit.json"):
+              report = json.loads(Path(filename).read_text(encoding="utf-8"))
+              vulnerabilities = [
+                  {"name": item.get("name"), "version": item.get("version"), "id": vuln.get("id"), "fix_versions": vuln.get("fix_versions", [])}
+                  for item in report
+                  for vuln in item.get("vulns", [])
+              ]
+              print(f"{filename}: {len(vulnerabilities)} findings")
+              for finding in vulnerabilities:
+                  print(f"  {finding['name']} {finding['version']} {finding['id']} fixes={finding['fix_versions']}")
+          PY
+      - name: Upload backend dependency audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dependency-audit
+          path: |
+            backend-production-audit.json
+            backend-full-audit.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   backend-tests:
     name: Backend regression tests
     runs-on: ubuntu-latest
