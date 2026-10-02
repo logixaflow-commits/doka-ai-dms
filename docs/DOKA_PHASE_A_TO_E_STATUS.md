@@ -133,6 +133,7 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 ### Cloud library lifecycle implementation update — 2026-10-02
 - Added recoverable Trash and Restore, filename search, status filter, pagination, rename and folder-path move to the Personal Cloud API/UI.
+- Added account-scoped Activity/Audit history: `doka_audit_events` has RLS and narrow authenticated grants; the Worker records upload/download/update/trash/restore events and exposes `GET /api/audit`.
 - Added `deleted_at` and `folder_path` to `doka_documents` with owner-scoped RLS retained and narrow column grants.
 - The current contract is documented in `docs/DOKA_CLOUD_API_CONTRACTS.md` and `shared/contracts/cloud-document.schema.json`.
 - Permanent deletion, version creation/restore, preview and bulk operations are still deferred until object cleanup and version concurrency semantics are implemented and tested.
