@@ -1,5 +1,7 @@
-name: Vercel Production Deploy
+name: Vercel Production Smoke Check
 
+# Vercel Git Integration owns deployments. This workflow verifies the live
+# production alias after a frontend/config change; it does not pretend to deploy.
 on:
   push:
     branches: [main]
@@ -12,52 +14,23 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: vercel-production
-  cancel-in-progress: false
-
 jobs:
-  deploy:
-    name: Build and deploy frontend to Vercel
+  production-smoke:
+    name: Verify Vercel production deployment
     runs-on: ubuntu-latest
     steps:
-      - name: Check deployment token configuration
-        id: config
+      - name: Wait for production deployment and verify HTTP response
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PRODUCTION_URL: https://enterprise-ai-dms.vercel.app
         run: |
-          if [ -n "$VERCEL_TOKEN" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: actions/checkout@v4
-        if: steps.config.outputs.configured == 'true'
-      - uses: actions/setup-node@v4
-        if: steps.config.outputs.configured == 'true'
-        with:
-          node-version: 24
-      - name: Pull production project settings
-        if: steps.config.outputs.configured == 'true'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
-          VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
-        run: npx --yes vercel@59.19.1 pull --yes --environment=production --token="$VERCEL_TOKEN"
-      - name: Build production artifact
-        if: steps.config.outputs.configured == 'true'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
-          VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
-        run: npx --yes vercel@59.19.1 build --prod --token="$VERCEL_TOKEN"
-      - name: Deploy production artifact
-        if: steps.config.outputs.configured == 'true'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
-          VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
-        run: npx --yes vercel@59.19.1 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
-      - name: Report missing deployment token
-        if: steps.config.outputs.configured != 'true'
-        run: echo "::warning::Set the GitHub Actions secret VERCEL_TOKEN to enable automatic Vercel production deployments."
+          for attempt in $(seq 1 24); do
+            status=$(curl --silent --show-error --location --output /tmp/doka-production.html --write-out "%{http_code}" "$PRODUCTION_URL" || true)
+            if [ "$status" = "200" ] && grep -q "Doka — Secure Document Workspace" /tmp/doka-production.html; then
+              echo "Production alias returned HTTP 200 and the expected Doka document title."
+              exit 0
+            fi
+            echo "Attempt $attempt/24: production not ready yet (HTTP ${status:-unavailable}); retrying in 10 seconds."
+            sleep 10
+          done
+          echo "::error::Production alias did not return the expected Doka page after 4 minutes."
+          exit 1
