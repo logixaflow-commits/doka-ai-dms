@@ -68,9 +68,9 @@ Phase E is intentionally architecture-only until Phase D passes.
 - React/Vite remains the web UI.
 - Vercel now hosts the React/Vite UI; Speed Insights is integrated.
 - Supabase Auth now provides the production browser login/session and the API verifies those sessions when Supabase is configured.
-- Live Supabase project now has `public.doka_documents`, `public.doka_document_versions`, a private `doka-documents` Storage bucket (50 MiB per-object cap), owner-scoped RLS policies, and Storage path policies. Doka Storage grants select/insert/delete only; the unused object-update policy was removed because uploads use `x-upsert=false`. Six Doka migrations are applied and verified against the live project. Authenticated users can update only document `status` and `metadata`; object keys, hashes, and ownership are not updateable through table grants.
+- Live Supabase project now has `public.doka_documents`, `public.doka_document_versions`, a private `doka-documents` Storage bucket (50 MiB per-object cap), owner-scoped RLS policies, and Storage path policies. Doka Storage grants select/insert/delete only; the unused object-update policy was removed because uploads use `x-upsert=false`. Eight Doka migrations are applied and verified against the live project. Authenticated users can update only document `status`, `metadata`, `filename`, `folder_path`, and `deleted_at`; object keys, hashes, and ownership are not updateable through table grants.
 - Live Supabase least-privilege audit found default grants giving `anon` broad table privileges and `authenticated` unnecessary update/delete privileges on the Doka tables, despite RLS. Applied migration `20261001100118_doka_least_privilege_grants` and `20261001100500_doka_storage_no_overwrite_policy`: `anon` and `PUBLIC` now have no table privileges; authenticated users can select/insert documents, update only `status` and `metadata`, and select/insert versions. Owner RLS policies explicitly target `authenticated`; document delete policy was removed. The Doka Storage object-update policy was also removed so the UI cannot replace existing objects. Verified effective table privileges and live Storage policy list after migration.
-- Supabase Security Advisor reports only the previously acknowledged leaked-password-protection warning. Performance Advisor reports two unused indexes, expected before real data/query traffic exists.
+- Supabase Security Advisor reports only the previously acknowledged leaked-password-protection warning. Performance Advisor currently reports three unused indexes, expected before real data/query traffic exists; re-evaluate after representative query traffic.
 - A free-cloud architecture decision is documented in `docs/DOKA_FREE_CLOUD_ARCHITECTURE.md`: Vercel for UI, Supabase Auth/Postgres, Supabase Storage initially, provider-neutral object storage with Cloudflare R2 as the larger-storage option, and a remote Python/OCR runtime to be selected only after Phase D workload measurements.
 - Render Free is explicitly not selected as the durable Doka data plane because its filesystem is ephemeral.
 - External services must remain optional and must not be required for local operation.
@@ -129,3 +129,11 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Leaked-password protection remains the sole Supabase Security Advisor warning and requires review in Supabase Auth settings. Do not change it blindly because availability may depend on project plan/settings.
 
 - Supabase migration `20261001100500_doka_storage_no_overwrite_policy` is committed and applied; live Storage policy query now shows only Doka SELECT, INSERT, and DELETE policies for `authenticated`.
+
+
+### Cloud library lifecycle implementation update — 2026-10-02
+- Added recoverable Trash and Restore, filename search, status filter, pagination, rename and folder-path move to the Personal Cloud API/UI.
+- Added `deleted_at` and `folder_path` to `doka_documents` with owner-scoped RLS retained and narrow column grants.
+- The current contract is documented in `docs/DOKA_CLOUD_API_CONTRACTS.md` and `shared/contracts/cloud-document.schema.json`.
+- Permanent deletion, version creation/restore, preview and bulk operations are still deferred until object cleanup and version concurrency semantics are implemented and tested.
+- Latest CI/Worker/Vercel evidence is tracked in `docs/DOKA_MASTER_PRODUCT_PLAN.md`; authenticated user-flow and two-user isolation tests remain outstanding.
