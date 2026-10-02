@@ -59,6 +59,12 @@ Returns a short-lived signed URL (300 seconds) and SHA-256. The Worker verifies 
 
 Response: `{"url": string, "sha256": string, "expires_seconds": 300}`.
 
+### `GET /api/documents/{id}/preview` — authenticated
+
+Returns a short-lived signed URL (300 seconds) for passive inline formats only: PDF, JPEG, PNG, GIF, WebP, plain text and CSV. HTML, SVG, Office files and unknown formats are rejected with HTTP 415. Ownership and non-trashed state are verified before signing. Preview requests create a `preview` audit event.
+
+Response: `{"url": string, "sha256": string, "expires_seconds": 300}`.
+
 ### `PATCH /api/documents/{id}` — authenticated
 
 Supported fields:
@@ -99,7 +105,7 @@ Query:
 
 Each event contains `id`, `document_id`, `action`, `filename`, `metadata`, and `created_at`.
 
-The audit table is owner-scoped with RLS. The Worker records upload, download, update, trash, restore, and permanent_delete events as best-effort side effects; an audit-write failure never breaks the primary document operation. Permanent-delete events retain the original document ID in event metadata because the document row is removed.
+The audit table is owner-scoped with RLS. The Worker records upload, download, preview, update, trash, restore, and permanent_delete events as best-effort side effects; an audit-write failure never breaks the primary document operation. Permanent-delete events retain the original document ID in event metadata because the document row is removed.
 
 ## Canonical document schema
 
@@ -109,7 +115,7 @@ See `shared/contracts/cloud-document.schema.json`.
 
 Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, status/metadata/rename/folder-path update, trash, restore.
 
-Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash, orchestrated as owner-authenticated per-document requests (not an atomic batch). Planned: server-side atomic batch APIs, document preview, version creation/list/restore, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
+Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash, orchestrated as owner-authenticated per-document requests (not an atomic batch). Planned: server-side atomic batch APIs, version creation/list/restore, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
 
 ## Security invariants
 
