@@ -67,3 +67,14 @@ through the Workers ASGI adapter. They are not a general-purpose Uvicorn host.
 This Worker uses the Workers Fetch API for outbound Supabase requests and
 keeps cloud objects and metadata in Supabase. It does not depend on a persistent
 Worker filesystem.
+
+
+## Free-plan performance caution
+
+Cloudflare Workers Free currently allows 10 ms CPU time per HTTP request and
+100,000 requests per day. Waiting for Supabase network fetches does not count
+toward CPU time, but Python/Pyodide startup, multipart parsing, and SHA-256
+processing do. Treat the first deployment as a compatibility and smoke-test
+stage: verify health, authenticated document listing, and then small uploads
+before relying on large document uploads. Do not upgrade to a paid plan without
+the user's explicit approval.
