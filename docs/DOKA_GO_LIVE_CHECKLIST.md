@@ -17,8 +17,8 @@ Render is not part of the active deployment. The free Render option was not sele
 - Cloudflare Worker version 87 (`99f174d7-b228-4746-900d-210a6816de53`) is receiving 100% traffic. It includes authenticated document lifecycle, preview, version history, folder listing, atomic bulk status/Trash and audit routes.
 - Supabase has 17 applied Doka migrations through `20261002095029_doka_bulk_updated_at_trigger`.
 - Owner-scoped RLS and private Storage policies are installed. Version RPCs validate `auth.uid()` and the parent document owner; anonymous users cannot execute version/bulk RPCs.
-- Vercel production deployment `dpl_94Z3TeFYrkfxTZo7XBhziJ2FGSoQ` (commit `1b6ac3a5`) is READY. Its production bundle was checked for version history, preview, folder filtering and atomic bulk controls.
-- The later sequential batch-upload queue is in frontend source but is not yet in the current production bundle.
+- Vercel production deployment `dpl_BoY7ur6K8751F77DsGPoRsPvtutS` (commit `7846669f`) is READY and owns the production alias. Its production bundle was checked for version history, preview, folder filtering, atomic bulk actions, Activity and batch upload/retry.
+- The current production JavaScript bundle was checked and includes Version history, safe preview, folder filtering, atomic bulk actions, Activity and the sequential batch-upload queue with retry.
 - Doka Quality Checks passed on commit `5ad3efa7`; Local Core Checks passed on `0807b5c3`. Follow-up documentation/migration changes have separate Local Core runs.
 - Authenticated upload/restore/version and two-user isolation have not yet been proven with separate real user sessions.
 
@@ -40,7 +40,7 @@ Required GitHub Actions secret:
 
 - `VERCEL_TOKEN`: a Vercel access token with permission to deploy this project.
 
-The workflow check completed successfully but skipped deployment because this secret is currently absent. After adding it, open GitHub → Actions → Vercel Production Deploy → Run workflow. Confirm a new READY deployment is aliased to `enterprise-ai-dms.vercel.app`, then inspect the production bundle to confirm the batch-upload queue is present.
+The workflow check completed successfully but skipped its CLI deployment because this secret is currently absent. Vercel's connected Git integration has already produced the current READY production deployment. The `VERCEL_TOKEN` secret is required only if you want the repository's explicit CLI deploy workflow as a fallback; after adding it, open GitHub → Actions → Vercel Production Deploy → Run workflow.
 
 ## Cloudflare Worker configuration
 
