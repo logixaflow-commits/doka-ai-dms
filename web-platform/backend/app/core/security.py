@@ -4,7 +4,8 @@ Password hashing (bcrypt), JWT token management, and RBAC dependencies.
 """
 from datetime import datetime, timedelta
 from typing import Optional, Union
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError
 import bcrypt
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials

@@ -11,7 +11,8 @@ import time
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError
 
 from app.core.config import settings
 
