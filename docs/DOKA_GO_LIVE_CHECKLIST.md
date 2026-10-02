@@ -15,7 +15,7 @@ Render is not part of the active deployment. The free Render option was not sele
 ## Verified current state
 
 - Cloudflare Worker version 99 (`66f1adfc-f43d-4fda-aeaa-12a6a45feec7`) is receiving 100% traffic. It includes authenticated document lifecycle, preview, version history, folder listing, atomic bulk status/Trash and audit routes.
-- Supabase has 17 applied Doka migrations through `20261002095029_doka_bulk_updated_at_trigger`.
+- Supabase has 20 applied Doka migrations through `20261002100427_doka_version_rpc_final_hardening`.
 - Owner-scoped RLS and private Storage policies are installed. Version RPCs validate `auth.uid()` and the parent document owner; anonymous users cannot execute version/bulk RPCs.
 - Vercel production deployment `dpl_BoY7ur6K8751F77DsGPoRsPvtutS` (commit `7846669f`) is READY and owns the production alias. Its production bundle was checked for version history, preview, folder filtering, atomic bulk actions, Activity and batch upload/retry.
 - The current production JavaScript bundle was checked and includes Version history, safe preview, folder filtering, atomic bulk actions, Activity and the sequential batch-upload queue with retry.
