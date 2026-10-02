@@ -57,6 +57,17 @@ jobs:
       - name: Install frontend dependencies
         working-directory: web-platform/frontend
         run: npm ci
+      - name: Capture dependency audit baseline
+        working-directory: web-platform/frontend
+        run: |
+          npm audit --json > npm-audit-before.json || true
+          node -e 'const a=require("./npm-audit-before.json"); console.log("Before remediation:", JSON.stringify(a.metadata?.vulnerabilities));'
+      - name: Apply semver-compatible dependency security fixes
+        working-directory: web-platform/frontend
+        run: npm audit fix --package-lock-only
+      - name: Reinstall from remediated lockfile
+        working-directory: web-platform/frontend
+        run: npm ci
       - name: Report frontend dependency audit details
         working-directory: web-platform/frontend
         run: |
@@ -77,9 +88,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-security-and-lint-reports
+          name: frontend-security-remediation-candidate
           path: |
+            web-platform/frontend/npm-audit-before.json
             web-platform/frontend/npm-audit.json
             web-platform/frontend/eslint-report.json
+            web-platform/frontend/package-lock.json
           if-no-files-found: ignore
           retention-days: 7
