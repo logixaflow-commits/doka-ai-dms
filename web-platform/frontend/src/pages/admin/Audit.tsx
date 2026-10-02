@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,7 +78,7 @@ function formatDate(iso: string) {
 }
 
 function getActionIcon(action: string) {
-  const icons: Record<string, any> = {
+  const icons: Record<string, LucideIcon> = {
     create: FileText,
     read: Activity,
     update: Settings,

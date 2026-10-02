@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -98,7 +99,7 @@ function StatCard({
 }: { 
   title: string; 
   value: number | string; 
-  icon: any; 
+  icon: LucideIcon; 
   color: string; 
   subtitle?: string;
   trend?: 'up' | 'down' | 'neutral';
