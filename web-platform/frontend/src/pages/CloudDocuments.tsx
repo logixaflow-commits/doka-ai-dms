@@ -14,6 +14,7 @@ import {
 } from '@/lib/cloudDocuments';
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+type BatchUploadItem = { id: string; file: File; status: 'queued' | 'uploading' | 'complete' | 'failed'; error?: string };
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -32,6 +33,7 @@ function formatDate(value: string) {
 export default function CloudDocuments() {
   const [documents, setDocuments] = useState<CloudDocument[]>([]);
   const [file, setFile] = useState<File | null>(null);
+  const [batchQueue, setBatchQueue] = useState<BatchUploadItem[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [folderFilter, setFolderFilter] = useState('all');
@@ -120,6 +122,47 @@ export default function CloudDocuments() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
     } finally { setBusy(false); }
+  }
+
+  function queueBatchFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const incoming = Array.from(files);
+    const accepted = incoming.filter(item => item.size <= MAX_FILE_BYTES);
+    if (accepted.length !== incoming.length) setError('Files over 50 MiB were skipped from the batch queue.');
+    setBatchQueue(current => [
+      ...current,
+      ...accepted.map((item, index) => ({
+        id: `${item.name}:${item.lastModified}:${item.size}:${current.length + index}`,
+        file: item,
+        status: 'queued' as const,
+      })),
+    ]);
+  }
+
+  async function processBatch(ids?: string[]) {
+    if (busy) return;
+    const selected = batchQueue.filter(item => ids ? ids.includes(item.id) : item.status === 'queued' || item.status === 'failed');
+    if (!selected.length) return;
+    setBusy(true); setError(''); setMessage('');
+    let uploaded = 0;
+    for (const item of selected) {
+      setBatchQueue(current => current.map(row => row.id === item.id ? { ...row, status: 'uploading', error: undefined } : row));
+      try {
+        const result = await uploadCloudDocument(item.file);
+        setDocuments(current => [result.document, ...current.filter(row => row.id !== result.document.id)]);
+        setBatchQueue(current => current.map(row => row.id === item.id ? { ...row, status: 'complete', error: undefined } : row));
+        uploaded += 1;
+      } catch (err) {
+        setBatchQueue(current => current.map(row => row.id === item.id ? { ...row, status: 'failed', error: err instanceof Error ? err.message : 'Upload failed.' } : row));
+      }
+    }
+    setMessage(`Batch finished: ${uploaded} uploaded, ${selected.length - uploaded} failed.`);
+    setBusy(false);
+  }
+
+  function retryFailedBatch() {
+    const failed = batchQueue.filter(item => item.status === 'failed').map(item => item.id);
+    if (failed.length) void processBatch(failed);
   }
 
   async function download(item: CloudDocument) {
@@ -351,6 +394,26 @@ export default function CloudDocuments() {
           {file && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3"><div className="flex min-w-0 items-center gap-3"><File className="h-4 w-4 shrink-0 text-primary" /><div className="min-w-0"><p className="truncate text-sm font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{formatSize(file.size)} · {file.type || 'Unknown file type'}</p></div></div><button className="text-xs font-medium text-muted-foreground hover:text-foreground" onClick={() => chooseFile(null)}>Remove</button></div>}
         </CardContent>
       </Card>}
+
+      {!showTrash && (
+        <Card className="rounded-2xl border-border/70 shadow-sm">
+          <CardContent className="space-y-4 p-5 sm:p-6">
+            <div><h2 className="font-semibold">Batch upload queue</h2><p className="mt-1 text-xs text-muted-foreground">Add multiple files, upload them sequentially and retry any failed item. Each file is limited to 50 MiB.</p></div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input aria-label="Choose multiple files for batch upload" type="file" multiple onChange={event => { queueBatchFiles(event.target.files); event.target.value = ''; }} disabled={busy} className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs" />
+              <Button onClick={() => void processBatch()} disabled={busy || !batchQueue.some(item => item.status === 'queued' || item.status === 'failed')}>Upload queue</Button>
+              <Button variant="outline" onClick={retryFailedBatch} disabled={busy || !batchQueue.some(item => item.status === 'failed')}>Retry failed</Button>
+            </div>
+            {batchQueue.length > 0 && <div className="divide-y divide-border/70 rounded-xl border border-border/70">
+              {batchQueue.map(item => <div key={item.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0"><p className="break-all text-sm font-medium">{item.file.name}</p><p className="text-xs text-muted-foreground">{formatSize(item.file.size)} · {item.error || item.status}</p></div>
+                <Badge variant={item.status === 'complete' ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="capitalize">{item.status}</Badge>
+              </div>)}
+              <div className="flex justify-end p-3"><Button size="sm" variant="ghost" onClick={() => setBatchQueue(current => current.filter(item => item.status !== 'complete'))} disabled={busy}>Clear completed</Button></div>
+            </div>}
+          </CardContent>
+        </Card>
+      )}
 
       {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
       {message && <div role="status" className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />{message}</div>}
