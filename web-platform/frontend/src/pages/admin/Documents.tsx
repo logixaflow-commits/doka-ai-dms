@@ -148,7 +148,7 @@ export default function DocumentManagement() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [statusFilter, categoryFilter]);
 
   async function handleBulkApprove() {
     if (selectedDocuments.length === 0) return;
@@ -266,7 +266,8 @@ export default function DocumentManagement() {
         <Skeleton className="h-64" />
       </div>
     );
-  }, [statusFilter, categoryFilter]);
+  );
+  }
 
   useEffect(() => {
     void loadDocuments();
