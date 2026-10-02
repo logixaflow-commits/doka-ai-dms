@@ -235,3 +235,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Reports contain sample IDs, metrics and aggregate language scores only; recognized and reference text are excluded.
 - Added regression tests for Unicode normalization, Levenshtein scoring, path safety and report privacy.
 - Phase 2 remains open until representative local sample data is supplied, OCR is run on the target machine, and manual accuracy thresholds are accepted.
+
+### Version RPC security hardening — 2026-10-02 09:56 UTC
+
+- Applied and committed migration `20261002095530_doka_harden_version_rpc_guards` (18 Doka migrations applied in live Supabase).
+- Version replacement and restore RPCs now reject unauthenticated/null input, validate document ownership, validate both current and selected object keys against the caller's `users/{auth.uid()}/documents/` prefix, validate metadata, and pin `search_path` to `pg_catalog, public, pg_temp`.
+- Function ACLs were rechecked: `anon` cannot execute either RPC; `authenticated` can execute the two intended Worker RPCs. Authenticated users still have no direct UPDATE grant on document object-key/hash/size/content-type columns.
+- A live SQL regression check confirmed both RPCs reject unauthenticated null calls with insufficient privilege. Static regression coverage was added to the Worker/database contract test suite.
+- Security Advisor continues to report the two authenticated SECURITY DEFINER RPCs because those narrowly scoped functions must update protected storage-pointer columns atomically without widening direct table privileges. The code now documents the rationale and has explicit owner/path/input checks; the warning is not represented as cleared.
+- Leaked-password protection remains disabled. Current Supabase documentation states this feature is available on Pro and above; no plan change or paid upgrade was made. It requires review in Supabase Auth settings if the project plan supports it.
+- Doka Quality Checks now run the Worker/database contract tests and upload the npm audit + ESLint JSON reports as a short-lived artifact so dependency advisories can be reviewed from the actual CI result.
