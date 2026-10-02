@@ -21,21 +21,26 @@ console.log('Frontend smoke test passed.');
 
 const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
 for (const required of [
-  '/rest/v1/doka_documents',
-  '/storage/v1/object/',
-  '/storage/v1/object/sign/',
-  'crypto.subtle.digest',
+  'VITE_API_BASE_URL',
+  'getAccessToken',
   'getCurrentUser',
-  'x-upsert',
+  'refreshSession',
+  'Authorization:',
+  'FormData',
+  '/documents?',
+  '/download',
+  'method: \'PATCH\'',
 ]) {
   if (!cloudDocuments.includes(required)) {
-    throw new Error(`Cloud document Supabase integration is missing: ${required}`);
+    throw new Error(`FastAPI cloud document integration is missing: ${required}`);
   }
 }
-if (cloudDocuments.includes("|| '/api'")) {
-  throw new Error('Cloud documents must not silently route to the frontend SPA /api fallback.');
+for (const forbidden of ['/rest/v1/doka_documents', '/storage/v1/object/', 'x-upsert']) {
+  if (cloudDocuments.includes(forbidden)) {
+    throw new Error(`Frontend must not call Supabase data/storage endpoints directly: ${forbidden}`);
+  }
 }
-console.log('Supabase cloud document integration smoke test passed.');
+console.log('FastAPI cloud document integration smoke test passed.');
 
 const app = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
 const layout = fs.readFileSync(path.resolve('src/layouts/AdminLayout.tsx'), 'utf8');
