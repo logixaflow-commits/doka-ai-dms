@@ -38,7 +38,7 @@ interface RuleCondition {
 
 interface RuleAction {
   type: string;
-  params: Record<string, any>;
+  params: Record<string, string>;
 }
 
 interface Rule {
@@ -262,12 +262,12 @@ export default function RulesEngine() {
     setRuleActions(ruleActions.filter((_, i) => i !== index));
   }
 
-  function updateAction(index: number, field: keyof RuleAction, value: any) {
+  function updateAction(index: number, field: keyof RuleAction, value: string | Record<string, string>) {
     const newActions = [...ruleActions];
     if (field === 'type') {
-      newActions[index] = { type: value, params: {} };
+      newActions[index] = { type: value as string, params: {} };
     } else {
-      newActions[index].params = value;
+      newActions[index].params = value as Record<string, string>;
     }
     setRuleActions(newActions);
   }

@@ -30,7 +30,7 @@ interface Document {
     eta?: string;
     etd?: string;
     amount?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   locked_by?: number;
   locked_at?: string;

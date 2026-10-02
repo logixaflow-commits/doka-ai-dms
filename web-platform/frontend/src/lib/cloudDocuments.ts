@@ -26,7 +26,7 @@ export interface CloudDocument {
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const raw = await response.text();
-  let payload: any = {};
+  let payload: Record<string, unknown> = {};
   if (raw) {
     try {
       payload = JSON.parse(raw);
