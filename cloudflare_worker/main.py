@@ -374,11 +374,21 @@ async def create_document_version(request: Request, document_id: str, file: Uplo
         raise HTTPException(status_code=409, detail="The uploaded content is identical to the current document.")
     bucket = quote(_bucket(request), safe="")
     encoded_key = quote(key, safe="/")
-    upload_headers = _supabase_headers(request, token, file.content_type or "application/octet-stream")
-    upload_headers["x-upsert"] = "false"
-    status, _ = await _fetch(request, f"{base}/storage/v1/object/{bucket}/{encoded_key}", method="POST", headers=upload_headers, body=_js_bytes(data))
-    if status >= 300:
-        raise HTTPException(status_code=503, detail=f"Version object upload failed ({status}).")
+    version_query = f"select=id&document_id=eq.{quote(document_id, safe='')}&object_key=eq.{quote(key, safe='')}&limit=1"
+    version_status, existing_versions = await _fetch(
+        request, f"{base}/rest/v1/doka_document_versions?{version_query}",
+        headers={**_supabase_headers(request, token), "Accept": "application/json"},
+    )
+    if version_status >= 300 or not isinstance(existing_versions, list):
+        raise HTTPException(status_code=503, detail=f"Existing version lookup failed ({version_status}).")
+    uploaded_new_object = False
+    if not existing_versions:
+        upload_headers = _supabase_headers(request, token, file.content_type or "application/octet-stream")
+        upload_headers["x-upsert"] = "false"
+        status, _ = await _fetch(request, f"{base}/storage/v1/object/{bucket}/{encoded_key}", method="POST", headers=upload_headers, body=_js_bytes(data))
+        if status >= 300:
+            raise HTTPException(status_code=503, detail=f"Version object upload failed ({status}).")
+        uploaded_new_object = True
     payload = {
         "p_document_id": document_id,
         "p_object_key": key,
@@ -389,7 +399,8 @@ async def create_document_version(request: Request, document_id: str, file: Uplo
     }
     status, updated = await _fetch(request, f"{base}/rest/v1/rpc/doka_replace_document_version", method="POST", headers=_supabase_headers(request, token, "application/json"), body=json.dumps(payload))
     if status >= 300:
-        await _fetch(request, f"{base}/storage/v1/object/{bucket}", method="DELETE", headers=_supabase_headers(request, token, "application/json"), body=json.dumps({"prefixes": [key]}))
+        if uploaded_new_object:
+            await _fetch(request, f"{base}/storage/v1/object/{bucket}", method="DELETE", headers=_supabase_headers(request, token, "application/json"), body=json.dumps({"prefixes": [key]}))
         raise HTTPException(status_code=503, detail=f"Version metadata update failed ({status}).")
     document = updated[0] if isinstance(updated, list) and updated else updated
     await _audit(request, user_id, "version_create", document_id, filename, {"sha256": digest, "size_bytes": len(data)})
