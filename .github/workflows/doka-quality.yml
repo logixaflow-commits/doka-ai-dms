@@ -6,14 +6,14 @@ on:
     paths:
       - "web-platform/backend/**"
       - "web-platform/tests/**"
-      - "web-platform/frontend/**"
+      - "web-platform/frontend/**"\n      - "cloudflare_worker/**"\n      - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
   pull_request:
     branches: [main]
     paths:
       - "web-platform/backend/**"
       - "web-platform/tests/**"
-      - "web-platform/frontend/**"
+      - "web-platform/frontend/**"\n      - "cloudflare_worker/**"\n      - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
   workflow_dispatch:
 
