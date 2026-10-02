@@ -270,7 +270,6 @@ export default function DocumentManagement() {
         <Skeleton className="h-64" />
       </div>
     );
-  );
   }
 
   return (
