@@ -270,3 +270,9 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 - Post-remediation production browser-surface check: `https://enterprise-ai-dms.vercel.app` returned HTTP 200. The current production JavaScript bundle contains Version History, Preview, folder filtering, batch upload retry and Activity UI.
 - Latest Doka Quality Checks run `36994469212` completed successfully after the CI lockfile-push retry/rebase improvement; backend regression, Worker/database contract tests, frontend build/smoke tests and the low-severity npm audit gate all passed.
+
+### Backend validation cleanup — 2026-10-02 10:18 UTC
+
+- Migrated config_validator.py from deprecated Pydantic v1 @validator/min_items APIs to Pydantic v2 @field_validator, ValidationInfo and min_length; default serialization now uses model_dump().
+- Added regression tests for valid/invalid threshold ordering and non-empty keyword lists.
+- Latest backend CI run passed 64 regression tests plus 10 Worker/database contract tests, with the prior Pydantic deprecation warnings absent.
