@@ -48,3 +48,8 @@ def test_worker_bulk_actions_use_single_atomic_owner_scoped_rpc():
 def test_worker_folder_listing_is_owner_scoped():
     assert '@app.get("/api/folders")' in WORKER_SOURCE
     assert 'deleted_at=is.null&order=folder_path.asc&limit=500' in WORKER_SOURCE
+
+
+def test_worker_version_events_use_distinct_audit_actions():
+    assert '_audit(request, user_id, "version_create"' in WORKER_SOURCE
+    assert '_audit(request, user_id, "version_restore"' in WORKER_SOURCE
