@@ -4,21 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  History, 
-  RefreshCw, 
-  ArrowLeft, 
-  Download, 
-  RotateCcw, 
-  Eye,
-  FileText,
-  Calendar,
-  HardDrive,
-  Hash,
-  AlertCircle,
-  CheckCircle,
-  Trash2
-} from 'lucide-react';
+import { History, RefreshCw, ArrowLeft, Download, RotateCcw, FileText, Calendar, HardDrive, Hash, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
 
 const API_BASE = '/api';
 
