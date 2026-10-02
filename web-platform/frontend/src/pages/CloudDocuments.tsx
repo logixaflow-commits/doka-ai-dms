@@ -43,6 +43,8 @@ export default function CloudDocuments() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editFolder, setEditFolder] = useState('/');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<CloudDocument['status']>('active');
 
   async function refresh() {
     setLoading(true);
@@ -54,6 +56,7 @@ export default function CloudDocuments() {
         trash: showTrash,
       });
       setDocuments(result.documents || []);
+      setSelectedIds([]);
       setHasMore((result.documents || []).length === 100);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load cloud documents.');
@@ -197,6 +200,40 @@ export default function CloudDocuments() {
     } finally { setBusy(false); }
   }
 
+  function toggleSelected(id: string, checked: boolean) {
+    setSelectedIds(current => checked ? [...new Set([...current, id])] : current.filter(value => value !== id));
+  }
+
+  async function applyBulkStatus() {
+    if (!selectedIds.length) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const results = await Promise.all(selectedIds.map(id => updateCloudDocument(id, { status: bulkStatus })));
+      const byId = new Map(results.map(result => [result.document.id, result.document]));
+      setDocuments(current => current.map(item => byId.get(item.id) || item));
+      setMessage(`Updated status for ${results.length} document(s).`);
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk status update failed. Refresh the library before retrying.');
+      await refresh();
+    } finally { setBusy(false); }
+  }
+
+  async function bulkTrash() {
+    if (!selectedIds.length || !window.confirm(`Move ${selectedIds.length} selected document(s) to Trash?`)) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const ids = [...selectedIds];
+      await Promise.all(ids.map(id => trashCloudDocument(id)));
+      setDocuments(current => current.filter(item => !ids.includes(item.id)));
+      setMessage(`Moved ${ids.length} document(s) to Trash.`);
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk Trash failed. Refresh the library before retrying.');
+      await refresh();
+    } finally { setBusy(false); }
+  }
+
   const emptyTitle = showTrash ? 'Trash is empty' : documents.length === 0 ? 'No documents yet' : 'No matching documents';
 
   return (
@@ -243,17 +280,32 @@ export default function CloudDocuments() {
 
       <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
         <div className="flex flex-col gap-4 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div><h2 className="font-semibold">{showTrash ? 'Deleted documents' : 'Document library'} <span className="ml-1 text-sm font-normal text-muted-foreground">({documents.length})</span></h2><p className="mt-1 text-xs text-muted-foreground">{showTrash ? 'Restore a document to return it to your library.' : 'Only documents belonging to your account are shown.'}</p></div>
+          <div className="flex items-center gap-3">
+            {!showTrash && documents.length > 0 && <input type="checkbox" aria-label="Select all visible documents" checked={documents.length > 0 && documents.every(item => selectedIds.includes(item.id))} onChange={event => setSelectedIds(event.target.checked ? documents.map(item => item.id) : [])} disabled={busy} className="h-4 w-4 accent-primary" />}
+            <div><h2 className="font-semibold">{showTrash ? 'Deleted documents' : 'Document library'} <span className="ml-1 text-sm font-normal text-muted-foreground">({documents.length})</span></h2><p className="mt-1 text-xs text-muted-foreground">{showTrash ? 'Restore a document to return it to your library.' : 'Only documents belonging to your account are shown.'}</p></div>
+          </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void refresh(); }} placeholder="Search file names" className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-56" /></div>
             <select aria-label="Filter by status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); void refresh(); }} className="h-10 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary sm:w-36"><option value="all">All statuses</option><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
           </div>
         </div>
+        {selectedIds.length > 0 && !showTrash && (
+          <div className="flex flex-col gap-3 border-b border-border/70 bg-primary/[0.04] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p className="text-sm font-medium">{selectedIds.length} document(s) selected</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <select aria-label="Bulk status" value={bulkStatus} onChange={event => setBulkStatus(event.target.value as CloudDocument['status'])} className="h-9 rounded-lg border border-input bg-background px-2 text-xs"><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
+              <Button size="sm" variant="outline" onClick={() => void applyBulkStatus()} disabled={busy}>Apply status</Button>
+              <Button size="sm" variant="outline" onClick={() => void bulkTrash()} disabled={busy} className="text-rose-600">Move to Trash</Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])} disabled={busy}>Clear</Button>
+            </div>
+          </div>
+        )}
         <CardContent className="p-0">
           {loading ? <div className="space-y-3 p-6"><div className="h-16 animate-pulse rounded-xl bg-muted" /><div className="h-16 animate-pulse rounded-xl bg-muted" /><div className="h-16 animate-pulse rounded-xl bg-muted" /></div> :
             documents.length === 0 ? <div className="px-6 py-14 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground"><File className="h-7 w-7" /></span><h3 className="mt-4 font-semibold">{emptyTitle}</h3><p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">{showTrash ? 'Documents you delete will appear here for recovery.' : 'Choose a file above to create your private cloud library.'}</p></div> :
               <div className="divide-y divide-border/70">{documents.map(item => <div key={item.id} className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/30 lg:flex-row lg:items-center lg:justify-between sm:px-6">
                 <div className="flex min-w-0 items-start gap-3">
+                  {!showTrash && <input type="checkbox" aria-label={`Select ${item.filename}`} checked={selectedIds.includes(item.id)} onChange={event => toggleSelected(item.id, event.target.checked)} disabled={busy} className="mt-3 h-4 w-4 shrink-0 accent-primary" />}
                   <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"><File className="h-5 w-5" /></span>
                   <div className="min-w-0 flex-1">
                     {editingId === item.id ? (
