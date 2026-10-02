@@ -30,18 +30,11 @@ import { Switch } from '@/components/ui/switch';
 import {
   Shield,
   Plus,
-  Edit,
   Trash2,
-  CheckCircle,
-  XCircle,
-  Lock,
-  Unlock,
   Key,
-  User,
   Settings
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
 
 const API_BASE = '/api';
 
@@ -59,12 +52,6 @@ interface Role {
   description: string;
   permissions: Permission[];
   is_system: boolean;
-}
-
-interface RolePermission {
-  role_id: number;
-  permission_id: number;
-  granted: boolean;
 }
 
 function getToken() {
@@ -90,7 +77,6 @@ export default function PermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
