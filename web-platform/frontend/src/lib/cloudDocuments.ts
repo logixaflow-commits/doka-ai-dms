@@ -186,39 +186,6 @@ export async function getCloudDocumentPreviewUrl(documentId: string) {
 }
 
 
-export interface CloudDocumentVersion {
-  id: string;
-  version_no: number;
-  filename: string | null;
-  content_type: string | null;
-  size_bytes: number;
-  sha256: string;
-  created_at: string;
-}
-
-export async function listCloudDocumentVersions(documentId: string) {
-  return request<{ versions: CloudDocumentVersion[] }>(
-    `/documents/${encodeURIComponent(documentId)}/versions`,
-  );
-}
-
-export async function createCloudDocumentVersion(documentId: string, file: File) {
-  const form = new FormData();
-  form.append('file', file);
-  return request<{ document: CloudDocument }>(
-    `/documents/${encodeURIComponent(documentId)}/versions`,
-    { method: 'POST', body: form },
-  );
-}
-
-export async function restoreCloudDocumentVersion(documentId: string, versionId: string) {
-  return request<{ document: CloudDocument }>(
-    `/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(versionId)}/restore`,
-    { method: 'POST' },
-  );
-}
-
-
 export async function bulkUpdateCloudDocuments(
   documentIds: string[],
   action: 'status' | 'trash',
