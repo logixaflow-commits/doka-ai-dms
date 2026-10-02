@@ -126,8 +126,12 @@ export default function DocumentUpload({ onUploadComplete }: DocumentUploadProps
       errors.push(`Invalid file type (${file.type})`);
     }
 
-    // Check for special characters in filename
-    if (/[<>:"/\\|?*\x00-\x1f]/.test(file.name)) {
+    // Check for reserved filename characters and ASCII control characters.
+    const hasControlCharacter = Array.from(file.name).some((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127;
+    });
+    if (/[<>:"/\\|?*]/.test(file.name) || hasControlCharacter) {
       errors.push('Filename contains invalid characters');
     }
 
