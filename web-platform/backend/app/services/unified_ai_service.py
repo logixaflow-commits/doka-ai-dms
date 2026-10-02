@@ -59,6 +59,8 @@ class UnifiedAIService:
         """Try providers in order; on quota/network/model failure continue to the next."""
         if not settings.AI_ENABLED:
             raise RuntimeError("AI is disabled; use local/rule-based processing")
+        if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
+            raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
 
         candidates = providers or self.get_available_providers()
         candidates = candidates[: self._provider_limit()]
