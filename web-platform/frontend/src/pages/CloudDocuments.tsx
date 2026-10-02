@@ -62,7 +62,7 @@ export default function CloudDocuments() {
           status: statusFilter === 'all' ? undefined : statusFilter as CloudDocument['status'],
           trash: showTrash, folderPath: folderFilter === 'all' || showTrash ? undefined : folderFilter,
         }),
-        listCloudFolders(),
+        listCloudFolders().catch(() => ({ folders: ['/'] })),
       ]);
       setDocuments(result.documents || []);
       setFolderPaths(folderResult.folders || ['/']);
@@ -75,7 +75,7 @@ export default function CloudDocuments() {
     }
   }
 
-  useEffect(() => { void refresh(); }, [showTrash, folderFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void refresh(); }, [showTrash, folderFilter, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalBytes = useMemo(() => documents.reduce((sum, item) => sum + item.size_bytes, 0), [documents]);
   const reviewCount = useMemo(() => documents.filter(item => item.status === 'review').length, [documents]);
@@ -363,7 +363,7 @@ export default function CloudDocuments() {
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void refresh(); }} placeholder="Search file names" className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-56" /></div>
-            <select aria-label="Filter by status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); void refresh(); }} className="h-10 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary sm:w-36"><option value="all">All statuses</option><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
+            <select aria-label="Filter by status" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary sm:w-36"><option value="all">All statuses</option><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
             {!showTrash && <select aria-label="Filter by folder" value={folderFilter} onChange={event => setFolderFilter(event.target.value)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary sm:w-40"><option value="all">All folders</option>{folderPaths.map(folder => <option key={folder} value={folder}>{folder === '/' ? 'Root folder' : folder}</option>)}</select>}
           </div>
         </div>
