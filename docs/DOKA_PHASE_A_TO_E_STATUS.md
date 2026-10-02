@@ -168,3 +168,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added migration `20261002091601_doka_audit_preview` and a Worker contract regression test.
 - Preview controls are shown only for supported MIME types in Cloud Documents.
 - The UI preview commit and Worker preview endpoint are in the deployment pipeline; final CI and deployment checks are required before claiming the feature is live.
+
+
+### Cloud version history — 2026-10-02
+
+- Added owner-scoped GET/list, multipart replacement upload and restore routes for cloud document versions.
+- Version creation and restore use database functions that validate the signed-in owner and atomically preserve the previous active object metadata.
+- Version rows are protected by RLS through their parent document; the version migration is replayable from a clean Supabase project and extends the existing schema safely.
+- Added UI history dialog, version upload, SHA-256/date/size display and confirmed restore.
+- Added audit actions for version creation and restore.
+- Remaining Phase 1 tasks are atomic bulk APIs, richer folder-tree management and batch upload progress/retry.
