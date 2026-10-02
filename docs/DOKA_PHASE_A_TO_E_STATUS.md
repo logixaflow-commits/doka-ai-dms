@@ -158,3 +158,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Vercel production deployment for UI commit `c02599bc` reached READY. Cloudflare Worker build for backend commit `e9125d30` completed successfully and a new Worker version received 100% traffic.
 - Supabase Security Advisor still reports leaked-password protection disabled. Performance Advisor reports five unused indexes; retain them while the tables are small and re-evaluate with representative workload before removing indexes.
 - Still open: version creation/list/restore, safe preview, folder tree, batch upload queue/retry, authenticated lifecycle browser test, two-user isolation test, local OCR pilot, production team APIs and production AI workflow.
+
+
+### Safe preview delivery — 2026-10-02
+
+- Added `GET /api/documents/{id}/preview` with verified owner/non-trash checks and a 5-minute signed URL.
+- Preview allowlist is restricted to PDF, JPEG, PNG, GIF, WebP, plain text and CSV. HTML, SVG and other active/unknown formats return HTTP 415.
+- Preview actions are written to the owner-scoped audit log.
+- Added migration `20261002091601_doka_audit_preview` and a Worker contract regression test.
+- Preview controls are shown only for supported MIME types in Cloud Documents.
+- The UI preview commit and Worker preview endpoint are in the deployment pipeline; final CI and deployment checks are required before claiming the feature is live.
