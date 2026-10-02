@@ -42,11 +42,14 @@ jobs:
         run: python -m pip install --upgrade pip pip-audit
       - name: Audit backend runtime dependencies
         run: |
-          pip-audit -r web-platform/backend/requirements-production.txt --format=json > backend-production-audit.json || true
-          pip-audit -r web-platform/backend/requirements.txt --format=json > backend-full-audit.json || true
+          # PYSEC-2025-183 is disputed and concerns caller-selected HMAC key length;
+          # Doka enforces a minimum 32-byte SECRET_KEY for HS256.
+          pip-audit -r web-platform/backend/requirements-production.txt --ignore-vuln PYSEC-2025-183 --format=json > backend-production-audit.json || true
+          pip-audit -r web-platform/backend/requirements.txt --ignore-vuln PYSEC-2025-183 --format=json > backend-full-audit.json || true
           python - <<'PY'
           import json
           from pathlib import Path
+          has_findings = False
           for filename in ("backend-production-audit.json", "backend-full-audit.json"):
               report = json.loads(Path(filename).read_text(encoding="utf-8"))
               dependencies = report.get("dependencies", []) if isinstance(report, dict) else report
@@ -55,9 +58,12 @@ jobs:
                   for item in dependencies
                   for vuln in item.get("vulns", [])
               ]
-              print(f"{filename}: {len(vulnerabilities)} findings")
+              print(f"{filename}: {len(vulnerabilities)} unignored findings")
               for finding in vulnerabilities:
                   print(f"  {finding['name']} {finding['version']} {finding['id']} fixes={finding['fix_versions']}")
+              has_findings = has_findings or bool(vulnerabilities)
+          if has_findings:
+              raise SystemExit("Backend dependency audit found unignored vulnerabilities.")
           PY
       - name: Upload backend dependency audit reports
         if: always()
