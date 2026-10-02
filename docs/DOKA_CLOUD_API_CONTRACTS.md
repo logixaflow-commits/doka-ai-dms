@@ -109,7 +109,7 @@ See `shared/contracts/cloud-document.schema.json`.
 
 Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, status/metadata/rename/folder-path update, trash, restore.
 
-Planned (do not render as enabled UI until implemented and tested): document preview, version creation/list/restore, folder tree CRUD, bulk actions, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
+Implemented in the Cloud Documents UI: bulk status changes and bulk move-to-Trash, orchestrated as owner-authenticated per-document requests (not an atomic batch). Planned: server-side atomic batch APIs, document preview, version creation/list/restore, folder tree CRUD, OCR jobs, organization/team access and AI jobs. Permanent deletion is implemented for trashed documents with Storage object cleanup and a restrictive owner-only DELETE policy. Audit event recording/listing is now implemented.
 
 ## Security invariants
 
