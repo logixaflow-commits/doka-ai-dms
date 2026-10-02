@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  bulkUpdateCloudDocuments, createCloudDocumentVersion, getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocumentVersions, listCloudDocuments, listCloudFolders, moveCloudDocument, permanentlyDeleteCloudDocument,
-  renameCloudDocument, restoreCloudDocument, restoreCloudDocumentVersion, trashCloudDocument,
+  bulkUpdateCloudDocuments, createCloudDocumentVersion, getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocumentVersions, listCloudDocuments, listCloudFolders, permanentlyDeleteCloudDocument,
+  restoreCloudDocument, restoreCloudDocumentVersion, trashCloudDocument,
   updateCloudDocument, uploadCloudDocument, type CloudDocument, type CloudDocumentVersion,
 } from '@/lib/cloudDocuments';
 
