@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Shield, Key, Copy, CheckCircle, AlertCircle, RefreshCw, Smartphone } from 'lucide-react';
+
+
+import { Shield, Key, Copy, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 
 const API_BASE = '/api';
 
