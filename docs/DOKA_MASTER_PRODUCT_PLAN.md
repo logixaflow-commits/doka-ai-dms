@@ -79,7 +79,8 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 |---|---|---|
 | `GET /health` | Worker health | Dashboard |
 | `GET /api/config` | Edition and readiness flags | Dashboard |
-| `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |\n| `GET /api/folders` | Owner-scoped distinct logical folder paths | Cloud Documents |
+| `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |
+| `GET /api/folders` | Owner-scoped distinct logical folder paths | Cloud Documents |
 | `POST /api/documents` | Authenticated upload | Cloud Documents |
 | `PATCH /api/documents/{id}` | Status, metadata, rename and folder-path update | Cloud Documents |
 | `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |
