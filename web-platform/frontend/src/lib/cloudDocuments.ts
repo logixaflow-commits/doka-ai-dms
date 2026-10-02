@@ -146,3 +146,13 @@ export async function renameCloudDocument(documentId: string, filename: string) 
   }
   return updateCloudDocument(documentId, { filename: normalized });
 }
+
+
+export async function moveCloudDocument(documentId: string, folderPath: string) {
+  const normalized = folderPath.trim() || '/';
+  const segments = normalized.split('/').filter(Boolean);
+  if (normalized.includes('\\') || normalized.includes('\0') || segments.some(part => part === '.' || part === '..')) {
+    throw new Error('Enter a valid folder path.');
+  }
+  return updateCloudDocument(documentId, { folder_path: normalized === '/' ? '/' : `/${segments.join('/')}` });
+}
