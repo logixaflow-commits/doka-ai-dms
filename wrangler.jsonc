@@ -4,4 +4,10 @@
   "main": "cloudflare_worker/main.py",
   "compatibility_date": "2026-10-02",
   "compatibility_flags": ["python_workers"],
+  "keep_vars": true,
+  "vars": {
+    "SUPABASE_URL": "https://jkobgssaqifzrqfirdfu.supabase.co",
+    "SUPABASE_STORAGE_BUCKET": "doka-documents",
+    "DOKA_STORAGE_MAX_OBJECT_BYTES": "52428800"
+  }
 }
