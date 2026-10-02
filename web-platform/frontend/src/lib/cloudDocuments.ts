@@ -1,6 +1,9 @@
 import { getAccessToken, getCurrentUser, refreshSession } from './supabaseAuth';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\\/+$/, '');
+const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_BASE_URL = configuredApiBase.endsWith('/')
+  ? configuredApiBase.slice(0, -1)
+  : configuredApiBase;
 const API_ROOT = `${API_BASE_URL}/api`;
 
 export interface CloudDocument {
