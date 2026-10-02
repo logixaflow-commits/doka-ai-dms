@@ -9,12 +9,13 @@ enterprise-ai-dms/
 ├── .github/
 │   ├── dependabot.yml
 │   └── workflows/              # CI and quality checks
-├── archive/
-│   └── legacy-enterprise/      # preserved historical implementation
-├── docs/                       # current product, setup, security and phase docs
+├── archive/                    # preserved legacy code and retired deployment assets
+├── cloudflare_worker/           # active Cloudflare Worker API for cloud documents
+├── docs/                        # current product, setup, security and phase docs
 │   └── legacy/                 # historical enterprise documentation
 ├── infrastructure/             # deferred deployment and operations assets
-├── mobile/                     # preserved, deferred mobile application
+├── mobile/                      # preserved, deferred mobile application
+├── shared/                      # shared contracts/utilities; verify consumers before moving
 ├── scripts/                    # repository-level validation/maintenance scripts
 ├── supabase/
 │   └── migrations/             # database migrations for optional cloud features
@@ -24,6 +25,9 @@ enterprise-ai-dms/
 │   ├── tests/                  # Personal Local regression tests
 │   └── docs/                   # web-platform documentation pointers
 ├── .gitignore
+├── .editorconfig / .gitattributes
+├── pyproject.toml              # repository Python tooling configuration
+├── wrangler.jsonc              # active Cloudflare Worker deployment configuration
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── QUICKSTART.md
