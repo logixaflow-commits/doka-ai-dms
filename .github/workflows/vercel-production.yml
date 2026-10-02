@@ -1,0 +1,46 @@
+name: Vercel Production Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web-platform/frontend/**"
+      - "vercel.json"
+      - ".github/workflows/vercel-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy frontend to Vercel
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: team_YJ3feRuLDL8Bp00T5Q34NB9O
+      VERCEL_PROJECT_ID: prj_PjlMx9MwxqbkA6jCh7ZRyD7I0qw4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Pull production project settings
+        run: npx --yes vercel@59.19.1 pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build production artifact
+        run: npx --yes vercel@59.19.1 build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy production artifact
+        run: npx --yes vercel@59.19.1 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  deployment-secret-missing:
+    name: Vercel token configuration check
+    if: ${{ secrets.VERCEL_TOKEN == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report required secret
+        run: echo "::warning::Set the GitHub Actions secret VERCEL_TOKEN to enable automatic Vercel production deployments."
