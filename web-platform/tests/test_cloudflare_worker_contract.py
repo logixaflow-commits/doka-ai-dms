@@ -58,7 +58,7 @@ VERSION_RPC_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "supabase"
     / "migrations"
-    / "20261002102000_doka_version_object_key_pattern.sql"
+    / "20261002100658_doka_version_object_key_pattern.sql"
 ).read_text(encoding="utf-8")
 
 
