@@ -449,10 +449,10 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Cloudflare Worker deployment for the latest folder/bulk/version API changes is queued; only mark these APIs production-live after the build reaches success and 100% traffic is confirmed.
 
 
-### Latest runtime rollout — 2026-10-02 09:48 UTC
+### Latest runtime rollout — 2026-10-02 09:51 UTC
 
 - Cloudflare Worker version `99f174d7-b228-4746-900d-210a6816de53` (version number 87) is receiving 100% traffic. This version was uploaded after the folder-listing, atomic bulk and version-audit Worker changes were committed.
 - Supabase schema/function checks confirm the version table, owner-scoped RLS policies and RPC permissions. `anon` cannot execute the version or bulk RPCs; authenticated users can execute only the intended functions. Bulk updates rely on column-level grants and RLS.
 - GitHub Actions `Doka Quality Checks` passed on commit `5ad3efa7`, including backend regression tests and frontend build/smoke tests. Local Core Checks passed on commit `0807b5c3`.
-- Vercel deployment remains blocked only by the missing GitHub Actions secret `VERCEL_TOKEN`. The new deploy workflow is configured and skips safely when that secret is absent. The production bundle therefore still does not contain the Version history UI or the latest folder/batch controls.
+- Vercel production deployment `dpl_94Z3TeFYrkfxTZo7XBhziJ2FGSoQ` (commit `1b6ac3a5`) is READY. Its production JavaScript bundle was checked and contains Version history, safe preview, folder filtering and atomic bulk actions. It does not yet contain the later batch upload queue. The GitHub Actions deploy workflow skips without `VERCEL_TOKEN`; add that secret and manually run the workflow to publish the newest frontend commit.
 - Supabase Security Advisor still reports the intentional authenticated `SECURITY DEFINER` version RPCs and disabled leaked-password protection. The version RPCs explicitly validate `auth.uid()`, owner and user-scoped object paths; the warning is retained for review. The bulk RPC is SECURITY INVOKER.
