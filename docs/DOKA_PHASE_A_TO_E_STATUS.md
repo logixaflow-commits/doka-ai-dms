@@ -186,3 +186,12 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Vercel production currently resolves to deployment commit `77be1bd0` (READY). The production JavaScript bundle contains bulk actions and safe preview, but does not yet contain the newly added Version history UI.
 - Latest frontend source is committed and CI is passing; Vercel has not created a deployment for the subsequent frontend commits yet. Do not describe version controls as live in the production browser until the Vercel deployment is updated and the production bundle is rechecked.
 - Authenticated end-to-end tests and two-user isolation remain open because no real signed-in test session is available in this run.
+
+
+### Atomic bulk operations — 2026-10-02
+
+- Added `POST /api/documents/bulk` for up to 100 unique documents.
+- Bulk status updates and Trash execute through a single SECURITY INVOKER Postgres function under existing authenticated grants and RLS; all IDs are validated before any update, so partial batches are rejected.
+- Audit events are inserted in the same transaction.
+- Frontend bulk controls now call the single atomic endpoint rather than issuing parallel per-document requests.
+- Added null-action validation, migration and regression/smoke coverage.
