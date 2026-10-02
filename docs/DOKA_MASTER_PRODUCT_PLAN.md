@@ -350,3 +350,34 @@ A feature is complete only when all are true:
 - Vercel production deployment dpl_AGL7K8ejPDYx1rj9bZ6fWAHMMRhB is READY and owns https://enterprise-ai-dms.vercel.app.
 - Cloudflare Worker build 9ab06efb-f44a-41e6-bc85-9345937d46a7 for f787e38cdec8463777012422fc2d8e0a4b9e773d completed successfully.
 - Still open: eight npm audit findings (1 low, 1 moderate, 6 high); leaked-password protection disabled in Supabase Auth; real signed-in upload/list/rename/move/trash/restore/download; two-user isolation; real office-data OCR pilot; team/RBAC APIs; AI consent UX and redaction.
+
+
+## 2026-10-02 implementation progress
+
+The repository has moved beyond the original baseline described above. The following Phase 0/1 work is now implemented on `main`:
+
+- Cloud library now includes recoverable Trash/Restore, filename search, status filtering, rename, logical folder-path move, and the existing secure download/upload flows.
+- A new owner-scoped `doka_audit_events` table is enabled with RLS and narrow authenticated SELECT/INSERT grants.
+- Cloudflare Worker now records upload, download, update, trash and restore events as best-effort audit side effects and exposes `GET /api/audit`.
+- Frontend now has an Activity page and production navigation entry.
+- The active cloud UI continues to keep local-only workspace/OCR operations outside the production cloud navigation.
+- Production Vercel deployment for the lifecycle UI commit `e9018eb4` is READY.
+- The repository's Phase A–E status document already records the broader existing contracts for free cloud architecture, AI privacy/consent, enterprise RBAC design, and provider-neutral storage.
+- Supabase Security Advisor was rechecked after the audit-table change. The only reported security warning remains leaked-password protection being disabled.
+- Full authenticated browser acceptance is still a release gate: a real signed-in account must exercise upload → list/search → rename/move → status update → download → trash → restore → activity, followed by a two-user isolation test.
+
+### Updated Phase gates
+
+**Phase 0 — UI/Cloud acceptance:** in progress. Code-level responsive fixes and cloud lifecycle controls are implemented; authenticated desktop/mobile browser acceptance is still required.
+
+**Phase 1 — Core Cloud DMS:** in progress. Upload/list/search/filter/status/rename/folder/trash/restore/audit are implemented. Permanent deletion, object cleanup, preview, versions, bulk actions and richer folder-tree management remain.
+
+**Phase 2 — Local pilot:** unchanged. Requires representative copied office data and Myanmar/English OCR measurements on the target machine.
+
+**Phase 3 — Cloud/local convergence:** contracts and provider-neutral storage interfaces exist; remote OCR/job execution and thin client remain.
+
+**Phase 4 — Enterprise:** RBAC/tenant-isolation design exists; production team APIs, membership lifecycle and enforcement are not active.
+
+**Phase 5 — AI/integrations:** privacy/consent design exists; production AI job pipeline and optional integrations remain gated behind explicit provider configuration and human-review controls.
+
+The project must not claim Phase 0–5 complete merely because contracts or UI components exist. Each phase closes only after its stated runtime/acceptance gate passes.
