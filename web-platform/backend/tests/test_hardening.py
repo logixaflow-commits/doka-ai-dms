@@ -20,7 +20,7 @@ import json
 # Disable config validation on import to prevent SystemExit during tests
 os.environ['SKIP_CONFIG_VALIDATION'] = 'true'
 
-from app.core.config_validator import validate_config
+from app.core.config_validator import validate_config, ThresholdConfigModel, KeywordConfigModel
 from pydantic import ValidationError
 from app.core.rate_limiter import RateLimiter
 from app.core.encryption import EncryptionManager
@@ -105,6 +105,26 @@ class TestConfigValidation:
         
         with pytest.raises(ValidationError):
             validate_config(invalid_config)
+
+
+class TestPydanticV2ConfigValidation:
+    """Regression tests for Pydantic v2 threshold and list constraints."""
+
+    def test_valid_thresholds_are_accepted(self):
+        model = ThresholdConfigModel(unknown=0.4, review=0.7, approved=0.85)
+        assert model.approved > model.review > model.unknown
+
+    def test_review_must_exceed_unknown(self):
+        with pytest.raises(ValidationError, match="review threshold must be greater"):
+            ThresholdConfigModel(unknown=0.7, review=0.6, approved=0.85)
+
+    def test_approved_must_exceed_review(self):
+        with pytest.raises(ValidationError, match="approved threshold must be greater"):
+            ThresholdConfigModel(unknown=0.4, review=0.7, approved=0.6)
+
+    def test_keyword_list_must_not_be_empty(self):
+        with pytest.raises(ValidationError):
+            KeywordConfigModel(keywords=[], category="invoice")
 
 
 class TestRateLimiter:
