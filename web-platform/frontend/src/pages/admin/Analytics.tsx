@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
@@ -11,12 +10,9 @@ import {
   TrendingUp,
   TrendingDown,
   Download,
-  Calendar,
   FileText,
   Users,
   Clock,
-  CheckCircle,
-  XCircle,
   AlertTriangle
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Filter, Download, Eye, Trash2, MoreHorizontal, RefreshCw } from 'lucide-react';
+import { Search, Eye, Trash2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
 const API_BASE = '/api';
