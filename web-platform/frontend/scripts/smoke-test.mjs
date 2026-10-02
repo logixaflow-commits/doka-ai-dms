@@ -78,6 +78,7 @@ for (const required of [
   'createCloudDocumentVersion',
   'restoreCloudDocumentVersion',
   'bulkUpdateCloudDocuments',
+  'listCloudFolders',
   'permanentlyDeleteCloudDocument',
 ]) {
   if (!cloudDocuments.includes(required)) throw new Error(`Cloud client is missing ${required}.`);
@@ -90,6 +91,7 @@ for (const required of [
   'version_create',
   'version_restore',
   'doka_bulk_update_documents',
+  '/api/folders',
 ]) {
   if (!cloudApi.includes(required)) throw new Error(`Cloud Worker is missing ${required}.`);
 }
