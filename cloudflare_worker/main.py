@@ -292,7 +292,7 @@ async def create_document(request: Request, file: UploadFile = File(...), user_i
     data = await file.read(max_bytes + 1)
     if len(data) > max_bytes:
         raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
-    filename = (file.filename or "document").replace("\\\\", "/").rsplit("/", 1)[-1].strip()
+    filename = (file.filename or "document").replace("\\", "/").rsplit("/", 1)[-1].strip()
     if (
         not filename
         or filename in {".", ".."}
@@ -310,7 +310,7 @@ async def create_document(request: Request, file: UploadFile = File(...), user_i
     bucket = quote(_bucket(request), safe="")
     object_path = quote(key, safe="/")
     token = _token_from_request(request)
-    storage_headers = _supabase_headers(request, token, file.content_type or "application/octet-stream")
+    storage_headers = _supabase_headers(request, token, content_type)
     storage_headers["x-upsert"] = "false"
     status, result = await _fetch(
         request, f"{base}/storage/v1/object/{bucket}/{object_path}",
