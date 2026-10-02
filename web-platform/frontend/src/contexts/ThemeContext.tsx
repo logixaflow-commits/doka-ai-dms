@@ -30,7 +30,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     root.classList.add(effective);
-    setEffectiveTheme(effective);
+    const frame = window.requestAnimationFrame(() => setEffectiveTheme(effective));
+    return () => window.cancelAnimationFrame(frame);
   }, [theme]);
 
   const value = {

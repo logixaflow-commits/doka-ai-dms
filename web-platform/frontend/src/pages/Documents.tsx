@@ -115,7 +115,7 @@ export default function Documents() {
   }, [currentPage, statusFilter, categoryFilter, searchQuery]);
 
   useEffect(() => {
-    void loadDocuments();
+    void Promise.resolve().then(loadDocuments);
   }, [loadDocuments]);
 
   function handleSelectDoc(id: number) {
