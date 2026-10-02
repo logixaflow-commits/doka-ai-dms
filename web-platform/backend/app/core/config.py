@@ -368,6 +368,8 @@ class Settings:
 
         if self.ENVIRONMENT == "production" and not os.getenv("SECRET_KEY"):
             raise ValueError("SECRET_KEY must be explicitly configured in production.")
+        if len(self.SECRET_KEY.encode("utf-8")) < 32:
+            raise ValueError("SECRET_KEY must contain at least 32 bytes for HS256 signing.")
         if self.BOOTSTRAP_ADMIN_PASSWORD and len(self.BOOTSTRAP_ADMIN_PASSWORD) < 12:
             raise ValueError("BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters.")
 
