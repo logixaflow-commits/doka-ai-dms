@@ -1,6 +1,9 @@
 import { getAccessToken, getCurrentUser, refreshSession } from './supabaseAuth';
 
-const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
+// Keep local Vite development on the local API proxy. Production uses the
+// verified Cloudflare Worker unless an environment-specific origin overrides it.
+const defaultApiBase = import.meta.env.DEV ? '' : 'https://doka.logixaflow.workers.dev';
+const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || defaultApiBase).trim();
 const API_BASE_URL = configuredApiBase.endsWith('/')
   ? configuredApiBase.slice(0, -1)
   : configuredApiBase;
