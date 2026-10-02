@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   getCloudDocumentDownloadUrl, listCloudDocuments, renameCloudDocument,
-  restoreCloudDocument, trashCloudDocument, updateCloudDocument,
+  moveCloudDocument, restoreCloudDocument, trashCloudDocument, updateCloudDocument,
   uploadCloudDocument, type CloudDocument,
 } from '@/lib/cloudDocuments';
 
@@ -162,6 +162,23 @@ export default function CloudDocuments() {
     }
   }
 
+  async function moveToFolder(item: CloudDocument) {
+    const next = window.prompt('Enter a folder path (for example /Finance/Invoices)', item.folder_path || '/');
+    if (next === null) return;
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const result = await moveCloudDocument(item.id, next);
+      setDocuments(current => current.map(row => row.id === item.id ? result.document : row));
+      setMessage(`Moved “${item.filename}” to ${result.document.folder_path}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to move document.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function moveToTrash(item: CloudDocument) {
     if (!window.confirm(`Move “${item.filename}” to Trash? You can restore it later.`)) return;
     setBusy(true);
@@ -251,7 +268,7 @@ export default function CloudDocuments() {
               <div className="divide-y divide-border/70">{documents.map(item => <div key={item.id} className="flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div className="flex min-w-0 items-start gap-3"><span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"><File className="h-5 w-5" /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="break-all text-sm font-medium">{item.filename}</p><Badge variant="outline" className="capitalize">{item.status}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{formatSize(item.size_bytes)} · {item.content_type} · {formatDate(item.created_at)}</p><p className="mt-1 text-xs text-muted-foreground">Folder: <span className="font-mono">{item.folder_path || '/'}</span></p><p className="mt-1 break-all font-mono text-[10px] text-muted-foreground/80">SHA-256 · {item.sha256}</p></div></div>
                 <div className="flex flex-wrap items-center gap-2 pl-[52px] sm:justify-end sm:pl-0">
-                  {!trashView && <><select aria-label={`Status for ${item.filename}`} className="h-9 min-w-28 rounded-lg border border-input bg-background px-2 text-xs" value={item.status} disabled={busy} onChange={event => void changeStatus(item, event.target.value as CloudDocument['status'])}><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select><Button size="sm" variant="ghost" onClick={() => void rename(item)} disabled={busy} className="h-9 rounded-lg" aria-label={`Rename ${item.filename}`}><Pencil className="h-4 w-4" /><span className="ml-1 hidden md:inline">Rename</span></Button><Button size="sm" variant="outline" onClick={() => void download(item)} disabled={busy} className="h-9 rounded-lg"><ArrowDownToLine className="mr-2 h-4 w-4" />Download</Button><Button size="icon" variant="ghost" onClick={() => void moveToTrash(item)} disabled={busy} className="h-9 w-9 rounded-lg text-rose-600 hover:bg-rose-50 hover:text-rose-700" aria-label={`Move ${item.filename} to Trash`}><Trash2 className="h-4 w-4" /></Button></>}
+                  {!trashView && <><select aria-label={`Status for ${item.filename}`} className="h-9 min-w-28 rounded-lg border border-input bg-background px-2 text-xs" value={item.status} disabled={busy} onChange={event => void changeStatus(item, event.target.value as CloudDocument['status'])}><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select><Button size="sm" variant="ghost" onClick={() => void rename(item)} disabled={busy} className="h-9 rounded-lg" aria-label={`Rename ${item.filename}`}><Pencil className="h-4 w-4" /><span className="ml-1 hidden md:inline">Rename</span></Button><Button size="sm" variant="ghost" onClick={() => void moveToFolder(item)} disabled={busy} className="h-9 rounded-lg">Move</Button><Button size="sm" variant="outline" onClick={() => void download(item)} disabled={busy} className="h-9 rounded-lg"><ArrowDownToLine className="mr-2 h-4 w-4" />Download</Button><Button size="icon" variant="ghost" onClick={() => void moveToTrash(item)} disabled={busy} className="h-9 w-9 rounded-lg text-rose-600 hover:bg-rose-50 hover:text-rose-700" aria-label={`Move ${item.filename} to Trash`}><Trash2 className="h-4 w-4" /></Button></>}
                   {trashView && <Button size="sm" variant="outline" onClick={() => void restore(item)} disabled={busy} className="h-9 rounded-lg"><Undo2 className="mr-2 h-4 w-4" />Restore</Button>}
                 </div>
               </div>)}</div>
