@@ -292,8 +292,20 @@ async def create_document(request: Request, file: UploadFile = File(...), user_i
     data = await file.read(max_bytes + 1)
     if len(data) > max_bytes:
         raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
+    filename = (file.filename or "document").replace("\\\\", "/").rsplit("/", 1)[-1].strip()
+    if (
+        not filename
+        or filename in {".", ".."}
+        or len(filename) > 255
+        or any(ord(character) < 32 or ord(character) == 127 for character in filename)
+        or any(character in '<>:"|?*' for character in filename)
+    ):
+        raise HTTPException(status_code=400, detail="Filename must be a plain file name up to 255 characters.")
+    content_type = (file.content_type or "application/octet-stream").split(";", 1)[0].strip().lower() or "application/octet-stream"
+    if len(content_type) > 255 or "/" not in content_type:
+        raise HTTPException(status_code=400, detail="Invalid content type.")
     digest = hashlib.sha256(data).hexdigest()
-    key = _object_key(user_id, digest, file.filename or "document")
+    key = _object_key(user_id, digest, filename)
     base = _base(request)
     bucket = quote(_bucket(request), safe="")
     object_path = quote(key, safe="/")
@@ -309,8 +321,8 @@ async def create_document(request: Request, file: UploadFile = File(...), user_i
     record = {
         "owner_id": user_id,
         "object_key": key,
-        "filename": file.filename or "document",
-        "content_type": file.content_type or "application/octet-stream",
+        "filename": filename,
+        "content_type": content_type,
         "size_bytes": len(data),
         "sha256": digest,
         "status": "active",

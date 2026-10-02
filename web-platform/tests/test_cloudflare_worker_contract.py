@@ -139,3 +139,13 @@ VERSION_HISTORY_ACL_MIGRATION = (
 def test_version_history_cannot_be_deleted_directly_by_authenticated_users():
     assert "revoke delete on table public.doka_document_versions from authenticated" in VERSION_HISTORY_ACL_MIGRATION
     assert "drop policy if exists doka_versions_owner_delete" in VERSION_HISTORY_ACL_MIGRATION
+
+
+def test_worker_document_upload_validates_filename_and_content_type():
+    assert '@app.post("/api/documents")' in WORKER_SOURCE
+    assert 'Filename must be a plain file name up to 255 characters.' in WORKER_SOURCE
+    assert 'Invalid content type.' in WORKER_SOURCE
+    assert 'any(ord(character) < 32 or ord(character) == 127 for character in filename)' in WORKER_SOURCE
+    assert 'len(content_type) > 255 or "/" not in content_type' in WORKER_SOURCE
+    assert '"filename": filename' in WORKER_SOURCE
+    assert '"content_type": content_type' in WORKER_SOURCE
