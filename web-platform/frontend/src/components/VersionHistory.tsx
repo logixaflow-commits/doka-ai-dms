@@ -42,7 +42,19 @@ export default function VersionHistory({ documentId }: VersionHistoryProps) {
 
         const data = await response.json();
         const rows = Array.isArray(data) ? data : data.versions;
-        if (active) setVersions(Array.isArray(rows) ? rows : []);
+        const mapped: DocumentVersion[] = Array.isArray(rows)
+          ? rows.map((row: Record<string, unknown>, index: number) => ({
+              id: String(row.id ?? `version-${index}`),
+              version: Number(row.version_no ?? row.version ?? rows.length - index),
+              fileName: String(row.filename ?? row.fileName ?? documentName),
+              fileSize: Number(row.size_bytes ?? row.fileSize ?? 0),
+              uploadedBy: String(row.uploaded_by ?? row.uploadedBy ?? "You"),
+              uploadedAt: new Date(String(row.created_at ?? row.uploadedAt ?? Date.now())),
+              changes: String(row.changes ?? "Saved document version"),
+              isCurrent: false,
+            }))
+          : [];
+        if (active) setVersions(mapped);
       } catch {
         if (active) setVersions(generateMockVersions());
       }
@@ -52,7 +64,7 @@ export default function VersionHistory({ documentId }: VersionHistoryProps) {
     return () => {
       active = false;
     };
-  }, [documentId]);
+  }, [documentId, documentName]);
 
   const handleRestoreVersion = async (versionId: string) => {
     setLoading(true);
@@ -134,6 +146,7 @@ export default function VersionHistory({ documentId }: VersionHistoryProps) {
           <History className="w-5 h-5" />
           Version History
         </CardTitle>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{documentName}</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {versions.length === 0 ? (
