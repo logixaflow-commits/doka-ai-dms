@@ -197,6 +197,28 @@ def _token_from_request(request) -> str:
     value = request.headers.get("authorization", "")
     return value[7:].strip() if value.lower().startswith("bearer ") else ""
 
+async def _audit(request, user_id: str, action: str, document_id: str | None = None, filename: str | None = None, metadata: dict | None = None) -> None:
+    """Best-effort owner-scoped audit event; never breaks the primary document action."""
+    try:
+        base = _base(request)
+        token = _token_from_request(request)
+        payload = {
+            "owner_id": user_id,
+            "document_id": document_id,
+            "action": action,
+            "filename": filename,
+            "metadata": metadata or {},
+        }
+        await _fetch(
+            request,
+            f"{base}/rest/v1/doka_audit_events",
+            method="POST",
+            headers={**_supabase_headers(request, token, "application/json"), "Prefer": "return=minimal"},
+            body=json.dumps(payload),
+        )
+    except Exception:
+        pass
+
 
 @app.post("/api/documents")
 async def create_document(request: Request, file: UploadFile = File(...), user_id: str = Depends(require_user)):
@@ -275,6 +297,7 @@ async def document_download(request: Request, document_id: str, user_id: str = D
         raise HTTPException(status_code=503, detail="Supabase Storage did not return a signed URL.")
     if not str(signed).startswith("http"):
         signed = f"{base}/storage/v1{signed}"
+    await _audit(request, user_id, "download", str(target.get("id")), None, {"sha256": target.get("sha256", "")})
     return {"url": signed, "sha256": target.get("sha256", ""), "expires_seconds": 300}
 
 
@@ -312,9 +335,11 @@ async def _update_document_fields(request: Request, document_id: str, user_id: s
 
 @app.delete("/api/documents/{document_id}")
 async def trash_document(request: Request, document_id: str, user_id: str = Depends(require_user)):
-    return await _update_document_fields(
+    result = await _update_document_fields(
         request, document_id, user_id, {"deleted_at": datetime.now(timezone.utc).isoformat()}
     )
+    await _audit(request, user_id, "trash", document_id, result["document"].get("filename"))
+    return result
 
 
 @app.post("/api/documents/{document_id}/restore")
@@ -332,6 +357,7 @@ async def restore_document(request: Request, document_id: str, user_id: str = De
         raise HTTPException(status_code=503, detail=f"Document restore failed ({status}).")
     if not isinstance(rows, list) or not rows:
         raise HTTPException(status_code=404, detail="Trashed document not found.")
+    await _audit(request, user_id, "restore", document_id, rows[0].get("filename"))
     return {"document": rows[0]}
 
 
