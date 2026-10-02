@@ -447,3 +447,12 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Added sequential multi-file upload queue with 50 MiB per-file checks, per-file queued/uploading/complete/failed states and retry of failed items. Byte-level progress and resumable chunk upload remain open.
 - Added Vercel production deploy workflow using a pinned CLI and the existing project/team IDs. The workflow ran successfully but skipped deployment because the GitHub Actions `VERCEL_TOKEN` secret is not configured; production still needs that secret before new frontend code can be published automatically.
 - Cloudflare Worker deployment for the latest folder/bulk/version API changes is queued; only mark these APIs production-live after the build reaches success and 100% traffic is confirmed.
+
+
+### Latest runtime rollout — 2026-10-02 09:48 UTC
+
+- Cloudflare Worker version `99f174d7-b228-4746-900d-210a6816de53` (version number 87) is receiving 100% traffic. This version was uploaded after the folder-listing, atomic bulk and version-audit Worker changes were committed.
+- Supabase schema/function checks confirm the version table, owner-scoped RLS policies and RPC permissions. `anon` cannot execute the version or bulk RPCs; authenticated users can execute only the intended functions. Bulk updates rely on column-level grants and RLS.
+- GitHub Actions `Doka Quality Checks` passed on commit `5ad3efa7`, including backend regression tests and frontend build/smoke tests. Local Core Checks passed on commit `0807b5c3`.
+- Vercel deployment remains blocked only by the missing GitHub Actions secret `VERCEL_TOKEN`. The new deploy workflow is configured and skips safely when that secret is absent. The production bundle therefore still does not contain the Version history UI or the latest folder/batch controls.
+- Supabase Security Advisor still reports the intentional authenticated `SECURITY DEFINER` version RPCs and disabled leaked-password protection. The version RPCs explicitly validate `auth.uid()`, owner and user-scoped object paths; the warning is retained for review. The bulk RPC is SECURITY INVOKER.
