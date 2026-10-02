@@ -1,0 +1,105 @@
+# Doka Cloud API Contract
+
+Version: 1.1  
+Runtime: Cloudflare Python Worker + Supabase Auth/Postgres/Storage  
+Base URL: `https://doka.logixaflow.workers.dev`
+
+This document is the source-of-truth contract for the Personal Cloud API. Every endpoint requires a valid Supabase access token unless marked public. Supabase RLS and private Storage policies remain the final ownership boundary; the Worker also filters by the verified user ID. Never use the service-role key in this API.
+
+## Common behavior
+
+- JSON responses use UTF-8.
+- Authenticated endpoints accept `Authorization: Bearer <Supabase access token>`.
+- Invalid/expired token: HTTP 401.
+- Missing runtime configuration: HTTP 503.
+- Document identifiers are UUIDs.
+- The maximum object size is 50 MiB.
+- SHA-256 is calculated by the Worker from uploaded bytes.
+- Storage objects are private and scoped below `users/{auth.uid()}/documents/`.
+- List operations return only active (non-trashed) documents unless `trash=true`.
+- Soft-deleted documents cannot be downloaded or modified until restored.
+- Error response shape: `{"detail":"Human-readable message"}`.
+
+## Endpoints
+
+### `GET /health` — public
+
+Returns Worker health and edition metadata.
+
+### `GET /api/config` — public
+
+Returns runtime readiness booleans only. It must never return keys or tokens.
+
+### `GET /api/documents` — authenticated
+
+Query parameters:
+
+| Name | Type | Default | Validation |
+|---|---|---|---|
+| `limit` | integer | 100 | 1–500 |
+| `offset` | integer | 0 | >= 0 |
+| `search` | string | omitted | max 200 chars; filename contains match |
+| `status` | enum | omitted | active, review, quarantined, archived |
+| `trash` | boolean | false | false = active library; true = trash |
+| `folder_path` | string | omitted | normalized absolute path, max 512 chars |
+
+Response: `{"documents": CloudDocument[]}`.
+
+### `POST /api/documents` — authenticated
+
+Multipart form field: `file`.
+
+The Worker rejects files larger than 50 MiB, computes SHA-256, uploads to private Storage without overwrite, then creates owner-scoped metadata. If metadata creation fails, it attempts to clean up the newly uploaded object.
+
+Response: `{"document": CloudDocument}`.
+
+### `GET /api/documents/{id}/download` — authenticated
+
+Returns a short-lived signed URL (300 seconds) and SHA-256. The Worker verifies ownership and rejects trashed documents before creating the signed URL.
+
+Response: `{"url": string, "sha256": string, "expires_seconds": 300}`.
+
+### `PATCH /api/documents/{id}` — authenticated
+
+Supported fields:
+
+- `status`: active, review, quarantined, archived
+- `metadata`: JSON object
+- `filename`: plain filename, 1–255 chars; path separators and NUL rejected
+- `folder_path`: normalized path such as `/` or `/Finance/Invoices`; traversal segments rejected
+
+At least one field is required. The Worker scopes the update to the authenticated owner and non-trashed document. Database column privileges restrict writes to the approved fields.
+
+Response: `{"document": CloudDocument}`.
+
+### `DELETE /api/documents/{id}` — authenticated
+
+Moves a document into Trash by setting `deleted_at`. The object is retained in private Storage so the user can restore it. This is not permanent deletion.
+
+Response: `{"document": CloudDocument}`.
+
+### `POST /api/documents/{id}/restore` — authenticated
+
+Restores a trashed document by clearing `deleted_at`. Only the owning user can restore it.
+
+Response: `{"document": CloudDocument}`.
+
+## Canonical document schema
+
+See `shared/contracts/cloud-document.schema.json`.
+
+## Implemented vs planned contract surface
+
+Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, status/metadata/rename/folder-path update, trash, restore.
+
+Planned (do not render as enabled UI until implemented and tested): permanent deletion with object cleanup, document preview, version creation/list/restore, folder tree CRUD, bulk actions, OCR jobs, audit events, organization/team access and AI jobs.
+
+## Security invariants
+
+- Every authenticated request resolves the user from Supabase Auth; never trust an owner ID from the browser.
+- RLS and Storage path policies must continue to enforce owner boundaries.
+- Do not expose service-role credentials to the browser or Worker runtime unless a future reviewed server-side use case requires them; the current design uses the user's access token.
+- A trashed document is excluded from normal listing and download.
+- Folder paths are labels/organization metadata, not filesystem paths.
+- Filename/folder updates cannot change owner ID, storage object key, SHA-256 or object bytes.
+- New endpoint = contract + RLS/authorization test + frontend state + regression test + docs.
