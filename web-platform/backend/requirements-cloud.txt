@@ -1,0 +1,11 @@
+# Minimal dependencies for the stateless Supabase-backed Cloud API.
+# The local Personal Edition keeps using requirements-local.txt.
+fastapi>=0.141.1,<1.0
+uvicorn[standard]>=0.54.0,<1.0
+python-multipart>=0.0.32,<1.0
+python-dotenv>=1.2.3,<2.0
+PyYAML>=6.0.3,<7.0
+loguru>=0.7.3,<1.0
+python-jose[cryptography]>=3.5.0,<4.0
+httpx>=0.28.1,<1.0
+boto3>=1.43.103,<2.0
