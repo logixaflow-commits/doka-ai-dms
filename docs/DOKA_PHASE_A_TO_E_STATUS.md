@@ -226,3 +226,12 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - GitHub Actions `Doka Quality Checks` passed on commit `5ad3efa7`, including backend regression tests and frontend build/smoke tests. Local Core Checks passed on commit `0807b5c3`.
 - Vercel production deployment `dpl_94Z3TeFYrkfxTZo7XBhziJ2FGSoQ` (commit `1b6ac3a5`) is READY. Its production JavaScript bundle was checked and contains Version history, safe preview, folder filtering and atomic bulk actions. It does not yet contain the later batch upload queue. The GitHub Actions deploy workflow skips without `VERCEL_TOKEN`; add that secret and manually run the workflow to publish the newest frontend commit.
 - Supabase Security Advisor still reports the intentional authenticated `SECURITY DEFINER` version RPCs and disabled leaked-password protection. The version RPCs explicitly validate `auth.uid()`, owner and user-scoped object paths; the warning is retained for review. The bulk RPC is SECURITY INVOKER.
+
+
+### Phase 2 OCR benchmark foundation — 2026-10-02
+
+- Added `web-platform/backend/app/services/ocr_benchmark.py` and `scripts/ocr_benchmark.py` to calculate CER/WER on copied Myanmar/English PDF/image samples.
+- Sample paths must be relative and symlink-free; traversal is rejected. Reports must be written outside the sample root.
+- Reports contain sample IDs, metrics and aggregate language scores only; recognized and reference text are excluded.
+- Added regression tests for Unicode normalization, Levenshtein scoring, path safety and report privacy.
+- Phase 2 remains open until representative local sample data is supplied, OCR is run on the target machine, and manual accuracy thresholds are accepted.
