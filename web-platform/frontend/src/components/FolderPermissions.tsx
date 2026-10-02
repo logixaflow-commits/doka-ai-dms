@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import {
   Select,
   SelectContent,
@@ -13,18 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Folder, 
-  User, 
-  Shield, 
-  Lock, 
-  Unlock, 
-  Plus, 
-  Trash2, 
-  RefreshCw,
-  AlertCircle,
-  CheckCircle
-} from 'lucide-react';
+import { Folder, User, Shield, Plus, Trash2, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 
 const API_BASE = '/api';
 
