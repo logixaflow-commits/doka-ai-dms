@@ -391,5 +391,5 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Database DELETE is separately constrained by an owner-only RLS policy requiring `deleted_at IS NOT NULL`; normal active documents cannot be deleted through this privilege.
 - Permanent deletion requires an explicit browser confirmation and is recorded as a `permanent_delete` audit event; the original document UUID is retained in event metadata after the document row is removed.
 - The live Supabase migration was applied and its DELETE grant, restrictive RLS predicate and audit action constraint were verified.
-- Remaining Phase 1 items: version creation/list/restore, safe preview, bulk operations, richer folder tree and batch upload progress/retry.
+- Remaining Phase 1 items: version creation/list/restore, safe preview, atomic server-side batch APIs, richer folder tree and batch upload progress/retry. Basic bulk status and move-to-Trash actions now exist in the UI using per-document authenticated requests; they are not atomic.
 - Authenticated browser tests and two-user isolation remain mandatory release gates; code deployment alone does not close Phase 0/1.
