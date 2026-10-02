@@ -205,6 +205,8 @@ class Settings:
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
         self.GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
         self.AI_ENABLED = os.getenv("AI_ENABLED", "false").lower() == "true"
+        # External providers may receive document text; require separate explicit consent.
+        self.AI_EXTERNAL_PROCESSING_CONSENT = os.getenv("AI_EXTERNAL_PROCESSING_CONSENT", "false").lower() == "true"
         self.AI_ENHANCED_DUPLICATE_DETECTION = os.getenv("AI_ENHANCED_DUPLICATE_DETECTION", "false").lower() == "true"
         self.AI_CLASSIFICATION_ENABLED = os.getenv("AI_CLASSIFICATION_ENABLED", "false").lower() == "true"
         self.AI_PROVIDER_ORDER = [
