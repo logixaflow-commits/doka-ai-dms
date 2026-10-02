@@ -67,11 +67,11 @@ Key deployed services:
 |---|---|---|
 | `/login` | Login | Supabase sign-in/sign-up entry |
 | `/admin/dashboard` | PersonalDashboard | Cloud health/config check, document counts/size, recent documents, download shortcut |
-| `/admin/cloud-documents` | CloudDocuments | Upload, search/filter/paginate, rename, logical folder move, status update, preview, download, Trash/Restore/permanent delete, bulk status/Trash, version history/create/restore |
+| `/admin/cloud-documents` | CloudDocuments | Upload, search/filter/paginate, rename, logical folder move, status update, preview, download, Trash/Restore/permanent delete, bulk status/Trash, version history/create/restore, batch upload queue/retry |
 | `/admin/activity` | CloudAudit | Owner-scoped upload/download/preview/update/trash/restore/permanent-delete/version activity |
 | `/admin/workspace` | WorkspaceReview | Local workspace route; development/local boundary only, not a hosted cloud workspace |
 
-The active router in `web-platform/frontend/src/App.tsx` currently mounts only these authenticated application pages. The production sidebar currently exposes Overview and Cloud documents; local workspace is intentionally hidden in production.
+The active router in `web-platform/frontend/src/App.tsx` currently mounts only these authenticated application pages. The production sidebar exposes Overview, Cloud documents and Activity; local workspace is intentionally hidden in production.
 
 ### 4.2 Cloud API actually deployed to Cloudflare
 
@@ -81,7 +81,7 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 | `GET /api/config` | Edition and readiness flags | Dashboard |
 | `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |
 | `GET /api/folders` | Owner-scoped distinct logical folder paths | Cloud Documents |
-| `POST /api/documents` | Authenticated upload | Cloud Documents |
+| `POST /api/documents` | Authenticated upload | Cloud Documents |\n| `POST /api/documents/bulk` | Atomic owner-scoped bulk status/Trash for up to 100 documents | Cloud Documents |
 | `PATCH /api/documents/{id}` | Status, metadata, rename and folder-path update | Cloud Documents |
 | `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |
 | `GET /api/documents/{id}/preview` | Five-minute signed URL for passive allowlisted formats only | Cloud Documents |
@@ -93,7 +93,7 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 | `DELETE /api/documents/{id}` | Recoverable Trash (soft delete) | Cloud Documents |
 | `POST /api/documents/{id}/restore` | Restore from Trash | Cloud Documents |
 
-Cloud UI/API parity for list/search/filter/pagination, upload, safe preview, download, status/metadata/rename/folder-path update, Trash/Restore/permanent deletion, version history/create/restore, bulk status/Trash and Activity is present at code level. The current frontend/Worker commits are being deployed; real authenticated end-to-end validation remains a release gate. A successful signed-in upload, update, download, and cross-user isolation test has **not** yet been completed in a real browser session.
+Cloud UI/API parity for list/search/filter/pagination, upload, safe preview, download, status/metadata/rename/folder-path update, Trash/Restore/permanent deletion, version history/create/restore, atomic bulk status/Trash and Activity is present at code level. Cloudflare Worker version 87 is deployed at 100% traffic. Vercel production deployment `dpl_94Z3TeFYrkfxTZo7XBhziJ2FGSoQ` is READY and includes version history, preview, folder filtering and atomic bulk controls; the later batch-upload queue source commit is not yet deployed. The Vercel Actions deploy workflow requires the `VERCEL_TOKEN` secret. Real authenticated end-to-end validation remains a release gate. A successful signed-in upload, update, download, and cross-user isolation test has **not** yet been completed in a real browser session.
 
 ### 4.3 Supabase foundation
 
@@ -165,7 +165,7 @@ These must not be mistaken for production-ready cloud pages:
 - Safe preview and download: short-lived signed URLs, with preview MIME allowlist.
 - Trash, restore and confirmed permanent deletion with Storage cleanup.
 - Version history, replacement upload and atomic restore via owner-checked database functions.
-- Bulk status and Trash: single owner-scoped atomic database transaction for up to 100 documents.
+- Bulk status and Trash: single owner-scoped atomic database transaction for up to 100 documents.\n- Batch upload queue: sequential per-file queue with status and retry is implemented in source; the current production bundle still awaits the next Vercel deployment.
 - Activity: owner-scoped audit listing.
 - Account isolation: enforced in Supabase RLS/Storage policies; real two-user E2E is still pending.
 
