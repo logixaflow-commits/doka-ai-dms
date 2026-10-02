@@ -58,7 +58,7 @@ VERSION_RPC_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "supabase"
     / "migrations"
-    / "20261002095530_doka_harden_version_rpc_guards.sql"
+    / "20261002101000_doka_version_rpc_final_hardening.sql"
 ).read_text(encoding="utf-8")
 
 
@@ -68,6 +68,10 @@ def test_version_rpc_privilege_boundary_and_input_guards_are_explicit():
     assert VERSION_RPC_MIGRATION.count("if auth.uid() is null") == 2
     assert "p_object_key is null" in VERSION_RPC_MIGRATION
     assert "chosen.object_key is null" in VERSION_RPC_MIGRATION
+    assert "p_object_key not like 'users/' || auth.uid()::text || '/documents/' || p_sha256 || '/%'" in VERSION_RPC_MIGRATION
+    assert "chosen.object_key not like 'users/' || auth.uid()::text || '/documents/' || chosen.sha256 || '/%'" in VERSION_RPC_MIGRATION
+    assert "position('/' in p_filename) > 0" in VERSION_RPC_MIGRATION
+    assert "position('/' in p_content_type) = 0" in VERSION_RPC_MIGRATION
     assert VERSION_RPC_MIGRATION.count("owner_id = auth.uid()") >= 2
     assert "from public, anon" in VERSION_RPC_MIGRATION
     assert "to authenticated" in VERSION_RPC_MIGRATION
