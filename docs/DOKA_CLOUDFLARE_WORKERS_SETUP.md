@@ -12,7 +12,7 @@ the repository root as the Root directory.
 
 On the Cloudflare "Set up your application" screen:
 
-- **Build command:** `uv run pywrangler deploy`
+- **Build command:** Leave blank (no separate compile step is needed).
 - **Enable Preview builds:** Off for the initial production setup.
 - **Protect with Cloudflare Access:** Off. The API authenticates each request
   with the user's Supabase access token; Access would add a second interactive
@@ -22,6 +22,13 @@ On the Cloudflare "Set up your application" screen:
 
 The Wrangler configuration sets the Worker name to `doka-cloud-api`, uses
 Python Workers, and points to `cloudflare_worker/main.py`.
+
+## Workers Builds deploy command
+
+After the Worker project is created, open **Settings → Builds** and set
+**Deploy command** to `uv run pywrangler deploy`. This is important: Cloudflare
+Workers Builds defaults to `npx wrangler deploy`, which does not prepare and
+bundle Python dependencies through Pywrangler. Keep the Build command blank.
 
 ## Required Worker variables
 
