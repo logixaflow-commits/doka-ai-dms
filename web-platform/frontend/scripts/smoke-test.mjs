@@ -52,3 +52,22 @@ for (const required of ['uploadCloudDocument', 'listCloudDocuments', 'getCloudDo
   if (!cloudPage.includes(required)) throw new Error(`Cloud Documents UI is missing ${required}.`);
 }
 console.log('Cloud Documents UI route smoke test passed.');
+
+const cloudApi = fs.readFileSync(path.resolve('../../cloudflare_worker/main.py'), 'utf8');
+for (const required of [
+  'search: str | None',
+  'deleted_at=is.null',
+  'async def trash_document',
+  'async def restore_document',
+  'async def _normalize_folder_path',
+  'filename: str | None',
+]) {
+  if (!cloudApi.includes(required)) throw new Error(`Cloud API lifecycle feature is missing: ${required}`);
+}
+for (const required of ['trashCloudDocument', 'restoreCloudDocument', 'renameCloudDocument']) {
+  if (!cloudDocuments.includes(required)) throw new Error(`Cloud frontend client is missing ${required}.`);
+}
+if (!cloudPage.includes('Trash') || !cloudPage.includes('Search file names') || !cloudPage.includes('Load more documents')) {
+  throw new Error('Cloud document search, pagination or trash UI is missing.');
+}
+console.log('Cloud library lifecycle smoke test passed.');
