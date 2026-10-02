@@ -146,3 +146,15 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Local Core Checks passed on 36c14a39 and the documentation-only follow-up f459c11.
 - Vercel production deployment dpl_AGL7K8ejPDYx1rj9bZ6fWAHMMRhB is READY. Cloudflare Worker build 9ab06efb-f44a-41e6-bc85-9345937d46a7 completed successfully.
 - Remaining blockers: eight npm audit findings, Supabase leaked-password protection warning, authenticated cloud E2E/two-user isolation, real-office OCR pilot, and not-yet-implemented enterprise APIs.
+
+
+### Current cloud delivery update — 2026-10-02 (latest pass)
+
+- Cloud API now includes owner-scoped permanent deletion for trashed documents only. The Worker deletes the current Storage object and any registered version objects before deleting metadata; Storage cleanup failure retains metadata.
+- Supabase DELETE privilege is protected by an RLS predicate requiring both `auth.uid() = owner_id` and `deleted_at IS NOT NULL`. The migration history now records `doka_permanent_delete` and `doka_audit_events`; migration files use matching applied versions and are replay-order safe.
+- Audit actions now include `permanent_delete`; the original document UUID is retained in audit metadata after document metadata is removed.
+- Cloud Documents UI now supports confirmed permanent removal from Trash, bulk status changes and bulk move-to-Trash. Bulk operations currently issue individual authenticated requests and are not atomic.
+- CI passed on the cloud UI code commit `c02599bc` (Doka Quality Checks and Local Core Checks). The later migration/documentation commits are being checked by Local Core Checks.
+- Vercel production deployment for UI commit `c02599bc` reached READY. Cloudflare Worker build for backend commit `e9125d30` completed successfully and a new Worker version received 100% traffic.
+- Supabase Security Advisor still reports leaked-password protection disabled. Performance Advisor reports five unused indexes; retain them while the tables are small and re-evaluate with representative workload before removing indexes.
+- Still open: version creation/list/restore, safe preview, folder tree, batch upload queue/retry, authenticated lifecycle browser test, two-user isolation test, local OCR pilot, production team APIs and production AI workflow.
