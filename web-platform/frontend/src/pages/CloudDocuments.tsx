@@ -270,10 +270,10 @@ export default function CloudDocuments() {
     try {
       const nextName = editName.trim();
       const nextFolder = editFolder.trim() || '/';
-      if (!nextName || nextName.length > 255 || nextName.includes('/') || nextName.includes('\\\\') || nextName.includes('\\0')) {
+      if (!nextName || nextName.length > 255 || nextName.includes('/') || nextName.includes('\\\\')) {
         throw new Error('Enter a valid file name (maximum 255 characters).');
       }
-      if (!nextFolder || nextFolder.includes('\\\\') || nextFolder.includes('\\0')) {
+      if (!nextFolder || nextFolder.includes('\\\\')) {
         throw new Error('Enter a valid folder path.');
       }
       // Apply both metadata fields in one PATCH to avoid racing two updates
