@@ -178,3 +178,11 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added UI history dialog, version upload, SHA-256/date/size display and confirmed restore.
 - Added audit actions for version creation and restore.
 - Remaining Phase 1 tasks are atomic bulk APIs, richer folder-tree management and batch upload progress/retry.
+
+
+### Deployment verification — 2026-10-02 09:33 UTC
+
+- Cloudflare Worker build for repository commit `1c9a8287` completed successfully and a new Worker deployment version is receiving 100% traffic. This includes the version history/create/restore API.
+- Vercel production currently resolves to deployment commit `77be1bd0` (READY). The production JavaScript bundle contains bulk actions and safe preview, but does not yet contain the newly added Version history UI.
+- Latest frontend source is committed and CI is passing; Vercel has not created a deployment for the subsequent frontend commits yet. Do not describe version controls as live in the production browser until the Vercel deployment is updated and the production bundle is rechecked.
+- Authenticated end-to-end tests and two-user isolation remain open because no real signed-in test session is available in this run.
