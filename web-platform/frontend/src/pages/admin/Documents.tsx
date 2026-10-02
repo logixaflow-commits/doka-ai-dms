@@ -259,6 +259,10 @@ export default function DocumentManagement() {
     return matchesSearch;
   });
 
+  useEffect(() => {
+    void loadDocuments();
+  }, [loadDocuments, uploadComplete]);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -268,10 +272,6 @@ export default function DocumentManagement() {
     );
   );
   }
-
-  useEffect(() => {
-    void loadDocuments();
-  }, [loadDocuments, uploadComplete]);
 
   return (
     <div className="space-y-6">
