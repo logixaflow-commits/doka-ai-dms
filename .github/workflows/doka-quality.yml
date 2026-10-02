@@ -99,7 +99,16 @@ jobs:
             echo "No dependency lockfile changes to commit."
           else
             git commit -m "fix(deps): remediate frontend npm advisories"
-            git push origin HEAD:main
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "Could not push the verified lockfile after three fetch/rebase attempts." >&2
+            exit 1
           fi
       - name: Upload dependency and lint reports
         if: always()
