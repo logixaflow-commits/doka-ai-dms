@@ -10,6 +10,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
+from typing import Literal
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
@@ -125,6 +126,12 @@ class DocumentUpdate(BaseModel):
     folder_path: str | None = Field(default=None, max_length=512)
 
 
+class BulkDocumentAction(BaseModel):
+    document_ids: list[str] = Field(min_length=1, max_length=100)
+    action: Literal["status", "trash"]
+    status: Literal["active", "review", "quarantined", "archived"] | None = None
+
+
 @app.get("/health")
 async def health():
     return {"status": "healthy", "edition": "cloudflare-workers", "timestamp": datetime.now(timezone.utc).isoformat()}
@@ -160,6 +167,31 @@ async def list_audit(
     if status >= 300:
         raise HTTPException(status_code=503, detail=f"Audit listing failed ({status}).")
     return {"events": rows if isinstance(rows, list) else []}
+
+
+@app.post("/api/documents/bulk")
+async def bulk_update_documents(request: Request, action: BulkDocumentAction, user_id: str = Depends(require_user)):
+    if len(set(action.document_ids)) != len(action.document_ids):
+        raise HTTPException(status_code=400, detail="Duplicate document IDs are not allowed.")
+    if action.action == "status" and action.status is None:
+        raise HTTPException(status_code=400, detail="A status is required for a bulk status update.")
+    token = _token_from_request(request)
+    payload = {
+        "p_document_ids": action.document_ids,
+        "p_action": action.action,
+        "p_status": action.status,
+    }
+    status, rows = await _fetch(
+        request, f"{_base(request)}/rest/v1/rpc/doka_bulk_update_documents",
+        method="POST",
+        headers=_supabase_headers(request, token, "application/json"),
+        body=json.dumps(payload),
+    )
+    if status == 404:
+        raise HTTPException(status_code=404, detail="One or more documents are unavailable.")
+    if status >= 300 or not isinstance(rows, list):
+        raise HTTPException(status_code=400, detail=f"Bulk document action failed ({status}).")
+    return {"documents": rows, "updated_count": len(rows)}
 
 
 @app.get("/api/documents")
