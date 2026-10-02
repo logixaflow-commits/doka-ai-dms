@@ -109,7 +109,7 @@ def test_worker_version_upload_validates_filename_and_content_type():
 
 def test_worker_route_method_and_path_pairs_are_unique():
     route_pairs = re.findall(
-        r'@app\\.(get|post|patch|delete|put)\\("([^"]+)"',
+        r'@app\.(get|post|patch|delete|put)\("([^"]+)"',
         WORKER_SOURCE,
     )
     assert len(route_pairs) == len(set(route_pairs))
