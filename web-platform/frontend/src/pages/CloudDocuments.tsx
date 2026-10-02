@@ -138,6 +138,7 @@ export default function CloudDocuments() {
       const result = await updateCloudDocument(item.id, { status });
       setDocuments(current => current.map(row => row.id === item.id ? result.document : row));
       setMessage(`Status updated for “${item.filename}”.`);
+      if (statusFilter !== 'all' && status !== statusFilter) await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update document status.');
     } finally {
