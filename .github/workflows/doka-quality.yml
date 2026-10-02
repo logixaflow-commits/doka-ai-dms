@@ -8,10 +8,13 @@ on:
       - "web-platform/tests/**"
       - "web-platform/frontend/**"
       - "cloudflare_worker/**"
+      - "scripts/**"
       - "pyproject.toml"
       - "web-platform/backend/requirements*.txt"
       - "supabase/migrations/**"
       - ".github/workflows/doka-quality.yml"
+      - ".github/workflows/local-core-check.yml"
+      - ".github/workflows/cloudflare-worker-deploy.yml"
   pull_request:
     branches: [main]
     paths:
@@ -44,14 +47,36 @@ jobs:
         run: |
           # PYSEC-2025-183 is disputed and concerns caller-selected HMAC key length;
           # Doka enforces a minimum 32-byte SECRET_KEY for HS256.
-          pip-audit -r web-platform/backend/requirements-production.txt --ignore-vuln PYSEC-2025-183 --format=json > backend-production-audit.json || true
-          pip-audit -r web-platform/backend/requirements.txt --ignore-vuln PYSEC-2025-183 --format=json > backend-full-audit.json || true
+          set -euo pipefail
+          profiles=(
+            "requirements.txt"
+            "requirements-production.txt"
+            "requirements-local.txt"
+            "requirements-dev.txt"
+            "requirements-test.txt"
+            "requirements-cloud.txt"
+          )
+          for profile in "${profiles[@]}"; do
+            report="backend-${profile%.txt}-audit.json"
+            echo "Auditing web-platform/backend/$profile"
+            pip-audit -r "web-platform/backend/$profile" --ignore-vuln PYSEC-2025-183 --format=json > "$report" || status=$?
+            status=${status:-0}
+            if [ "$status" -gt 1 ]; then
+              echo "pip-audit failed operationally for $profile (exit $status)." >&2
+              exit "$status"
+            fi
+            unset status
+          done
           python - <<'PY'
           import json
           from pathlib import Path
+
+          reports = sorted(Path(".").glob("backend-*-audit.json"))
+          if len(reports) != 6:
+              raise SystemExit(f"Expected six backend audit reports, found {len(reports)}.")
           has_findings = False
-          for filename in ("backend-production-audit.json", "backend-full-audit.json"):
-              report = json.loads(Path(filename).read_text(encoding="utf-8"))
+          for filename in reports:
+              report = json.loads(filename.read_text(encoding="utf-8"))
               dependencies = report.get("dependencies", []) if isinstance(report, dict) else report
               vulnerabilities = [
                   {"name": item.get("name"), "version": item.get("version"), "id": vuln.get("id"), "fix_versions": vuln.get("fix_versions", [])}
@@ -72,7 +97,7 @@ jobs:
           name: backend-dependency-audit
           path: |
             backend-production-audit.json
-            backend-full-audit.json
+            backend-*-audit.json
           if-no-files-found: ignore
           retention-days: 7
 
