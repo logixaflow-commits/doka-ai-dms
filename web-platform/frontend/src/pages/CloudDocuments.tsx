@@ -268,15 +268,21 @@ export default function CloudDocuments() {
   async function saveEdit(item: CloudDocument) {
     setBusy(true); setError(''); setMessage('');
     try {
-      const [renamed, moved] = await Promise.all([
-        editName.trim() !== item.filename ? renameCloudDocument(item.id, editName) : Promise.resolve({ document: item }),
-        editFolder.trim() !== (item.folder_path || '/') ? moveCloudDocument(item.id, editFolder) : Promise.resolve({ document: item }),
-      ]);
-      const updated = moved.document.filename === item.filename && renamed.document.folder_path !== item.folder_path
-        ? { ...moved.document, filename: renamed.document.filename }
-        : renamed.document.folder_path === item.folder_path
-          ? { ...renamed.document, folder_path: moved.document.folder_path }
-          : moved.document;
+      const nextName = editName.trim();
+      const nextFolder = editFolder.trim() || '/';
+      if (!nextName || nextName.length > 255 || nextName.includes('/') || nextName.includes('\\\\') || nextName.includes('\\0')) {
+        throw new Error('Enter a valid file name (maximum 255 characters).');
+      }
+      if (!nextFolder || nextFolder.includes('\\\\') || nextFolder.includes('\\0')) {
+        throw new Error('Enter a valid folder path.');
+      }
+      // Apply both metadata fields in one PATCH to avoid racing two updates
+      // against the same row and accidentally overwriting one another.
+      const result = await updateCloudDocument(item.id, {
+        ...(nextName !== item.filename ? { filename: nextName } : {}),
+        ...(nextFolder !== (item.folder_path || '/') ? { folder_path: nextFolder } : {}),
+      });
+      const updated = result.document;
       setDocuments(current => current.map(row => row.id === item.id ? updated : row));
       setMessage(`Saved “${updated.filename}”.`);
       cancelEdit();
