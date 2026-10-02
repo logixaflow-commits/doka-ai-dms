@@ -143,6 +143,25 @@ async def public_config(request: Request):
     }
 
 
+@app.get("/api/audit")
+async def list_audit(
+    request: Request,
+    user_id: str = Depends(require_user),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    base = _base(request)
+    token = _token_from_request(request)
+    query = f"select=id,document_id,action,filename,metadata,created_at&owner_id=eq.{quote(user_id, safe='')}&order=created_at.desc&limit={limit}"
+    status, rows = await _fetch(
+        request,
+        f"{base}/rest/v1/doka_audit_events?{query}",
+        headers={**_supabase_headers(request, token), "Accept": "application/json"},
+    )
+    if status >= 300:
+        raise HTTPException(status_code=503, detail=f"Audit listing failed ({status}).")
+    return {"events": rows if isinstance(rows, list) else []}
+
+
 @app.get("/api/documents")
 async def list_documents(
     request: Request,
