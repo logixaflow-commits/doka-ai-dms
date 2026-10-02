@@ -20,6 +20,8 @@ export interface CloudDocument {
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
+  folder_path: string;
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -75,11 +77,24 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
  * Supabase Auth access tokens are forwarded; RLS and Storage policies remain
  * the final ownership boundary. No service-role credential reaches the browser.
  */
-export async function listCloudDocuments(limit = 100, offset = 0) {
+export interface CloudDocumentFilters {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  status?: CloudDocument['status'];
+  trash?: boolean;
+  folderPath?: string;
+}
+
+export async function listCloudDocuments(filters: CloudDocumentFilters = {}) {
+  const { limit = 100, offset = 0, search, status, trash = false, folderPath } = filters;
   if (!Number.isInteger(limit) || limit < 1 || limit > 500 || !Number.isInteger(offset) || offset < 0) {
     throw new Error('Invalid document pagination.');
   }
-  const query = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  const query = new URLSearchParams({ limit: String(limit), offset: String(offset), trash: String(trash) });
+  if (search?.trim()) query.set('search', search.trim());
+  if (status) query.set('status', status);
+  if (folderPath !== undefined) query.set('folder_path', folderPath);
   return request<{ documents: CloudDocument[] }>(`/documents?${query.toString()}`);
 }
 
@@ -100,9 +115,9 @@ export async function getCloudDocumentDownloadUrl(documentId: string) {
 
 export async function updateCloudDocument(
   documentId: string,
-  update: { status?: CloudDocument['status']; metadata?: Record<string, unknown> },
+  update: { status?: CloudDocument['status']; metadata?: Record<string, unknown>; filename?: string; folder_path?: string },
 ) {
-  if (update.status === undefined && update.metadata === undefined) {
+  if (update.status === undefined && update.metadata === undefined && update.filename === undefined && update.folder_path === undefined) {
     throw new Error('No document fields were provided for update.');
   }
   return request<{ document: CloudDocument }>(
@@ -113,4 +128,21 @@ export async function updateCloudDocument(
       body: JSON.stringify(update),
     },
   );
+}
+
+
+export async function trashCloudDocument(documentId: string) {
+  return request<{ document: CloudDocument }>(`/documents/${encodeURIComponent(documentId)}`, { method: 'DELETE' });
+}
+
+export async function restoreCloudDocument(documentId: string) {
+  return request<{ document: CloudDocument }>(`/documents/${encodeURIComponent(documentId)}/restore`, { method: 'POST' });
+}
+
+export async function renameCloudDocument(documentId: string, filename: string) {
+  const normalized = filename.trim();
+  if (!normalized || normalized.length > 255 || normalized.includes('/') || normalized.includes('\\') || normalized.includes('\0')) {
+    throw new Error('Enter a valid file name (maximum 255 characters).');
+  }
+  return updateCloudDocument(documentId, { filename: normalized });
 }
