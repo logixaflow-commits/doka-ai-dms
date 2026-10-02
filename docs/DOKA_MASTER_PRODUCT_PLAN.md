@@ -438,3 +438,12 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Failed files can be retried without re-uploading successful queue items; completed entries can be cleared.
 - Every file is checked against the 50 MiB per-object limit before entering the queue.
 - Byte-level transfer percentage, pause/resume and resumable chunk upload remain future work.
+
+
+### Folder filters, atomic bulk and batch queue — 2026-10-02
+
+- Added `GET /api/folders` for distinct active folder paths scoped to the authenticated owner and a matching folder filter in Cloud Documents.
+- Bulk status and Trash now call one atomic database RPC for up to 100 unique IDs. It validates every document before updating and writes audit events in the same transaction; no partial batch is applied.
+- Added sequential multi-file upload queue with 50 MiB per-file checks, per-file queued/uploading/complete/failed states and retry of failed items. Byte-level progress and resumable chunk upload remain open.
+- Added Vercel production deploy workflow using a pinned CLI and the existing project/team IDs. The workflow ran successfully but skipped deployment because the GitHub Actions `VERCEL_TOKEN` secret is not configured; production still needs that secret before new frontend code can be published automatically.
+- Cloudflare Worker deployment for the latest folder/bulk/version API changes is queued; only mark these APIs production-live after the build reaches success and 100% traffic is confirmed.
