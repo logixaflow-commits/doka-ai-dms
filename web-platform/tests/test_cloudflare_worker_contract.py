@@ -72,6 +72,8 @@ def test_version_rpc_privilege_boundary_and_input_guards_are_explicit():
     assert "chosen.object_key not like 'users/' || auth.uid()::text || '/documents/' || chosen.sha256 || '/%'" in VERSION_RPC_MIGRATION
     assert "position('/' in p_filename) > 0" in VERSION_RPC_MIGRATION
     assert "position('/' in p_content_type) = 0" in VERSION_RPC_MIGRATION
+    assert "length(p_filename) > 255" in VERSION_RPC_MIGRATION
+    assert "length(p_content_type) > 255" in VERSION_RPC_MIGRATION
     assert VERSION_RPC_MIGRATION.count("owner_id = auth.uid()") >= 2
     assert "from public, anon" in VERSION_RPC_MIGRATION
     assert "to authenticated" in VERSION_RPC_MIGRATION
