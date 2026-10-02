@@ -164,7 +164,7 @@ These must not be mistaken for production-ready cloud pages:
 - Safe preview and download: short-lived signed URLs, with preview MIME allowlist.
 - Trash, restore and confirmed permanent deletion with Storage cleanup.
 - Version history, replacement upload and atomic restore via owner-checked database functions.
-- Bulk status and Trash: per-document authenticated calls, not an atomic server-side batch.
+- Bulk status and Trash: single owner-scoped atomic database transaction for up to 100 documents.
 - Activity: owner-scoped audit listing.
 - Account isolation: enforced in Supabase RLS/Storage policies; real two-user E2E is still pending.
 
@@ -399,7 +399,7 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Database DELETE is separately constrained by an owner-only RLS policy requiring `deleted_at IS NOT NULL`; normal active documents cannot be deleted through this privilege.
 - Permanent deletion requires an explicit browser confirmation and is recorded as a `permanent_delete` audit event; the original document UUID is retained in event metadata after the document row is removed.
 - The live Supabase migration was applied and its DELETE grant, restrictive RLS predicate and audit action constraint were verified.
-- Remaining Phase 1 items: version creation/list/restore, atomic server-side batch APIs, richer folder tree and batch upload progress/retry. Safe inline preview is now available for PDF, common raster images, plain text and CSV; active formats such as HTML and SVG are rejected. Basic bulk status and move-to-Trash actions now exist in the UI using per-document authenticated requests; they are not atomic.
+- Remaining Phase 1 items: version creation/list/restore, atomic server-side batch APIs, richer folder tree and batch upload progress/retry. Safe inline preview is now available for PDF, common raster images, plain text and CSV; active formats such as HTML and SVG are rejected. Bulk status and move-to-Trash now use a single owner-scoped database transaction for up to 100 unique documents; the transaction validates all IDs before changing any rows and writes audit events atomically.
 - Authenticated browser tests and two-user isolation remain mandatory release gates; code deployment alone does not close Phase 0/1.
 
 
@@ -420,3 +420,12 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Vercel production currently resolves to deployment commit `77be1bd0` (READY). The production JavaScript bundle contains bulk actions and safe preview, but does not yet contain the newly added Version history UI.
 - Latest frontend source is committed and CI is passing; Vercel has not created a deployment for the subsequent frontend commits yet. Do not describe version controls as live in the production browser until the Vercel deployment is updated and the production bundle is rechecked.
 - Authenticated end-to-end tests and two-user isolation remain open because no real signed-in test session is available in this run.
+
+
+### Atomic bulk operations — 2026-10-02
+
+- Added `POST /api/documents/bulk` for up to 100 unique documents.
+- Bulk status updates and Trash execute through a single SECURITY INVOKER Postgres function under existing authenticated grants and RLS; all IDs are validated before any update, so partial batches are rejected.
+- Audit events are inserted in the same transaction.
+- Frontend bulk controls now call the single atomic endpoint rather than issuing parallel per-document requests.
+- Added null-action validation, migration and regression/smoke coverage.
