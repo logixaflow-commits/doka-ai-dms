@@ -161,7 +161,7 @@ export async function moveCloudDocument(documentId: string, folderPath: string) 
 export interface CloudAuditEvent {
   id: string;
   document_id: string | null;
-  action: 'upload' | 'download' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'permanent_delete';
+  action: 'upload' | 'download' | 'preview' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'permanent_delete';
   filename: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -176,5 +176,11 @@ export async function permanentlyDeleteCloudDocument(documentId: string) {
   return request<{ deleted: boolean; document_id: string; objects_deleted: number }>(
     `/documents/${encodeURIComponent(documentId)}/permanent`,
     { method: 'DELETE' },
+  );
+}
+
+export async function getCloudDocumentPreviewUrl(documentId: string) {
+  return request<{ url: string; sha256: string; expires_seconds: number }>(
+    `/documents/${encodeURIComponent(documentId)}/preview`,
   );
 }
