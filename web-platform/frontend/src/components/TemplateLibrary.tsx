@@ -3,26 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { 
-  Plus, 
-  Download, 
-  Upload, 
-  Trash2, 
-  RefreshCw, 
-  AlertCircle,
-  CheckCircle,
-  FileText,
-  Zap,
-  Clock,
-  Shield,
-  Ship,
-  Package,
-  Users
-} from 'lucide-react';
+import { Plus, Download, Trash2, RefreshCw, AlertCircle, CheckCircle, FileText, Zap, Clock, Shield, Ship, Package, Users } from 'lucide-react';
 
 const API_BASE = '/api';
 
