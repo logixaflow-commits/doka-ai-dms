@@ -1,6 +1,6 @@
 # Doka Cloud API Contract
 
-Version: 1.1  
+Version: 1.2  
 Runtime: Cloudflare Python Worker + Supabase Auth/Postgres/Storage  
 Base URL: `https://doka.logixaflow.workers.dev`
 
@@ -84,6 +84,17 @@ Restores a trashed document by clearing `deleted_at`. Only the owning user can r
 
 Response: `{"document": CloudDocument}`.
 
+### `GET /api/audit` — authenticated
+
+Returns the signed-in owner's document activity, newest first.
+
+Query:
+- `limit`: integer, 1–500, default 100.
+
+Each event contains `id`, `document_id`, `action`, `filename`, `metadata`, and `created_at`.
+
+The audit table is owner-scoped with RLS. The Worker records upload, download, update, trash, and restore events as best-effort side effects; an audit-write failure never breaks the primary document operation.
+
 ## Canonical document schema
 
 See `shared/contracts/cloud-document.schema.json`.
@@ -92,7 +103,7 @@ See `shared/contracts/cloud-document.schema.json`.
 
 Implemented in the current Worker: health, config, list/search/filter/pagination, upload, download, status/metadata/rename/folder-path update, trash, restore.
 
-Planned (do not render as enabled UI until implemented and tested): permanent deletion with object cleanup, document preview, version creation/list/restore, folder tree CRUD, bulk actions, OCR jobs, audit events, organization/team access and AI jobs.
+Planned (do not render as enabled UI until implemented and tested): permanent deletion with object cleanup, document preview, version creation/list/restore, folder tree CRUD, bulk actions, OCR jobs, organization/team access and AI jobs. Audit event recording/listing is now implemented.
 
 ## Security invariants
 
