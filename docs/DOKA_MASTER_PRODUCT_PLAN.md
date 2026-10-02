@@ -272,6 +272,12 @@ Do not show these as enabled controls until the backend endpoints and permission
 
 **Exit gate:** security/privacy assessment, provider failure handling, evaluation dataset and human-review E2E pass.
 
+### Phase 4 / 5 design artifacts
+
+- Enterprise identity, role matrix and tenant-isolation gates: `docs/DOKA_ENTERPRISE_RBAC_DESIGN.md` (design only; no team API is enabled).
+- AI privacy, provider adapter, consent and human-review requirements: `docs/DOKA_AI_PRIVACY_AND_PROVIDER_DESIGN.md`.
+- Personal Local external provider calls now require both `AI_ENABLED=true` and `AI_EXTERNAL_PROCESSING_CONSENT=true`; both default to false. A regression test blocks provider calls without consent.
+
 ## 8. Technical quality and operations backlog
 
 - Resolve npm audit advisories through reviewed compatible updates; avoid blind major upgrades.
@@ -324,3 +330,12 @@ A feature is complete only when all are true:
 - Latest observed GitHub Doka Quality Checks and Local Core Checks for commit `f787e38` passed; Vercel deployment for that commit reached READY; Cloudflare Worker build for that commit completed successfully.
 - Browser Rendering hit the account rate limit during responsive inspection, so no new visual pass is claimed. Authenticated upload/update/download and two-user isolation still require a signed-in test session.
 - Remaining Phase 0 gate: responsive browser acceptance at 320/375/390/768/1024/1440px, keyboard pass and real-user cloud lifecycle/isolation test.
+
+
+## 12. Phase 3–5 supporting artifacts
+
+- Canonical cloud document schema: `shared/contracts/cloud-document.schema.json`.
+- Cloud API contract and security invariants: `docs/DOKA_CLOUD_API_CONTRACTS.md`.
+- Enterprise RBAC and tenant isolation design: `docs/DOKA_ENTERPRISE_RBAC_DESIGN.md`.
+- AI privacy and provider safety design: `docs/DOKA_AI_PRIVACY_AND_PROVIDER_DESIGN.md`.
+- Phase 5 code safeguard: external provider calls require the independent consent flag in addition to the global AI enable flag; a test asserts no provider call occurs without consent.
