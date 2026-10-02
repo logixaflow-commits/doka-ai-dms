@@ -217,3 +217,20 @@ export async function restoreCloudDocumentVersion(documentId: string, versionId:
     { method: 'POST' },
   );
 }
+
+
+export async function bulkUpdateCloudDocuments(
+  documentIds: string[],
+  action: 'status' | 'trash',
+  status?: CloudDocument['status'],
+) {
+  if (!documentIds.length || documentIds.length > 100 || new Set(documentIds).size !== documentIds.length) {
+    throw new Error('Select between 1 and 100 unique documents.');
+  }
+  if (action === 'status' && !status) throw new Error('Choose a status for the selected documents.');
+  return request<{ documents: CloudDocument[]; updated_count: number }>('/documents/bulk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_ids: documentIds, action, status: action === 'status' ? status : null }),
+  });
+}
