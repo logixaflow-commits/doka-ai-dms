@@ -137,3 +137,11 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - The current contract is documented in `docs/DOKA_CLOUD_API_CONTRACTS.md` and `shared/contracts/cloud-document.schema.json`.
 - Permanent deletion, version creation/restore, preview and bulk operations are still deferred until object cleanup and version concurrency semantics are implemented and tested.
 - Latest CI/Worker/Vercel evidence is tracked in `docs/DOKA_MASTER_PRODUCT_PLAN.md`; authenticated user-flow and two-user isolation tests remain outstanding.
+
+### Latest acceptance evidence — 2026-10-02
+- Production Login accessibility inspection succeeded at 390px; measured document/body width was exactly 390px. At 1440px, document/body width was exactly 1440px. No horizontal overflow was detected on Login at those two widths.
+- This does not certify the authenticated dashboard/sidebar; a real signed-in session is still required to inspect those pages and complete cloud E2E.
+- Doka Quality Checks run 36982859866 passed with 48 backend tests plus TypeScript/Vite build and frontend smoke tests.
+- Local Core Checks passed on 36c14a39 and the documentation-only follow-up f459c11.
+- Vercel production deployment dpl_AGL7K8ejPDYx1rj9bZ6fWAHMMRhB is READY. Cloudflare Worker build 9ab06efb-f44a-41e6-bc85-9345937d46a7 completed successfully.
+- Remaining blockers: eight npm audit findings, Supabase leaked-password protection warning, authenticated cloud E2E/two-user isolation, real-office OCR pilot, and not-yet-implemented enterprise APIs.
