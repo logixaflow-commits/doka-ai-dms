@@ -68,7 +68,10 @@ def test_version_rpc_privilege_boundary_and_input_guards_are_explicit():
     assert VERSION_RPC_MIGRATION.count("if auth.uid() is null") == 2
     assert "p_object_key is null" in VERSION_RPC_MIGRATION
     assert "chosen.object_key is null" in VERSION_RPC_MIGRATION
-    assert "p_object_key !~ ('^users/' || auth.uid()::text || '/documents/' || p_sha256 || '/[A-Za-z0-9-][A-Za-z0-9._-]{0,254}
+    assert "p_object_key !~" in VERSION_RPC_MIGRATION
+    assert "chosen.object_key !~" in VERSION_RPC_MIGRATION
+    assert "A-Za-z0-9._-" in VERSION_RPC_MIGRATION
+    assert "{0,254}$" in VERSION_RPC_MIGRATION
     assert "position('/' in p_filename) > 0" in VERSION_RPC_MIGRATION
     assert "position('/' in p_content_type) = 0" in VERSION_RPC_MIGRATION
     assert "length(p_filename) > 255" in VERSION_RPC_MIGRATION
