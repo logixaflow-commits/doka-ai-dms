@@ -102,10 +102,10 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange]);
+  }, []);
 
   useEffect(() => {
-    void loadAnalytics();
+    void Promise.resolve().then(loadAnalytics);
   }, [loadAnalytics]);
 
   async function handleExportReport() {

@@ -55,7 +55,7 @@ export default function CommentsSystem({ documentId }: CommentsSystemProps) {
   }, [documentId]);
 
   useEffect(() => {
-    void loadComments();
+    void Promise.resolve().then(loadComments);
   }, [loadComments]);
 
   const extractMentions = (text: string): string[] => {

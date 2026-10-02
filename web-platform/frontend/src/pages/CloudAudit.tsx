@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,12 +15,12 @@ export default function CloudAudit() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setLoading(true); setError('');
     try { setEvents((await listCloudAuditEvents(100)).events || []); }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to load activity.'); }
     finally { setLoading(false); }
-  }
+  }, []);
 
   useEffect(() => { void Promise.resolve().then(refresh); }, [refresh]);
 
