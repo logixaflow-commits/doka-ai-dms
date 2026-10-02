@@ -79,7 +79,7 @@ The active router in `web-platform/frontend/src/App.tsx` currently mounts only t
 |---|---|---|
 | `GET /health` | Worker health | Dashboard |
 | `GET /api/config` | Edition and readiness flags | Dashboard |
-| `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |
+| `GET /api/documents` | Owner-scoped search, status/folder filter, pagination, active/trash listing | Cloud Documents + Dashboard |\n| `GET /api/folders` | Owner-scoped distinct logical folder paths | Cloud Documents |
 | `POST /api/documents` | Authenticated upload | Cloud Documents |
 | `PATCH /api/documents/{id}` | Status, metadata, rename and folder-path update | Cloud Documents |
 | `GET /api/documents/{id}/download` | Authenticated short-lived download URL; rejects trashed docs | Cloud Documents + Dashboard |
@@ -172,7 +172,7 @@ These must not be mistaken for production-ready cloud pages:
 
 - Rich folder-tree CRUD and folder-level permissions (logical folder paths are implemented).
 - Server-side atomic bulk operations; current bulk status/Trash controls send per-document requests and are not atomic.
-- Batch upload queue, progress, retry and resumable transfer.
+- Byte-level batch upload progress and resumable transfer (the sequential queue with per-file status and retry is implemented).
 - Full-text content search and advanced metadata filters.
 - Version comparison/diff and retention policy.
 - User profile and password management inside Doka.
@@ -429,3 +429,11 @@ The project must not claim Phase 0–5 complete merely because contracts or UI c
 - Audit events are inserted in the same transaction.
 - Frontend bulk controls now call the single atomic endpoint rather than issuing parallel per-document requests.
 - Added null-action validation, migration and regression/smoke coverage.
+
+
+### Batch upload queue — 2026-10-02
+
+- Added a multi-file sequential upload queue with per-file queued/uploading/complete/failed states.
+- Failed files can be retried without re-uploading successful queue items; completed entries can be cleared.
+- Every file is checked against the 50 MiB per-object limit before entering the queue.
+- Byte-level transfer percentage, pause/resume and resumable chunk upload remain future work.
