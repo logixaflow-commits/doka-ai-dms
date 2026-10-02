@@ -138,7 +138,7 @@ export default function AuditLogsPage() {
   }, [actionFilter, resourceFilter, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
-    void loadAuditLogs();
+    void Promise.resolve().then(loadAuditLogs);
   }, [loadAuditLogs]);
 
   async function handleExportLogs() {

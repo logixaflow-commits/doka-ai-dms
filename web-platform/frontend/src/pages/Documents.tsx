@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,11 +88,7 @@ export default function Documents() {
   const categories = ['Invoices', 'BL', 'NRC', 'FDA', 'Licenses', 'Household', 'Government', 'Association', 'Import', 'Export', 'Other'];
   const statuses = ['all', 'pending', 'processing', 'completed', 'approved', 'rejected', 'review', 'duplicate', 'failed'];
 
-  useEffect(() => {
-    loadDocuments();
-  }, [currentPage, statusFilter, categoryFilter]);
-
-  async function loadDocuments() {
+  const loadDocuments = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -116,7 +112,11 @@ export default function Documents() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentPage, statusFilter, categoryFilter, searchQuery]);
+
+  useEffect(() => {
+    void loadDocuments();
+  }, [loadDocuments]);
 
   function handleSelectDoc(id: number) {
     const newSelected = new Set(selectedDocs);

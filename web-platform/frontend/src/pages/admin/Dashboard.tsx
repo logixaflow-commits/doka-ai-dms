@@ -176,7 +176,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    void loadDashboard();
+    void Promise.resolve().then(loadDashboard);
     const interval = setInterval(() => void loadDashboard(), 30000);
     return () => clearInterval(interval);
   }, [loadDashboard]);
