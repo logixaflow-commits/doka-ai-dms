@@ -1,6 +1,13 @@
 name: Cloudflare Worker Production Deploy
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "cloudflare_worker/**"
+      - "pyproject.toml"
+      - "wrangler.jsonc"
+      - ".github/workflows/cloudflare-worker-deploy.yml"
   workflow_dispatch:
     inputs:
       confirm_production:
@@ -15,9 +22,11 @@ permissions:
 jobs:
   deploy:
     name: Deploy Doka Worker
-    if: inputs.confirm_production == true
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_production == true) ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[deploy-worker]'))
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -29,11 +38,30 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.28"
       - name: Validate deployment credentials
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN repository secret."; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID repository secret."; exit 1; }
-      - name: Install Python Worker build tooling
-        run: python -m pip install --upgrade uv
-      - name: Deploy Worker from repository source
-        run: npx --yes wrangler@latest deploy --config wrangler.jsonc
+      - name: Install pinned Wrangler CLI
+        run: npm install --global wrangler@4.64.0
+      - name: Build Python Worker bundle without deploying
+        run: uvx --from workers-py==1.72.0 pywrangler deploy --dry-run --config wrangler.jsonc
+      - name: Deploy Python Worker from repository source
+        run: uvx --from workers-py==1.72.0 pywrangler deploy --yes --config wrangler.jsonc
+      - name: Verify production Worker health
+        run: |
+          python - <<'PY'
+          import json
+          from urllib.request import urlopen
+
+          with urlopen("https://doka.logixaflow.workers.dev/health", timeout=20) as response:
+              if response.status != 200:
+                  raise SystemExit(f"Worker health returned HTTP {response.status}")
+              payload = json.load(response)
+          if payload.get("status") != "healthy":
+              raise SystemExit(f"Unexpected Worker health payload: {payload!r}")
+          print("Production Worker health check passed.")
+          PY
