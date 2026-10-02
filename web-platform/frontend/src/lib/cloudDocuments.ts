@@ -161,7 +161,7 @@ export async function moveCloudDocument(documentId: string, folderPath: string) 
 export interface CloudAuditEvent {
   id: string;
   document_id: string | null;
-  action: 'upload' | 'download' | 'update' | 'trash' | 'restore' | 'permanent_delete';
+  action: 'upload' | 'download' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'permanent_delete';
   filename: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
