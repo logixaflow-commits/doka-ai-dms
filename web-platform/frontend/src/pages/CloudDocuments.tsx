@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  getCloudDocumentDownloadUrl, listCloudDocuments, moveCloudDocument,
+  getCloudDocumentDownloadUrl, listCloudDocuments, moveCloudDocument, permanentlyDeleteCloudDocument,
   renameCloudDocument, restoreCloudDocument, trashCloudDocument,
   updateCloudDocument, uploadCloudDocument, type CloudDocument,
 } from '@/lib/cloudDocuments';
@@ -185,6 +185,18 @@ export default function CloudDocuments() {
     } finally { setBusy(false); }
   }
 
+  async function permanentlyDelete(item: CloudDocument) {
+    if (!window.confirm(`Permanently remove “${item.filename}” and its stored versions? This cannot be undone.`)) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const result = await permanentlyDeleteCloudDocument(item.id);
+      setDocuments(current => current.filter(row => row.id !== item.id));
+      setMessage(`Removed “${item.filename}” and ${result.objects_deleted} stored object(s).`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to permanently remove document.');
+    } finally { setBusy(false); }
+  }
+
   const emptyTitle = showTrash ? 'Trash is empty' : documents.length === 0 ? 'No documents yet' : 'No matching documents';
 
   return (
@@ -262,6 +274,7 @@ export default function CloudDocuments() {
                 <div className="flex flex-wrap items-center gap-2 pl-[52px] lg:pl-0">
                   {showTrash ? (
                     <Button size="sm" variant="outline" onClick={() => void restore(item)} disabled={busy} className="h-9 rounded-lg"><RotateCcw className="mr-2 h-4 w-4" />Restore</Button>
+                    <Button size="sm" variant="destructive" onClick={() => void permanentlyDelete(item)} disabled={busy} className="h-9 rounded-lg"><Trash2 className="mr-2 h-4 w-4" />Delete forever</Button>
                   ) : (
                     <>
                       <select aria-label={`Status for ${item.filename}`} className="h-9 min-w-28 rounded-lg border border-input bg-background px-2 text-xs" value={item.status} disabled={busy} onChange={event => void changeStatus(item, event.target.value as CloudDocument['status'])}><option value="active">Active</option><option value="review">Review</option><option value="quarantined">Quarantined</option><option value="archived">Archived</option></select>
