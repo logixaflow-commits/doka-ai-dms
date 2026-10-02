@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doka.logixaflow.dev/contracts/cloud-document.schema.json",
+  "title": "Doka Cloud Document",
+  "description": "Canonical owner-scoped metadata record for a document stored in the private Doka object bucket.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "owner_id", "object_key", "filename", "content_type",
+    "size_bytes", "sha256", "status", "metadata", "created_at",
+    "updated_at", "deleted_at", "folder_path"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "owner_id": { "type": "string", "format": "uuid", "readOnly": true },
+    "object_key": { "type": "string", "minLength": 1, "readOnly": true },
+    "filename": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "content_type": { "type": "string", "minLength": 1 },
+    "size_bytes": { "type": "integer", "minimum": 0 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$", "readOnly": true },
+    "status": { "type": "string", "enum": ["active", "review", "quarantined", "archived"] },
+    "metadata": { "type": "object", "additionalProperties": true },
+    "created_at": { "type": "string", "format": "date-time", "readOnly": true },
+    "updated_at": { "type": "string", "format": "date-time", "readOnly": true },
+    "deleted_at": { "type": ["string", "null"], "format": "date-time", "readOnly": true },
+    "folder_path": { "type": "string", "pattern": "^(/|/(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\\\u0000]+)$", "maxLength": 512 }
+  }
+}
