@@ -6,7 +6,6 @@ on:
     paths:
       - "web-platform/backend/**"
       - "web-platform/tests/**"
-      - "web-platform/frontend/**"
       - "cloudflare_worker/**"
       - "scripts/**"
       - "pyproject.toml"
