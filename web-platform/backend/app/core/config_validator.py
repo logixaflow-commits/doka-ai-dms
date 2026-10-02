@@ -6,7 +6,7 @@ Provides graceful error handling and default config generation.
 import yaml
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from loguru import logger
 
 
@@ -20,7 +20,7 @@ class SupplierConfigModel(BaseModel):
 
 class KeywordConfigModel(BaseModel):
     """Keyword mapping configuration model."""
-    keywords: List[str] = Field(..., min_items=1, description="Keywords for this category")
+    keywords: List[str] = Field(..., min_length=1, description="Keywords for this category")
     category: str = Field(..., min_length=1, description="Document category")
     confidence_boost: float = Field(default=0.0, ge=0.0, le=1.0, description="Confidence boost")
     sensitive: bool = Field(default=False, description="Mark as sensitive")
@@ -32,17 +32,21 @@ class ThresholdConfigModel(BaseModel):
     review: float = Field(default=0.7, ge=0.0, le=1.0, description="Review threshold")
     approved: float = Field(default=0.85, ge=0.0, le=1.0, description="Approved threshold")
 
-    @validator('review')
-    def review_must_be_greater_than_unknown(cls, v, values):
-        if 'unknown' in values and v <= values['unknown']:
-            raise ValueError('review threshold must be greater than unknown threshold')
-        return v
+    @field_validator("review")
+    @classmethod
+    def review_must_be_greater_than_unknown(cls, value: float, info: ValidationInfo) -> float:
+        unknown = info.data.get("unknown")
+        if unknown is not None and value <= unknown:
+            raise ValueError("review threshold must be greater than unknown threshold")
+        return value
 
-    @validator('approved')
-    def approved_must_be_greater_than_review(cls, v, values):
-        if 'review' in values and v <= values['review']:
-            raise ValueError('approved threshold must be greater than review threshold')
-        return v
+    @field_validator("approved")
+    @classmethod
+    def approved_must_be_greater_than_review(cls, value: float, info: ValidationInfo) -> float:
+        review = info.data.get("review")
+        if review is not None and value <= review:
+            raise ValueError("approved threshold must be greater than review threshold")
+        return value
 
 
 class OCRConfigModel(BaseModel):
@@ -206,7 +210,7 @@ class ConfigValidator:
     def _generate_default_config(self) -> bool:
         """Generate default config.yaml file."""
         try:
-            default_config = ConfigYamlModel().dict()
+            default_config = ConfigYamlModel().model_dump()
             
             with open(self.config_path, "w", encoding="utf-8") as f:
                 yaml.dump(default_config, f, default_flow_style=False, sort_keys=False)
