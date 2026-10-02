@@ -161,7 +161,7 @@ export async function moveCloudDocument(documentId: string, folderPath: string) 
 export interface CloudAuditEvent {
   id: string;
   document_id: string | null;
-  action: 'upload' | 'download' | 'preview' | 'update' | 'trash' | 'restore' | 'permanent_delete';
+  action: 'upload' | 'download' | 'preview' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'version_create' | 'version_restore';
   filename: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -182,5 +182,38 @@ export async function permanentlyDeleteCloudDocument(documentId: string) {
 export async function getCloudDocumentPreviewUrl(documentId: string) {
   return request<{ url: string; sha256: string; expires_seconds: number }>(
     `/documents/${encodeURIComponent(documentId)}/preview`,
+  );
+}
+
+
+export interface CloudDocumentVersion {
+  id: string;
+  version_no: number;
+  filename: string | null;
+  content_type: string | null;
+  size_bytes: number;
+  sha256: string;
+  created_at: string;
+}
+
+export async function listCloudDocumentVersions(documentId: string) {
+  return request<{ versions: CloudDocumentVersion[] }>(
+    `/documents/${encodeURIComponent(documentId)}/versions`,
+  );
+}
+
+export async function createCloudDocumentVersion(documentId: string, file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  return request<{ document: CloudDocument }>(
+    `/documents/${encodeURIComponent(documentId)}/versions`,
+    { method: 'POST', body: form },
+  );
+}
+
+export async function restoreCloudDocumentVersion(documentId: string, versionId: string) {
+  return request<{ document: CloudDocument }>(
+    `/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(versionId)}/restore`,
+    { method: 'POST' },
   );
 }
