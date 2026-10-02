@@ -150,58 +150,6 @@ async def public_config(request: Request):
     }
 
 
-@app.get("/api/documents/{document_id}/versions")
-async def list_document_versions(request: Request, document_id: str, user_id: str = Depends(require_user)):
-    base = _base(request); token = _token_from_request(request)
-    query = f"select=id,document_id,version_no,filename,content_type,size_bytes,sha256,created_at&document_id=eq.{quote(document_id, safe='')}&order=version_no.desc"
-    status, rows = await _fetch(request, f"{base}/rest/v1/doka_document_versions?{query}", headers={**_supabase_headers(request, token), "Accept":"application/json"})
-    if status >= 300:
-        raise HTTPException(status_code=503, detail=f"Version lookup failed ({status}).")
-    return {"versions": rows if isinstance(rows, list) else []}
-
-@app.post("/api/documents/{document_id}/versions")
-async def create_document_version(request: Request, document_id: str, user_id: str = Depends(require_user)):
-    token = _token_from_request(request); base = _base(request)
-    form = await request.form()
-    file = form.get("file")
-    if not hasattr(file, "read"):
-        raise HTTPException(status_code=400, detail="Multipart field 'file' is required.")
-    data = await file.read()
-    if len(data) > int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024))):
-        raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
-    digest = hashlib.sha256(data).hexdigest()
-    raw_name = (getattr(file, "filename", None) or "document").replace("\\", "/").rsplit("/", 1)[-1]
-    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name).strip("._") or "document"
-    object_key = f"users/{user_id}/documents/{digest}/{safe_name}"
-    content_type = getattr(file, "content_type", None) or "application/octet-stream"
-    bucket = quote(_bucket(request), safe="")
-    key = quote(object_key, safe="/")
-    put_status, put_payload = await _fetch(request, f"{base}/storage/v1/object/{bucket}/{key}", method="POST", headers=_supabase_headers(request, token, content_type), body=data)
-    if put_status >= 300:
-        raise HTTPException(status_code=503, detail=f"Version object upload failed ({put_status}).")
-    rpc_payload = {"p_document_id": document_id, "p_object_key": object_key, "p_filename": getattr(file, "filename", None) or "document", "p_content_type": content_type, "p_size_bytes": len(data), "p_sha256": digest}
-    status, rows = await _fetch(request, f"{base}/rest/v1/rpc/doka_replace_document_version", method="POST", headers=_supabase_headers(request, token, "application/json"), body=json.dumps(rpc_payload))
-    if status >= 300:
-        try:
-            await _fetch(request, f"{base}/storage/v1/object/{bucket}/{key}", method="DELETE", headers=_supabase_headers(request, token))
-        except Exception:
-            pass
-        raise HTTPException(status_code=503, detail=f"Version metadata update failed ({status}).")
-    doc = rows[0] if isinstance(rows, list) and rows else rows
-    await _audit(request, user_id, "version_create", document_id, getattr(file, "filename", None), {"sha256": digest})
-    return {"document": doc}
-
-@app.post("/api/documents/{document_id}/versions/{version_id}/restore")
-async def restore_document_version(request: Request, document_id: str, version_id: str, user_id: str = Depends(require_user)):
-    token = _token_from_request(request); base = _base(request)
-    payload = {"p_document_id": document_id, "p_version_id": version_id}
-    status, rows = await _fetch(request, f"{base}/rest/v1/rpc/doka_restore_document_version", method="POST", headers=_supabase_headers(request, token, "application/json"), body=json.dumps(payload))
-    if status >= 300:
-        raise HTTPException(status_code=404 if status == 404 else 503, detail=f"Version restore failed ({status}).")
-    doc = rows[0] if isinstance(rows, list) and rows else rows
-    await _audit(request, user_id, "version_restore", document_id, doc.get("filename") if isinstance(doc, dict) else None, {"version_id": version_id})
-    return {"document": doc}
-
 @app.get("/api/audit")
 async def list_audit(
     request: Request,
