@@ -383,6 +383,59 @@ async def restore_document(request: Request, document_id: str, user_id: str = De
     return {"document": rows[0]}
 
 
+@app.delete("/api/documents/{document_id}/permanent")
+async def permanently_delete_document(request: Request, document_id: str, user_id: str = Depends(require_user)):
+    """Permanently remove a trashed document and all stored versions."""
+    base = _base(request)
+    token = _token_from_request(request)
+    encoded_id = quote(document_id, safe="")
+    owner = quote(user_id, safe="")
+    query = f"select=id,object_key,filename&id=eq.{encoded_id}&owner_id=eq.{owner}&deleted_at=not.is.null"
+    status, rows = await _fetch(
+        request, f"{base}/rest/v1/doka_documents?{query}",
+        headers={**_supabase_headers(request, token), "Accept": "application/json"},
+    )
+    if status >= 300:
+        raise HTTPException(status_code=503, detail=f"Trashed document lookup failed ({status}).")
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=404, detail="Trashed document not found.")
+    document = rows[0]
+
+    version_query = f"select=object_key&document_id=eq.{encoded_id}"
+    version_status, versions = await _fetch(
+        request, f"{base}/rest/v1/doka_document_versions?{version_query}",
+        headers={**_supabase_headers(request, token), "Accept": "application/json"},
+    )
+    if version_status >= 300:
+        raise HTTPException(status_code=503, detail=f"Document version lookup failed ({version_status}).")
+
+    keys = {str(document["object_key"])}
+    if isinstance(versions, list):
+        keys.update(str(row["object_key"]) for row in versions if row.get("object_key"))
+    bucket = quote(_bucket(request), safe="")
+    delete_status, _ = await _fetch(
+        request, f"{base}/storage/v1/object/{bucket}", method="DELETE",
+        headers=_supabase_headers(request, token, "application/json"),
+        body=json.dumps({"prefixes": sorted(keys)}),
+    )
+    if delete_status >= 300:
+        raise HTTPException(status_code=503, detail=f"Stored file cleanup failed ({delete_status}); metadata was retained.")
+
+    delete_query = f"id=eq.{encoded_id}&owner_id=eq.{owner}&deleted_at=not.is.null"
+    metadata_status, deleted = await _fetch(
+        request, f"{base}/rest/v1/doka_documents?{delete_query}", method="DELETE",
+        headers={**_supabase_headers(request, token), "Prefer": "return=representation"},
+    )
+    if metadata_status >= 300 or not isinstance(deleted, list) or not deleted:
+        raise HTTPException(status_code=503, detail=f"Document metadata deletion failed ({metadata_status}); retry cleanup if needed.")
+
+    await _audit(
+        request, user_id, "permanent_delete", None, document.get("filename"),
+        {"document_id": document_id, "deleted_version_objects": len(keys) - 1},
+    )
+    return {"deleted": True, "document_id": document_id, "objects_deleted": len(keys)}
+
+
 origins = ["https://enterprise-ai-dms.vercel.app"]
 app.add_middleware(
     CORSMiddleware,
