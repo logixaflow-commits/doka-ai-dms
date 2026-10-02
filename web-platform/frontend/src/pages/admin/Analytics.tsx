@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -86,11 +86,7 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState('30d');
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [timeRange]);
-
-  async function loadAnalytics() {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       // In real app, fetch from API
@@ -106,7 +102,11 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [timeRange]);
+
+  useEffect(() => {
+    void loadAnalytics();
+  }, [loadAnalytics]);
 
   async function handleExportReport() {
     try {

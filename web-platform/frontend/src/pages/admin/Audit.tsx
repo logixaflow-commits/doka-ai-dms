@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,11 +115,7 @@ export default function AuditLogsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  useEffect(() => {
-    loadAuditLogs();
-  }, [actionFilter, resourceFilter, statusFilter]);
-
-  async function loadAuditLogs() {
+  const loadAuditLogs = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -139,7 +135,11 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [actionFilter, resourceFilter, statusFilter, dateFrom, dateTo]);
+
+  useEffect(() => {
+    void loadAuditLogs();
+  }, [loadAuditLogs]);
 
   async function handleExportLogs() {
     try {

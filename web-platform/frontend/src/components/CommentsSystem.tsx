@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageSquare, Send, AtSign, Trash2, Edit2, Reply } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,11 +35,7 @@ export default function CommentsSystem({ documentId }: CommentsSystemProps) {
 
   const availableUsers = ['John Doe', 'Jane Smith', 'Bob Johnson', 'Alice Williams'];
 
-  useEffect(() => {
-    loadComments();
-  }, [documentId]);
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`/api/documents/${documentId}/comments`, {
@@ -56,7 +52,11 @@ export default function CommentsSystem({ documentId }: CommentsSystemProps) {
       // Use mock data for demo
       setComments(generateMockComments());
     }
-  };
+  }, [documentId]);
+
+  useEffect(() => {
+    void loadComments();
+  }, [loadComments]);
 
   const extractMentions = (text: string): string[] => {
     const mentionRegex = /@(\w+)/g;
