@@ -18,7 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from js import Object, Uint8Array, fetch as js_fetch
 from pyodide.ffi import to_js
-from workers import asgi
+from workers import asgi, env as worker_env
 
 
 bearer = HTTPBearer(auto_error=False)
@@ -33,6 +33,18 @@ def _env(request, name: str, default: str = "") -> str:
         except Exception:
             try:
                 value = bindings[name]
+            except Exception:
+                value = None
+        if value is not None:
+            return str(value)
+    # Cloudflare Python Workers expose bindings through the imported global env
+    # object as well as the ASGI scope. Keep both paths for runtime compatibility.
+    if worker_env is not None:
+        try:
+            value = getattr(worker_env, name)
+        except Exception:
+            try:
+                value = worker_env[name]
             except Exception:
                 value = None
         if value is not None:
@@ -117,8 +129,16 @@ async def health():
 
 
 @app.get("/api/config")
-async def public_config():
-    return {"edition": "cloud-api", "auth": "supabase", "storage": "supabase", "local_workspace_available": False}
+async def public_config(request: Request):
+    # Expose configuration readiness only; never return the publishable key.
+    return {
+        "edition": "cloud-api",
+        "auth": "supabase",
+        "storage": "supabase",
+        "local_workspace_available": False,
+        "supabase_auth_configured": bool(_env(request, "SUPABASE_URL") and _env(request, "SUPABASE_PUBLISHABLE_KEY")),
+        "storage_bucket_configured": bool(_env(request, "SUPABASE_STORAGE_BUCKET")),
+    }
 
 
 @app.get("/api/documents")
