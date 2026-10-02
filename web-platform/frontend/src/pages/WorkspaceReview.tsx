@@ -43,7 +43,7 @@ async function api(path: string, options: RequestInit = {}) {
   });
 }
 
-export default function WorkspaceReview() {
+function LocalWorkspaceReview() {
   const [sessionId, setSessionId] = useState('');
   const [source, setSource] = useState('');
   const [status, setStatus] = useState<Status | null>(null);
@@ -421,4 +421,31 @@ export default function WorkspaceReview() {
       )}
     </div>
   );
+}
+
+
+function CloudWorkspaceNotice() {
+  return (
+    <div className="mx-auto max-w-3xl py-8">
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 px-7 py-8 text-white sm:px-9">
+          <div className="mb-4 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">LOCAL-ONLY FEATURE</div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Safe Workspace runs on your computer</h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-blue-100">Folder import, OCR, file scanning and approval workflows need access to your local files. This cloud website does not have access to your computer's filesystem.</p>
+        </div>
+        <div className="space-y-4 p-7 sm:p-9">
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+            <p className="text-sm font-medium">What you can do here</p>
+            <p className="mt-1 text-sm text-muted-foreground">Upload and manage private cloud documents, update their review status, and download them securely.</p>
+          </div>
+          <a href="/admin/cloud-documents" className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">Open Cloud Documents <span className="ml-2" aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function WorkspaceReview() {
+  if (import.meta.env.PROD) return <CloudWorkspaceNotice />;
+  return <LocalWorkspaceReview />;
 }
