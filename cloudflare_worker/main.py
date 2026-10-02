@@ -284,6 +284,7 @@ async def create_document(request: Request, file: UploadFile = File(...), user_i
             body=json.dumps({"prefixes": [key]}),
         )
         raise HTTPException(status_code=503, detail=f"Document metadata creation failed ({status}).")
+    await _audit(request, user_id, "upload", str(rows[0].get("id")), rows[0].get("filename"), {"size_bytes": len(data), "sha256": digest})
     return {"document": rows[0]}
 
 
@@ -332,7 +333,9 @@ async def update_document(request: Request, document_id: str, update: DocumentUp
         payload["filename"] = filename
     if "folder_path" in payload:
         payload["folder_path"] = _normalize_folder_path(payload["folder_path"])
-    return await _update_document_fields(request, document_id, user_id, payload)
+    result = await _update_document_fields(request, document_id, user_id, payload)
+    await _audit(request, user_id, "update", document_id, result["document"].get("filename"), {"fields": sorted(payload.keys())})
+    return result
 
 
 async def _update_document_fields(request: Request, document_id: str, user_id: str, payload: dict):
