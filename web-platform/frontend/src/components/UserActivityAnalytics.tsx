@@ -140,7 +140,7 @@ export default function UserActivityAnalytics({ data }: UserActivityAnalyticsPro
                     </td>
                     <td className="p-3">
                       <span className={`text-xs px-2 py-1 rounded-full ${
-                        (Date.now() - user.lastActive.getTime()) / (1000 * 60 * 60) < 24
+                        (currentTime - user.lastActive.getTime()) / (1000 * 60 * 60) < 24
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400'
                           : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                       }`}>
@@ -158,48 +158,3 @@ export default function UserActivityAnalytics({ data }: UserActivityAnalyticsPro
   );
 }
 
-export function generateMockUserActivityData(): UserActivityData[] {
-  const now = new Date();
-  return [
-    {
-      userId: '1',
-      username: 'John Doe',
-      uploads: 45,
-      downloads: 32,
-      views: 120,
-      lastActive: new Date(now.getTime() - 1000 * 60 * 30),
-    },
-    {
-      userId: '2',
-      username: 'Jane Smith',
-      uploads: 38,
-      downloads: 45,
-      views: 98,
-      lastActive: new Date(now.getTime() - 1000 * 60 * 60 * 2),
-    },
-    {
-      userId: '3',
-      username: 'Bob Johnson',
-      uploads: 22,
-      downloads: 18,
-      views: 65,
-      lastActive: new Date(now.getTime() - 1000 * 60 * 60 * 5),
-    },
-    {
-      userId: '4',
-      username: 'Alice Williams',
-      uploads: 55,
-      downloads: 67,
-      views: 145,
-      lastActive: new Date(now.getTime() - 1000 * 60 * 15),
-    },
-    {
-      userId: '5',
-      username: 'Charlie Brown',
-      uploads: 12,
-      downloads: 8,
-      views: 35,
-      lastActive: new Date(now.getTime() - 1000 * 60 * 60 * 24),
-    },
-  ];
-}
