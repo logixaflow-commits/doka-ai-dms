@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -131,7 +131,11 @@ export default function DocumentManagement() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [uploadComplete, setUploadComplete] = useState(false);
 
-  const loadDocuments = useCallback(async () => {
+  useEffect(() => {
+    loadDocuments();
+  }, [statusFilter, categoryFilter, uploadComplete]);
+
+  async function loadDocuments() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -148,7 +152,7 @@ export default function DocumentManagement() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, categoryFilter]);
+  }
 
   async function handleBulkApprove() {
     if (selectedDocuments.length === 0) return;
@@ -258,10 +262,6 @@ export default function DocumentManagement() {
       (doc.category && doc.category.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesSearch;
   });
-
-  useEffect(() => {
-    void loadDocuments();
-  }, [loadDocuments, uploadComplete]);
 
   if (loading) {
     return (
