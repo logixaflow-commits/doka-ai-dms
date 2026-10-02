@@ -4,7 +4,4 @@
   "main": "cloudflare_worker/main.py",
   "compatibility_date": "2026-10-02",
   "compatibility_flags": ["python_workers"],
-  "vars": {
-    "CORS_ORIGINS": "https://enterprise-ai-dms.vercel.app"
-  }
 }
