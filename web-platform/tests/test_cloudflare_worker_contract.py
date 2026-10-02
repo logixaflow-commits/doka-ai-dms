@@ -26,3 +26,13 @@ def test_worker_preview_allows_only_passive_formats_and_audits():
         assert content_type in WORKER_SOURCE
     assert 'status_code=415, detail="Preview is not available for this file type."' in WORKER_SOURCE
     assert '_audit(request, user_id, "preview"' in WORKER_SOURCE
+
+
+def test_worker_version_history_is_owner_scoped_and_uses_atomic_database_functions():
+    assert '@app.get("/api/documents/{document_id}/versions")' in WORKER_SOURCE
+    assert '@app.post("/api/documents/{document_id}/versions")' in WORKER_SOURCE
+    assert '@app.post("/api/documents/{document_id}/versions/{version_id}/restore")' in WORKER_SOURCE
+    assert 'rpc/doka_replace_document_version' in WORKER_SOURCE
+    assert 'rpc/doka_restore_document_version' in WORKER_SOURCE
+    assert '_audit(request, user_id, "version_create"' in WORKER_SOURCE
+    assert '_audit(request, user_id, "version_restore"' in WORKER_SOURCE
