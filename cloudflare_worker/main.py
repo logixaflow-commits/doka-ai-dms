@@ -185,7 +185,7 @@ def _normalize_folder_path(value: str) -> str:
     raw = value.strip()
     if not raw or raw == "/":
         return "/"
-    if "\x00" in raw or "\\\\" in raw:
+    if "\x00" in raw or "\\" in raw:
         raise HTTPException(status_code=400, detail="Invalid folder path.")
     segments = [part for part in raw.split("/") if part]
     if not segments or any(part in {".", ".."} for part in segments):
@@ -285,7 +285,7 @@ async def update_document(request: Request, document_id: str, update: DocumentUp
         raise HTTPException(status_code=400, detail="No document fields were provided.")
     if "filename" in payload:
         filename = payload["filename"].strip()
-        if not filename or filename in {".", ".."} or "/" in filename or "\\\\" in filename or "\x00" in filename:
+        if not filename or filename in {".", ".."} or "/" in filename or "\\" in filename or "\x00" in filename:
             raise HTTPException(status_code=400, detail="Filename must be a plain file name.")
         payload["filename"] = filename
     if "folder_path" in payload:
