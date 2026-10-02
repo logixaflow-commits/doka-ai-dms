@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { History, RotateCcw, Download, Eye, User, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { History, RotateCcw, Download, User, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { success, error } from './Toast';
@@ -23,28 +22,37 @@ interface VersionHistoryProps {
   documentName: string;
 }
 
-export default function VersionHistory({ documentId, documentName }: VersionHistoryProps) {
+export default function VersionHistory({ documentId }: VersionHistoryProps) {
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const loadVersions = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/documents/${documentId}/versions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+  useEffect(() => {
+    let active = true;
 
-      if (!response.ok) throw new Error('Failed to load versions');
+    const loadVersions = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/documents/${documentId}/versions`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
 
-      const data = await response.json();
-      setVersions(data);
-    } catch (err) {
-      // Use mock data for demo
-      setVersions(generateMockVersions());
-    }
-  };
+        if (!response.ok) throw new Error('Failed to load versions');
+
+        const data = await response.json();
+        const rows = Array.isArray(data) ? data : data.versions;
+        if (active) setVersions(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (active) setVersions(generateMockVersions());
+      }
+    };
+
+    void loadVersions();
+    return () => {
+      active = false;
+    };
+  }, [documentId]);
 
   const handleRestoreVersion = async (versionId: string) => {
     setLoading(true);
@@ -66,7 +74,7 @@ export default function VersionHistory({ documentId, documentName }: VersionHist
         }))
       );
       success('Version restored successfully');
-    } catch (err) {
+    } catch {
       error('Failed to restore version');
     } finally {
       setLoading(false);
@@ -95,7 +103,7 @@ export default function VersionHistory({ documentId, documentName }: VersionHist
       document.body.removeChild(a);
 
       success('Version downloaded successfully');
-    } catch (err) {
+    } catch {
       error('Failed to download version');
     }
   };
