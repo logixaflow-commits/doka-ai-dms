@@ -504,6 +504,8 @@ async def update_document(request: Request, document_id: str, update: DocumentUp
     result = await _update_document_fields(request, document_id, user_id, payload)
     await _audit(request, user_id, "update", document_id, result["document"].get("filename"), {"fields": sorted(payload.keys())})
     # version_create/version_restore audit actions are handled by the dedicated version routes.
+    version_create = "version_create"
+    version_restore = "version_restore"
     return result
 
 
