@@ -458,3 +458,17 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added regression tests for production Safe Workspace isolation, stale organization-plan rejection, OCR-correction categorization, bounded PDF OCR and bounded backup restore entries.
 - Commits: `931f7b9`, `3186058`, `51e213d`, `27ba1bb`, `4ecb731`, `78711bc`, `b905b7f`, `d007c90`, `3b5b8ea`, `23a6487`, `dd514a5`, `dfb5c56`, `4f55048`, `e816474`, `cad90ef`.
 - Verification boundary: these are source changes and regression tests only. No Python tests, frontend build, GitHub Actions workflow or real-office restore/OCR validation has been run in this pass. Do not treat the new tests as passed until an allowed runner executes them.
+
+
+
+### 2026-10-03 — Apply/OCR limits, frontend session reset and pilot-gate corrections
+
+- Organization Apply now rejects batches above 500 paths, empty/overlong path strings and duplicate approvals. It only applies proposals with recognized reviewable actions, and verifies destination SHA-256 incrementally rather than loading the entire copied file into memory.
+- The Apply API schema enforces the same 500-item cap before service execution.
+- OCR now checks image dimensions from the image header before OpenCV decodes pixel data; images above 50 million pixels are rejected. PDF rendering is capped to a 3,500-pixel maximum dimension in addition to the 200-page limit, page-at-a-time rendering and configured timeouts.
+- Frontend now clears stale OCR results/drafts when switching import sessions, starting a new import or rescanning, in addition to clearing stale approvals/proposals.
+- The real-office pilot gate previously could report success when some files failed import/scan, and `--require-ocr` checked only whether Tesseract language packs were installed. It now requires complete verified import, a fully readable scan, verified backup/Recovery equality, unchanged source-copy hashes, and (when `--require-ocr` is set) actual representative image/PDF OCR with both Myanmar and English detected.
+- Pilot backup comparison now mirrors the backup service's exclusions for the Recovery directory, symlinks and temporary files. This prevents false failures on repeat pilot runs when older Recovery snapshots exist.
+- Added regression tests for bounded Apply batches, image pixel limits, PDF render size, pilot backup exclusions and bilingual OCR gate evaluation.
+- Commits: `09faf34`, `4c00499`, `f7e9b22`, `979031b`, `ddec9dc`, `30afee5`, `919ebfd`, `6cba161`, `d1e2127`, `3378bd8`, `0e69b70`.
+- Verification boundary: changes and regression tests are committed but have not been executed in this pass. No GitHub Actions workflow was dispatched or rerun. Phase D still requires the documented pilot against a copied, representative real-office dataset on the target machine.
