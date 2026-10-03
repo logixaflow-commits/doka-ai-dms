@@ -80,3 +80,20 @@ def test_ocr_pilot_requires_real_myanmar_and_english_samples():
         {"relative_path": "myanmar.png", "extension": ".png", "text_length": 40, "language": "mya"},
     ])
     assert incomplete["representative_ocr_passed"] is False
+
+
+
+def test_doka_pilot_rejects_empty_source_copy(tmp_path, monkeypatch, capsys):
+    source = tmp_path / "empty-copy"
+    source.mkdir()
+    module = _load_pilot_module()
+    monkeypatch.setattr(
+        __import__("sys"),
+        "argv",
+        ["doka_pilot_check.py", "--source", str(source)],
+    )
+
+    assert module.main() == 2
+    report = json.loads(capsys.readouterr().out)
+    assert report["gate"] == "blocked"
+    assert "no regular files" in report["reason"]
