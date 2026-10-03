@@ -9,6 +9,7 @@ from app.core.local_security import (
     create_local_refresh_token,
     decode_local_token,
     consume_local_refresh_token,
+    invalidate_local_token,
     login_is_locked,
     record_login_failure,
 )
@@ -89,5 +90,20 @@ async def me(request: Request):
 
 
 @router.post("/logout")
-async def logout():
-    return {"message": "Logged out successfully. Remove the local access token from the client."}
+async def logout(request: Request):
+    if settings.ENVIRONMENT.strip().lower() not in {"development", "local", "test"}:
+        raise HTTPException(status_code=404, detail="Local password authentication is disabled outside local environments.")
+
+    authorization = request.headers.get("Authorization", "")
+    if authorization.startswith("Bearer "):
+        invalidate_local_token(authorization[7:])
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    refresh_token = body.get("refresh_token") if isinstance(body, dict) else None
+    if isinstance(refresh_token, str) and refresh_token:
+        invalidate_local_token(refresh_token)
+
+    return {"message": "Local session ended."}
