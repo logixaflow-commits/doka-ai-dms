@@ -121,3 +121,52 @@ def test_source_write_flag_is_rejected_even_if_read_only_flag_is_disabled(tmp_pa
     service = SafeWorkspaceService()
     with pytest.raises(ValueError, match="ALLOW_SOURCE_WRITE"):
         service.validate_source(source)
+
+
+
+def test_import_rejects_symlinked_source_copy_root(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    source.mkdir()
+    outside.mkdir()
+    (source / "file.txt").write_text("source", encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    copy_root = workspace / "imports" / session["session_id"] / "source_copy"
+    copy_root.symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="working-copy directory cannot be a symlink"):
+        service.run_import(session["session_id"])
+    assert not list(outside.iterdir())
+
+
+def test_import_does_not_follow_symlinked_destination_parent(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    (source / "nested").mkdir(parents=True)
+    outside.mkdir()
+    (source / "nested" / "file.txt").write_text("source", encoding="utf-8")
+    sentinel = outside / "sentinel.txt"
+    sentinel.write_text("unchanged", encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    copy_root = workspace / "imports" / session["session_id"] / "source_copy"
+    copy_root.mkdir()
+    (copy_root / "nested").symlink_to(outside, target_is_directory=True)
+
+    result = service.run_import(session["session_id"])
+    assert result["files_failed"] == 1
+    assert sentinel.read_text(encoding="utf-8") == "unchanged"
+    assert not (outside / "file.txt").exists()
