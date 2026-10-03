@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.core.database import SessionLocal, engine
 from app.core.logging import get_logger
 from app.core.encryption import encryption_manager
+from app.core.backup_utils import postgres_dump_invocation
 from app.core.storage import storage_manager
 from app.core.exceptions import PipelineError
 from app.services.pipeline import ProcessingPipeline
@@ -285,19 +286,17 @@ def backup_database():
             logger.info(f"SQLite backup created: {backup_path}")
 
         else:
-            # PostgreSQL backup using pg_dump
+            # Parse credentials and IPv6 hosts correctly; never interpolate a shell command.
             import subprocess
             backup_path = backup_dir / f"dms_backup_{timestamp}.sql"
+            cmd, credentials = postgres_dump_invocation(
+                settings.DATABASE_URL, str(backup_path)
+            )
             env = os.environ.copy()
-            env["PGPASSWORD"] = settings.DATABASE_URL.split(":")[2].split("@")[0]
-            cmd = [
-                "pg_dump",
-                "-h", settings.DATABASE_URL.split("@")[1].split("/")[0].split(":")[0],
-                "-U", settings.DATABASE_URL.split(":")[1].lstrip("/"),
-                "-d", settings.DATABASE_URL.split("/")[-1].split("?")[0],
-                "-f", str(backup_path),
-            ]
-            subprocess.run(cmd, env=env, check=True, capture_output=True)
+            env.update(credentials)
+            subprocess.run(
+                cmd, env=env, check=True, capture_output=True, text=True
+            )
             logger.info(f"PostgreSQL backup created: {backup_path}")
 
         # Clean old backups
