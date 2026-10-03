@@ -1,10 +1,11 @@
+import json
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
-from app.api.routes.local_auth import LocalLogin, LocalRefresh, login, refresh
+from app.api.routes.local_auth import LocalLogin, LocalRefresh, login, logout, refresh
 from app.core.supabase_auth import _supabase_configured, require_local_workspace_user
 
 
@@ -109,3 +110,34 @@ async def test_local_refresh_token_is_single_use_and_rotates(monkeypatch):
     with pytest.raises(HTTPException) as error:
         await refresh(LocalRefresh(refresh_token=initial["refresh_token"]))
     assert error.value.status_code == 401
+
+
+
+@pytest.mark.asyncio
+async def test_local_logout_invalidates_access_and_refresh_tokens(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "admin")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "local-test-password-123")
+    result = await login(
+        LocalLogin(username="admin", password="local-test-password-123"),
+        _request(),
+    )
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/auth/logout",
+        "query_string": b"",
+        "headers": [(b"authorization", f"Bearer {result['access_token']}".encode())],
+        "client": ("127.0.0.1", 12345),
+    }
+    body = json.dumps({"refresh_token": result["refresh_token"]}).encode()
+
+    async def receive():
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    request = Request(scope, receive)
+    response = await logout(request)
+
+    assert response["message"] == "Local session ended."
+    assert decode_local_token(result["access_token"]) is None
+    assert decode_local_token(result["refresh_token"], expected_type="refresh") is None
