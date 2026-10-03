@@ -443,28 +443,46 @@ async def upload_document(
     """Upload a new document (enqueues Celery processing task)."""
     from app.core.config import settings
 
-    # Validate file size (100MB max)
+    # Stream to disk in bounded chunks; never hold the full upload in memory.
     MAX_SIZE = 100 * 1024 * 1024
-    contents = await file.read()
-    if len(contents) > MAX_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 100MB)")
+    chunk_size = 1024 * 1024
+    source_name = (file.filename or "upload").replace("\\", "/").rsplit("/", 1)[-1]
+    source_name = "".join(char for char in source_name if ord(char) >= 32 and ord(char) != 127)
+    source_name = source_name.strip(" .") or "upload"
 
-    # Generate workspace filename
     file_id = str(uuid.uuid4())
-    safe_name = f"{file_id}_{file.filename}"
+    safe_name = f"{file_id}_{source_name}"
     workspace_path = settings.PROCESSING_WORKSPACE / safe_name
+    total_size = 0
 
-    # Save to processing workspace
-    workspace_path.parent.mkdir(parents=True, exist_ok=True)
-    workspace_path.write_bytes(contents)
+    try:
+        await __import__("anyio").to_thread.run_sync(
+            lambda: workspace_path.parent.mkdir(parents=True, exist_ok=True)
+        )
+        async with await __import__("anyio").open_file(workspace_path, "wb") as output:
+            while True:
+                chunk = await file.read(chunk_size)
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if total_size > MAX_SIZE:
+                    raise HTTPException(status_code=413, detail="File too large (max 100MB)")
+                await output.write(chunk)
+    except Exception:
+        await __import__("anyio").to_thread.run_sync(
+            lambda: workspace_path.unlink(missing_ok=True)
+        )
+        raise
+    finally:
+        await file.close()
 
-    # Create DB record
+    # Create DB record only after the complete file has been written.
     doc = Document(
-        original_filename=file.filename,
+        original_filename=source_name,
         stored_filename=safe_name,
         storage_key=f"file://{workspace_path}",
         file_hash="pending",
-        file_size=len(contents),
+        file_size=total_size,
         mime_type=file.content_type or "application/octet-stream",
         status="pending",
         uploaded_by=current_user.id,
@@ -477,7 +495,7 @@ async def upload_document(
     task = process_document.delay(
         document_id=doc.id,
         file_path=str(workspace_path),
-        original_filename=file.filename,
+        original_filename=source_name,
         mime_type=file.content_type or "application/octet-stream",
     )
     doc.task_id = task.id
@@ -489,8 +507,8 @@ async def upload_document(
         current_user.id,
         {
             "document_id": doc.id,
-            "filename": file.filename,
-            "size": len(contents),
+            "filename": source_name,
+            "size": total_size,
             "ip": client["ip_address"],
         }
     )
