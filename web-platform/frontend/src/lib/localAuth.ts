@@ -1,6 +1,6 @@
 import type { SupabaseUser } from '@/lib/supabaseAuth';
 
-const API_BASE = `${(import.meta.env.VITE_API_BASE_URL || '/api').replace(/\\/$/, '')}`;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_KEY = 'supabase_user';
