@@ -517,3 +517,12 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 - The image OCR PIL fallback now converts the source image inside a context manager and closes its file handle before continuing with OpenCV/Tesseract processing.
 - Commit: `9d9ac98`.
+
+
+
+### 2026-10-03 — Local refresh-token replay protection
+
+- Local refresh JWTs now include a unique token ID. Refresh consumes each token once under a process-level lock, issues a replacement token, rejects replayed/legacy refresh tokens without a token ID, and prunes expired consumed-token entries on subsequent refreshes.
+- Added a regression test proving one successful rotation and rejection of reuse of the original refresh token.
+- This follows the documented Personal Local Edition in-process authentication model; it is not a cross-process revocation store.
+- Commits: `5afc8ae`, `cd91067`, `d9dce05`.
