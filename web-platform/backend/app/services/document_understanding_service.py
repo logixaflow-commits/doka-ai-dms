@@ -108,6 +108,8 @@ class DocumentUnderstandingService:
             if len(expected_hash) != 64 or sha256_file(path).lower() != expected_hash:
                 raise ValueError(f"Working-copy integrity check failed: {relative_path}")
             text, method = self._extract_text(path)
+            language = method if method in {"mya", "eng", "mya+eng"} else None
+            extraction_method = "ocr" if language else method
             metadata: Dict[str, Any] = {}
             if text.strip():
                 try:
@@ -119,9 +121,9 @@ class DocumentUnderstandingService:
                 "filename": item["filename"],
                 "extension": item["extension"],
                 "sha256": item["sha256"],
-                "extraction_method": method,
+                "extraction_method": extraction_method,
                 "text_length": len(text),
-                "language": method if method in {"mya", "eng", "mya+eng"} else None,
+                "language": language,
                 "metadata": metadata,
                 "text_preview": text[:2000],
             })
