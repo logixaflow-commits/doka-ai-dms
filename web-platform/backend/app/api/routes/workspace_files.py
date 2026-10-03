@@ -26,7 +26,10 @@ def _safe_file(session_id: str, relative_path: str) -> tuple[Path, dict]:
     if not manifest:
         raise HTTPException(status_code=404, detail="Unknown import session.")
 
-    root = Path(manifest.get("working_copy", "")).resolve()
+    try:
+        _source, root = safe_workspace_service.validate_manifest_paths(session_id, manifest)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail="Import manifest paths are invalid.") from exc
     if not root.is_dir():
         raise HTTPException(status_code=404, detail="Working copy is unavailable.")
 
