@@ -3,12 +3,7 @@ name: Vercel Production Smoke Check
 # Vercel Git Integration owns deployments. This workflow verifies the live
 # production alias after a frontend/config change; it does not pretend to deploy.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "web-platform/frontend/**"
-      - "vercel.json"
-      - ".github/workflows/vercel-production.yml"
+  # Vercel production is intentionally paused; run this check manually only.
   workflow_dispatch:
 
 permissions:
