@@ -66,3 +66,9 @@ Date: 2026-10-03
 - Apply now rejects a symlinked `FINAL_ROOT`, requires it to be a dedicated directory strictly inside `WORKING_ROOT`, and rejects any overlap with `SOURCE_ROOT` before creating output directories.
 - Added a regression test that configures `FINAL_ROOT` as the original source directory and asserts Apply is rejected while source bytes and directory contents remain unchanged.
 - This closes a configuration-dependent path to writing organization output into the original source. Test execution remains pending.
+## Cross-platform backup archive path validation
+
+- Restore validation now rejects control characters, empty/dot path segments, Windows alternate-data-stream colons, trailing dots/spaces, and reserved Windows device-name segments before extraction.
+- Duplicate detection now uses case-folded normalized archive paths so case-colliding entries cannot overwrite one another on case-insensitive Windows filesystems.
+- Added regression cases for case-colliding paths and reserved device names. Existing ZIP traversal, symlink, entry-count, size and compression-ratio checks remain.
+- Tests have not been executed; this is code-level hardening pending local/CI verification.
