@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from app.core.config import settings
@@ -55,7 +53,7 @@ def test_backup_root_rejects_symlink(monkeypatch, tmp_path):
     with pytest.raises(ValueError, match="cannot be a symlink"):
         WorkspaceBackupService()._backup_root()
 
-def _write_test_archive(service, backup_root, archive_name, members):
+def _write_test_archive(backup_root, archive_name, members):
     import hashlib
     import json
     import zipfile
@@ -77,7 +75,6 @@ def test_restore_rejects_case_colliding_paths_on_windows_filesystems(monkeypatch
     service = WorkspaceBackupService()
     service._backup_root()
     archive = _write_test_archive(
-        service,
         backup_root,
         "workspace_case_collision.zip",
         [("Folder/Report.txt", b"one"), ("folder/report.txt", b"two")],
