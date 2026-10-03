@@ -20,6 +20,7 @@ class FakePdf:
 def make_service():
     service = object.__new__(ocr_module.OCRService)
     service.MAX_PDF_PAGES = 200
+    service.MAX_IMAGE_PIXELS = 50_000_000
     service.dpi = 150
     service.timeout = 7
     service.preprocessing = False
