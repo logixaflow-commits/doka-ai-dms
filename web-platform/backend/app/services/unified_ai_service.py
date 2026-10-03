@@ -63,6 +63,13 @@ class UnifiedAIService:
         remaining = [p for p in self.providers if p not in ordered]
         return ordered + remaining
 
+    def _ensure_external_ai_allowed(self) -> None:
+        """Fail closed before any provider receives document or embedding text."""
+        if not settings.AI_ENABLED:
+            raise RuntimeError("AI is disabled; use local/rule-based processing")
+        if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
+            raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
+
     def _provider_limit(self) -> int:
         configured = settings.AI_PROVIDER_MAX_ATTEMPTS
         return configured if configured > 0 else len(self.get_available_providers())
@@ -74,10 +81,7 @@ class UnifiedAIService:
         providers: Optional[List[str]] = None,
     ) -> Any:
         """Try providers in order; on quota/network/model failure continue to the next."""
-        if not settings.AI_ENABLED:
-            raise RuntimeError("AI is disabled; use local/rule-based processing")
-        if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
-            raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
+        self._ensure_external_ai_allowed()
 
         candidates = providers or self.get_available_providers()
         candidates = candidates[: self._provider_limit()]
@@ -97,6 +101,7 @@ class UnifiedAIService:
         raise RuntimeError(f"All configured AI providers failed for '{operation}': " + " | ".join(errors))
 
     async def call_openai(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        self._ensure_external_ai_allowed()
         provider = self.providers.get("openai")
         if not provider:
             raise ValueError("OpenAI provider not available")
@@ -115,6 +120,7 @@ class UnifiedAIService:
             return response.json()["choices"][0]["message"]["content"]
 
     async def call_gemini(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        self._ensure_external_ai_allowed()
         provider = self.providers.get("gemini")
         if not provider:
             raise ValueError("Gemini provider not available")
@@ -135,6 +141,7 @@ class UnifiedAIService:
             return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
     async def call_openrouter(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        self._ensure_external_ai_allowed()
         provider = self.providers.get("openrouter")
         if not provider:
             raise ValueError("OpenRouter provider not available")
@@ -158,6 +165,7 @@ class UnifiedAIService:
             return response.json()["choices"][0]["message"]["content"]
 
     async def call_groq(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        self._ensure_external_ai_allowed()
         provider = self.providers.get("groq")
         if not provider:
             raise ValueError("Groq provider not available")
@@ -204,10 +212,7 @@ class UnifiedAIService:
 
     async def get_embedding(self, text: str, provider: str = "huggingface") -> List[float]:
         """Embeddings are optional; semantic search must have a local fallback."""
-        if not settings.AI_ENABLED:
-            raise RuntimeError("AI is disabled; use local/rule-based processing")
-        if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
-            raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
+        self._ensure_external_ai_allowed()
         if provider != "huggingface" or not settings.HUGGINGFACE_API_KEY:
             raise ValueError("Hugging Face embeddings are not configured")
         cfg = {"api_key": settings.HUGGINGFACE_API_KEY, "model": settings.HUGGINGFACE_MODEL}
