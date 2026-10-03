@@ -95,8 +95,15 @@ def decode_local_token(token: str, expected_type: str = "access") -> Optional[di
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         if payload.get("type") != expected_type or payload.get("role") != "admin":
             return None
-        if payload.get("jti") in _invalid_token_ids:
-            return None
+        token_id = payload.get("jti")
+        if isinstance(token_id, str):
+            now = time.time()
+            with _refresh_guard:
+                expired = [key for key, expiry in _invalid_token_ids.items() if expiry <= now]
+                for key in expired:
+                    _invalid_token_ids.pop(key, None)
+                if token_id in _invalid_token_ids:
+                    return None
         return payload
     except JWTError:
         return None
