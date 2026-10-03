@@ -23,6 +23,7 @@ _login_guard = threading.Lock()
 _login_failures: dict[str, list[float]] = {}
 _refresh_guard = threading.Lock()
 _used_refresh_tokens: dict[str, float] = {}
+_invalid_token_ids: dict[str, float] = {}
 
 
 def _login_key(username: str, client_host: str | None) -> str:
@@ -64,6 +65,7 @@ def create_local_access_token(username: str) -> str:
             "sub": username,
             "role": "admin",
             "type": "access",
+            "jti": secrets.token_urlsafe(18),
             "iat": now,
             "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         },
@@ -96,6 +98,25 @@ def decode_local_token(token: str, expected_type: str = "access") -> Optional[di
         return payload
     except JWTError:
         return None
+
+
+def invalidate_local_token(token: str) -> bool:
+    """Invalidate a local token until its natural expiry."""
+    payload = decode_local_token(token, expected_type="access")
+    if not payload:
+        payload = decode_local_token(token, expected_type="refresh")
+    if not payload:
+        return False
+    token_id = payload.get("jti")
+    try:
+        expiry = float(payload.get("exp"))
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(token_id, str) or not token_id:
+        return False
+    with _refresh_guard:
+        _invalid_token_ids[token_id] = expiry
+    return True
 
 
 def consume_local_refresh_token(token: str) -> Optional[dict]:
