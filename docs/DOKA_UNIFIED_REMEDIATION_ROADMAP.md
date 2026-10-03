@@ -319,5 +319,5 @@ Next Phase 1 work:
 
 ### CI observation — 2026-10-03
 
-- Latest observed automatic Doka Quality Checks run: `37107238360` for commit `a67341d`. GitHub reports all three jobs (frontend checks, backend regression tests and backend dependency audit) as failed, but each job exposes an empty step list and its log download returns `BlobNotFound`. This is insufficient evidence to attribute the failure to the code or to claim the tests ran.
+- Latest observed automatic Doka Quality Checks run: `37107344383` for commit `82dfff5`. GitHub reports all three jobs (frontend checks, backend regression tests and backend dependency audit) as failed. The earlier inspected run `37107238360` exposed empty step lists and `BlobNotFound` logs; no usable diagnostic steps/logs have been returned, so the failure remains insufficient to attribute to the code or to claim the tests ran.
 - Do not manually rerun or dispatch Actions solely to investigate this; keep the failure classified as **CI evidence unavailable/inconclusive** until GitHub exposes actual steps/logs or a local test environment is available.
