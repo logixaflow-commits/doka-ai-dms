@@ -32,7 +32,7 @@ from app.services.workspace_backup_service import workspace_backup_service  # no
 
 
 def source_snapshot(root: Path) -> dict[str, str]:
-    """Hash every regular file so the pilot can prove the source stayed unchanged."""
+    """Hash every regular file so the pilot can prove the supplied copy stayed unchanged."""
     snapshot: dict[str, str] = {}
     for path in sorted(root.rglob("*")):
         if path.is_file() and not path.is_symlink():
@@ -40,10 +40,49 @@ def source_snapshot(root: Path) -> dict[str, str]:
     return snapshot
 
 
+def workspace_backup_snapshot(root: Path) -> dict[str, str]:
+    """Mirror WorkspaceBackupService exclusions for a like-for-like restore check."""
+    snapshot: dict[str, str] = {}
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or path.is_symlink() or path.name.endswith(".tmp"):
+            continue
+        relative = path.relative_to(root)
+        if relative.parts and relative.parts[0] == "Recovery":
+            continue
+        snapshot[relative.as_posix()] = sha256_file(path)
+    return snapshot
+
+
+def inspect_ocr_results(results: list[dict]) -> dict:
+    supported = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
+    ocr_files = [item for item in results if str(item.get("extension", "")).lower() in supported]
+    failed = [
+        item.get("relative_path", "")
+        for item in ocr_files
+        if item.get("extraction_method") == "ocr_failed" or int(item.get("text_length") or 0) <= 0
+    ]
+    languages = {
+        str(item.get("language") or "")
+        for item in ocr_files
+        if item.get("language")
+    }
+    has_myanmar = bool(languages & {"mya", "mya+eng"})
+    has_english = bool(languages & {"eng", "mya+eng"})
+    return {
+        "files_total": len(ocr_files),
+        "files_failed": len(failed),
+        "failed_paths": failed,
+        "languages_detected": sorted(languages),
+        "myanmar_detected": has_myanmar,
+        "english_detected": has_english,
+        "representative_ocr_passed": bool(ocr_files) and not failed and has_myanmar and has_english,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the Doka Personal Local real-machine pilot gate.")
     parser.add_argument("--source", required=True, help="COPY of representative office data; never the original source.")
-    parser.add_argument("--require-ocr", action="store_true", help="Fail the gate when Myanmar/English OCR is unavailable.")
+    parser.add_argument("--require-ocr", action="store_true", help="Require OCR tooling and successful Myanmar + English OCR on representative image/PDF files.")
     parser.add_argument("--apply-safe", action="store_true", help="Apply only non-review organization proposals after the plan is generated.")
     args = parser.parse_args()
 
@@ -71,6 +110,8 @@ def main() -> int:
 
     scan = service.scan(session_id)
     understanding = document_understanding_service.analyze(session_id)
+    understanding_details = service._read(service._json_path(session_id, "understanding.json"))
+    ocr_results = inspect_ocr_results(understanding_details.get("results", []))
     plan = organization_planner.plan(session_id)
 
     apply_result = None
@@ -82,24 +123,51 @@ def main() -> int:
         ]
         apply_result = organization_planner.apply(session_id, safe_paths) if safe_paths else {"results": []}
 
-    workspace_before_backup = source_snapshot(workspace)
+    workspace_before_backup = workspace_backup_snapshot(workspace)
     backup = workspace_backup_service.create(session_id=session_id)
     backup_name = Path(backup["archive"]).name
     backup_verify = workspace_backup_service.verify(backup_name)
     recovery = workspace_backup_service.restore_to_recovery(backup_name)
     recovery_root = Path(recovery["recovery_path"])
-    recovery_snapshot = source_snapshot(recovery_root)
-    recovery_verified = (
-        backup_verify.get("verified") is True
-        and recovery_snapshot == workspace_before_backup
-        and recovery.get("active_workspace_changed") is False
-    )
-    shutil.rmtree(recovery_root, ignore_errors=True)
+    try:
+        recovery_snapshot = source_snapshot(recovery_root)
+        recovery_verified = (
+            backup_verify.get("verified") is True
+            and recovery_snapshot == workspace_before_backup
+            and recovery.get("active_workspace_changed") is False
+        )
+    finally:
+        shutil.rmtree(recovery_root, ignore_errors=True)
     after = source_snapshot(source)
 
     source_unchanged = before == after
+    import_complete = (
+        status.get("state") == "completed"
+        and status.get("files_failed", 0) == 0
+        and status.get("files_verified", 0) == status.get("files_total", -1)
+    )
+    scan_complete = (
+        scan.get("files_unreadable", 0) == 0
+        and scan.get("files_readable", 0) == scan.get("files_total", -1)
+    )
+    ocr_gate_passed = not args.require_ocr or (
+        ocr.get("available") is True and ocr_results["representative_ocr_passed"]
+    )
+    gate_reasons = []
+    if not source_unchanged:
+        gate_reasons.append("The supplied source copy changed during the pilot.")
+    if not import_complete:
+        gate_reasons.append("Not every source file was imported and SHA-256 verified.")
+    if not scan_complete:
+        gate_reasons.append("The workspace scan reported unreadable or unaccounted files.")
+    if not recovery_verified:
+        gate_reasons.append("Backup verification or Recovery manifest comparison failed.")
+    if not ocr_gate_passed:
+        gate_reasons.append("Required Myanmar + English OCR was not successfully exercised on representative image/PDF files.")
+    gate_passed = source_unchanged and import_complete and scan_complete and recovery_verified and ocr_gate_passed
     report = {
-        "gate": "passed" if source_unchanged else "failed",
+        "gate": "passed" if gate_passed else "failed",
+        "gate_reasons": gate_reasons,
         "session_id": session_id,
         "source": str(source),
         "source_unchanged": source_unchanged,
@@ -126,7 +194,7 @@ def main() -> int:
             "review_required": plan.get("review_required"),
             "requires_user_approval": plan.get("requires_user_approval"),
         },
-        "ocr": ocr,
+        "ocr": {**ocr, **ocr_results, "required": args.require_ocr, "gate_passed": ocr_gate_passed},
         "backup": {
             "archive": backup.get("archive"),
             "sha256": backup.get("sha256"),
@@ -137,7 +205,7 @@ def main() -> int:
         "apply_safe": apply_result,
     }
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if source_unchanged and recovery_verified else 3
+    return 0 if gate_passed else 3
 
 
 if __name__ == "__main__":
