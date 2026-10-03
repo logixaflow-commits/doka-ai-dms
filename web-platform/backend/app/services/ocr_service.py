@@ -40,6 +40,7 @@ class OCRService:
     SUPPORTED_PDF_TYPES = {"application/pdf"}
     # Bound CPU and memory use when processing untrusted or unexpectedly large PDFs.
     MAX_PDF_PAGES = 200
+    MAX_IMAGE_PIXELS = 50_000_000
 
     def __init__(self):
         self.config = settings.ocr
@@ -167,7 +168,20 @@ class OCRService:
     def _process_image(self, image_path: Path) -> str:
         """Process a single image file with fallback mechanism."""
         last_error = None
-        
+
+        # Inspect dimensions from the image header before OpenCV decodes pixel data.
+        try:
+            with Image.open(str(image_path)) as image_header:
+                width, height = image_header.size
+            if width <= 0 or height <= 0 or width * height > self.MAX_IMAGE_PIXELS:
+                raise OCRError(
+                    f"Image dimensions exceed the OCR limit of {self.MAX_IMAGE_PIXELS:,} pixels."
+                )
+        except OCRError:
+            raise
+        except Exception as exc:
+            raise OCRError(f"Unable to inspect image dimensions: {exc}") from exc
+
         # Try Tesseract first
         try:
             # Load image
