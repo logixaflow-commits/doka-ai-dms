@@ -117,6 +117,9 @@ function LocalWorkspaceReview() {
     setProposals([]);
     setSelected(new Set());
     setSearchResults([]);
+    setOcrResults([]);
+    setEditingOcr(null);
+    setOcrDraft('');
     setMessage('Existing workspace session loaded.');
   }
 
@@ -131,6 +134,9 @@ function LocalWorkspaceReview() {
       loadSessions();
       setProposals([]);
       setSelected(new Set());
+      setOcrResults([]);
+      setEditingOcr(null);
+      setOcrDraft('');
       setMessage('Import started. The original source is not modified.');
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Import failed'); }
     finally { setBusy(false); }
@@ -155,6 +161,11 @@ function LocalWorkspaceReview() {
       } else {
         setProposals([]);
         setSelected(new Set());
+        if (step === 'scan') {
+          setOcrResults([]);
+          setEditingOcr(null);
+          setOcrDraft('');
+        }
       }
       if (step === 'understand') {
         const detail = await api(`/imports/${encodeURIComponent(sessionId)}/understanding`);
