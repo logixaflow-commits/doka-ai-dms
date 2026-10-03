@@ -36,6 +36,12 @@ def default_debug_for_environment(environment: str) -> bool:
     return environment not in {"production", "staging"}
 
 
+def validate_runtime_mode(environment: str, debug: bool) -> None:
+    """Reject explicitly enabling debug mode in production."""
+    if environment == "production" and debug:
+        raise ValueError("DEBUG must be false in production.")
+
+
 @dataclass
 class SupplierConfig:
     name: str
@@ -376,6 +382,7 @@ class Settings:
 
     def _validate(self):
         """Validate critical configuration."""
+        validate_runtime_mode(self.ENVIRONMENT, self.DEBUG)
         if not self.ENCRYPTION_KEY and self.ENVIRONMENT == "production":
             logger.warning("ENCRYPTION_KEY not set in production. Sensitive documents will NOT be encrypted.")
 
