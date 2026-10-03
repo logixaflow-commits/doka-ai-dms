@@ -63,3 +63,29 @@ def test_pdf_page_limit_is_checked_before_rendering(tmp_path, monkeypatch):
 
     with pytest.raises(OCRError, match="OCR limit"):
         make_service()._process_pdf(tmp_path / "oversized.pdf")
+
+
+
+def test_oversized_image_is_rejected_before_opencv_decode(tmp_path, monkeypatch):
+    class ImageHeader:
+        size = (10_000, 10_000)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    service = make_service()
+    service.fallback_enabled = False
+    service.paddleocr_available = False
+    service.easyocr_available = False
+    monkeypatch.setattr(ocr_module.Image, "open", lambda _path: ImageHeader())
+    monkeypatch.setattr(
+        ocr_module.cv2,
+        "imread",
+        lambda *_args: pytest.fail("oversized image must be rejected before decoding"),
+    )
+
+    with pytest.raises(OCRError, match="dimensions exceed"):
+        service._process_image(tmp_path / "oversized.png")
