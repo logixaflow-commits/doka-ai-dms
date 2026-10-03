@@ -194,3 +194,32 @@ def test_apply_rejects_oversized_and_duplicate_approval_batches():
         planner.apply("session", [f"file-{index}.txt" for index in range(501)])
     with pytest.raises(ValueError, match="Duplicate approved paths"):
         planner.apply("session", ["invoice.txt", "invoice.txt"])
+
+def test_apply_rejects_final_root_that_points_at_original_source(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    source_file = source / "invoice.txt"
+    source_file.write_text("Invoice 001 payment", encoding="utf-8")
+    original = source_file.read_bytes()
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "FINAL_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    service.run_import(created["session_id"])
+    service.scan(created["session_id"])
+    planner = OrganizationPlanner()
+    plan = planner.plan(created["session_id"])
+    approved = [item["relative_path"] for item in plan["proposals"] if item["action"] == "suggest_move"]
+
+    with pytest.raises(ValueError, match="FINAL_ROOT"):
+        planner.apply(created["session_id"], approved)
+
+    assert source_file.read_bytes() == original
+    assert list(source.iterdir()) == [source_file]
