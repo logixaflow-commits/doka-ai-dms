@@ -46,6 +46,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      - name: Scan repository for committed secrets
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo:ro" \
+            zricethezav/gitleaks:v8.24.3 \
+            dir --source /repo --redact --no-banner --exit-code 1
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
