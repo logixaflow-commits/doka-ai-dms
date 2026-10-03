@@ -60,3 +60,9 @@ Date: 2026-10-03
 - The source validation gate now requires both `ORIGINAL_READ_ONLY=true` and `ALLOW_SOURCE_WRITE=false` before accepting a source directory.
 - Added a regression test for the missing `ORIGINAL_READ_ONLY=false` case while preserving the existing explicit source-write rejection test.
 - No original data was accessed or modified during this repository-only change. Tests remain pending execution.
+## Organization output isolation from original source
+
+- A deeper Apply-path review found that a misconfigured `FINAL_ROOT` could point outside `WORKING_ROOT`, including directly at `SOURCE_ROOT`, even though imported files were copied and hash-verified first.
+- Apply now rejects a symlinked `FINAL_ROOT`, requires it to be a dedicated directory strictly inside `WORKING_ROOT`, and rejects any overlap with `SOURCE_ROOT` before creating output directories.
+- Added a regression test that configures `FINAL_ROOT` as the original source directory and asserts Apply is rejected while source bytes and directory contents remain unchanged.
+- This closes a configuration-dependent path to writing organization output into the original source. Test execution remains pending.
