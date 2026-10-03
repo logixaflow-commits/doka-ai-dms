@@ -5,6 +5,7 @@ A database/Redis-backed session architecture belongs to the later multi-user edi
 """
 
 from datetime import datetime, timedelta, timezone
+import secrets
 from typing import Optional
 import threading
 import time
@@ -20,6 +21,8 @@ bearer = HTTPBearer(auto_error=False)
 
 _login_guard = threading.Lock()
 _login_failures: dict[str, list[float]] = {}
+_refresh_guard = threading.Lock()
+_used_refresh_tokens: dict[str, float] = {}
 
 
 def _login_key(username: str, client_host: str | None) -> str:
@@ -76,6 +79,7 @@ def create_local_refresh_token(username: str) -> str:
             "sub": username,
             "role": "admin",
             "type": "refresh",
+            "jti": secrets.token_urlsafe(18),
             "iat": now,
             "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         },
@@ -92,6 +96,31 @@ def decode_local_token(token: str, expected_type: str = "access") -> Optional[di
         return payload
     except JWTError:
         return None
+
+
+def consume_local_refresh_token(token: str) -> Optional[dict]:
+    """Validate and consume a refresh token once to prevent replay within this process."""
+    payload = decode_local_token(token, expected_type="refresh")
+    if not payload:
+        return None
+    token_id = payload.get("jti")
+    expires_at = payload.get("exp")
+    if not isinstance(token_id, str) or not token_id:
+        return None
+    try:
+        expiry = float(expires_at)
+    except (TypeError, ValueError):
+        return None
+
+    now = time.time()
+    with _refresh_guard:
+        expired = [key for key, value in _used_refresh_tokens.items() if value <= now]
+        for key in expired:
+            _used_refresh_tokens.pop(key, None)
+        if token_id in _used_refresh_tokens:
+            return None
+        _used_refresh_tokens[token_id] = expiry
+    return payload
 
 
 async def require_local_staff(
