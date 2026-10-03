@@ -53,6 +53,22 @@ class SafeWorkspaceService:
     def _json_path(self, session_id: str, name: str) -> Path:
         return self._dir(session_id) / name
 
+    def validate_manifest_paths(self, session_id: str, manifest: Dict[str, Any]) -> tuple[Path, Path]:
+        """Bind manifest paths to this session; never trust persisted absolute paths."""
+        self._validate_session_id(session_id)
+        session_root = self._dir(session_id).resolve()
+        if manifest.get("session_id") != session_id:
+            raise ValueError("Import manifest does not belong to this session.")
+        expected_copy = (session_root / "source_copy").resolve()
+        configured_copy = Path(str(manifest.get("working_copy", ""))).expanduser().resolve()
+        if configured_copy != expected_copy:
+            raise ValueError("Import manifest working-copy path is invalid.")
+        source_value = manifest.get("source_root")
+        if not source_value:
+            raise ValueError("Import manifest source path is missing.")
+        source = self.validate_source(Path(str(source_value)))
+        return source, expected_copy
+
     def _read(self, path: Path) -> Dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
@@ -77,7 +93,7 @@ class SafeWorkspaceService:
             overlap = source == working or str(source).startswith(str(working) + os.sep) or str(working).startswith(str(source) + os.sep)
         if overlap:
             raise ValueError("Source folder cannot overlap the writable workspace.")
-        if settings.ORIGINAL_READ_ONLY and settings.ALLOW_SOURCE_WRITE:
+        if settings.ALLOW_SOURCE_WRITE:
             raise ValueError("Unsafe configuration: ALLOW_SOURCE_WRITE must remain false.")
         return source
 
@@ -121,8 +137,7 @@ class SafeWorkspaceService:
         with self._lock(session_id):
             status = self._read(status_path)
             manifest = self._read(manifest_path)
-            source = self.validate_source(Path(manifest["source_root"]))
-            copy_root = Path(manifest["working_copy"]).resolve()
+            source, copy_root = self.validate_manifest_paths(session_id, manifest)
             copy_root.mkdir(parents=True, exist_ok=True)
             files = list(self._files(source))
             status.update({
@@ -199,7 +214,7 @@ class SafeWorkspaceService:
             status = self._read(status_path)
             if status.get("state") not in {"completed", "completed_with_errors", "scanned"}:
                 raise ValueError("Import is not complete. Finish the safe import before scanning.")
-            root = Path(manifest["working_copy"]).resolve()
+            _source, root = self.validate_manifest_paths(session_id, manifest)
             if not root.is_dir():
                 raise ValueError("Working copy does not exist.")
             inventory, unreadable = [], []
