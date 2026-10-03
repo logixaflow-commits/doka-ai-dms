@@ -129,7 +129,10 @@ async def test_local_refresh_token_is_single_use_and_rotates(monkeypatch):
         _request(),
     )
     rotated = await refresh(LocalRefresh(refresh_token=initial["refresh_token"]))
-    assert decode_local_token(rotated["access_token"])
+    initial_access = decode_local_token(initial["access_token"])
+    rotated_access = decode_local_token(rotated["access_token"])
+    assert initial_access and rotated_access
+    assert initial_access["sid"] == rotated_access["sid"]
     assert decode_local_token(rotated["refresh_token"], expected_type="refresh")
 
     with pytest.raises(HTTPException) as error:
