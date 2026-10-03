@@ -1,9 +1,9 @@
-from types import SimpleNamespace
+import importlib
 from PIL import Image
 import pytest
 
 from app.core.exceptions import OCRError
-from app.services import ocr_service as ocr_module
+ocr_module = importlib.import_module("app.services.ocr_service")
 
 
 class FakePdf:
