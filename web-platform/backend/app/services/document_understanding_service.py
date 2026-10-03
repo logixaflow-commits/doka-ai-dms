@@ -78,6 +78,10 @@ class DocumentUnderstandingService:
         return "", "not_text_extracted"
 
     def analyze(self, session_id: str) -> Dict[str, Any]:
+        with self.workspace._lock(session_id):
+            return self._analyze_locked(session_id)
+
+    def _analyze_locked(self, session_id: str) -> Dict[str, Any]:
         session = self.workspace._dir(session_id)
         manifest = self.workspace._read(session / "manifest.json")
         if not manifest:
