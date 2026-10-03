@@ -170,3 +170,22 @@ if (!adminLayout.includes('signOutLocal()')) {
   throw new Error('Personal Local navigation must use the local session logout flow.');
 }
 console.log('Personal Local logout boundary smoke test passed.');
+
+const serviceWorker = fs.readFileSync(path.resolve('public/sw.js'), 'utf8');
+for (const required of [
+  "request.method !== 'GET'",
+  "request.headers.has('Authorization')",
+  "url.origin !== self.location.origin || url.search",
+  "url.pathname === '/api'",
+  "url.pathname.startsWith('/api/')",
+  "url.pathname.startsWith('/auth/')",
+  "url.pathname.startsWith('/assets/')",
+]) {
+  if (!serviceWorker.includes(required)) {
+    throw new Error(`Service Worker cache boundary is missing ${required}.`);
+  }
+}
+if (serviceWorker.includes('caches.match(event.request)')) {
+  throw new Error('Service Worker must not cache arbitrary API or document requests.');
+}
+console.log('Service Worker private-content cache boundary smoke test passed.');
