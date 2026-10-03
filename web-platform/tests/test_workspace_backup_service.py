@@ -1,4 +1,6 @@
 from pathlib import Path
+import hashlib
+import json
 import zipfile
 
 from app.core.config import settings
@@ -80,6 +82,8 @@ def test_restore_rejects_zip_path_traversal(tmp_path, monkeypatch):
     archive = backups / "malicious.zip"
     with zipfile.ZipFile(archive, "w") as zf:
         zf.writestr("../escape.txt", "must not escape")
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    archive.with_suffix(".json").write_text(json.dumps({"sha256": digest}), encoding="utf-8")
 
     service = WorkspaceBackupService()
     try:
