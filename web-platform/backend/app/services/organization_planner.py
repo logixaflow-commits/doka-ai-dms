@@ -201,8 +201,16 @@ class OrganizationPlanner:
 
         approved = set(approved_paths)
         proposals = {p["relative_path"]: p for p in plan.get("proposals", [])}
-        _source_root, root = safe_workspace_service.validate_manifest_paths(session_id, manifest)
-        final_root = settings.FINAL_ROOT.resolve()
+        source_root, root = safe_workspace_service.validate_manifest_paths(session_id, manifest)
+        configured_final_root = Path(settings.FINAL_ROOT).expanduser()
+        if configured_final_root.is_symlink():
+            raise ValueError("FINAL_ROOT cannot be a symlink.")
+        final_root = configured_final_root.resolve()
+        workspace_root = safe_workspace_service.root.resolve()
+        if final_root == workspace_root or not final_root.is_relative_to(workspace_root):
+            raise ValueError("FINAL_ROOT must be a dedicated directory inside WORKING_ROOT.")
+        if final_root == source_root or final_root.is_relative_to(source_root) or source_root.is_relative_to(final_root):
+            raise ValueError("FINAL_ROOT must not overlap SOURCE_ROOT.")
         final_root.mkdir(parents=True, exist_ok=True)
         audit_path = safe_workspace_service._dir(session_id) / "organization_audit.jsonl"
         results = []
