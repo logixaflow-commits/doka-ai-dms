@@ -53,6 +53,7 @@ def test_backup_root_rejects_symlink(monkeypatch, tmp_path):
     with pytest.raises(ValueError, match="cannot be a symlink"):
         WorkspaceBackupService()._backup_root()
 
+
 def _write_test_archive(backup_root, archive_name, members):
     import hashlib
     import json
