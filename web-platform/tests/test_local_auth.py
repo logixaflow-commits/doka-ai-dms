@@ -4,7 +4,7 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
-from app.api.routes.local_auth import LocalLogin, login
+from app.api.routes.local_auth import LocalLogin, LocalRefresh, login, refresh
 from app.core.supabase_auth import _supabase_configured, require_local_workspace_user
 
 
@@ -88,3 +88,24 @@ async def test_local_password_login_is_disabled_outside_local_environments(monke
     with pytest.raises(HTTPException) as error:
         await login(LocalLogin(username="admin", password="irrelevant"), _request())
     assert error.value.status_code == 404
+
+
+
+@pytest.mark.asyncio
+async def test_local_refresh_token_is_single_use_and_rotates(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "admin")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "local-test-password-123")
+    clear_login_failures("admin", "127.0.0.1")
+
+    initial = await login(
+        LocalLogin(username="admin", password="local-test-password-123"),
+        _request(),
+    )
+    rotated = await refresh(LocalRefresh(refresh_token=initial["refresh_token"]))
+    assert decode_local_token(rotated["access_token"])
+    assert decode_local_token(rotated["refresh_token"], expected_type="refresh")
+
+    with pytest.raises(HTTPException) as error:
+        await refresh(LocalRefresh(refresh_token=initial["refresh_token"]))
+    assert error.value.status_code == 401
