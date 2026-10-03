@@ -380,3 +380,10 @@ Evidence boundary:
 - **MOB-004:** not implemented as resumable upload. The server has no multipart upload session/part/commit API or background task contract; a client retry alone would restart from byte zero. Keep blocked until the selected edition's authenticated upload API is designed and tested.
 - **MOB-002:** image caching is not introduced because the current mobile UI has no private document image preview. Define signed-URL expiry, authorization, cache encryption/eviction and logout purge before adding any private-image cache.
 - The app remains a legacy Expo SDK 50 / React Native 0.73 prototype with no lockfile and an API contract that does not match either active Personal Local or Cloud API entry point. Do not claim mobile Phase 3 release readiness; coordinate SDK upgrade, API adapter, E2E and store review first.
+
+### 2026-10-03 — Phase 2–3 operations and QA follow-up
+
+- **OPS-001:** hardened the retained production Dockerfile to multi-stage Python 3.12, non-root runtime, minimal runtime libraries and health check; added .dockerignore to exclude environment secrets and local/private data. Image build remains unverified.
+- **OPS-004 / QA-002:** added a reproducible Cloud API OpenAPI exporter and CI artifacts for OpenAPI JSON and backend coverage XML. Coverage is report-only until a real baseline exists; no threshold is guessed.
+- **DR-003:** added a Personal Local backup/restore drill procedure with manifest/hash validation, separate recovery destination and RTO/RPO approval gate. Actual restore evidence remains pending.
+- RTO/RPO targets, immutable/offsite backups, Vault/KMS, Redis/high availability, WAF, DAST staging, production load tests and live cloud controls remain provisioning/owner-verification gates rather than repository-complete work.
