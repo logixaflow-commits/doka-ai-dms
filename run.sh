@@ -6,6 +6,11 @@ echo "Personal Local DMS - Startup"
 
 command -v python3 >/dev/null 2>&1 || { echo "Python 3 is required."; exit 1; }
 command -v node >/dev/null 2>&1 || { echo "Node.js is required."; exit 1; }
+NODE_MAJOR="$(node -p "process.versions.node.split('.')[0]")"
+if [ "$NODE_MAJOR" != "24" ]; then
+  echo "Node.js 24.x is required (found major version $NODE_MAJOR)."
+  exit 1
+fi
 
 if [ ! -x "web-platform/backend/.venv/bin/python" ]; then
   python3 -m venv web-platform/backend/.venv
