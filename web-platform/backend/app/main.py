@@ -91,8 +91,6 @@ def create_app() -> FastAPI:
     app.include_router(local_auth.router, prefix="/api/auth", tags=["Authentication"])
     app.include_router(workspace.router)
     app.include_router(workspace_files.router)
-    app.include_router(cloud_storage.router)
-    app.include_router(cloud_documents.router)
 
     @app.get("/health", tags=["System"])
     async def health():
