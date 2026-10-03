@@ -48,7 +48,13 @@ class SafeWorkspaceService:
         return session_id
 
     def _dir(self, session_id: str) -> Path:
-        return self.root / "imports" / self._validate_session_id(session_id)
+        imports_root = self.root / "imports"
+        if imports_root.is_symlink():
+            raise ValueError("Import sessions directory cannot be a symlink.")
+        session_dir = imports_root / self._validate_session_id(session_id)
+        if session_dir.is_symlink():
+            raise ValueError("Import session directory cannot be a symlink.")
+        return session_dir
 
     def _json_path(self, session_id: str, name: str) -> Path:
         return self._dir(session_id) / name
