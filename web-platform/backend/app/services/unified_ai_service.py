@@ -185,6 +185,10 @@ class UnifiedAIService:
 
     async def get_embedding(self, text: str, provider: str = "huggingface") -> List[float]:
         """Embeddings are optional; semantic search must have a local fallback."""
+        if not settings.AI_ENABLED:
+            raise RuntimeError("AI is disabled; use local/rule-based processing")
+        if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
+            raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
         if provider != "huggingface" or not settings.HUGGINGFACE_API_KEY:
             raise ValueError("Hugging Face embeddings are not configured")
         cfg = {"api_key": settings.HUGGINGFACE_API_KEY, "model": settings.HUGGINGFACE_MODEL}
