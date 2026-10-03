@@ -46,6 +46,31 @@ Writable paths must remain inside the working area. Source-write mode is rejecte
 9. Use **Approve & Copy Selected**.
 10. Create a workspace backup after meaningful changes.
 
+## Backup verification and recovery drill
+
+A successful backup command is not, by itself, proof that the workspace can be recovered. Perform a controlled drill using disposable copied data before the first office pilot and after material backup/restore changes.
+
+1. Record the active workspace path and the count/total size of files in the test copy.
+2. Create a workspace backup using the Personal Local backup flow.
+3. Verify the generated manifest and SHA-256 archive digest using the application’s verification path.
+4. Restore the archive to a new recovery destination. Never restore over the active workspace or SOURCE_ROOT.
+5. Compare the restored manifest, file count, relative paths and per-file hashes with the backup snapshot.
+6. Open a small representative sample of restored documents, including a Myanmar-language scan and an English document where available.
+7. Confirm the active workspace and original source copy have not changed.
+8. Record backup duration, restore duration, bytes, verified files, failed files and any manual recovery actions.
+
+### Recovery objectives
+
+RTO and RPO are not yet approved business targets. Do not claim a recovery SLA until the owner confirms acceptable downtime and maximum data loss for the office workflow. During the pilot, measure actual backup/restore duration and backup frequency so those targets can be agreed using evidence.
+
+### Incident handling
+
+- Stop organization/apply jobs before recovery.
+- Preserve the original source and the latest known-good backup as read-only evidence.
+- Restore only into a separate recovery directory.
+- Compare manifests and inspect failed files before deciding which recovered copy becomes the new working copy.
+- Keep the prior workspace and backup until the recovered copy is accepted; do not automatically switch active paths.
+
 ## Duplicate and version handling
 
 - Exact SHA-256 duplicates are marked for review.
