@@ -126,6 +126,8 @@ class SafeWorkspaceService:
             raise ValueError("Source folder cannot overlap the writable workspace.")
         if settings.ALLOW_SOURCE_WRITE:
             raise ValueError("Unsafe configuration: ALLOW_SOURCE_WRITE must remain false.")
+        if not settings.ORIGINAL_READ_ONLY:
+            raise ValueError("Unsafe configuration: ORIGINAL_READ_ONLY must remain true.")
         return source
 
     def create_import(self, source: Optional[str] = None) -> Dict[str, Any]:
