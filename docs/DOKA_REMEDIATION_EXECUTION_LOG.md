@@ -50,3 +50,7 @@ Date: 2026-10-03
 - The persistent SQLite revocation/refresh-state file is now set to owner read/write only (`0600`) on POSIX systems after opening, before schema access. This reduces the risk of another local OS account editing token revocation state.
 - Added a POSIX-only regression test for the resulting file mode. Windows behavior is left to its native ACL model.
 - The test has not been executed; runtime verification remains pending.
+## CI dependency-audit duplication
+
+- Re-inspection of `.github/workflows/doka-quality.yml` found two frontend `npm audit` executions: the JSON-report step already fails on any reported vulnerability, and a later clean-audit step repeated the same network audit.
+- Removed only the redundant second audit invocation. The first full JSON audit/report and failure gate remain in place; no CI run was dispatched.
