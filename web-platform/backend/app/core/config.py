@@ -143,6 +143,7 @@ class Settings:
         self.FINAL_ROOT = Path(os.getenv("FINAL_ROOT", str(self.WORKING_ROOT / "Final")))
         self.QUARANTINE_ROOT = Path(os.getenv("QUARANTINE_ROOT", str(self.WORKING_ROOT / "Quarantine")))
         self.BACKUP_ROOT = Path(os.getenv("BACKUP_ROOT", str(base_path / "Office_DMS" / "Backups")))
+        self.LOCAL_AUTH_STATE_PATH = Path(os.getenv("LOCAL_AUTH_STATE_PATH", str(base_path / "Office_DMS" / "database" / "local_auth_state.sqlite3")))
         self.ORIGINAL_READ_ONLY = os.getenv("ORIGINAL_READ_ONLY", "true").lower() == "true"
         self.ALLOW_SOURCE_WRITE = os.getenv("ALLOW_SOURCE_WRITE", "false").lower() == "true"
 
@@ -393,6 +394,14 @@ class Settings:
                 overlap = source == working or str(working).startswith(str(source) + os.sep) or str(source).startswith(str(working) + os.sep)
             if overlap:
                 raise ValueError(f"Unsafe workspace configuration: SOURCE_ROOT ({source}) and WORKING_ROOT ({working}) overlap.")
+        auth_state = self.LOCAL_AUTH_STATE_PATH.resolve()
+        if self.SOURCE_ROOT:
+            source = self.SOURCE_ROOT.resolve()
+            if auth_state == source or auth_state.is_relative_to(source):
+                raise ValueError("Unsafe local auth state configuration: LOCAL_AUTH_STATE_PATH must not be inside SOURCE_ROOT.")
+        if auth_state == self.WORKING_ROOT.resolve() or auth_state.is_relative_to(self.WORKING_ROOT.resolve()):
+            raise ValueError("Unsafe local auth state configuration: LOCAL_AUTH_STATE_PATH must not be inside WORKING_ROOT.")
+
         working = self.WORKING_ROOT.resolve()
         backup = self.BACKUP_ROOT.resolve()
         if backup == working or backup.is_relative_to(working):
