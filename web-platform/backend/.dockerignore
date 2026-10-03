@@ -1,0 +1,40 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Python environments and caches
+.venv/
+venv/
+**/.venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Source control and editor files
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Local runtime data and potentially private office content
+Office_DMS/
+storage/
+uploads/
+backups/
+logs/
+watch_folder/
+processing_workspace/
+organized/
+duplicates/
+suspicious/
+*.db
+*.sqlite
+*.sqlite3
+*.log
