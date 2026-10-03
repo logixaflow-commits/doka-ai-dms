@@ -16,7 +16,7 @@ Not implemented or not verified:
 - Image thumbnail caching / cache invalidation.
 - Offline document synchronization and conflict resolution.
 - Current Personal Local / Cloud API adapter and end-to-end authentication compatibility.
-- iOS/Android device permission prompts and release signing.
+- iOS/Android device permission prompts and release signing (purpose-specific declarations now exist in app.json; generated native manifests/device prompts are not yet verified).
 - App Store / Play Store readiness.
 
 ## Toolchain
@@ -71,7 +71,7 @@ Before a mobile release:
 - Upgrade Expo SDK and native dependencies together, generate and review a lockfile, and run dependency audit.
 - Add real-device upload interruption/resume tests before implementing a background uploader.
 - Add image cache policy and test eviction/privacy behavior before caching private document previews.
-- Declare and test iOS photo-library/camera and Android media permissions in Expo app configuration.
+- Build both native targets and verify the declared iOS photo-library/camera and Android media permissions in generated manifests and on real devices.
 - Complete iOS/Android build, signing, privacy and store-readiness checks.
 
 No mobile build, device test, store submission or production API activation is claimed by this repository documentation.
