@@ -17,6 +17,27 @@ const workspace = fs.readFileSync(path.resolve('src/pages/WorkspaceReview.tsx'),
 if (!workspace.includes('/imports')) throw new Error('Workspace session API wiring is missing.');
 if (!workspace.includes('approve')) throw new Error('Workspace approval UI wiring is missing.');
 
+const runStep = workspace.slice(
+  workspace.indexOf('async function runStep'),
+  workspace.indexOf('async function validateOcr')
+);
+const runRequestIndex = runStep.indexOf('const response = await api');
+for (const reset of ['setProposals([])', 'setSelected(new Set())']) {
+  if (runStep.indexOf(reset) < 0 || runStep.indexOf(reset) > runRequestIndex) {
+    throw new Error(`Workspace ${reset} must run before the scan/OCR/plan request.`);
+  }
+}
+for (const reset of ['setSearchResults([])', 'setOcrResults([])', 'setEditingOcr(null)', 'setOcrDraft(\'\')']) {
+  if (!runStep.includes(reset)) throw new Error(`Workspace step reset is missing ${reset}.`);
+}
+const startImport = workspace.slice(
+  workspace.indexOf('async function startImport'),
+  workspace.indexOf('const loadStatus')
+);
+if (!startImport.includes('setSearchResults([])')) {
+  throw new Error('Starting a new import must clear previous session search results.');
+}
+
 console.log('Frontend smoke test passed.');
 
 const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
