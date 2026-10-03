@@ -510,3 +510,10 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 - The latest observed automatic Doka Quality Checks run is `37103166059` for commit `794509c`; GitHub reports all three jobs failed. The job API returned empty step lists and no log URL, and the log download endpoint returned `BlobNotFound`. The available evidence does not identify whether this is a runner/account issue or a code/test failure.
 - No workflow was dispatched or rerun to avoid unnecessary Actions usage. The source changes and new regression tests therefore remain unverified by CI; do not treat the failed run as proof that the new tests failed for a specific code reason.
+
+
+
+### 2026-10-03 — OCR file-handle cleanup
+
+- The image OCR PIL fallback now converts the source image inside a context manager and closes its file handle before continuing with OpenCV/Tesseract processing.
+- Commit: `9d9ac98`.
