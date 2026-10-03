@@ -29,6 +29,14 @@ _login_failures: dict[str, list[float]] = {}
 def _connect_token_state() -> sqlite3.Connection:
     path = Path(settings.LOCAL_AUTH_STATE_PATH).expanduser()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        raise OSError("LOCAL_AUTH_STATE_PATH cannot be a symlink.")
+    path = path.resolve()
+    protected_roots = [settings.WORKING_ROOT.resolve()]
+    if settings.SOURCE_ROOT:
+        protected_roots.append(settings.SOURCE_ROOT.resolve())
+    if any(path == root or path.is_relative_to(root) for root in protected_roots):
+        raise OSError("LOCAL_AUTH_STATE_PATH must remain outside SOURCE_ROOT and WORKING_ROOT.")
     connection = sqlite3.connect(str(path), timeout=15)
     connection.execute("PRAGMA busy_timeout = 15000")
     connection.execute(
