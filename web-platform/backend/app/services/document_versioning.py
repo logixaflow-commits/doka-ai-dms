@@ -231,46 +231,28 @@ class DocumentVersioningService:
             }
     
     def delete_version(self, document_id: int, version_id: str) -> Dict[str, Any]:
-        """Delete specific version"""
+        """Delete a version while serializing metadata and file updates."""
+        version_dir = self.versions_storage_path / str(document_id)
+        lock = FileLock(str(version_dir / ".versions.lock"), timeout=30)
         try:
-            version = self.get_version(document_id, version_id)
-            
-            if not version:
-                return {
-                    "success": False,
-                    "error": "Version not found"
-                }
-            
-            # Delete version file
-            version_file = Path(version.file_path)
-            if version_file.exists():
-                version_file.unlink()
-            
-            # Update metadata
-            versions = self.get_document_versions(document_id)
-            versions = [v for v in versions if v.id != version_id]
-            
-            # Re-number versions
-            for i, version in enumerate(versions, 1):
-                version.version_number = i
-            
-            # Save updated metadata
-            self._save_all_versions_metadata(document_id, versions)
-            
+            with lock:
+                versions = self.get_document_versions(document_id)
+                target = next((item for item in versions if item.id == version_id), None)
+                if target is None:
+                    return {"success": False, "error": "Version not found"}
+
+                Path(target.file_path).unlink(missing_ok=True)
+                remaining = [item for item in versions if item.id != version_id]
+                for index, item in enumerate(remaining, 1):
+                    item.version_number = index
+                self._save_all_versions_metadata(document_id, remaining)
+
             logger.info(f"Deleted version {version_id} for document {document_id}")
-            
-            return {
-                "success": True,
-                "message": "Version deleted successfully"
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to delete version: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
-    
+            return {"success": True, "message": "Version deleted successfully"}
+        except Exception as exc:
+            logger.error(f"Failed to delete version {version_id} for document {document_id}: {exc}")
+            return {"success": False, "error": str(exc)}
+
     def _calculate_file_hash(self, file_path: str) -> str:
         """Calculate SHA256 hash of file"""
         import hashlib
@@ -327,12 +309,11 @@ class DocumentVersioningService:
                 temp_path.unlink(missing_ok=True)
 
     def _save_all_versions_metadata(self, document_id: int, versions: List[DocumentVersion]):
-        """Save all versions metadata"""
+        """Atomically replace all version metadata; caller holds the document lock."""
         metadata_file = self.versions_storage_path / str(document_id) / "versions.json"
-        
-        versions_data = []
-        for version in versions:
-            version_data = {
+        metadata_file.parent.mkdir(parents=True, exist_ok=True)
+        versions_data = [
+            {
                 "id": version.id,
                 "document_id": version.document_id,
                 "version_number": version.version_number,
@@ -343,13 +324,26 @@ class DocumentVersioningService:
                 "file_path": version.file_path,
                 "file_hash": version.file_hash,
                 "metadata": version.metadata,
-                "changes": version.changes
+                "changes": version.changes,
             }
-            versions_data.append(version_data)
-        
-        with open(metadata_file, 'w') as f:
-            json.dump(versions_data, f, indent=2)
-    
+            for version in versions
+        ]
+
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=metadata_file.parent,
+                prefix=".versions-", suffix=".tmp", delete=False,
+            ) as target:
+                temp_path = Path(target.name)
+                json.dump(versions_data, target, indent=2)
+                target.flush()
+                os.fsync(target.fileno())
+            os.replace(temp_path, metadata_file)
+        finally:
+            if temp_path is not None:
+                temp_path.unlink(missing_ok=True)
+
     def _compare_metadata(self, metadata1: Dict[str, Any], metadata2: Dict[str, Any]) -> Dict[str, Any]:
         """Compare two metadata dictionaries"""
         all_keys = set(metadata1.keys()) | set(metadata2.keys())
