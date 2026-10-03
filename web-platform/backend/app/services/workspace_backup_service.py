@@ -5,11 +5,21 @@ import json
 import shutil
 import zipfile
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from app.core.config import settings
 from app.services.safe_workspace_service import safe_workspace_service
+
+_HASH_CHUNK_SIZE = 1024 * 1024
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(_HASH_CHUNK_SIZE), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 class WorkspaceBackupService:
@@ -25,19 +35,32 @@ class WorkspaceBackupService:
         backup_root = self._backup_root()
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         archive = backup_root / f"workspace_{timestamp}.zip"
-        # Snapshot only the active writable workspace. Recovery copies are derived
-        # artifacts and must not recursively inflate future backups.
-        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for path in source.rglob("*"):
-                if path.is_dir():
-                    continue
-                rel = path.relative_to(source)
-                if rel.parts and rel.parts[0] == "Recovery":
-                    continue
-                if path.name.endswith(".tmp"):
-                    continue
-                zf.write(path, rel.as_posix())
-        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        temporary_archive = archive.with_suffix(".zip.tmp")
+
+        # Snapshot only regular files inside the active writable workspace.
+        # Symlinks are excluded so a workspace link cannot pull source-drive or
+        # other out-of-workspace data into the backup.
+        try:
+            with zipfile.ZipFile(temporary_archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                for path in source.rglob("*"):
+                    if path.is_symlink() or not path.is_file():
+                        continue
+                    try:
+                        path.resolve().relative_to(source)
+                    except ValueError:
+                        continue
+                    rel = path.relative_to(source)
+                    if rel.parts and rel.parts[0] == "Recovery":
+                        continue
+                    if path.name.endswith(".tmp"):
+                        continue
+                    zf.write(path, rel.as_posix())
+            temporary_archive.replace(archive)
+        except Exception:
+            temporary_archive.unlink(missing_ok=True)
+            raise
+
+        digest = _sha256(archive)
         manifest = {
             "schema_version": 1,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -47,7 +70,11 @@ class WorkspaceBackupService:
             "session_id": session_id,
         }
         manifest_path = archive.with_suffix(".json")
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary_manifest = manifest_path.with_suffix(".json.tmp")
+        temporary_manifest.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        temporary_manifest.replace(manifest_path)
         return manifest
 
     def list_backups(self) -> list[dict[str, Any]]:
@@ -56,11 +83,14 @@ class WorkspaceBackupService:
         for manifest_path in sorted(root.glob("workspace_*.json"), reverse=True):
             try:
                 result.append(json.loads(manifest_path.read_text(encoding="utf-8")))
-            except Exception:
+            except (OSError, ValueError):
                 continue
         return result
 
-    def verify(self, archive_name: str) -> dict[str, Any]:
+    def _resolve_archive(self, archive_name: str) -> Path:
+        # Accept a filename, not an arbitrary path supplied by an API caller.
+        if not archive_name or Path(archive_name).name != archive_name or "/" in archive_name or "\\" in archive_name:
+            raise ValueError("Invalid backup archive name.")
         root = self._backup_root()
         archive = (root / archive_name).resolve()
         try:
@@ -69,37 +99,71 @@ class WorkspaceBackupService:
             raise ValueError("Backup path is outside BACKUP_ROOT.") from exc
         if not archive.is_file() or archive.suffix != ".zip":
             raise ValueError("Backup archive does not exist.")
-        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        return archive
+
+    def verify(self, archive_name: str) -> dict[str, Any]:
+        archive = self._resolve_archive(archive_name)
         manifest_path = archive.with_suffix(".json")
-        expected = None
-        if manifest_path.exists():
-            expected = json.loads(manifest_path.read_text(encoding="utf-8")).get("sha256")
-        return {"archive": str(archive), "sha256": digest, "verified": expected in (None, digest)}
+        if not manifest_path.is_file():
+            raise ValueError("Backup manifest is missing; integrity cannot be verified.")
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ValueError("Backup manifest is invalid.") from exc
+        expected = str(manifest.get("sha256", "")).lower()
+        if len(expected) != 64:
+            raise ValueError("Backup manifest SHA-256 is missing or invalid.")
+        digest = _sha256(archive)
+        return {
+            "archive": str(archive),
+            "sha256": digest,
+            "verified": digest == expected,
+        }
 
     def restore_to_recovery(self, archive_name: str) -> dict[str, Any]:
-        root = self._backup_root()
-        archive = (root / archive_name).resolve()
-        try:
-            archive.relative_to(root)
-        except ValueError as exc:
-            raise ValueError("Backup path is outside BACKUP_ROOT.") from exc
-        if not archive.is_file() or archive.suffix != ".zip":
-            raise ValueError("Backup archive does not exist.")
+        archive = self._resolve_archive(archive_name)
+        verification = self.verify(archive.name)
+        if not verification["verified"]:
+            raise ValueError("Backup integrity verification failed; restore was stopped.")
+
         recovery_root = settings.WORKING_ROOT.resolve() / "Recovery"
         recovery_root.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         target = recovery_root / f"restore_{stamp}"
         target.mkdir(parents=True, exist_ok=False)
-        with zipfile.ZipFile(archive) as zf:
-            for member in zf.infolist():
-                member_path = (target / member.filename).resolve()
-                try:
-                    member_path.relative_to(target)
-                except ValueError as exc:
-                    shutil.rmtree(target, ignore_errors=True)
-                    raise ValueError("Backup contains an unsafe path.") from exc
-            zf.extractall(target)
-        return {"archive": str(archive), "recovery_path": str(target), "active_workspace_changed": False}
+
+        try:
+            with zipfile.ZipFile(archive) as zf:
+                for member in zf.infolist():
+                    # ZIP names use POSIX separators. Reject Windows separators,
+                    # drive paths, absolute paths and parent traversal on every OS.
+                    name = member.filename
+                    posix_path = PurePosixPath(name)
+                    windows_path = PureWindowsPath(name)
+                    if (
+                        not name
+                        or "\\" in name
+                        or posix_path.is_absolute()
+                        or windows_path.is_absolute()
+                        or windows_path.drive
+                        or ".." in posix_path.parts
+                    ):
+                        raise ValueError("Backup contains an unsafe path.")
+                    member_path = (target / Path(*posix_path.parts)).resolve()
+                    try:
+                        member_path.relative_to(target)
+                    except ValueError as exc:
+                        raise ValueError("Backup contains an unsafe path.") from exc
+                zf.extractall(target)
+        except Exception:
+            shutil.rmtree(target, ignore_errors=True)
+            raise
+
+        return {
+            "archive": str(archive),
+            "recovery_path": str(target),
+            "active_workspace_changed": False,
+        }
 
     def prune(self) -> dict[str, Any]:
         root = self._backup_root()
