@@ -45,3 +45,8 @@ Date: 2026-10-03
 - Removed those cloud router registrations and imports from `app.main`; the cloud routes remain available through the dedicated cloud entry point only.
 - Added `web-platform/tests/test_personal_local_entrypoint.py` to assert local auth/workspace routes remain and cloud routes are absent.
 - This is an entry-point isolation change only; no cloud deployment was enabled. Tests have not been executed while CI is paused.
+## Local authentication state file permissions
+
+- The persistent SQLite revocation/refresh-state file is now set to owner read/write only (`0600`) on POSIX systems after opening, before schema access. This reduces the risk of another local OS account editing token revocation state.
+- Added a POSIX-only regression test for the resulting file mode. Windows behavior is left to its native ACL model.
+- The test has not been executed; runtime verification remains pending.
