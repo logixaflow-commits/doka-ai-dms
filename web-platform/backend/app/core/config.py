@@ -235,6 +235,7 @@ class Settings:
         ]
         self.AI_PROVIDER_MAX_ATTEMPTS = int(os.getenv("AI_PROVIDER_MAX_ATTEMPTS", "0"))
         self.AI_PROVIDER_TIMEOUT_SECONDS = float(os.getenv("AI_PROVIDER_TIMEOUT_SECONDS", "30"))
+        self.AI_MAX_INPUT_CHARS = int(os.getenv("AI_MAX_INPUT_CHARS", "100000"))
 
         # Railway-specific settings
         self.MINIO_ENABLED = os.getenv("MINIO_ENABLED", "false").lower() == "true"
@@ -392,6 +393,9 @@ class Settings:
             raise ValueError("SECRET_KEY must contain at least 32 bytes for HS256 signing.")
         if self.BOOTSTRAP_ADMIN_PASSWORD and len(self.BOOTSTRAP_ADMIN_PASSWORD) < 12:
             raise ValueError("BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters.")
+
+        if not 1000 <= self.AI_MAX_INPUT_CHARS <= 1_000_000:
+            raise ValueError("AI_MAX_INPUT_CHARS must be between 1000 and 1000000.")
 
         # Validate storage configuration
         if self.STORAGE_TYPE == "local" and not self.MINIO_ENABLED:
