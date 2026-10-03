@@ -9,7 +9,7 @@ type LocalSession = { access_token: string; refresh_token: string; token_type: '
 type LocalIdentity = { username: string; role: string };
 
 export function isLocalAuthEnabled() {
-  return import.meta.env.DEV && !isSupabaseConfigured();
+  return (import.meta.env.VITE_DOKA_EDITION === 'personal-local' || import.meta.env.DEV) && !isSupabaseConfigured();
 }
 
 async function readError(response: Response) {
