@@ -12,9 +12,12 @@ on:
       - "pyproject.toml"
       - "web-platform/backend/requirements*.txt"
       - "supabase/migrations/**"
-      - ".github/workflows/doka-quality.yml"
-      - ".github/workflows/local-core-check.yml"
-      - ".github/workflows/cloudflare-worker-deploy.yml"
+      - ".github/dependabot.yml"
+      - ".gitignore"
+      - ".dockerignore"
+      - ".github/workflows/**"
+      - "docs/SECURITY.md"
+      - "infrastructure/env/**"
   pull_request:
     branches: [main]
     paths:
@@ -26,9 +29,12 @@ on:
       - "pyproject.toml"
       - "web-platform/backend/requirements*.txt"
       - "supabase/migrations/**"
-      - ".github/workflows/doka-quality.yml"
-      - ".github/workflows/local-core-check.yml"
-      - ".github/workflows/cloudflare-worker-deploy.yml"
+      - ".github/dependabot.yml"
+      - ".gitignore"
+      - ".dockerignore"
+      - ".github/workflows/**"
+      - "docs/SECURITY.md"
+      - "infrastructure/env/**"
   workflow_dispatch:
 
 # Cancel superseded runs of this workflow on the same ref to conserve monthly runner minutes.
@@ -114,6 +120,71 @@ jobs:
             backend-*-audit.json
           if-no-files-found: ignore
           retention-days: 7
+
+  root-project-dependency-audit:
+    name: Root project dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip pip-audit
+      - name: Audit root project runtime and dev dependencies
+        run: |
+          set -euo pipefail
+          requirements="$RUNNER_TEMP/root-project-requirements.txt"
+          report="$RUNNER_TEMP/root-project-audit.json"
+          python - "$requirements" <<'PY'
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          dependencies = project.get("project", {}).get("dependencies", [])
+          dev_dependencies = project.get("dependency-groups", {}).get("dev", [])
+          if not all(isinstance(item, str) for item in dependencies + dev_dependencies):
+              raise SystemExit("pyproject.toml dependency declarations must be strings.")
+          Path(sys.argv[1]).write_text(
+              "\n".join([*dependencies, *dev_dependencies]) + "\n",
+              encoding="utf-8",
+          )
+          print(
+              f"Auditing {len(dependencies)} runtime and "
+              f"{len(dev_dependencies)} dev dependency declarations."
+          )
+          PY
+          status=0
+          pip-audit -r "$requirements" --format=json > "$report" || status=$?
+          if [ "$status" -gt 1 ]; then
+            echo "pip-audit failed operationally for the root project (exit $status)." >&2
+            exit "$status"
+          fi
+          python - "$report" "$status" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          try:
+              report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError) as exc:
+              raise SystemExit(f"Could not read pip-audit JSON report: {exc}") from exc
+          dependencies = report.get("dependencies", []) if isinstance(report, dict) else report
+          vulnerabilities = [
+              (item.get("name"), item.get("version"), vuln.get("id"), vuln.get("fix_versions", []))
+              for item in dependencies
+              for vuln in item.get("vulns", [])
+          ]
+          print(f"Root project audit: {len(vulnerabilities)} findings.")
+          for name, version, vuln_id, fixes in vulnerabilities:
+              print(f"  {name} {version} {vuln_id} fixes={fixes}")
+          if vulnerabilities:
+              raise SystemExit("Root project dependency audit found vulnerabilities.")
+          if int(sys.argv[2]) != 0:
+              raise SystemExit(f"pip-audit exited with status {sys.argv[2]} without reportable findings.")
+          PY
 
   backend-tests:
     name: Backend regression tests

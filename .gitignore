@@ -44,7 +44,7 @@ ENV/
 .env.*
 !.env.example
 !**/.env.example
-!**/.env.docker
+infrastructure/env/.env.docker
 
 # Private key / service-account material
 *.pem
@@ -96,6 +96,7 @@ coverage.xml
 
 # Docker
 .dockerignore
+!/.dockerignore
 
 # OS
 Thumbs.db

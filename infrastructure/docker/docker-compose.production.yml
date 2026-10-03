@@ -65,8 +65,8 @@ services:
   # FastAPI Backend
   backend:
     build:
-      context: ../..
-      dockerfile: web-platform/backend/Dockerfile.production
+      context: ../../web-platform/backend
+      dockerfile: Dockerfile.production
     container_name: dms-backend
     environment:
       - ENVIRONMENT=production
@@ -101,8 +101,8 @@ services:
   # Celery Worker
   celery-worker:
     build:
-      context: ../..
-      dockerfile: web-platform/backend/Dockerfile.production
+      context: ../../web-platform/backend
+      dockerfile: Dockerfile.production
     container_name: dms-celery-worker
     command: celery -A app.core.celery_app worker --loglevel=info --concurrency=4
     environment:
@@ -127,8 +127,8 @@ services:
   # Celery Beat Scheduler
   celery-beat:
     build:
-      context: ../..
-      dockerfile: web-platform/backend/Dockerfile.production
+      context: ../../web-platform/backend
+      dockerfile: Dockerfile.production
     container_name: dms-celery-beat
     command: celery -A app.core.celery_app beat --loglevel=info
     environment:
