@@ -96,6 +96,13 @@ def main() -> int:
         raise SystemExit("Refusing pilot: source and WORKING_ROOT overlap.")
 
     before = source_snapshot(source)
+    if not before:
+        print(json.dumps({
+            "gate": "blocked",
+            "reason": "The supplied source copy contains no regular files to validate.",
+        }, ensure_ascii=False, indent=2))
+        return 2
+
     ocr = ocr_validation_service.validate()
     if args.require_ocr and not ocr.get("available"):
         print(json.dumps({"gate": "blocked", "reason": "OCR unavailable", "ocr": ocr}, ensure_ascii=False, indent=2))
