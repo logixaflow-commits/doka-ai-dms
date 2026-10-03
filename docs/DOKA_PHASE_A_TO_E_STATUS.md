@@ -412,3 +412,16 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Current repository state is not release-certified: automated checks are failing with unavailable diagnostics, full Dependabot alert inventory remains inaccessible through the connected GitHub interface, and Phase D still requires copied real-office data validation with before/after source hashes and verified backup/restore evidence.
 - The frontend package declares Node `24.x`; `QUICKSTART.md` now documents the matching prerequisite. The previous Node 20+ instruction was inconsistent with the package engine declaration.
 - Vercel production checks remain manual-only during the owner's pause. Do not treat historic READY deployments or earlier HTTP 200 checks as proof of current production health.
+
+### 2026-10-03 — Personal Local security and backup hardening
+
+- Static source review found that backup verification accepted archives without a manifest, and recovery restore did not require a matching archive SHA-256 before extraction. Backup creation also followed file symlinks, which could include data outside the writable workspace.
+- Hardened backup creation to include only regular, in-workspace files and exclude symlinks, recovery artifacts and temporary files. Archive hashing is streamed in chunks; archive and manifest writes use temporary files followed by atomic replacement.
+- Backup verification now requires a valid manifest with a SHA-256 value. Recovery restore verifies the archive digest before extraction and rejects absolute paths, parent traversal, Windows drive paths and backslash-based path traversal. Restore remains recovery-only and does not overwrite the active workspace.
+- Hardened persisted import manifests: their session ID and working-copy path must match the generated session directory. Import, scan, file preview/download, document understanding and organization apply now use the session-bound working-copy path rather than trusting stored absolute file paths.
+- Document understanding now resolves each file from its manifest-relative path, checks containment and verifies its SHA-256 before reading. Organization apply rechecks the verified manifest hash before copying to Final; undo refuses to delete targets outside FINAL_ROOT.
+- The source-write prohibition is now enforced unconditionally by the workspace service, even if ORIGINAL_READ_ONLY is misconfigured false.
+- Added regression coverage for missing/tampered backup manifests, tampered archives, symlink exclusion, manifest path tampering, document-analysis path substitution and source-write configuration.
+- Added local Safe Workspace UI controls to list backups, verify a selected backup, and restore it into a separate Recovery directory after explicit confirmation. The active workspace is not overwritten. Completed import sessions no longer poll status every three seconds.
+- Commits: `58fed41`, `9059d66`, `330093b`, `3c90cf4`, `f93c751`, `cfa0550`, `b934a0b`, `7c53691`, `bc90465`, `e4d690b`, `83c02d9`, `a3690e7`, `795d940`.
+- Verification boundary: source and regression tests were updated, but no local Python/Node test runner or GitHub Actions runner was executed for these commits. The GitHub Actions monthly usage constraint remains in effect; do not claim these tests passed until a runner executes them.
