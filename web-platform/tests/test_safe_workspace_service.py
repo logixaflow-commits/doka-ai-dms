@@ -35,6 +35,121 @@ def test_source_outside_workspace_is_allowed(tmp_path: Path, monkeypatch):
     assert service.validate_source(source) == source.resolve()
 
 
+def test_list_sessions_rejects_symlinked_imports_root(tmp_path, monkeypatch, make_symlink):
+    workspace = tmp_path / "workspace"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    outside.mkdir()
+    (outside / ("a" * 32)).mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    make_symlink(workspace / "imports", outside, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="Import sessions directory cannot be a symlink"):
+        SafeWorkspaceService().list_sessions()
+
+
+def test_list_sessions_rejects_symlinked_session_directory(tmp_path, monkeypatch, make_symlink):
+    workspace = tmp_path / "workspace"
+    outside = tmp_path / "outside"
+    (workspace / "imports").mkdir(parents=True)
+    outside.mkdir()
+    (outside / "status.json").write_text('{"state":"outside"}', encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    make_symlink(
+        workspace / "imports" / ("a" * 32),
+        outside,
+        target_is_directory=True,
+    )
+
+    with pytest.raises(ValueError, match="Import session directory cannot be a symlink"):
+        SafeWorkspaceService().list_sessions()
+
+
+@pytest.mark.parametrize(
+    ("metadata_name", "reader"),
+    [
+        ("status.json", "status"),
+        ("manifest.json", "manifest"),
+        ("inventory.json", "inventory"),
+        ("understanding.json", "understanding"),
+    ],
+)
+def test_readers_reject_symlinked_session_metadata(
+    tmp_path, monkeypatch, make_symlink, metadata_name, reader
+):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    outside = tmp_path / "outside.json"
+    workspace.mkdir()
+    source.mkdir()
+    outside.write_text('{"state":"outside","results":[]}', encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    service.run_import(session["session_id"])
+    service.scan(session["session_id"])
+    service._write(
+        service._json_path(session["session_id"], "understanding.json"),
+        {"results": []},
+    )
+    metadata = service._dir(session["session_id"]) / metadata_name
+    metadata.unlink()
+    make_symlink(metadata, outside)
+
+    with pytest.raises(ValueError, match="metadata file cannot be a symlink"):
+        if reader == "status":
+            service.status(session["session_id"])
+        elif reader == "manifest":
+            service._read(service._json_path(session["session_id"], metadata_name))
+        elif reader == "inventory":
+            service.inventory(session["session_id"])
+        else:
+            service.get_understanding(session["session_id"])
+
+
+def test_write_rejects_symlinked_temporary_metadata_file(
+    tmp_path, monkeypatch, make_symlink
+):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    outside = tmp_path / "outside.json"
+    workspace.mkdir()
+    source.mkdir()
+    outside.write_text('{"state":"unchanged"}', encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    status_path = service._json_path(session["session_id"], "status.json")
+    make_symlink(status_path.with_suffix(".json.tmp"), outside)
+
+    with pytest.raises(ValueError, match="Temporary import metadata file cannot be a symlink"):
+        service._write(status_path, {"state": "changed"})
+    assert outside.read_text(encoding="utf-8") == '{"state":"unchanged"}'
+
+
+def test_metadata_read_and_write_reject_paths_outside_workspace(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    outside = tmp_path / "outside.json"
+    workspace.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    outside.write_text('{"state":"unchanged"}', encoding="utf-8")
+    service = SafeWorkspaceService()
+
+    with pytest.raises(ValueError, match="outside the workspace"):
+        service._read(outside)
+    with pytest.raises(ValueError, match="outside the workspace"):
+        service._write(outside, {"state": "changed"})
+    assert outside.read_text(encoding="utf-8") == '{"state":"unchanged"}'
+
+
 def test_safe_import_scan_search_and_resume(tmp_path, monkeypatch):
     workspace = tmp_path / "workspace"
     source = tmp_path / "source"

@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shutil
+import tempfile
 import threading
 import uuid
 import re
@@ -15,6 +16,14 @@ from loguru import logger
 from app.core.config import settings
 
 CHUNK_SIZE = 1024 * 1024
+_SESSION_METADATA_FILES = {
+    "status.json",
+    "manifest.json",
+    "inventory.json",
+    "understanding.json",
+    "ocr_corrections.json",
+    "organization_plan.json",
+}
 
 
 def utc_now() -> str:
@@ -47,17 +56,72 @@ class SafeWorkspaceService:
             raise ValueError(f"Invalid import session id: {session_id}")
         return session_id
 
-    def _dir(self, session_id: str) -> Path:
-        imports_root = self.root / "imports"
-        if imports_root.is_symlink():
+    def _imports_dir(self) -> Path:
+        root = self.root.resolve()
+        imports_dir = root / "imports"
+        if imports_dir.is_symlink():
             raise ValueError("Import sessions directory cannot be a symlink.")
+        resolved = imports_dir.resolve()
+        if resolved.parent != root:
+            raise ValueError("Import sessions directory is outside the workspace.")
+        if imports_dir.exists() and not imports_dir.is_dir():
+            raise ValueError("Import sessions path must be a directory.")
+        return imports_dir
+
+    def _dir(self, session_id: str) -> Path:
+        imports_root = self._imports_dir()
         session_dir = imports_root / self._validate_session_id(session_id)
         if session_dir.is_symlink():
             raise ValueError("Import session directory cannot be a symlink.")
+        resolved = session_dir.resolve()
+        if resolved.parent != imports_root.resolve():
+            raise ValueError("Import session directory is outside the workspace.")
+        if session_dir.exists() and not session_dir.is_dir():
+            raise ValueError("Import session path must be a directory.")
         return session_dir
 
     def _json_path(self, session_id: str, name: str) -> Path:
-        return self._dir(session_id) / name
+        if name not in _SESSION_METADATA_FILES:
+            raise ValueError("Invalid import-session metadata filename.")
+        return self._validate_metadata_path(self._dir(session_id) / name)
+
+    def _validate_metadata_path(self, path: Path) -> Path:
+        root = self.root.resolve()
+        candidate = Path(os.path.abspath(path))
+        try:
+            relative = candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("Import-session metadata path is outside the workspace.") from exc
+        if (
+            len(relative.parts) != 3
+            or relative.parts[0] != "imports"
+            or relative.name not in _SESSION_METADATA_FILES
+        ):
+            raise ValueError("Invalid import-session metadata path.")
+
+        session_dir = self._dir(relative.parts[1])
+        if candidate.parent != session_dir:
+            raise ValueError("Import-session metadata path is outside its session.")
+        if candidate.is_symlink():
+            raise ValueError("Import-session metadata file cannot be a symlink.")
+        if candidate.exists() and candidate.resolve().parent != session_dir.resolve():
+            raise ValueError("Import-session metadata file is outside its session.")
+        return candidate
+
+    def _validate_temporary_path(self, path: Path, target: Path) -> Path:
+        target = self._validate_metadata_path(target)
+        candidate = Path(os.path.abspath(path))
+        if (
+            candidate.parent != target.parent
+            or not candidate.name.startswith(f".{target.name}.")
+            or not candidate.name.endswith(".tmp")
+        ):
+            raise ValueError("Temporary import metadata path is outside its session.")
+        if candidate.is_symlink():
+            raise ValueError("Temporary import metadata file cannot be a symlink.")
+        if candidate.exists() and candidate.resolve().parent != target.parent.resolve():
+            raise ValueError("Temporary import metadata file is outside its session.")
+        return candidate
 
     def validate_manifest_paths(self, session_id: str, manifest: Dict[str, Any]) -> tuple[Path, Path]:
         """Bind manifest paths to this session; never trust persisted absolute paths."""
@@ -81,13 +145,41 @@ class SafeWorkspaceService:
         return source, expected_copy
 
     def _read(self, path: Path) -> Dict[str, Any]:
-        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        path = self._validate_metadata_path(path)
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            descriptor = os.open(path, flags)
+        except FileNotFoundError:
+            return {}
+        with os.fdopen(descriptor, "r", encoding="utf-8") as handle:
+            return json.load(handle)
 
     def _write(self, path: Path, value: Dict[str, Any]) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
-        tmp.replace(path)
+        path = self._validate_metadata_path(path)
+        if not path.parent.is_dir():
+            raise ValueError("Import session directory does not exist.")
+        legacy_tmp = path.with_suffix(path.suffix + ".tmp")
+        if legacy_tmp.is_symlink():
+            raise ValueError("Temporary import metadata file cannot be a symlink.")
+        if path.is_symlink():
+            raise ValueError("Import-session metadata file cannot be a symlink.")
+
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            dir=path.parent,
+        )
+        temporary_path = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(value, handle, ensure_ascii=False, indent=2)
+                handle.flush()
+                os.fsync(handle.fileno())
+            path = self._validate_metadata_path(path)
+            temporary_path = self._validate_temporary_path(temporary_path, path)
+            os.replace(temporary_path, path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
     def _lock(self, session_id: str) -> threading.Lock:
         with self._guard:
@@ -389,15 +481,18 @@ class SafeWorkspaceService:
         }
 
     def list_sessions(self, limit: int = 50) -> list[Dict[str, Any]]:
-        imports_root = self.root / "imports"
+        imports_root = self._imports_dir()
         if not imports_root.exists():
             return []
         sessions = []
         for session_dir in imports_root.iterdir():
-            if not session_dir.is_dir() or not re.fullmatch(r"[0-9a-f]{32}", session_dir.name):
+            if not re.fullmatch(r"[0-9a-f]{32}", session_dir.name):
+                continue
+            session_dir = self._dir(session_dir.name)
+            if not session_dir.is_dir():
                 continue
             with self._lock(session_dir.name):
-                status = self._read(session_dir / "status.json")
+                status = self._read(self._json_path(session_dir.name, "status.json"))
             if status:
                 sessions.append({
                     "session_id": session_dir.name,
