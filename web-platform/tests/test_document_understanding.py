@@ -112,3 +112,45 @@ def test_analyze_rejects_manifest_working_copy_escape(tmp_path, monkeypatch):
     service = DocumentUnderstandingService(SafeWorkspaceService())
     with pytest.raises(ValueError, match="working-copy path is invalid"):
         service.analyze(session_id)
+
+
+def test_analyze_records_ocr_method_separately_from_detected_language(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    from app.core.config import settings
+
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    source.mkdir()
+    session_id = "e" * 32
+    session = workspace / "imports" / session_id
+    working_copy = session / "source_copy"
+    working_copy.mkdir(parents=True)
+    image = working_copy / "scan.png"
+    image.write_bytes(b"fixture")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+
+    manifest = {
+        "session_id": session_id,
+        "source_root": str(source),
+        "working_copy": str(working_copy),
+        "files": {
+            "scan.png": {
+                "relative_path": "scan.png",
+                "filename": "scan.png",
+                "extension": ".png",
+                "sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+                "verified": True,
+            }
+        },
+    }
+    (session / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    service = DocumentUnderstandingService(SafeWorkspaceService())
+    service._extract_text = lambda _path: ("recognized Myanmar and English text", "mya+eng")
+    service.analyze(session_id)
+
+    saved = json.loads((session / "understanding.json").read_text(encoding="utf-8"))
+    result = saved["results"][0]
+    assert result["extraction_method"] == "ocr"
+    assert result["language"] == "mya+eng"
