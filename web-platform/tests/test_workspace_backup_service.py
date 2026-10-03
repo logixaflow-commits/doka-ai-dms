@@ -154,3 +154,23 @@ def test_backup_excludes_symlinked_files(tmp_path, monkeypatch):
         names = zf.namelist()
     assert "inside.txt" in names
     assert "linked-secret.txt" not in names
+
+
+
+def test_restore_rejects_symlinked_recovery_directory(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    outside.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+
+    service = WorkspaceBackupService()
+    manifest = service.create()
+    (workspace / "Recovery").symlink_to(outside, target_is_directory=True)
+
+    import pytest
+    with pytest.raises(ValueError, match="Recovery directory cannot be a symlink"):
+        service.restore_to_recovery(Path(manifest["archive"]).name)
+    assert not list(outside.iterdir())
