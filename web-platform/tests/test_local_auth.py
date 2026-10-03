@@ -1,5 +1,7 @@
 import json
 import importlib
+import sqlite3
+import jwt
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
@@ -169,6 +171,15 @@ async def test_local_logout_invalidates_access_and_refresh_tokens(monkeypatch):
     assert response["message"] == "Local session ended."
     assert decode_local_token(result["access_token"]) is None
     assert decode_local_token(result["refresh_token"], expected_type="refresh") is None
+    refresh_claims = jwt.decode(
+        result["refresh_token"], settings.SECRET_KEY, algorithms=["HS256"]
+    )
+    with sqlite3.connect(settings.LOCAL_AUTH_STATE_PATH) as connection:
+        revoked_until = connection.execute(
+            "SELECT expires_at FROM local_token_state WHERE token_id = ?",
+            (f"sid:{refresh_claims['sid']}",),
+        ).fetchone()[0]
+    assert revoked_until >= float(refresh_claims["exp"])
 
 
 
