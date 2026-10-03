@@ -1,16 +1,23 @@
 import json
+import importlib
 import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
+import app.core.local_security as local_security
 from app.api.routes.local_auth import LocalLogin, LocalRefresh, login, logout, me, refresh
 from app.core.supabase_auth import _supabase_configured, require_local_workspace_user
 
 
 def _request(host: str = "127.0.0.1") -> Request:
     return Request({"type": "http", "headers": [], "client": (host, 12345)})
+
+
+@pytest.fixture(autouse=True)
+def isolate_local_auth_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "local-auth.sqlite3")
 
 
 
@@ -159,3 +166,41 @@ async def test_local_logout_invalidates_access_and_refresh_tokens(monkeypatch):
     assert response["message"] == "Local session ended."
     assert decode_local_token(result["access_token"]) is None
     assert decode_local_token(result["refresh_token"], expected_type="refresh") is None
+
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_rotated_session_tokens_across_module_restart(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "admin")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "local-test-password-123")
+    initial = await login(
+        LocalLogin(username="admin", password="local-test-password-123"),
+        _request(),
+    )
+    rotated = await refresh(LocalRefresh(refresh_token=initial["refresh_token"]))
+
+    assert decode_local_token(rotated["access_token"])
+    assert local_security.invalidate_local_token(initial["access_token"])
+
+    # Reload the module to model a backend process restart; SQLite state must survive.
+    importlib.reload(local_security)
+    assert local_security.decode_local_token(rotated["access_token"]) is None
+    assert local_security.decode_local_token(
+        rotated["refresh_token"], expected_type="refresh"
+    ) is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_replay_remains_blocked_after_module_restart(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "admin")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "local-test-password-123")
+    initial = await login(
+        LocalLogin(username="admin", password="local-test-password-123"),
+        _request(),
+    )
+
+    assert local_security.consume_local_refresh_token(initial["refresh_token"])
+    importlib.reload(local_security)
+    assert local_security.consume_local_refresh_token(initial["refresh_token"]) is None
