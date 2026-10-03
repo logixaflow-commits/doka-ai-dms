@@ -87,3 +87,24 @@ async def test_document_analysis_rejects_oversized_input_before_provider_calls(m
 
     with pytest.raises(ValueError, match="exceeds the configured AI input limit"):
         await service.analyze_document("x" * 1001)
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "provider_name"),
+    [
+        ("call_openai", "openai"),
+        ("call_gemini", "gemini"),
+        ("call_openrouter", "openrouter"),
+        ("call_groq", "groq"),
+    ],
+)
+async def test_direct_provider_methods_require_explicit_consent(
+    monkeypatch, method_name, provider_name
+):
+    service = UnifiedAIService()
+    service.providers = {provider_name: {"api_key": "test-key", "model": "test-model"}}
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
+
+    with pytest.raises(RuntimeError, match="consent is required"):
+        await getattr(service, method_name)("private document text")
