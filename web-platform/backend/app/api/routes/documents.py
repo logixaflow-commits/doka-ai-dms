@@ -488,9 +488,14 @@ async def upload_document(
         status="pending",
         uploaded_by=current_user.id,
     )
-    db.add(doc)
-    db.commit()
-    db.refresh(doc)
+    try:
+        db.add(doc)
+        db.commit()
+        db.refresh(doc)
+    except Exception:
+        db.rollback()
+        await anyio.to_thread.run_sync(lambda: workspace_path.unlink(missing_ok=True))
+        raise
 
     # Enqueue processing
     task = process_document.delay(
