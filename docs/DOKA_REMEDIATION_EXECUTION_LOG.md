@@ -118,3 +118,9 @@ Date: 2026-10-03
 - **OPS-004 / QA-002:** added scripts/export_cloud_openapi.py and updated the consolidated backend CI job to emit an OpenAPI JSON artifact plus a coverage XML/terminal report. The coverage report is a baseline only; no threshold gate was introduced without an observed baseline. CI has not executed its steps.
 - **DR-003:** expanded docs/PERSONAL_LOCAL_RUNBOOK.md with a copied-data backup/restore drill, manifest/hash comparisons, duration evidence and explicit RTO/RPO approval requirement. No real restore drill was run.
 - The new CodeQL/Semgrep/SBOM/OpenAPI/coverage workflow changes were committed, but GitHub Actions automatic push runs continue to fail before exposing any steps/logs. No manual dispatch or rerun was made.
+
+## CI runner evidence update — 2026-10-03
+
+- Read-only inspection of the automatic push run for commit 0babf061fea1f2a3e40f7ead9bbc7262e572cac8 (run 37114338756) shows Backend regression tests, Backend dependency audit, Frontend build and smoke tests, and Static analysis and SBOM all concluded failure before any step records were available. The GitHub job records have steps=null and logs_url=null.
+- Other automatic push runs for the same batch show the same missing step/log evidence; one superseded run was cancelled. These runs were triggered by repository pushes, not manually dispatched or rerun.
+- The failure state is still inconclusive and cannot be attributed to tests, lint, dependency findings, CodeQL, Semgrep or SBOM generation. Keep all runtime verification statuses pending until a runner provides actual step output.
