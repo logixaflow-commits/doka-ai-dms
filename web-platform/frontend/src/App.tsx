@@ -15,6 +15,7 @@ import {
   isSupabaseConfigured,
   type SupabaseUser,
 } from '@/lib/supabaseAuth';
+import { getLocalCurrentUser, isLocalAuthEnabled } from '@/lib/localAuth';
 
 export default function App() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -24,12 +25,14 @@ export default function App() {
     let mounted = true;
 
     async function restoreAuth() {
-      if (!isSupabaseConfigured()) {
+      if (!isSupabaseConfigured() && !isLocalAuthEnabled()) {
         if (mounted) setLoading(false);
         return;
       }
 
-      const currentUser = await getCurrentUser();
+      const currentUser = isLocalAuthEnabled()
+        ? await getLocalCurrentUser()
+        : await getCurrentUser();
       if (mounted) {
         setUser(currentUser);
         setLoading(false);
@@ -53,17 +56,17 @@ export default function App() {
       <Routes>
         <Route
           path="/login"
-          element={isAuthenticated ? <Navigate to="/admin/dashboard" replace /> : <Login onLogin={async () => setUser(await getCurrentUser())} />}
+          element={isAuthenticated ? <Navigate to={isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard'} replace /> : <Login onLogin={async () => setUser(isLocalAuthEnabled() ? await getLocalCurrentUser() : await getCurrentUser())} />}
         />
         <Route path="/admin/*" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
           <Route path="dashboard" element={<PersonalDashboard />} />
           <Route path="workspace" element={<WorkspaceReview />} />
           <Route path="cloud-documents" element={<CloudDocuments />} />
           <Route path="activity" element={<CloudAudit />} />
-          <Route path="" element={<Navigate to="dashboard" replace />} />
+          <Route path="" element={<Navigate to={isLocalAuthEnabled() ? 'workspace' : 'dashboard'} replace />} />
         </Route>
-        <Route path="/" element={<Navigate to={isAuthenticated ? '/admin/dashboard' : '/login'} replace />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? '/admin/dashboard' : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />
       </Routes>
     </ErrorBoundary>
   );
