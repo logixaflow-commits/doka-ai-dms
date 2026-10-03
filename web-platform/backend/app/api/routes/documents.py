@@ -442,14 +442,15 @@ async def upload_document(
     db: Session = Depends(get_db),
 ):
     """Upload a new document (enqueues Celery processing task)."""
-    from app.core.config import settings
-
     # Stream to disk in bounded chunks; never hold the full upload in memory.
     MAX_SIZE = 100 * 1024 * 1024
     chunk_size = 1024 * 1024
     source_name = (file.filename or "upload").replace("\\", "/").rsplit("/", 1)[-1]
-    source_name = "".join(char for char in source_name if ord(char) >= 32 and ord(char) != 127)
-    source_name = source_name.strip(" .") or "upload"
+    source_name = "".join(
+        char for char in source_name
+        if ord(char) >= 32 and ord(char) != 127 and char not in '<>:\"|?*'
+    )
+    source_name = (source_name.strip(" .") or "upload")[:180]
 
     file_id = str(uuid.uuid4())
     safe_name = f"{file_id}_{source_name}"
