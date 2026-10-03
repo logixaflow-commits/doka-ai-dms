@@ -184,8 +184,8 @@ class SafeWorkspaceService:
             try:
                 for src in files:
                     rel = src.relative_to(source).as_posix()
-                    dest = self._working_copy_destination(copy_root, rel)
                     try:
+                        dest = self._working_copy_destination(copy_root, rel)
                         if src.is_symlink():
                             raise ValueError("Source file became a symlink during import.")
                         try:
