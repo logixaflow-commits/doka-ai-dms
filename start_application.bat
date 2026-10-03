@@ -19,6 +19,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
+for /f %%V in ('node -p "process.versions.node.split('.')[0]"') do set "NODE_MAJOR=%%V"
+if not "%NODE_MAJOR%"=="24" (
+  echo ERROR: Node.js 24.x is required. Found major version %NODE_MAJOR%.
+  exit /b 1
+)
+
 if not exist "web-platform\backend\.venv\Scripts\python.exe" (
   echo Creating Python virtual environment...
   python -m venv web-platform\backend\.venv
