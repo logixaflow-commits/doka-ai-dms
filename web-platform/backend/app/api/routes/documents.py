@@ -4,6 +4,7 @@ CRUD, approve, reject, preview, upload endpoints with RBAC.
 """
 import os
 import uuid
+import anyio
 import shutil
 from datetime import datetime, timedelta
 from typing import Optional
@@ -456,10 +457,10 @@ async def upload_document(
     total_size = 0
 
     try:
-        await __import__("anyio").to_thread.run_sync(
+        await anyio.to_thread.run_sync(
             lambda: workspace_path.parent.mkdir(parents=True, exist_ok=True)
         )
-        async with await __import__("anyio").open_file(workspace_path, "wb") as output:
+        async with await anyio.open_file(workspace_path, "wb") as output:
             while True:
                 chunk = await file.read(chunk_size)
                 if not chunk:
