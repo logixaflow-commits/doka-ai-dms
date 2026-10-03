@@ -387,3 +387,8 @@ Evidence boundary:
 - **OPS-004 / QA-002:** added a reproducible Cloud API OpenAPI exporter and CI artifacts for OpenAPI JSON and backend coverage XML. Coverage is report-only until a real baseline exists; no threshold is guessed.
 - **DR-003:** added a Personal Local backup/restore drill procedure with manifest/hash validation, separate recovery destination and RTO/RPO approval gate. Actual restore evidence remains pending.
 - RTO/RPO targets, immutable/offsite backups, Vault/KMS, Redis/high availability, WAF, DAST staging, production load tests and live cloud controls remain provisioning/owner-verification gates rather than repository-complete work.
+
+### CI evidence update — 2026-10-03
+
+- Automatic push run 37114338756 for commit 0babf061fea1f2a3e40f7ead9bbc7262e572cac8 reports all four jobs failed, but every job record has steps=null and logs_url=null. No test, audit, CodeQL, Semgrep or SBOM command output is available.
+- The run was automatic; no workflow_dispatch or manual rerun was used. Classify this as runner/log evidence unavailable, not a confirmed code failure or a passing verification.
