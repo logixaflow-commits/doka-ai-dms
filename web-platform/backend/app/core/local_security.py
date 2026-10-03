@@ -105,7 +105,7 @@ def create_local_refresh_token(username: str, session_id: str | None = None) -> 
             "role": "admin",
             "type": "refresh",
             "jti": secrets.token_urlsafe(18),
-            "sid": secrets.token_urlsafe(24),
+            "sid": session_id or secrets.token_urlsafe(24),
             "iat": now,
             "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         },
