@@ -161,6 +161,7 @@ function LocalWorkspaceReview() {
       setEditingOcr(null);
       setOcrDraft('');
     } else if (step === 'understand') {
+      setSearchResults([]);
       setOcrResults([]);
       setEditingOcr(null);
       setOcrDraft('');
