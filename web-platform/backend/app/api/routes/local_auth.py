@@ -1,4 +1,5 @@
 """Authentication endpoints for the Doka Personal Local Edition."""
+import secrets
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
@@ -54,9 +55,10 @@ async def login(credentials: LocalLogin, request: Request):
         )
 
     clear_login_failures(username, client_host)
+    session_id = secrets.token_urlsafe(24)
     return {
-        "access_token": create_local_access_token(username),
-        "refresh_token": create_local_refresh_token(username),
+        "access_token": create_local_access_token(username, session_id),
+        "refresh_token": create_local_refresh_token(username, session_id),
         "token_type": "bearer",
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
@@ -70,9 +72,10 @@ async def refresh(body: LocalRefresh):
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token.")
     username = str(payload["sub"])
+    session_id = payload.get("sid") or secrets.token_urlsafe(24)
     return {
-        "access_token": create_local_access_token(username),
-        "refresh_token": create_local_refresh_token(username),
+        "access_token": create_local_access_token(username, session_id),
+        "refresh_token": create_local_refresh_token(username, session_id),
         "token_type": "bearer",
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
