@@ -6,13 +6,13 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
-from app.core.supabase_auth import require_authenticated_user
+from app.core.supabase_auth import require_local_workspace_user
 from app.services.safe_workspace_service import safe_workspace_service, sha256_file
 
 router = APIRouter(
     prefix="/api/workspace",
     tags=["Workspace Files"],
-    dependencies=[Depends(require_authenticated_user)],
+    dependencies=[Depends(require_local_workspace_user)],
 )
 
 
