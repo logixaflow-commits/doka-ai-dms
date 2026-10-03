@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 
 def postgres_dump_invocation(database_url: str, backup_path: str) -> tuple[list[str], dict[str, str]]:
@@ -39,4 +39,19 @@ def postgres_dump_invocation(database_url: str, backup_path: str) -> tuple[list[
     environment: dict[str, str] = {}
     if parsed.password is not None:
         environment["PGPASSWORD"] = unquote(parsed.password)
+
+    # Keep PostgreSQL TLS and connection options from the original URL.
+    query_env = {
+        "sslmode": "PGSSLMODE",
+        "sslrootcert": "PGSSLROOTCERT",
+        "sslcert": "PGSSLCERT",
+        "sslkey": "PGSSLKEY",
+        "connect_timeout": "PGCONNECT_TIMEOUT",
+        "application_name": "PGAPPNAME",
+        "options": "PGOPTIONS",
+    }
+    for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+        if key not in query_env:
+            raise ValueError(f"Unsupported PostgreSQL backup URL parameter: {key}")
+        environment[query_env[key]] = value
     return command, environment
