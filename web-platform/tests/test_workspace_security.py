@@ -154,3 +154,25 @@ def test_workspace_rejects_symlinked_import_session_directory(tmp_path, monkeypa
     service = SafeWorkspaceService()
     with pytest.raises(ValueError, match="cannot be a symlink"):
         service._dir(session_id)
+
+
+
+def test_backup_restore_rejects_archives_over_entry_limit(tmp_path, monkeypatch):
+    import importlib
+
+    backup_module = importlib.import_module("app.services.workspace_backup_service")
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    workspace.mkdir()
+    backups.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+    (workspace / "one.txt").write_text("one", encoding="utf-8")
+
+    service = WorkspaceBackupService()
+    manifest = service.create()
+    monkeypatch.setattr(backup_module, "_MAX_RESTORE_ENTRIES", 0)
+
+    with pytest.raises(ValueError, match="too many entries"):
+        service.restore_to_recovery(Path(manifest["archive"]).name)
+    assert not (workspace / "Recovery").exists()
