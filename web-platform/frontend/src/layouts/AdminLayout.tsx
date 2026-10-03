@@ -10,7 +10,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { getStoredUser, signOut } from '@/lib/supabaseAuth';
+import { getStoredUser, isSupabaseConfigured, signOut } from '@/lib/supabaseAuth';
 
 const baseMenuItems = [
   { title: 'Overview', url: '/admin/dashboard', icon: LayoutDashboard },
@@ -24,14 +24,15 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = getStoredUser();
-  const menuItems = import.meta.env.PROD ? baseMenuItems : [...baseMenuItems, localMenuItem];
+  const localMode = import.meta.env.DEV && !isSupabaseConfigured();
+  const menuItems = localMode ? [localMenuItem] : import.meta.env.PROD ? baseMenuItems : [...baseMenuItems, localMenuItem];
 
   const handleLogout = async () => {
     await signOut();
     navigate('/login', { replace: true });
   };
 
-  const displayName = user?.email || 'Doka user';
+  const displayName = user?.email || user?.username || 'Doka user';
   const initials = displayName.split('@')[0].slice(0, 2).toUpperCase();
   const pageTitle = menuItems.find(item => item.url === location.pathname)?.title || 'Doka';
 
@@ -94,7 +95,7 @@ export default function AdminLayout() {
             </Avatar>
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-xs font-medium text-slate-100">{displayName}</p>
-              <p className="text-[10px] text-slate-400">Signed in with Supabase</p>
+              <p className="text-[10px] text-slate-400">{localMode ? 'Signed in locally' : 'Signed in with Supabase'}</p>
             </div>
             <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8 shrink-0 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white group-data-[collapsible=icon]:hidden" aria-label="Log out">
               <LogOut className="h-4 w-4" />
@@ -113,7 +114,7 @@ export default function AdminLayout() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{pageTitle}</p>
-                <Badge variant="outline" className="hidden rounded-full border-emerald-200 bg-emerald-50 text-[10px] font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300 sm:inline-flex">CLOUD</Badge>
+                <Badge variant="outline" className="hidden rounded-full border-emerald-200 bg-emerald-50 text-[10px] font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300 sm:inline-flex">{localMode ? 'LOCAL' : 'CLOUD'}</Badge>
               </div>
               <p className="hidden text-xs text-slate-500 sm:block">Your secure document workspace</p>
             </div>
