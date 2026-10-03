@@ -38,3 +38,27 @@ def test_postgres_dump_rejects_missing_host_database_and_invalid_port():
     ):
         with pytest.raises(ValueError):
             postgres_dump_invocation(value, "/tmp/doka.sql")
+
+
+def test_postgres_dump_preserves_tls_connection_options():
+    command, environment = postgres_dump_invocation(
+        "postgresql://backup:secret@db.example.test/doka?sslmode=verify-full&sslrootcert=%2Fetc%2Fssl%2Froot.pem&connect_timeout=5",
+        "/tmp/doka.sql",
+    )
+    assert command[0] == "pg_dump"
+    assert environment == {
+        "PGPASSWORD": "secret",
+        "PGSSLMODE": "verify-full",
+        "PGSSLROOTCERT": "/etc/ssl/root.pem",
+        "PGCONNECT_TIMEOUT": "5",
+    }
+
+
+def test_postgres_dump_rejects_unknown_connection_options():
+    import pytest
+
+    with pytest.raises(ValueError, match="Unsupported PostgreSQL backup URL parameter"):
+        postgres_dump_invocation(
+            "postgresql://backup@db.example.test/doka?unknown_option=value",
+            "/tmp/doka.sql",
+        )
