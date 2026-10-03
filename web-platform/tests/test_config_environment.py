@@ -1,4 +1,4 @@
-from app.core.config import default_debug_for_environment, normalize_environment
+from app.core.config import default_debug_for_environment, normalize_environment, validate_runtime_mode
 
 
 def test_prod_alias_is_normalized_before_security_validation():
@@ -16,3 +16,15 @@ def test_debug_defaults_off_for_production_alias_and_staging():
 def test_debug_defaults_on_for_local_development():
     assert default_debug_for_environment("development") is True
     assert default_debug_for_environment("local") is True
+
+
+def test_explicit_debug_mode_is_rejected_in_production():
+    import pytest
+
+    with pytest.raises(ValueError, match="DEBUG must be false in production"):
+        validate_runtime_mode("production", True)
+
+
+def test_debug_mode_remains_available_outside_production():
+    validate_runtime_mode("staging", True)
+    validate_runtime_mode("development", True)
