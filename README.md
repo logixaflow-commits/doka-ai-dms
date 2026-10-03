@@ -66,7 +66,7 @@ ALLOW_SOURCE_WRITE=false
 AI_ENABLED=false
 ```
 
-Set a strong `BOOTSTRAP_ADMIN_PASSWORD` before the first login. No usable default password is shipped.
+In Personal Local development mode, sign in with `LOCAL_ADMIN_USERNAME` (default: `admin`) and a strong `BOOTSTRAP_ADMIN_PASSWORD`. Local HS256 sessions are used when valid Supabase credentials are not configured; the placeholder values in the example files do not activate cloud authentication. No usable default password is shipped.
 
 ## Validation status
 Automated repository checks cover Python compilation, frontend build/smoke tests, and the Personal Local safety regression suite.
