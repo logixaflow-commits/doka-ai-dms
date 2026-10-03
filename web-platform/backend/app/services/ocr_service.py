@@ -287,6 +287,7 @@ class OCRService:
                     last_page=page_number,
                     thread_count=1,
                     timeout=self.timeout,
+                    size=3500,
                 )
                 if not images:
                     continue
