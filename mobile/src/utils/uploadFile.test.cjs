@@ -43,3 +43,10 @@ test("does not mistake a generic asset type for a MIME type", () => {
     "image/jpeg",
   );
 });
+
+test("infers a useful MIME type from legacy picker filename", () => {
+  assert.equal(
+    normalizePickedFile({ type: "success", uri: "file:///tmp/invoice.pdf", name: "invoice.pdf" }).type,
+    "application/pdf",
+  );
+});
