@@ -170,3 +170,16 @@ def test_import_does_not_follow_symlinked_destination_parent(tmp_path, monkeypat
     assert result["files_failed"] == 1
     assert sentinel.read_text(encoding="utf-8") == "unchanged"
     assert not (outside / "file.txt").exists()
+
+
+def test_source_requires_original_read_only_flag(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", False)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="ORIGINAL_READ_ONLY"):
+        SafeWorkspaceService().validate_source(source)
