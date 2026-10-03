@@ -148,7 +148,14 @@ function LocalWorkspaceReview() {
       const response = await api(`/imports/${encodeURIComponent(sessionId)}/${step}`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || `${step} failed`);
-      if (step === 'plan') setProposals(data.proposals || []);
+      // Any new scan/OCR result invalidates the previous organization plan and approvals.
+      if (step === 'plan') {
+        setProposals(data.proposals || []);
+        setSelected(new Set());
+      } else {
+        setProposals([]);
+        setSelected(new Set());
+      }
       if (step === 'understand') {
         const detail = await api(`/imports/${encodeURIComponent(sessionId)}/understanding`);
         if (detail.ok) setOcrResults((await detail.json()).results || []);
@@ -250,7 +257,10 @@ function LocalWorkspaceReview() {
         ? { ...item, corrected_text: ocrDraft, ocr_corrected: Boolean(ocrDraft.trim()) }
         : item));
       setEditingOcr(null);
-      setMessage('OCR correction saved as metadata; the document file was not changed.');
+      // The previous categorization may depend on OCR text; require a fresh plan.
+      setProposals([]);
+      setSelected(new Set());
+      setMessage('OCR correction saved as metadata; rebuild the review plan before applying. The document file was not changed.');
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'OCR correction failed');
     } finally {
