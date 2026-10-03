@@ -164,11 +164,18 @@ class OrganizationPlanner:
                 results.append({"relative_path": rel, "status": "rejected", "reason": "Not in generated plan"})
                 continue
             source = (root / rel).resolve()
+            manifest_entry = manifest.get("files", {}).get(rel)
+            if not manifest_entry or manifest_entry.get("verified") is not True:
+                results.append({"relative_path": rel, "status": "rejected", "reason": "File is not a verified import-manifest entry"})
+                continue
             if not source.is_file():
                 results.append({"relative_path": rel, "status": "failed", "reason": "Working-copy file missing"})
                 continue
             try:
                 source.relative_to(root)
+                expected_hash = str(manifest_entry.get("sha256", "")).lower()
+                if len(expected_hash) != 64 or sha256_file(source).lower() != expected_hash:
+                    raise ValueError("Working-copy integrity check failed; rescan and review before applying.")
                 target_folder = proposal.get("target_folder")
                 suggested_filename = proposal.get("suggested_filename") or Path(rel).name
                 if not target_folder or not suggested_filename:
@@ -231,6 +238,12 @@ class OrganizationPlanner:
             if entry.get("action") != "COPY_TO_FINAL" or entry.get("status") != "copied":
                 continue
             target = Path(entry["target"]).resolve()
+            final_root = settings.FINAL_ROOT.resolve()
+            try:
+                target.relative_to(final_root)
+            except ValueError:
+                results.append({"target": str(target), "status": "rejected_outside_final_root"})
+                continue
             if not target.exists():
                 results.append({"target": str(target), "status": "already_missing"})
                 continue
