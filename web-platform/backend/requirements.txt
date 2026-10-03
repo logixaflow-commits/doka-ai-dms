@@ -42,6 +42,7 @@ numpy==2.5.3
 loguru==0.7.3
 sentry-sdk==2.70.0
 
+filelock>=3.20.0,<4
 # File Handling & Utilities
 watchdog==6.0.0
 openpyxl==3.1.5
