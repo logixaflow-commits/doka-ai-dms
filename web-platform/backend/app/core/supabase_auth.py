@@ -17,10 +17,12 @@ from app.core.config import settings
 
 
 def _supabase_configured() -> bool:
-    return bool(
-        os.getenv("SUPABASE_URL", "").strip()
-        and os.getenv("SUPABASE_PUBLISHABLE_KEY", "").strip()
-    )
+    url = os.getenv("SUPABASE_URL", "").strip()
+    key = os.getenv("SUPABASE_PUBLISHABLE_KEY", "").strip()
+    if not url or not key:
+        return False
+    placeholders = ("your-project-ref", "your_public_key")
+    return not any(value in url or value in key for value in placeholders)
 
 
 async def require_authenticated_user(
