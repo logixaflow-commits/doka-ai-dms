@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import stat
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -12,6 +13,10 @@ from app.core.config import settings
 from app.services.safe_workspace_service import safe_workspace_service
 
 _HASH_CHUNK_SIZE = 1024 * 1024
+_MAX_RESTORE_ENTRIES = 100_000
+_MAX_RESTORE_TOTAL_BYTES = 100 * 1024 * 1024 * 1024
+_MAX_RESTORE_MEMBER_BYTES = 20 * 1024 * 1024 * 1024
+_MAX_RESTORE_COMPRESSION_RATIO = 10_000
 
 
 def _sha256(path: Path) -> str:
@@ -141,7 +146,12 @@ class WorkspaceBackupService:
 
         try:
             with zipfile.ZipFile(archive) as zf:
-                for member in zf.infolist():
+                members = zf.infolist()
+                if len(members) > _MAX_RESTORE_ENTRIES:
+                    raise ValueError("Backup contains too many entries to restore safely.")
+                total_uncompressed = 0
+                seen_paths: set[str] = set()
+                for member in members:
                     # ZIP names use POSIX separators. Reject Windows separators,
                     # drive paths, absolute paths and parent traversal on every OS.
                     name = member.filename
@@ -156,6 +166,27 @@ class WorkspaceBackupService:
                         or ".." in posix_path.parts
                     ):
                         raise ValueError("Backup contains an unsafe path.")
+                    normalized_name = posix_path.as_posix().rstrip("/")
+                    if normalized_name in seen_paths:
+                        raise ValueError("Backup contains duplicate paths.")
+                    seen_paths.add(normalized_name)
+
+                    member_mode = (member.external_attr >> 16) & 0o170000
+                    if member_mode == stat.S_IFLNK or member_mode not in (0, stat.S_IFREG, stat.S_IFDIR):
+                        raise ValueError("Backup contains an unsupported filesystem entry.")
+                    if member.flag_bits & 0x1:
+                        raise ValueError("Encrypted backup entries are not supported.")
+                    if member.file_size > _MAX_RESTORE_MEMBER_BYTES:
+                        raise ValueError("Backup contains a file that exceeds the restore size limit.")
+                    total_uncompressed += member.file_size
+                    if total_uncompressed > _MAX_RESTORE_TOTAL_BYTES:
+                        raise ValueError("Backup exceeds the total restore size limit.")
+                    if member.file_size and (
+                        member.compress_size == 0
+                        or member.file_size / member.compress_size > _MAX_RESTORE_COMPRESSION_RATIO
+                    ):
+                        raise ValueError("Backup contains an unsafe compression ratio.")
+
                     member_path = (target / Path(*posix_path.parts)).resolve()
                     try:
                         member_path.relative_to(target)
