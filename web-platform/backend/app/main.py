@@ -6,6 +6,7 @@ by this runtime until their deferred ORM/model stack is restored.
 import os
 import time
 from datetime import datetime
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +20,38 @@ from app.core.observability import init_observability
 logger = get_logger(__name__)
 
 
+def parse_cors_origins(raw_origins: str) -> list[str]:
+    """Parse an explicit allowlist of browser origins; never allow wildcard credentials."""
+    origins = [value.strip() for value in raw_origins.split(",") if value.strip()]
+    if not origins:
+        raise ValueError("CORS_ORIGINS must contain at least one explicit origin.")
+
+    normalized: list[str] = []
+    for origin in origins:
+        if origin == "*":
+            raise ValueError("CORS_ORIGINS cannot contain '*' when authenticated APIs use credentials.")
+        try:
+            parsed = urlsplit(origin)
+            # Accessing .port also validates malformed/out-of-range port values.
+            _ = parsed.port
+        except ValueError as exc:
+            raise ValueError(f"Invalid CORS origin: {origin}") from exc
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(f"CORS entry must be an origin only (scheme + host + optional port): {origin}")
+        canonical = f"{parsed.scheme}://{parsed.netloc}"
+        if canonical not in normalized:
+            normalized.append(canonical)
+    return normalized
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Doka — Personal Local Edition",
@@ -26,14 +59,10 @@ def create_app() -> FastAPI:
         version="2.0.0-personal-local",
         docs_url="/api/docs" if settings.DEBUG else None,
     )
-    cors_origins = [
-        x.strip()
-        for x in os.getenv(
-            "CORS_ORIGINS",
-            "http://localhost:3000,http://localhost:5173,http://localhost:8000",
-        ).split(",")
-        if x.strip()
-    ]
+    cors_origins = parse_cors_origins(os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+    ))
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
