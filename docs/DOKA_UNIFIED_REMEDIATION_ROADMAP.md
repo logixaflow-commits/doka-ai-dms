@@ -54,7 +54,7 @@ Exit criteria:
 
 Work:
 - Re-audit local authentication, token invalidation, logout, environment guards, session switching, and workspace API boundaries.
-- Close remaining test gaps around production/staging denial for local auth endpoints and process-restart semantics; current token revocation/replay tracking is in-memory and is not durable across backend restarts.
+- Close remaining test gaps around production/staging denial for local auth endpoints and process-restart semantics; persist local token revocation, session-family logout and refresh replay state in SQLite without requiring cloud DB/Redis.
 - Verify Organization Apply limits, duplicate-path rejection, per-session locking, incremental hash checks, and Undo behavior against implementation and tests.
 - Verify OCR pixel/page/resource limits and representative Myanmar/English extraction; ensure image/PDF handling fails safely on malformed/oversized input.
 - Verify the pilot harness against the actual output schema and its test fixtures. Confirm it checks copied source hashes, import completeness, scan readability, actual OCR results, backup verification, isolated restore manifest equality, and cleanup.
@@ -303,10 +303,10 @@ Evidence status:
 - GitHub accepted the file commits; this confirms repository writes only.
 - The new/affected tests have **not been executed** in this work batch. No passing-test claim is made.
 - No GitHub Actions workflow was dispatched or rerun. No Vercel deployment or activation was performed.
-- Local token revocation and refresh replay state is still process-memory only. It does not survive a backend restart and remains an explicit Phase 1 security limitation until a durable local session-state design is implemented and tested.
+- Local token revocation and refresh replay state now use a dedicated SQLite file outside `WORKING_ROOT`; access and refresh tokens share a session-family ID so logout revokes rotated tokens too. Process-restart and refresh replay regression tests were added, but have **not been executed** yet.
 - Organization Apply/Undo, OCR limits, pilot schema and frontend session reset were inspected in source; their full test suites and browser/pilot acceptance remain pending execution.
 
 Next Phase 1 work:
-- Resolve the process-restart token-state limitation without introducing a cloud/Redis requirement into Personal Local.
+- Execute the new durable token-state, session-family logout, cross-environment endpoint and CORS regression tests; inspect the SQLite state file permissions and backup/restore implications on the target OS.
 - Execute focused backend tests and frontend smoke/build checks in a suitable local environment; record exact commands/results.
 - Continue confirmed frontend accessibility/effect-cleanup and organization/undo edge-case audit before declaring Phase 1 accepted.
