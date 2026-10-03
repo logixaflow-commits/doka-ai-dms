@@ -86,3 +86,5 @@ Date: 2026-10-03
 - Added explicit copied-fixture/source-read-only/isolated-restore safety instructions and clarified that real-office pilot evidence must use a separate copy.
 - No tests, lint, build, npm audit or office pilot were executed in this documentation/metadata review batch.
 - Dependabot alert inventory remains unavailable through the connected GitHub capabilities; no individual alert has been declared fixed or accepted.
+
+- Replaced the generic Vite-template `web-platform/frontend/README.md` with Doka-specific setup, edition flag, proxy, quality-command and source-data boundary guidance. No frontend source or dependency versions were changed.
