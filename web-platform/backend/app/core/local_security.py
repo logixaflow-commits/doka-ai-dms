@@ -1,16 +1,19 @@
 """Authentication helpers for the Doka Personal Local Edition.
 
-The local edition intentionally keeps authentication state in process memory.
-A database/Redis-backed session architecture belongs to the later multi-user edition.
+Local token revocation and refresh rotation are stored in a small SQLite file.
+This keeps Personal Local independent of cloud databases/Redis while preserving
+logout and one-time refresh semantics across backend restarts and processes.
 """
 
 from datetime import datetime, timedelta, timezone
 import secrets
+import sqlite3
+from pathlib import Path
 from typing import Optional
 import threading
 import time
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from jwt.exceptions import InvalidTokenError as JWTError
@@ -21,9 +24,23 @@ bearer = HTTPBearer(auto_error=False)
 
 _login_guard = threading.Lock()
 _login_failures: dict[str, list[float]] = {}
-_refresh_guard = threading.Lock()
-_used_refresh_tokens: dict[str, float] = {}
-_invalid_token_ids: dict[str, float] = {}
+
+
+def _connect_token_state() -> sqlite3.Connection:
+    path = Path(settings.LOCAL_AUTH_STATE_PATH).expanduser()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(str(path), timeout=15)
+    connection.execute("PRAGMA busy_timeout = 15000")
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS local_token_state (
+            token_id TEXT PRIMARY KEY,
+            state TEXT NOT NULL CHECK (state IN ('revoked', 'used_refresh')),
+            expires_at REAL NOT NULL
+        )
+        """
+    )
+    return connection
 
 
 def _login_key(username: str, client_host: str | None) -> str:
@@ -59,6 +76,9 @@ def clear_login_failures(username: str, client_host: str | None = None) -> None:
 
 
 def create_local_access_token(username: str) -> str:
+    # Fail before issuing credentials if the durable revocation store is unavailable.
+    connection = _connect_token_state()
+    connection.close()
     now = datetime.now(timezone.utc)
     return jwt.encode(
         {
@@ -75,6 +95,8 @@ def create_local_access_token(username: str) -> str:
 
 
 def create_local_refresh_token(username: str) -> str:
+    connection = _connect_token_state()
+    connection.close()
     now = datetime.now(timezone.utc)
     return jwt.encode(
         {
@@ -96,21 +118,30 @@ def decode_local_token(token: str, expected_type: str = "access") -> Optional[di
         if payload.get("type") != expected_type or payload.get("role") != "admin":
             return None
         token_id = payload.get("jti")
-        if isinstance(token_id, str):
-            now = time.time()
-            with _refresh_guard:
-                expired = [key for key, expiry in _invalid_token_ids.items() if expiry <= now]
-                for key in expired:
-                    _invalid_token_ids.pop(key, None)
-                if token_id in _invalid_token_ids:
+        if not isinstance(token_id, str) or not token_id:
+            return None
+        now = time.time()
+        connection = _connect_token_state()
+        try:
+            row = connection.execute(
+                "SELECT state, expires_at FROM local_token_state WHERE token_id = ?",
+                (token_id,),
+            ).fetchone()
+            if row and float(row[1]) > now:
+                if row[0] == "revoked" or (expected_type == "refresh" and row[0] == "used_refresh"):
                     return None
+            elif row:
+                connection.execute("DELETE FROM local_token_state WHERE token_id = ?", (token_id,))
+        finally:
+            connection.close()
         return payload
-    except JWTError:
+    except (JWTError, sqlite3.Error, OSError, ValueError, TypeError):
+        # Fail closed if durable session state cannot be read.
         return None
 
 
 def invalidate_local_token(token: str) -> bool:
-    """Invalidate a local token until its natural expiry."""
+    """Persist token revocation until the token's natural expiry."""
     payload = decode_local_token(token, expected_type="access")
     if not payload:
         payload = decode_local_token(token, expected_type="refresh")
@@ -123,34 +154,68 @@ def invalidate_local_token(token: str) -> bool:
         return False
     if not isinstance(token_id, str) or not token_id:
         return False
-    with _refresh_guard:
-        _invalid_token_ids[token_id] = expiry
-    return True
+
+    connection = None
+    try:
+        connection = _connect_token_state()
+        connection.execute(
+            """
+            INSERT INTO local_token_state (token_id, state, expires_at)
+            VALUES (?, 'revoked', ?)
+            ON CONFLICT(token_id) DO UPDATE SET state = 'revoked', expires_at = excluded.expires_at
+            """,
+            (token_id, expiry),
+        )
+        connection.commit()
+        return True
+    except sqlite3.Error:
+        if connection:
+            connection.rollback()
+        return False
+    finally:
+        if connection:
+            connection.close()
 
 
 def consume_local_refresh_token(token: str) -> Optional[dict]:
-    """Validate and consume a refresh token once to prevent replay within this process."""
+    """Atomically consume a refresh token once, including across process restarts."""
     payload = decode_local_token(token, expected_type="refresh")
     if not payload:
         return None
     token_id = payload.get("jti")
-    expires_at = payload.get("exp")
-    if not isinstance(token_id, str) or not token_id:
-        return None
     try:
-        expiry = float(expires_at)
+        expiry = float(payload.get("exp"))
     except (TypeError, ValueError):
         return None
+    if not isinstance(token_id, str) or not token_id:
+        return None
 
-    now = time.time()
-    with _refresh_guard:
-        expired = [key for key, value in _used_refresh_tokens.items() if value <= now]
-        for key in expired:
-            _used_refresh_tokens.pop(key, None)
-        if token_id in _used_refresh_tokens or token_id in _invalid_token_ids:
+    connection = None
+    try:
+        connection = _connect_token_state()
+        connection.execute("BEGIN IMMEDIATE")
+        now = time.time()
+        connection.execute("DELETE FROM local_token_state WHERE expires_at <= ?", (now,))
+        existing = connection.execute(
+            "SELECT state FROM local_token_state WHERE token_id = ?",
+            (token_id,),
+        ).fetchone()
+        if existing:
+            connection.rollback()
             return None
-        _used_refresh_tokens[token_id] = expiry
-    return payload
+        connection.execute(
+            "INSERT INTO local_token_state (token_id, state, expires_at) VALUES (?, 'used_refresh', ?)",
+            (token_id, expiry),
+        )
+        connection.commit()
+        return payload
+    except sqlite3.Error:
+        if connection:
+            connection.rollback()
+        return None
+    finally:
+        if connection:
+            connection.close()
 
 
 async def require_local_staff(
