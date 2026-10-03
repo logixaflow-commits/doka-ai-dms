@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Doka Mobile",
+    "slug": "doka-mobile",
+    "version": "1.0.0",
+    "sdkVersion": "50.0.0",
+    "orientation": "portrait",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.doka.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Doka uses the camera when you choose to capture a document for upload.",
+        "NSPhotoLibraryUsageDescription": "Doka accesses photos only when you choose an image to upload as a document."
+      }
+    },
+    "android": {
+      "package": "com.doka.mobile",
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Doka to use the camera when you choose to capture a document.",
+          "photosPermission": "Allow Doka to access photos only when you choose an image to upload."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Doka to use the camera when you choose to capture a document."
+        }
+      ]
+    ]
+  }
+}
