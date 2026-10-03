@@ -770,9 +770,3 @@ async def get_lock_status(
         locked_at=doc.locked_at,
         is_locked=is_locked
     )
-    return DocumentLockInfo(
-        locked_by=doc.locked_by,
-        locked_by_username=locked_by_username,
-        locked_at=doc.locked_at,
-        is_locked=is_locked
-    )
