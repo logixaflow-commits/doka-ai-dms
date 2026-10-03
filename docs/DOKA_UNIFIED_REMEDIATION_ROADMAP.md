@@ -396,3 +396,7 @@ Evidence boundary:
 ### SEC-001 follow-up — 2026-10-03
 
 - Added a pinned Gitleaks pre-commit hook matching the CI version and documented setup. Historical Git-history scanning and itemized GitHub Secret Scanning/Dependabot alert review remain pending; no baseline is declared clean.
+
+### Latest CI evidence — run 37114518007
+
+- The automatic run for the latest code commit has all four jobs marked failed but exposes no steps or logs. This remains an infrastructure/evidence blocker, not an attributed code failure or a passing verification.
