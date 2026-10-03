@@ -1,28 +1,9 @@
 name: Local Core Checks
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "web-platform/backend/**"
-      - "web-platform/tests/**"
-      - "cloudflare_worker/**"
-      - "scripts/**"
-      - "pyproject.toml"
-      - "wrangler.jsonc"
-      - "supabase/migrations/**"
-      - ".github/workflows/local-core-check.yml"
-  pull_request:
-    branches: [main]
-    paths:
-      - "web-platform/backend/**"
-      - "web-platform/tests/**"
-      - "cloudflare_worker/**"
-      - "scripts/**"
-      - "pyproject.toml"
-      - "wrangler.jsonc"
-      - "supabase/migrations/**"
-      - ".github/workflows/local-core-check.yml"
+  # The consolidated Doka Quality Checks workflow handles automatic CI.
+  # Keep this extended local-core suite available for deliberate manual runs.
+  workflow_dispatch:
 
 # Cancel superseded runs of this workflow on the same ref to conserve monthly runner minutes.
 concurrency:
