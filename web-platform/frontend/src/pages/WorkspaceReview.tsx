@@ -134,6 +134,7 @@ function LocalWorkspaceReview() {
       loadSessions();
       setProposals([]);
       setSelected(new Set());
+      setSearchResults([]);
       setOcrResults([]);
       setEditingOcr(null);
       setOcrDraft('');
@@ -150,26 +151,31 @@ function LocalWorkspaceReview() {
 
   async function runStep(step: 'scan' | 'understand' | 'plan') {
     setBusy(true); setMessage('');
+    // Clear dependent state before the request so a failed scan/OCR/plan cannot
+    // leave results or approvals from an earlier operation visible and actionable.
+    setProposals([]);
+    setSelected(new Set());
+    if (step === 'scan') {
+      setSearchResults([]);
+      setOcrResults([]);
+      setEditingOcr(null);
+      setOcrDraft('');
+    } else if (step === 'understand') {
+      setOcrResults([]);
+      setEditingOcr(null);
+      setOcrDraft('');
+    }
     try {
       const response = await api(`/imports/${encodeURIComponent(sessionId)}/${step}`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || `${step} failed`);
-      // Any new scan/OCR result invalidates the previous organization plan and approvals.
       if (step === 'plan') {
         setProposals(data.proposals || []);
-        setSelected(new Set());
-      } else {
-        setProposals([]);
-        setSelected(new Set());
-        if (step === 'scan') {
-          setOcrResults([]);
-          setEditingOcr(null);
-          setOcrDraft('');
-        }
       }
       if (step === 'understand') {
         const detail = await api(`/imports/${encodeURIComponent(sessionId)}/understanding`);
-        if (detail.ok) setOcrResults((await detail.json()).results || []);
+        if (!detail.ok) throw new Error('OCR results could not be loaded.');
+        setOcrResults((await detail.json()).results || []);
       }
       await loadStatus();
       setMessage(`${step} completed.`);
