@@ -487,3 +487,11 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 - Organization Apply and Undo now share the Safe Workspace per-session lock used by import/scan. This prevents those filesystem operations from racing each other or a resumed import for the same session.
 - Commit: `6bf1c36`.
+
+
+
+### 2026-10-03 — Explicit local-environment allowlist
+
+- Safe Workspace filesystem endpoints now require `ENVIRONMENT` to be one of `development`, `local` or `test`; production, staging and abbreviated production environment names are denied by default.
+- Added regression coverage for `production`, `prod` and `staging`.
+- Commits: `021b910`, `48b5f4d`.
