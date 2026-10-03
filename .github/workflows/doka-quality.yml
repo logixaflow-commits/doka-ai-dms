@@ -133,8 +133,6 @@ jobs:
     name: Frontend build and smoke tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -175,27 +173,6 @@ jobs:
       - name: Require clean frontend dependency audit
         working-directory: web-platform/frontend
         run: npm audit --audit-level=low
-      - name: Commit verified dependency lockfile remediation
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web-platform/frontend/package-lock.json
-          if git diff --cached --quiet; then
-            echo "No dependency lockfile changes to commit."
-          else
-            git commit -m "fix(deps): remediate frontend npm advisories"
-            for attempt in 1 2 3; do
-              git fetch origin main
-              git rebase origin/main
-              if git push origin HEAD:main; then
-                exit 0
-              fi
-              sleep 2
-            done
-            echo "Could not push the verified lockfile after three fetch/rebase attempts." >&2
-            exit 1
-          fi
       - name: Upload dependency and lint reports
         if: always()
         uses: actions/upload-artifact@v7
