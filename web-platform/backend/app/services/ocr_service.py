@@ -187,9 +187,10 @@ class OCRService:
             # Load image
             image = cv2.imread(str(image_path))
             if image is None:
-                # Try PIL fallback
-                pil_image = Image.open(str(image_path))
-                image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+                # Try PIL fallback without keeping the source file handle open.
+                with Image.open(str(image_path)) as source_image:
+                    rgb_image = np.array(source_image.convert("RGB"))
+                image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
 
             if self.preprocessing:
                 image = self._preprocess_image(image)
