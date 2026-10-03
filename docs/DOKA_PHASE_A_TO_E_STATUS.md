@@ -508,7 +508,7 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 ### 2026-10-03 — CI observation after the latest code commit
 
-- The latest observed automatic Doka Quality Checks run is `37103166059` for commit `794509c`; GitHub reports all three jobs failed. The job API returned empty step lists and no log URL, and the log download endpoint returned `BlobNotFound`. The available evidence does not identify whether this is a runner/account issue or a code/test failure.
+- The latest observed automatic Doka Quality Checks run is `37103239413` for commit `9d9ac98`; GitHub reports all three jobs failed. The job API returned empty step lists and no log URL. An earlier log download attempt returned `BlobNotFound`. The available evidence does not identify whether this is a runner/account issue or a code/test failure.
 - No workflow was dispatched or rerun to avoid unnecessary Actions usage. The source changes and new regression tests therefore remain unverified by CI; do not treat the failed run as proof that the new tests failed for a specific code reason.
 
 
