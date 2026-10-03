@@ -107,6 +107,14 @@ def test_source_write_is_rejected_even_without_source_root(monkeypatch):
     monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
 
 
+def test_source_must_remain_read_only_in_personal_mode(monkeypatch):
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", False)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+    with pytest.raises(ValueError, match="ORIGINAL_READ_ONLY"):
+        settings._validate()
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+
+
 
 def test_workspace_file_rejects_tampered_manifest_working_copy(tmp_path, monkeypatch):
     workspace = tmp_path / "workspace"
