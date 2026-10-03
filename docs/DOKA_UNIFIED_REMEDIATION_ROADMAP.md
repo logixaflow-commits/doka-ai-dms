@@ -324,3 +324,18 @@ Next Phase 1 work:
 
 - Latest observed automatic Doka Quality Checks run: `37107344383` for commit `82dfff5`. GitHub reports all three jobs (frontend checks, backend regression tests and backend dependency audit) as failed. The earlier inspected run `37107238360` exposed empty step lists and `BlobNotFound` logs; no usable diagnostic steps/logs have been returned, so the failure remains insufficient to attribute to the code or to claim the tests ran.
 - Do not manually rerun or dispatch Actions solely to investigate this; keep the failure classified as **CI evidence unavailable/inconclusive** until GitHub exposes actual steps/logs or a local test environment is available.
+
+
+### 2026-10-03 — SEC-014 legacy backup command hardening
+
+Implemented in the repository:
+- **SEC-014:** extracted PostgreSQL backup argument construction into `web-platform/backend/app/core/backup_utils.py`. It parses PostgreSQL URLs structurally (including percent-encoded credentials, IPv6 hosts and explicit ports), validates required connection fields, supplies passwords only through the child-process environment, and builds an argument array for `pg_dump` without shell interpolation.
+- Updated the legacy Celery `backup_database` task to use the helper and invoke `pg_dump` with `--no-password`, captured output and no shell.
+- Added focused parser/argument tests in `web-platform/tests/test_backup_utils.py`.
+
+Scope and evidence boundary:
+- The Personal Local FastAPI entry point does not register the legacy admin/Celery backup route; Personal Local workspace backups remain handled by `WorkspaceBackupService`. This SEC-014 change hardens the retained legacy database-backup task, not the active Personal Local workspace archive flow.
+- Tests have **not been executed**. GitHub file commits confirm repository writes only.
+- **BE-009:** the inspected `VersionService` is part of the legacy ORM/cloud route stack and is not loaded by the Personal Local entry point. Its read-modify-write version allocation remains a deferred cloud concurrency issue; do not treat it as a Phase 1 local blocker or claim it fixed.
+- **BE-010:** the active `SafeWorkspaceService` inspected here has per-session lock creation and no separate lock-status/duplicate-return function in the inspected implementation. The originally described duplicate-return cleanup could not be matched to an active code path; retain as needs-source-location clarification rather than making a speculative change.
+- **SEC-001:** secret scanning remains open. No unreviewed third-party workflow action or unvalidated baseline was added; integrate scanning only after selecting a reproducible scanner and establishing the baseline.
