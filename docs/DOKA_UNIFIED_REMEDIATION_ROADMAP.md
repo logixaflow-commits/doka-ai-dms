@@ -63,6 +63,7 @@ Work:
 - Restrict the persistent local authentication SQLite state file to owner-only permissions on POSIX systems.
 - Close remaining test gaps around production/staging denial for local auth endpoints and process-restart semantics; persist local token revocation, session-family logout and refresh replay state in SQLite without requiring cloud DB/Redis.
 - Verify Organization Apply limits, duplicate-path rejection, per-session locking, incremental hash checks, and Undo behavior against implementation and tests.
+- Serialize Safe Workspace status/list/search/inventory/understanding reads with same-session mutations so Windows polling cannot race atomic JSON replacement; retain the single-process limitation.
 - Verify OCR pixel/page/resource limits and representative Myanmar/English extraction; ensure image/PDF handling fails safely on malformed/oversized input.
 - Verify the pilot harness against the actual output schema and its test fixtures. Confirm it checks copied source hashes, import completeness, scan readability, actual OCR results, backup verification, isolated restore manifest equality, and cleanup.
 - Finish frontend workflow-state boundary review: no stale OCR results, proposals, selected approvals, or session data leak between import sessions.
@@ -167,7 +168,7 @@ The phase assignment below is the new execution grouping. The original plan's es
 | BE-006 | 3 | Idempotent document processing and transaction boundary refactor. |
 | BE-007 | 3 | Worker retries, backoff, timeouts, acknowledgements and DLQ. |
 | BE-008 | 2/3 | OCR/AI per-stage retry and circuit-breaker behavior; local OCR first, cloud workers later. |
-| BE-009 | 1 | Verify file locking + atomic writes; DB-backed version metadata is later. |
+| BE-009 | 1 | Verify local per-session locking for mutable-state reads/writes and atomic writes; DB-backed version metadata is later. |
 | BE-010 | 0 | Confirm duplicate return cleanup in lock-status path; add focused test if still present. |
 | BE-011 | 1/3 | Replace silent empty returns with explicit diagnostics in active local/cloud paths. |
 | BE-012 | 2/3 | Large-file resumable/multipart uploads after local pilot measurements; no premature paid storage. |
@@ -400,3 +401,13 @@ Evidence boundary:
 ### Latest CI evidence — run 37114518007
 
 - The automatic run for the latest code commit has all four jobs marked failed but exposes no steps or logs. This remains an infrastructure/evidence blocker, not an attributed code failure or a passing verification.
+
+### 2026-10-03 — Local baseline and Safe Workspace read/write race
+
+- A disposable loopback UI smoke test used one synthetic text fixture with `ORIGINAL_READ_ONLY=true` and `ALLOW_SOURCE_WRITE=false`. Its source SHA-256 was `4904B0500240FB28CA33A367D1CD65E8A67978228B5F51E7B878208C10FA1F7E`; all 28 generated working copies matched it. No office/source data was used.
+- The smoke exposed concurrent status/list reads during `status.json` replacement on Windows: `Path.replace` raised `WinError 5`, and one polled status request returned HTTP 500. The smoke also issued 28 import POSTs; why the repeated requests occurred is unconfirmed. The full browser workflow was not completed.
+- **BE-009 (Personal Local):** status, list, search, inventory, and understanding JSON reads now share the existing per-session lock with mutations. Added concurrent-reader regression cases for all five service paths. This is an in-process synchronization fix; multi-process locking and crash recovery remain unverified.
+- After the fix, a controlled FastAPI TestClient HTTP walkthrough passed health, import/status/list, scan, local understanding, plan, explicitly confirmed apply, backup/verification, isolated Recovery restore, and undo using a synthetic fixture. The fixture source hash remained unchanged. This used a test-only auth dependency override; it is not real-browser or local-login acceptance.
+- Verification: `.venv\Scripts\python.exe -m pytest ..\tests -q` from `web-platform\backend` — **154 passed, 8 skipped**, exit code 0. Ten warnings were deprecations (FastAPI `on_event` and legacy `datetime.utcnow`); no test failures.
+- The active Personal Local real-browser/login acceptance gate remains pending; the API-level workflow passed after a test-only dependency override. Frontend checks and mobile utility tests passed earlier in this local session; `npm audit` still reports five high findings and no dependency upgrade was made.
+- Source was unchanged by the smoke test; the fixture and temporary workspace were isolated under the OS temp directory. No commit, push, deployment, or manual GitHub Actions run was made.

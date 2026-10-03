@@ -134,3 +134,28 @@ Date: 2026-10-03
 
 - Read-only inspection of automatic push run 37114518007 for commit e78d2353d639ce356d1c96d0e94f0663876e3fa8 shows all four jobs concluded failure with steps=null and logs_url=null. No command output is available; the run cannot establish test, audit, frontend, CodeQL or SBOM results.
 - No manual workflow dispatch or rerun was performed. Keep runtime verification pending.
+
+## Local setup, baseline and Safe Workspace concurrency — 2026-10-03
+
+Environment and boundaries:
+- Node.js 24.20.0 / npm 11.19.0; repository-local backend environment uses Python 3.12.13. The system Python is 3.14.5. The legacy Expo app remains SDK 50 / React Native 0.73 without a committed mobile lockfile.
+- Frontend dependencies were installed with `npm ci` from the committed lockfile. Backend dependencies were installed in `web-platform/backend/.venv` from the local development requirements profile. No dependency manifest or lockfile was changed.
+- `ORIGINAL_READ_ONLY=true` and `ALLOW_SOURCE_WRITE=false` were preserved. The interactive smoke used only a synthetic text fixture and disposable temp roots; its source SHA-256 was `4904B0500240FB28CA33A367D1CD65E8A67978228B5F51E7B878208C10FA1F7E`, and all 28 working copies matched. No original/office data was used.
+
+Verification:
+- Backend Personal Local suite: from `web-platform/backend`, `.venv\Scripts\python.exe -m pytest ..\tests -q` — **154 passed, 8 skipped, 10 warnings**, exit code 0. Skips include Windows symlink privilege limitations; warnings are FastAPI `on_event` and legacy `datetime.utcnow` deprecations. The configured suite intentionally does not collect the separate legacy Enterprise backend test tree.
+- Earlier in this session: frontend `npm ci`, `npm run lint`, `npm test`, and `npm run build` passed; mobile utility `npm test` passed 9/9. These do not constitute a native mobile build.
+- `npm audit` remains non-zero with five high findings. No blind upgrade/override was applied; resolution requires compatibility review (including the Tailwind major-version boundary).
+- A disposable loopback UI smoke exposed concurrent status/list reads and `status.json` atomic replacement on Windows: observed `WinError 5` and one HTTP 500 on a polled status request. The interactive attempt issued 28 import POSTs; the cause of the repetition is unconfirmed. The source remained unchanged, but the complete browser workflow was not verified.
+- After the lock fix, a controlled FastAPI TestClient run passed health, import/status/list, scan, local understanding/read, plan, explicitly confirmed apply, backup creation/verification, restore into isolated Recovery, and undo. The synthetic source hash was unchanged; restore did not overwrite active Final, and undo did not alter the Recovery copy. Auth was replaced only through an in-process test dependency override, so real local login/browser behavior remains pending.
+- The first ad hoc TestClient harness invocation exited 1 with `SyntaxError` at a misplaced top-level `finally`; this was a harness syntax error, not an application failure. The corrected invocation completed successfully.
+
+BE-009 follow-up:
+- Protected `SafeWorkspaceService` status/list/search/inventory/understanding reads with the existing per-session lock used by imports, scans and other mutations. The understanding API now delegates to the locked service method.
+- Added regression coverage confirming all five reader paths wait while a session lock is held. The full Personal Local suite above passes.
+- Remaining limitations: this lock is process-local; cross-process coordination, crash recovery, and the full real-login browser walkthrough remain unverified.
+
+Environment blockers and Git:
+- Docker, Tesseract, Poppler, Gitleaks, Semgrep and pre-commit were unavailable. GitHub CLI was unauthenticated, so Dependabot inventory and detailed GitHub Actions logs remain unavailable. No live Supabase/two-user check, Docker image build, native mobile build, real-office pilot, or real restore/RTO/RPO drill was run.
+- No GitHub Actions run was manually dispatched or rerun. No Vercel production configuration/deployment was changed.
+- Work remains uncommitted on `main`; no commit or push was made. Review the complete working-tree diff before any future commit.

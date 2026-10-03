@@ -132,7 +132,7 @@ def test_verify_rejects_archive_without_manifest(tmp_path, monkeypatch):
         service.verify(archive.name)
 
 
-def test_backup_excludes_symlinked_files(tmp_path, monkeypatch):
+def test_backup_excludes_symlinked_files(tmp_path, monkeypatch, make_symlink):
     workspace = tmp_path / "workspace"
     backups = tmp_path / "backups"
     workspace.mkdir()
@@ -140,11 +140,7 @@ def test_backup_excludes_symlinked_files(tmp_path, monkeypatch):
     outside = tmp_path / "outside-secret.txt"
     outside.write_text("must not be backed up", encoding="utf-8")
     (workspace / "inside.txt").write_text("safe", encoding="utf-8")
-    try:
-        (workspace / "linked-secret.txt").symlink_to(outside)
-    except (OSError, NotImplementedError):
-        import pytest
-        pytest.skip("Symlinks are not available on this platform")
+    make_symlink(workspace / "linked-secret.txt", outside)
 
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
     monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
@@ -157,7 +153,9 @@ def test_backup_excludes_symlinked_files(tmp_path, monkeypatch):
 
 
 
-def test_restore_rejects_symlinked_recovery_directory(tmp_path, monkeypatch):
+def test_restore_rejects_symlinked_recovery_directory(
+    tmp_path, monkeypatch, make_symlink
+):
     workspace = tmp_path / "workspace"
     backups = tmp_path / "backups"
     outside = tmp_path / "outside"
@@ -168,7 +166,7 @@ def test_restore_rejects_symlinked_recovery_directory(tmp_path, monkeypatch):
 
     service = WorkspaceBackupService()
     manifest = service.create()
-    (workspace / "Recovery").symlink_to(outside, target_is_directory=True)
+    make_symlink(workspace / "Recovery", outside, target_is_directory=True)
 
     import pytest
     with pytest.raises(ValueError, match="Recovery directory cannot be a symlink"):

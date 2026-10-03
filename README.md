@@ -98,7 +98,7 @@ Do not re-enable deferred modules in the Personal Local runtime unless they are 
 ## Development checks
 `Doka Quality Checks` is the consolidated automatic CI workflow for relevant source changes. `Local Core Checks` is retained for deliberate manual runs only; the Vercel production smoke check is also manual-only while production is paused.
 
-The project does not require a feature branch for this local-first workflow; changes are intentionally kept on the default branch as requested.
+The local quality workflow runs automatically for relevant changes. A green local check does not imply a GitHub Actions run or production readiness; see the roadmap for the remaining verification gates.
 
 ## Next milestone
 The code foundation is now in the **real-machine validation phase**. The next meaningful milestone is not another architectural rewrite; it is proving the safe workflow against representative office files and then tuning organization/search/OCR quality from those results.

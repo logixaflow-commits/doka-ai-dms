@@ -18,6 +18,7 @@ def test_invalid_session_id_cannot_escape_imports(tmp_path: Path, monkeypatch):
     service = SafeWorkspaceService()
     with pytest.raises(ValueError, match="Invalid import session id"):
         service.status("..")
+    assert not service._locks
 
 
 def test_workspace_file_preview_rejects_path_escape_and_tampering(tmp_path: Path, monkeypatch):
@@ -142,13 +143,19 @@ def test_workspace_file_rejects_tampered_manifest_working_copy(tmp_path, monkeyp
 
 
 
-def test_workspace_rejects_symlinked_import_session_directory(tmp_path, monkeypatch):
+def test_workspace_rejects_symlinked_import_session_directory(
+    tmp_path, monkeypatch, make_symlink
+):
     workspace = tmp_path / "workspace"
     outside = tmp_path / "outside"
     outside.mkdir()
     (workspace / "imports").mkdir(parents=True)
     session_id = "e" * 32
-    (workspace / "imports" / session_id).symlink_to(outside, target_is_directory=True)
+    make_symlink(
+        workspace / "imports" / session_id,
+        outside,
+        target_is_directory=True,
+    )
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
 
     service = SafeWorkspaceService()

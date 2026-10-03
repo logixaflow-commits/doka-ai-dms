@@ -20,7 +20,7 @@ npm --version
 
 ## Repository paths
 
-- `web-platform/backend/` — FastAPI backend and backend-local tests
+- `web-platform/backend/` — FastAPI backend and retained legacy Enterprise tests
 - `web-platform/tests/` — cross-cutting Personal Local regression tests
 - `web-platform/frontend/` — React + Vite frontend
 - `scripts/doka_pilot_check.py` — copied-data pilot gate (real office pilot အတွက်သာ)
@@ -33,10 +33,9 @@ Repository root မှ run ပါ:
 
 ```powershell
 py -3.12 -m venv web-platform/backend/.venv
-web-platform/backend/.venv/Scripts/python.exe -m pip install --upgrade pip
 web-platform/backend/.venv/Scripts/python.exe -m pip install -r web-platform/backend/requirements-local.txt
 Set-Location web-platform/backend
-.venv/Scripts/python.exe -m pytest . ../tests
+.venv/Scripts/python.exe -m pytest --cov=app --cov-report=term-missing
 Set-Location ../..
 ```
 
@@ -44,12 +43,15 @@ Set-Location ../..
 
 ```sh
 python3.12 -m venv web-platform/backend/.venv
-web-platform/backend/.venv/bin/python -m pip install --upgrade pip
 web-platform/backend/.venv/bin/python -m pip install -r web-platform/backend/requirements-local.txt
 cd web-platform/backend
-.venv/bin/python -m pytest . ../tests
+.venv/bin/python -m pytest --cov=app --cov-report=term-missing
 cd ../..
 ```
+
+The backend `pytest.ini` deliberately selects `../tests` for the Personal Local profile. The old backend-local `test_*.py` files and `backend/tests/` target the retained Enterprise application; they are not included in this profile because its `requirements-local.txt` does not provide their dependencies and several tests import removed legacy modules. They remain in the repository and must not be reported as passing or silently folded into the Personal Local suite. Restore a separate legacy profile only after its dependencies and supported imports are established.
+
+The Personal Local suite includes symlink-boundary tests. On Windows, creating symlinks requires Developer Mode or the SeCreateSymbolicLinkPrivilege right. If Windows returns `WinError 1314`, only the affected symlink test reports an explicit skip; the same cases are included in the configured Ubuntu CI suite. Other symlink-creation errors still fail.
 
 Focused test file ကို စမ်းလိုပါက backend directory ထဲမှ ဥပမာ:
 

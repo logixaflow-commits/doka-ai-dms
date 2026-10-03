@@ -40,14 +40,11 @@ def test_backup_root_creates_safe_external_directory(monkeypatch, tmp_path):
     assert result.is_dir()
 
 
-def test_backup_root_rejects_symlink(monkeypatch, tmp_path):
+def test_backup_root_rejects_symlink(monkeypatch, tmp_path, make_symlink):
     real_root = tmp_path / "real-backups"
     real_root.mkdir()
     link = tmp_path / "backup-link"
-    try:
-        link.symlink_to(real_root, target_is_directory=True)
-    except (OSError, NotImplementedError):
-        pytest.skip("Directory symlinks are unavailable on this platform")
+    make_symlink(link, real_root, target_is_directory=True)
     configure_roots(monkeypatch, tmp_path, link)
 
     with pytest.raises(ValueError, match="cannot be a symlink"):

@@ -315,7 +315,13 @@ class SafeWorkspaceService:
         category: Optional[str] = None,
         review_only: bool = False,
     ) -> Dict[str, Any]:
-        value = self._read(self._json_path(session_id, "inventory.json"))
+        inventory_path = self._json_path(session_id, "inventory.json")
+        if not inventory_path.exists():
+            raise ValueError("Inventory is not available. Run scan first.")
+        with self._lock(session_id):
+            value = self._read(inventory_path)
+            understanding = self._read(self._json_path(session_id, "understanding.json"))
+            corrections = self._read(self._json_path(session_id, "ocr_corrections.json"))
         if not value:
             raise ValueError("Inventory is not available. Run scan first.")
         if limit < 1 or limit > 1000:
@@ -324,8 +330,6 @@ class SafeWorkspaceService:
         q = query.casefold().strip()
         extension_filter = extension.casefold().strip() if extension else ""
         category_filter = category.casefold().strip() if category else ""
-        understanding = self._read(self._json_path(session_id, "understanding.json"))
-        corrections = self._read(self._json_path(session_id, "ocr_corrections.json"))
         understood = {x.get("relative_path"): x for x in understanding.get("results", [])}
         corrected = corrections.get("results", {})
 
@@ -392,7 +396,8 @@ class SafeWorkspaceService:
         for session_dir in imports_root.iterdir():
             if not session_dir.is_dir() or not re.fullmatch(r"[0-9a-f]{32}", session_dir.name):
                 continue
-            status = self._read(session_dir / "status.json")
+            with self._lock(session_dir.name):
+                status = self._read(session_dir / "status.json")
             if status:
                 sessions.append({
                     "session_id": session_dir.name,
@@ -408,13 +413,38 @@ class SafeWorkspaceService:
         return sessions[:limit]
 
     def status(self, session_id: str) -> Dict[str, Any]:
-        value = self._read(self._json_path(session_id, "status.json"))
+        status_path = self._json_path(session_id, "status.json")
+        if not status_path.exists():
+            raise ValueError(f"Unknown import session: {session_id}")
+        with self._lock(session_id):
+            value = self._read(status_path)
         if not value:
             raise ValueError(f"Unknown import session: {session_id}")
         return value
 
+    def get_understanding(self, session_id: str) -> Dict[str, Any]:
+        session = self._dir(session_id)
+        understanding_path = session / "understanding.json"
+        if not understanding_path.exists():
+            raise ValueError("Understanding is not available. Run Read / OCR first.")
+        with self._lock(session_id):
+            value = self._read(understanding_path)
+            if not value:
+                raise ValueError("Understanding is not available. Run Read / OCR first.")
+            corrections = self._read(session / "ocr_corrections.json")
+            for item in value.get("results", []):
+                relative_path = item.get("relative_path")
+                if relative_path in corrections.get("results", {}):
+                    item["corrected_text"] = corrections["results"][relative_path]
+                    item["ocr_corrected"] = True
+            return value
+
     def inventory(self, session_id: str, limit: int = 500, offset: int = 0) -> Dict[str, Any]:
-        value = self._read(self._json_path(session_id, "inventory.json"))
+        inventory_path = self._json_path(session_id, "inventory.json")
+        if not inventory_path.exists():
+            raise ValueError("Inventory is not available. Run scan first.")
+        with self._lock(session_id):
+            value = self._read(inventory_path)
         if not value:
             raise ValueError("Inventory is not available. Run scan first.")
         items = value.get("inventory", [])

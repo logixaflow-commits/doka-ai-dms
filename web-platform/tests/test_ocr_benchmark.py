@@ -19,14 +19,14 @@ def test_ocr_scores_normalize_unicode_and_whitespace():
     assert result["character_errors"] == 0
 
 
-def test_ocr_benchmark_rejects_path_escape_and_symlinks(tmp_path):
+def test_ocr_benchmark_rejects_path_escape_and_symlinks(tmp_path, make_symlink):
     root = tmp_path / "samples"
     root.mkdir()
     outside = tmp_path / "outside.txt"
     outside.write_text("secret", encoding="utf-8")
     with pytest.raises(ValueError):
         resolve_sample_path(root, "../outside.txt")
-    (root / "linked.txt").symlink_to(outside)
+    make_symlink(root / "linked.txt", outside)
     with pytest.raises(ValueError):
         resolve_sample_path(root, "linked.txt")
 

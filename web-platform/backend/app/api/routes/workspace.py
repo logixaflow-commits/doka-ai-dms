@@ -123,17 +123,7 @@ class OCRCorrectionRequest(BaseModel):
 @router.get("/imports/{session_id}/understanding")
 async def get_understanding(session_id: str):
     try:
-        session = safe_workspace_service._dir(session_id)
-        value = safe_workspace_service._read(session / "understanding.json")
-        if not value:
-            raise ValueError("Understanding is not available. Run Read / OCR first.")
-        corrections = safe_workspace_service._read(session / "ocr_corrections.json")
-        for item in value.get("results", []):
-            rel = item.get("relative_path")
-            if rel in corrections.get("results", {}):
-                item["corrected_text"] = corrections["results"][rel]
-                item["ocr_corrected"] = True
-        return value
+        return safe_workspace_service.get_understanding(session_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 
 import pytest
@@ -64,6 +65,70 @@ def test_safe_import_scan_search_and_resume(tmp_path, monkeypatch):
     assert listed[0]["state"] == "scanned"
 
 
+@pytest.mark.parametrize(
+    "reader", ["status", "list_sessions", "search", "inventory", "understanding"]
+)
+def test_session_state_readers_wait_for_mutations(tmp_path, monkeypatch, reader):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    service.run_import(session["session_id"])
+    service.scan(session["session_id"])
+    service._write(
+        service._json_path(session["session_id"], "understanding.json"),
+        {"results": []},
+    )
+    lock = service._lock(session["session_id"])
+    read_started = threading.Event()
+    read_finished = threading.Event()
+    errors = []
+    original_read = service._read
+
+    def tracked_read(path):
+        read_started.set()
+        return original_read(path)
+
+    def read_status():
+        try:
+            if reader == "status":
+                service.status(session["session_id"])
+            elif reader == "list_sessions":
+                service.list_sessions()
+            elif reader == "search":
+                service.search(session["session_id"], "")
+            elif reader == "inventory":
+                service.inventory(session["session_id"])
+            else:
+                service.get_understanding(session["session_id"])
+        except Exception as exc:
+            errors.append(exc)
+        finally:
+            read_finished.set()
+
+    monkeypatch.setattr(service, "_read", tracked_read)
+    lock.acquire()
+    try:
+        thread = threading.Thread(target=read_status)
+        thread.start()
+        assert not read_started.wait(timeout=1)
+    finally:
+        lock.release()
+
+    assert read_started.wait(timeout=1)
+    assert read_finished.wait(timeout=1)
+    thread.join(timeout=1)
+    assert not thread.is_alive()
+    assert not errors
+
+
 def test_search_total_counts_matches_beyond_limit(tmp_path, monkeypatch):
     workspace = tmp_path / "workspace"
     source = tmp_path / "source"
@@ -124,7 +189,7 @@ def test_source_write_flag_is_rejected_even_if_read_only_flag_is_disabled(tmp_pa
 
 
 
-def test_import_rejects_symlinked_source_copy_root(tmp_path, monkeypatch):
+def test_import_rejects_symlinked_source_copy_root(tmp_path, monkeypatch, make_symlink):
     workspace = tmp_path / "workspace"
     source = tmp_path / "source"
     outside = tmp_path / "outside"
@@ -139,14 +204,16 @@ def test_import_rejects_symlinked_source_copy_root(tmp_path, monkeypatch):
     service = SafeWorkspaceService()
     session = service.create_import()
     copy_root = workspace / "imports" / session["session_id"] / "source_copy"
-    copy_root.symlink_to(outside, target_is_directory=True)
+    make_symlink(copy_root, outside, target_is_directory=True)
 
     with pytest.raises(ValueError, match="working-copy directory cannot be a symlink"):
         service.run_import(session["session_id"])
     assert not list(outside.iterdir())
 
 
-def test_import_does_not_follow_symlinked_destination_parent(tmp_path, monkeypatch):
+def test_import_does_not_follow_symlinked_destination_parent(
+    tmp_path, monkeypatch, make_symlink
+):
     workspace = tmp_path / "workspace"
     source = tmp_path / "source"
     outside = tmp_path / "outside"
@@ -164,7 +231,7 @@ def test_import_does_not_follow_symlinked_destination_parent(tmp_path, monkeypat
     session = service.create_import()
     copy_root = workspace / "imports" / session["session_id"] / "source_copy"
     copy_root.mkdir()
-    (copy_root / "nested").symlink_to(outside, target_is_directory=True)
+    make_symlink(copy_root / "nested", outside, target_is_directory=True)
 
     result = service.run_import(session["session_id"])
     assert result["files_failed"] == 1
