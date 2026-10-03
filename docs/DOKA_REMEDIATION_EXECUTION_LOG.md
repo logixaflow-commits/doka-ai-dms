@@ -33,3 +33,9 @@ Date: 2026-10-03
 - Updated legacy Celery database backup task and added parser tests in `web-platform/tests/test_backup_utils.py`.
 - This hardens the legacy database backup path; Personal Local workspace archives still use `WorkspaceBackupService`.
 - Tests have not been executed.
+## Workspace backup destination isolation
+
+- Review found that the workspace backup service resolved and created `BACKUP_ROOT` without rejecting overlap with the source or active workspace, and without rejecting a symlink at the configured backup root.
+- Updated `_backup_root()` to reject symlink roots and any ancestor/descendant overlap with `SOURCE_ROOT` or `WORKING_ROOT` before creating the directory.
+- Added regression coverage for nested paths, ancestor paths, safe external paths, and symlink roots in `web-platform/tests/test_workspace_backup_safety.py`.
+- Tests have not been executed; CI remains skipped while hosted runners are unavailable. No runtime or office-pilot verification is claimed.
