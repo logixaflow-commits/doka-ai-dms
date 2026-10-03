@@ -233,6 +233,7 @@ class DocumentVersioningService:
     def delete_version(self, document_id: int, version_id: str) -> Dict[str, Any]:
         """Delete a version while serializing metadata and file updates."""
         version_dir = self.versions_storage_path / str(document_id)
+        version_dir.mkdir(parents=True, exist_ok=True)
         lock = FileLock(str(version_dir / ".versions.lock"), timeout=30)
         try:
             with lock:
@@ -241,11 +242,18 @@ class DocumentVersioningService:
                 if target is None:
                     return {"success": False, "error": "Version not found"}
 
-                Path(target.file_path).unlink(missing_ok=True)
                 remaining = [item for item in versions if item.id != version_id]
                 for index, item in enumerate(remaining, 1):
                     item.version_number = index
+                # Persist the new history before deleting the now-unreferenced file.
                 self._save_all_versions_metadata(document_id, remaining)
+                try:
+                    Path(target.file_path).unlink(missing_ok=True)
+                except OSError as cleanup_error:
+                    logger.warning(
+                        f"Version metadata was updated but old file cleanup failed for "
+                        f"document {document_id}, version {version_id}: {cleanup_error}"
+                    )
 
             logger.info(f"Deleted version {version_id} for document {document_id}")
             return {"success": True, "message": "Version deleted successfully"}
