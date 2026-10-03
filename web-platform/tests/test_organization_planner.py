@@ -183,4 +183,4 @@ def test_apply_rejects_plan_after_inventory_or_ocr_changes(tmp_path, monkeypatch
     import pytest
     with pytest.raises(ValueError, match="plan is stale"):
         planner.apply(created["session_id"], approved)
-    assert not list((workspace / "Final").rglob("*")) if (workspace / "Final").exists() else True
+    assert not (workspace / "Final").exists()
