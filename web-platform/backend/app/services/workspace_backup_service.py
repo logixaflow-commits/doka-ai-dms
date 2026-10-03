@@ -126,8 +126,15 @@ class WorkspaceBackupService:
         if not verification["verified"]:
             raise ValueError("Backup integrity verification failed; restore was stopped.")
 
-        recovery_root = settings.WORKING_ROOT.resolve() / "Recovery"
+        workspace_root = settings.WORKING_ROOT.resolve()
+        recovery_root = workspace_root / "Recovery"
+        if recovery_root.is_symlink():
+            raise ValueError("Recovery directory cannot be a symlink.")
         recovery_root.mkdir(parents=True, exist_ok=True)
+        try:
+            recovery_root.resolve().relative_to(workspace_root)
+        except ValueError as exc:
+            raise ValueError("Recovery directory is outside WORKING_ROOT.") from exc
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         target = recovery_root / f"restore_{stamp}"
         target.mkdir(parents=True, exist_ok=False)
