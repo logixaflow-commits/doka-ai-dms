@@ -531,3 +531,12 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - CORS now requires a non-empty explicit HTTP/HTTPS origin allowlist and rejects wildcard, malformed and non-origin entries; focused regression tests were added.
 - Tests have been added but not executed in this work batch. Repository commits confirm writes only; do not mark the security gate verified until tests run.
 - Commits: `da3c6b7`, `eaaf943`, `733ec45`, `8792fc2`, `df0b580`, `22a9522`, `be8b776`, `c892f85`, `17d1e95`, `9c2f5b6`, `cddbfc2`.
+
+
+### 2026-10-03 — Workflow state, session serialization and local OCR test profile
+
+- Frontend `WorkspaceReview` clears stale search/OCR results, drafts, organization proposals and approvals before rerunning scan/OCR/plan steps; starting a new import also clears previous session search results. Frontend smoke assertions cover these reset conditions.
+- Organization planning, document understanding and OCR correction writes now share the per-import-session lock with scan/apply/undo so those mutations cannot race within the local backend process.
+- Added `numpy` and `opencv-python-headless` to `requirements-local.txt`; the active OCR module imports both, and the backend regression workflow installs this profile.
+- These changes are committed but the backend pytest suite, frontend smoke test and production build have not been executed in this work batch.
+- Commits: `f8a68c0`, `6f28546`, `8e72dce`, `2bafff6`, `d0d1658`, `746fa3f`, `d7b4830`.
