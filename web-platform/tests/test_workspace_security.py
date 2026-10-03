@@ -24,7 +24,7 @@ def test_workspace_file_preview_rejects_path_escape_and_tampering(tmp_path: Path
     workspace = tmp_path / "workspace"
     imports = workspace / "imports"
     session_id = "a" * 32
-    working_copy = imports / session_id / "working_copy"
+    working_copy = imports / session_id / "source_copy"
     working_copy.mkdir(parents=True)
     (working_copy / "safe.txt").write_text("safe", encoding="utf-8")
     outside = workspace / "outside.txt"
@@ -33,6 +33,8 @@ def test_workspace_file_preview_rejects_path_escape_and_tampering(tmp_path: Path
 
     digest = hashlib.sha256(b"safe").hexdigest()
     manifest = {
+        "session_id": session_id,
+        "source_root": str(tmp_path / "source"),
         "working_copy": str(working_copy),
         "files": {
             "safe.txt": {
@@ -42,6 +44,7 @@ def test_workspace_file_preview_rejects_path_escape_and_tampering(tmp_path: Path
             }
         },
     }
+    (tmp_path / "source").mkdir()
     (imports / session_id / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
     path, entry = _safe_file(session_id, "safe.txt")
@@ -100,3 +103,29 @@ def test_source_write_is_rejected_even_without_source_root(monkeypatch):
     with pytest.raises(ValueError, match="ALLOW_SOURCE_WRITE"):
         settings._validate()
     monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+
+
+def test_workspace_file_rejects_tampered_manifest_working_copy(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    session_id = "b" * 32
+    session = workspace / "imports" / session_id
+    session.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.txt"
+    secret.write_text("private", encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    manifest = {
+        "session_id": session_id,
+        "source_root": str(tmp_path),
+        "working_copy": str(outside),
+        "files": {"secret.txt": {
+            "relative_path": "secret.txt",
+            "verified": True,
+            "sha256": hashlib.sha256(b"private").hexdigest(),
+        }},
+    }
+    (session / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(Exception, match="manifest paths are invalid"):
+        _safe_file(session_id, "secret.txt")
