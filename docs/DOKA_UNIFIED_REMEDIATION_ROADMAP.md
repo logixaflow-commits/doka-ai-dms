@@ -370,3 +370,13 @@ Not complete / external verification still required:
 Evidence boundary:
 - New tests were added but **not executed**. No passing-test claim is made.
 - No workflow was manually dispatched or rerun; Vercel production remains paused/off and no source data was accessed.
+
+### 2026-10-03 — Mobile prototype audit and bounded fixes
+
+- **MOB-005:** added purpose-specific iOS camera/photo-library permission descriptions and Android camera/image permission declarations in mobile/app.json; generated native manifests and actual device prompts still need iOS/Android builds and real-device verification.
+- Fixed the missing useEffect import and unsafe startup session flicker in the mobile AuthContext; added best-effort remote logout before local SecureStore cleanup.
+- Corrected Expo picker result normalization and React Native multipart file descriptors; added MIME inference for legacy single-asset picker results and aligned upload result shape with the screen. Axios client is memoized and the API base is configurable through EXPO_PUBLIC_API_BASE_URL.
+- Added pure Node tests for picker normalization and app permission declarations. An isolated Node 22.16 harness for the nine assertions passed; this does not verify Expo bundling, native builds or device upload behavior.
+- **MOB-004:** not implemented as resumable upload. The server has no multipart upload session/part/commit API or background task contract; a client retry alone would restart from byte zero. Keep blocked until the selected edition's authenticated upload API is designed and tested.
+- **MOB-002:** image caching is not introduced because the current mobile UI has no private document image preview. Define signed-URL expiry, authorization, cache encryption/eviction and logout purge before adding any private-image cache.
+- The app remains a legacy Expo SDK 50 / React Native 0.73 prototype with no lockfile and an API contract that does not match either active Personal Local or Cloud API entry point. Do not claim mobile Phase 3 release readiness; coordinate SDK upgrade, API adapter, E2E and store review first.
