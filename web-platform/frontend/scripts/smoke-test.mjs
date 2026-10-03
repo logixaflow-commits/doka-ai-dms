@@ -130,3 +130,14 @@ for (const [value, expected] of [['/', true], ['/Finance/Invoices', true], ['/so
   if (folderPattern.test(value) !== expected) throw new Error(`Folder path schema mismatch for ${value}.`);
 }
 console.log('Doka folder path schema validation passed.');
+
+
+const localAuth = fs.readFileSync(path.resolve('src/lib/localAuth.ts'), 'utf8');
+const adminLayout = fs.readFileSync(path.resolve('src/layouts/AdminLayout.tsx'), 'utf8');
+if (!localAuth.includes("VITE_DOKA_EDITION === 'personal-local'")) {
+  throw new Error('Packaged Personal Local Edition must have an explicit production build flag.');
+}
+if (!adminLayout.includes("isLocalAuthEnabled()")) {
+  throw new Error('Admin navigation must use the shared local-edition detection rule.');
+}
+console.log('Personal Local production build boundary smoke test passed.');
