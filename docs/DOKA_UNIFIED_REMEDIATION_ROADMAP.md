@@ -302,6 +302,7 @@ Implemented in the repository:
 - **Organization/OCR concurrency:** planning, document understanding and OCR correction writes now use the same per-session lock as scan, apply and undo, preventing those session mutations from racing each other in the local process.
 - Local bootstrap-password verification now uses constant-time comparison.
 - **OCR test/runtime dependencies:** added `numpy` and `opencv-python-headless` to `web-platform/backend/requirements-local.txt`, because the active OCR module imports both at module load and the backend test workflow installs this local profile.
+- **OCR result schema:** document understanding now records `extraction_method="ocr"` separately from detected `language` (`mya`, `eng`, `mya+eng`); a focused regression test was added. This aligns pilot reporting with the actual output schema.
 
 Evidence status:
 - GitHub accepted the file commits; this confirms repository writes only.
