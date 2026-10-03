@@ -1,10 +1,11 @@
 import pytest
+from fastapi import HTTPException
 from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
 from app.api.routes.local_auth import LocalLogin, login
-from app.core.supabase_auth import _supabase_configured
+from app.core.supabase_auth import _supabase_configured, require_local_workspace_user
 
 
 def _request(host: str = "127.0.0.1") -> Request:
@@ -67,3 +68,12 @@ def test_real_supabase_configuration_is_detected(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://example-project.supabase.co")
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_example")
     assert _supabase_configured() is True
+
+
+
+@pytest.mark.asyncio
+async def test_filesystem_workspace_api_is_disabled_in_production(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    with pytest.raises(HTTPException) as error:
+        await require_local_workspace_user(None)
+    assert error.value.status_code == 404
