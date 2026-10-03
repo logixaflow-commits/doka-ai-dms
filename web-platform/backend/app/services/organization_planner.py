@@ -166,6 +166,11 @@ class OrganizationPlanner:
 
 
     def apply(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
+        # Serialize apply with import/scan and undo operations for this session.
+        with safe_workspace_service._lock(session_id):
+            return self._apply_locked(session_id, approved_paths)
+
+    def _apply_locked(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
         if not approved_paths:
             raise ValueError("No approved files were supplied.")
         if len(approved_paths) > 500:
@@ -271,6 +276,11 @@ class OrganizationPlanner:
 
 
     def undo(self, session_id: str) -> Dict[str, Any]:
+        # Do not race undo against a concurrent Apply for the same import session.
+        with safe_workspace_service._lock(session_id):
+            return self._undo_locked(session_id)
+
+    def _undo_locked(self, session_id: str) -> Dict[str, Any]:
         audit_path = safe_workspace_service._dir(session_id) / "organization_audit.jsonl"
         if not audit_path.exists():
             raise ValueError("No organization audit journal exists.")
