@@ -77,3 +77,12 @@ Date: 2026-10-03
 - The frontend declares Node.js `24.x` in `package.json`, while both root launchers previously accepted any installed Node version and then failed later during install/build.
 - Added an early Node major-version check to `start_application.bat` and `run.sh`; they now stop with a clear message unless Node 24.x is installed.
 - These are static launcher edits only; Windows and POSIX startup have not been executed in this environment.
+
+## Phase 0 — Frontend dependency metadata and local verification guide
+
+- Compared the frontend `package.json` dependency declarations with the root package metadata in `package-lock.json`: lockfile version is 3, and declared dependency names/ranges match exactly (no missing, extra, or mismatched root declarations).
+- This is a manifest/lockfile consistency check only. It is **not** an npm vulnerability audit and does not establish that Dependabot/npm audit findings are cleared.
+- Rewrote `web-platform/backend/LOCAL_TESTING_GUIDE.md` to use the current repository paths, Python 3.12 CI baseline, Node.js 24.x frontend engine, current backend + repository regression command, and frontend lint/build/smoke commands.
+- Added explicit copied-fixture/source-read-only/isolated-restore safety instructions and clarified that real-office pilot evidence must use a separate copy.
+- No tests, lint, build, npm audit or office pilot were executed in this documentation/metadata review batch.
+- Dependabot alert inventory remains unavailable through the connected GitHub capabilities; no individual alert has been declared fixed or accepted.
