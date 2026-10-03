@@ -92,7 +92,7 @@ They are **preserved, not part of the current runtime**.
 Do not re-enable deferred modules in the Personal Local runtime unless they are intentionally brought back in a later phase.
 
 ## Development checks
-The GitHub Actions workflow `Local Core Checks` validates the current Personal Local boundary.
+`Doka Quality Checks` is the consolidated automatic CI workflow for relevant source changes. `Local Core Checks` is retained for deliberate manual runs only; the Vercel production smoke check is also manual-only while production is paused.
 
 The project does not require a feature branch for this local-first workflow; changes are intentionally kept on the default branch as requested.
 
