@@ -1,10 +1,13 @@
+from pathlib import Path
+
 from app.core.backup_utils import postgres_dump_invocation
 
 
 def test_postgres_dump_parses_encoded_credentials_and_ipv6_without_shell():
+    backup_path = Path("/safe/backups/doka.sql")
     command, environment = postgres_dump_invocation(
         "postgresql+psycopg2://backup%40user:p%40ss%3Aword@[2001:db8::1]:5544/doka%20archive",
-        "/safe/backups/doka.sql",
+        str(backup_path),
     )
 
     assert command == [
@@ -12,7 +15,7 @@ def test_postgres_dump_parses_encoded_credentials_and_ipv6_without_shell():
         "--host", "2001:db8::1",
         "--username", "backup@user",
         "--dbname", "doka archive",
-        "--file", "/safe/backups/doka.sql",
+        "--file", str(backup_path),
         "--port", "5544",
     ]
     assert environment == {"PGPASSWORD": "p@ss:word"}
