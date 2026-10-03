@@ -45,18 +45,18 @@ if not exist "web-platform\frontend\node_modules" (
 
 echo.
 echo Starting backend on http://127.0.0.1:8000 ...
-start "Personal DMS Backend" cmd /k "cd /d "%~dp0web-platform\backend" && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
+start "Personal DMS Backend" /D "%~dp0web-platform\backend" "%~dp0web-platform\backend\.venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 timeout /t 2 /nobreak >nul
 
 echo Starting frontend on http://127.0.0.1:3000 ...
-start "Personal DMS Frontend" cmd /k "cd /d "%~dp0web-platform\frontend" && npm run dev"
+start "Personal DMS Frontend" /D "%~dp0web-platform\frontend" cmd /k "npm run dev"
 
 echo.
 echo Backend:  http://127.0.0.1:8000/health
 echo Frontend: http://127.0.0.1:3000
 echo.
-echo Original source protection: ALLOW_SOURCE_WRITE=false
+echo Original source protection: ORIGINAL_READ_ONLY=true, ALLOW_SOURCE_WRITE=false
 echo AI: OFF by default
 echo.
 endlocal
