@@ -141,3 +141,11 @@ if (!adminLayout.includes("isLocalAuthEnabled()")) {
   throw new Error('Admin navigation must use the shared local-edition detection rule.');
 }
 console.log('Personal Local production build boundary smoke test passed.');
+
+if (!localAuth.includes('export async function signOutLocal()') || !localAuth.includes('/auth/logout')) {
+  throw new Error('Personal Local logout must call the backend before clearing browser credentials.');
+}
+if (!adminLayout.includes('signOutLocal()')) {
+  throw new Error('Personal Local navigation must use the local session logout flow.');
+}
+console.log('Personal Local logout boundary smoke test passed.');
