@@ -346,3 +346,27 @@ Scope and evidence boundary:
 - **BE-009:** the inspected `VersionService` is part of the legacy ORM/cloud route stack and is not loaded by the Personal Local entry point. Its read-modify-write version allocation remains a deferred cloud concurrency issue; do not treat it as a Phase 1 local blocker or claim it fixed.
 - **BE-010:** the active `SafeWorkspaceService` inspected here has per-session lock creation and no separate lock-status/duplicate-return function in the inspected implementation. The originally described duplicate-return cleanup could not be matched to an active code path; retain as needs-source-location clarification rather than making a speculative change.
 - **SEC-001:** secret scanning remains open. No unreviewed third-party workflow action or unvalidated baseline was added; integrate scanning only after selecting a reproducible scanner and establishing the baseline.
+
+### 2026-10-03 — Phase 0–3 implementation follow-up
+
+Implemented in repository source (execution verification pending):
+- **BE-001:** bounded streaming and cleanup were added to the retained legacy upload route. It is not mounted by the current Personal Local or Cloud API entry points, so active cloud multipart/resumable upload remains open.
+- **BE-009 / BE-011:** the legacy file-based version service now serializes create/delete per document, writes metadata atomically, and raises a diagnostic on unreadable history instead of returning an empty list. Added concurrency and corrupt-metadata tests; this service remains separate from the Personal Local workspace service.
+- **BE-010:** removed the unreachable duplicate return in the legacy document lock-status route.
+- **SEC-002:** cloud API CORS now rejects wildcard/malformed credentialed origins and allows authenticated DELETE; focused tests added.
+- **SEC-005 / AI-001:** external embedding calls require AI enabled plus explicit external-processing consent; OCR/document analysis is wrapped as JSON untrusted data under trusted task instructions. Configurable AI input length cap added with regression tests.
+- **FE-001 / FE-004:** ThemeContext now handles unavailable browser storage safely, memoizes context values, and subscribes/unsubscribes to system theme changes; frontend smoke assertions added.
+- **SEC-006 / SEC-007:** consolidated quality workflow now includes CodeQL, report-only Semgrep baseline artifact, and SPDX SBOM artifact.
+- **SEC-011:** source-level Supabase RLS/grant/storage review documented in docs/DOKA_SUPABASE_SECURITY_REVIEW.md.
+
+Not complete / external verification still required:
+- CodeQL/Semgrep/SBOM workflow has not produced an observed run result. Semgrep remains report-only pending baseline triage; branch protection/ruleset enforcement is not verified.
+- OWASP ZAP DAST requires an approved staging URL, safe test credentials and explicit target scope; do not scan the paused production site.
+- Live Supabase RLS/grant state and two-user isolation need an authorized live-project audit. The current Worker audit write is best-effort, not transactionally guaranteed.
+- Dependabot alerts still need an itemized inventory and per-advisory dispositions. Manifest/lock consistency is not a vulnerability audit.
+- Phase 1/2 local browser workflow, OCR acceptance, source hash invariance, restore drill and copied-office pilot remain pending.
+- Phase 2/3 cloud E2E, AI budget enforcement, Vault/KMS, production worker/Redis/CDN/WAF and other provisioned infrastructure cannot be marked complete from repository edits alone.
+
+Evidence boundary:
+- New tests were added but **not executed**. No passing-test claim is made.
+- No workflow was manually dispatched or rerun; Vercel production remains paused/off and no source data was accessed.
