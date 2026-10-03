@@ -8,6 +8,7 @@ from app.core.local_security import (
     create_local_access_token,
     create_local_refresh_token,
     decode_local_token,
+    consume_local_refresh_token,
     login_is_locked,
     record_login_failure,
 )
@@ -64,7 +65,7 @@ async def login(credentials: LocalLogin, request: Request):
 async def refresh(body: LocalRefresh):
     if settings.ENVIRONMENT.lower() == "production":
         raise HTTPException(status_code=404, detail="Local password authentication is disabled in production.")
-    payload = decode_local_token(body.refresh_token, expected_type="refresh")
+    payload = consume_local_refresh_token(body.refresh_token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token.")
     username = str(payload["sub"])
