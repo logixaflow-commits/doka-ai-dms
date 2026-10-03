@@ -84,3 +84,16 @@ async def require_authenticated_user(
             detail="Supabase session did not contain a user id.",
         )
     return user_id
+
+
+
+async def require_local_workspace_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> str:
+    """Keep filesystem-backed Safe Workspace APIs out of production deployments."""
+    if settings.ENVIRONMENT.lower() == "production":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Safe Workspace is available only in the Personal Local Edition.",
+        )
+    return await require_authenticated_user(credentials)
