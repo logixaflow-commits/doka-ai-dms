@@ -522,9 +522,12 @@ All Doka work is committed directly to main as requested. No feature branch is r
 
 
 
-### 2026-10-03 — Local refresh-token replay protection
+### 2026-10-03 — Durable local session revocation and refresh replay protection
 
-- Local refresh JWTs now include a unique token ID. Refresh consumes each token once under a process-level lock, issues a replacement token, rejects replayed/legacy refresh tokens without a token ID, and prunes expired consumed-token entries on subsequent refreshes.
-- Added a regression test proving one successful rotation and rejection of reuse of the original refresh token.
-- This follows the documented Personal Local Edition in-process authentication model; it is not a cross-process revocation store.
-- Commits: `5afc8ae`, `cd91067`, `d9dce05`.
+- Local access and refresh tokens now carry a shared session-family ID. Refresh rotation preserves that ID; logout revokes the complete session family so already-rotated tokens cannot remain usable.
+- Token revocation and one-time refresh consumption are stored in a dedicated SQLite file at `LOCAL_AUTH_STATE_PATH` (default: `Office_DMS/database/local_auth_state.sqlite3`), outside the source and working roots. SQLite transactions serialize refresh consumption across threads/processes and the state survives backend restarts.
+- Runtime path checks reject a symlinked auth-state file and reject paths inside `SOURCE_ROOT` or `WORKING_ROOT`. If the state store cannot be read, token validation fails closed.
+- Added regression coverage for production/staging denial of login/refresh/me/logout, session-family preservation, logout invalidation after module reload, and refresh replay after module reload.
+- CORS now requires a non-empty explicit HTTP/HTTPS origin allowlist and rejects wildcard, malformed and non-origin entries; focused regression tests were added.
+- Tests have been added but not executed in this work batch. Repository commits confirm writes only; do not mark the security gate verified until tests run.
+- Commits: `da3c6b7`, `eaaf943`, `733ec45`, `8792fc2`, `df0b580`, `22a9522`, `be8b776`, `c892f85`, `17d1e95`, `9c2f5b6`, `cddbfc2`.
