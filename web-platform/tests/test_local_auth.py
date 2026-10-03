@@ -78,3 +78,13 @@ async def test_filesystem_workspace_api_is_disabled_outside_local_environments(m
     with pytest.raises(HTTPException) as error:
         await require_local_workspace_user(None)
     assert error.value.status_code == 404
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("environment", ["production", "prod", "staging"])
+async def test_local_password_login_is_disabled_outside_local_environments(monkeypatch, environment):
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    with pytest.raises(HTTPException) as error:
+        await login(LocalLogin(username="admin", password="irrelevant"), _request())
+    assert error.value.status_code == 404
