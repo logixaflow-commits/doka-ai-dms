@@ -90,7 +90,6 @@ def test_restore_rejects_windows_reserved_device_names(monkeypatch, tmp_path):
     service = WorkspaceBackupService()
     service._backup_root()
     archive = _write_test_archive(
-        service,
         backup_root,
         "workspace_reserved_name.zip",
         [("CON.txt", b"device name")],
