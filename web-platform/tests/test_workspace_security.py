@@ -70,6 +70,8 @@ def test_backup_restore_rejects_zip_slip(tmp_path: Path, monkeypatch):
     archive = backups / "workspace_malicious.zip"
     with zipfile.ZipFile(archive, "w") as zf:
         zf.writestr("../escaped.txt", "must not extract")
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    archive.with_suffix(".json").write_text(json.dumps({"sha256": digest}), encoding="utf-8")
 
     service = WorkspaceBackupService()
     with pytest.raises(ValueError, match="unsafe path"):
