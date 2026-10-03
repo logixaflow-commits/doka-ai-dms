@@ -5,7 +5,7 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
-from app.api.routes.local_auth import LocalLogin, LocalRefresh, login, logout, refresh
+from app.api.routes.local_auth import LocalLogin, LocalRefresh, login, logout, me, refresh
 from app.core.supabase_auth import _supabase_configured, require_local_workspace_user
 
 
@@ -90,6 +90,24 @@ async def test_local_password_login_is_disabled_outside_local_environments(monke
         await login(LocalLogin(username="admin", password="irrelevant"), _request())
     assert error.value.status_code == 404
 
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("environment", ["production", "prod", "staging"])
+async def test_local_refresh_identity_and_logout_are_disabled_outside_local_environments(monkeypatch, environment):
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+
+    with pytest.raises(HTTPException) as refresh_error:
+        await refresh(LocalRefresh(refresh_token="not-a-valid-token"))
+    assert refresh_error.value.status_code == 404
+
+    with pytest.raises(HTTPException) as identity_error:
+        await me(_request())
+    assert identity_error.value.status_code == 404
+
+    with pytest.raises(HTTPException) as logout_error:
+        await logout(_request())
+    assert logout_error.value.status_code == 404
 
 
 @pytest.mark.asyncio
