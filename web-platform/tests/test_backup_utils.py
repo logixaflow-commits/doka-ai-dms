@@ -3,7 +3,7 @@ from app.core.backup_utils import postgres_dump_invocation
 
 def test_postgres_dump_parses_encoded_credentials_and_ipv6_without_shell():
     command, environment = postgres_dump_invocation(
-        "postgresql+psycopg2://backup%40user:p%40ss%3Aword@[2001:db8::1]:5544/doka%2Farchive",
+        "postgresql+psycopg2://backup%40user:p%40ss%3Aword@[2001:db8::1]:5544/doka%20archive",
         "/safe/backups/doka.sql",
     )
 
@@ -11,7 +11,7 @@ def test_postgres_dump_parses_encoded_credentials_and_ipv6_without_shell():
         "pg_dump", "--no-password",
         "--host", "2001:db8::1",
         "--username", "backup@user",
-        "--dbname", "doka/archive",
+        "--dbname", "doka archive",
         "--file", "/safe/backups/doka.sql",
         "--port", "5544",
     ]
