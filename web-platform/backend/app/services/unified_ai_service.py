@@ -213,6 +213,12 @@ class UnifiedAIService:
     async def get_embedding(self, text: str, provider: str = "huggingface") -> List[float]:
         """Embeddings are optional; semantic search must have a local fallback."""
         self._ensure_external_ai_allowed()
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("Text is required for embedding generation.")
+        if len(text) > settings.AI_MAX_INPUT_CHARS:
+            raise ValueError(
+                f"Text exceeds the configured AI input limit ({settings.AI_MAX_INPUT_CHARS} characters)."
+            )
         if provider != "huggingface" or not settings.HUGGINGFACE_API_KEY:
             raise ValueError("Hugging Face embeddings are not configured")
         cfg = {"api_key": settings.HUGGINGFACE_API_KEY, "model": settings.HUGGINGFACE_MODEL}
