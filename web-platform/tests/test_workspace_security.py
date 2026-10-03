@@ -176,4 +176,4 @@ def test_backup_restore_rejects_archives_over_entry_limit(tmp_path, monkeypatch)
     with pytest.raises(ValueError, match="too many entries"):
         service.restore_to_recovery(Path(manifest["archive"]).name)
     recovery_root = workspace / "Recovery"
-    assert not list(recovery_root.glob("restore_*")) if recovery_root.exists() else True
+    assert not recovery_root.exists() or not list(recovery_root.glob("restore_*"))
