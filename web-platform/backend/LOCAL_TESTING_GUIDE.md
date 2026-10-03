@@ -1,253 +1,103 @@
-# Local Testing Guide
+# Doka Personal Local — Local Testing Guide
 
-ဒီ guide သည် Enterprise DMS hardening tests တွေကို local machine မှာ run လုပ်နည်းကို ပြသပေးထားပါတယ်။
+ဤလမ်းညွှန်သည် လက်ရှိ repository structure နှင့် CI တွင် သတ်မှတ်ထားသော test commands များအတွက် ဖြစ်သည်။ စမ်းသပ်မှုအားလုံးကို disposable test data / fixture များဖြင့်သာ လုပ်ဆောင်ပါ။ မူရင်းရုံးဖိုင်များ သို့မဟုတ် မူရင်း source drive ကို test input အဖြစ် မသုံးပါနှင့်။
 
 ## Prerequisites
 
-စမ်းကြည့်ခင်အလိုအပ်ချက်များ:
-- Python 3.8+ (လက်ရှိသုံးနေသည်: Python 3.14.5)
-- pip (Python package manager)
-- Virtual environment (recommended)
+- Python 3.12 (CI baseline)
+- Node.js 24.x and npm (frontend `package.json` engine)
+- Git
+- Windows PowerShell / Command Prompt သို့မဟုတ် Linux/macOS shell
+- OCR integration စမ်းသပ်မည်ဆိုပါက Tesseract OCR နှင့် Poppler utilities ကို OS အလိုက် install လုပ်ထားရန် လိုနိုင်သည်။
 
-## Quick Start (Windows)
+Version စစ်ရန်:
 
-### 1. Simple Test Run (Batch File)
-```cmd
-cd "D:\1 main\Enterprise AI DMS Blueprint\dms"
-run_tests.bat
-```
-
-ဒါဆိုရင်:
-- Virtual environment အလိုရှိရင် create ပေးပါမယ်
-- Test dependencies တွေ install ပေးပါမယ်
-- Security tests နဲ့ health check tests တွေ run ပေးပါမယ်
-
-### 2. Manual Setup (Step by Step)
-
-#### Step 1: Navigate to Project Directory
-```cmd
-cd "D:\1 main\Enterprise AI DMS Blueprint\dms"
-```
-
-#### Step 2: Create Virtual Environment
-```cmd
-python -m venv venv
-```
-
-#### Step 3: Activate Virtual Environment
-```cmd
-venv\Scripts\activate.bat
-```
-
-#### Step 4: Install Dependencies
-```cmd
-pip install -r requirements.txt
-pip install pytest pytest-cov pytest-mock
-```
-
-#### Step 5: Run Tests
-
-**All available tests:**
-```cmd
-pytest tests/ -v
-```
-
-**Specific test files:**
-```cmd
-pytest tests/test_security.py -v
-pytest tests/test_health_check.py -v
-```
-
-**Specific test classes:**
-```cmd
-pytest tests/test_security.py::TestPasswordHashing -v
-pytest tests/test_health_check.py::TestHealthCheckImplementation -v
-```
-
-**With coverage report:**
-```cmd
-pytest tests/ --cov=app --cov-report=html --cov-report=term
-```
-
-## Test Files Available
-
-### 1. `tests/test_security.py`
-- Password hashing tests
-- JWT token tests
-- Encryption tests
-- Run: `pytest tests/test_security.py -v`
-
-### 2. `tests/test_health_check.py`
-- Health check endpoint implementation tests
-- Hardening file existence tests
-- Run: `pytest tests/test_health_check.py -v`
-
-### 3. `tests/test_classifier.py`
-- Document classification tests
-- Duplicate detection tests
-- Run: `pytest tests/test_classifier.py -v`
-
-### 4. `tests/test_hardening.py`
-- Config validation tests
-- Rate limiting tests
-- Encryption key rotation tests
-- OCR fallback tests
-- Vector search caching tests
-- Rule engine performance tests
-- External API retry tests
-- Run: `pytest tests/test_hardening.py -v`
-
-## Test Results Interpretation
-
-### ✅ PASSED
-Test အောင်မြင်ပါတယ်။ Feature က မှန်ကန်စွာ အလုပ်ပေးနေပါတယ်။
-
-### ❌ FAILED
-Test မအောင်မြင်ပါ။ Issue ရှိနေပါတယ်။ Error message ကို check ပြီး fix လုပ်ပါ။
-
-### ⚠️ SKIPPED
-Test ကို skip လုပ်ထားပါတယ် (သက်ဆိုင်ရာ dependency မရှိလို့ ဖြစ်နိုင်ပါတယ်)။
-
-## Common Issues & Solutions
-
-### Issue 1: "ModuleNotFoundError"
-**Solution:**
-```cmd
-pip install -r requirements.txt
-```
-
-### Issue 2: "Config validation failed" during tests
-**Solution:** 
-ဒါက normal ပါ။ Tests တွေက conftest.py မှာ environment variable ကို set လုပ်ထားပြီးဖြစ်ပါတယ်။
-
-```python
-# tests/conftest.py
-os.environ['SKIP_CONFIG_VALIDATION'] = 'true'
-```
-
-### Issue 3: Import errors
-**Solution:**
-```cmd
-cd dms
-pytest tests/ -v
-```
-
-Project root မှာ ရှိနေစေပါ။
-
-### Issue 4: Virtual environment not activating
-**Solution:**
-```cmd
-# Windows
-venv\Scripts\activate.bat
-
-# If that doesn't work, try full path
-cd "D:\1 main\Enterprise AI DMS Blueprint\dms"
-.\venv\Scripts\activate.bat
-```
-
-## Advanced Testing Options
-
-### Run specific tests with markers
-```cmd
-# Run only unit tests
-pytest -m unit -v
-
-# Run only security tests  
-pytest -m security -v
-
-# Run only database tests
-pytest -m database -v
-```
-
-### Run tests in parallel (faster)
-```cmd
-# First install pytest-xdist
-pip install pytest-xdist
-
-# Run with 4 workers
-pytest tests/ -n 4 -v
-```
-
-### Generate detailed coverage report
-```cmd
-pytest tests/ --cov=app --cov-report=html --cov-report=term-missing
-```
-
-Coverage report ကို `htmlcov/index.html` မှာ ကြည့်နိုင်ပါတယ်။
-
-### Debug failed tests
-```cmd
-# Stop on first failure
-pytest tests/ -x -v
-
-# Drop to PDB on failure
-pytest tests/ --pdb -v
-```
-
-## Continuous Testing (Watch Mode)
-
-```cmd
-# First install pytest-watch
-pip install pytest-watch
-
-# Run tests in watch mode
-ptw tests/ --poll
-```
-
-Files ပြောင်းလိုက်တိုင်း tests တွေကို auto re-run လုပ်ပေးပါမယ်။
-
-## Test Configuration
-
-ပြင်ဆင်ချင်ရင် `pytest.ini` ကို ပြင်ဆင်နိုင်ပါတယ်:
-
-```ini
-[pytest]
-python_files = test_*.py
-python_classes = Test*
-python_functions = test_*
-testpaths = tests
-addopts = -v --tb=short --strict-markers
-```
-
-## Expected Test Results
-
-လက်ရှိအဆင့်မှာ:
-- `test_security.py`: 6/7 tests pass (1 pre-existing failure)
-- `test_health_check.py`: 15/15 tests pass
-- `test_classifier.py`: Run to check
-- `test_hardening.py`: Requires additional dependencies
-
-## Troubleshooting
-
-### Python version issues
-```cmd
+```sh
 python --version
-# Should be 3.8+
+node --version
+npm --version
 ```
 
-### Permission issues
-**Solution:** Run as Administrator ဖြစ်စေပါ။
+## Repository paths
 
-### Port conflicts
-Tests တော်တော်မှာ ports လိုအပ်ချင်ပါတယ်။ Conflicts ရှိရင်:
-- Other applications တွေကို close ပေးပါ
-- Different ports သုံးပါ
+- `web-platform/backend/` — FastAPI backend and backend-local tests
+- `web-platform/tests/` — cross-cutting Personal Local regression tests
+- `web-platform/frontend/` — React + Vite frontend
+- `scripts/doka_pilot_check.py` — copied-data pilot gate (real office pilot အတွက်သာ)
 
-## Getting Help
+## Backend setup and tests
 
-ပြဿနာရှိရင်:
-1. Error message ကို စစ်ဆေးပါ
-2. Python version နဲ့ dependencies တွေကို စစ်ဆေးပါ
-3. Virtual environment ကို ပြန် create လုပ်ကြည့်ပါ
+Repository root မှ run ပါ:
 
-## Next Steps
+### Windows PowerShell
 
-Tests အောင်မြင်ပြီးရင်:
-1. Application ကို start လုပ်ပါ
-2. Manual testing လုပ်ပါ
-3. Integration tests တွေ run ပါ
-4. Production ကို deploy လုပ်ပါ
+```powershell
+py -3.12 -m venv web-platform/backend/.venv
+web-platform/backend/.venv/Scripts/python.exe -m pip install --upgrade pip
+web-platform/backend/.venv/Scripts/python.exe -m pip install -r web-platform/backend/requirements-local.txt
+Set-Location web-platform/backend
+.venv/Scripts/python.exe -m pytest . ../tests
+Set-Location ../..
+```
 
----
+### Linux / macOS
 
-**Note:** ဒီ guide ကို Windows အတွက် ရေးဆွဲထားပါတယ်။ Linux/Mac သုံးရင် commands တွေကို appropriate shell commands တွေနဲ့ အစားသောက်ပေးပါ။
+```sh
+python3.12 -m venv web-platform/backend/.venv
+web-platform/backend/.venv/bin/python -m pip install --upgrade pip
+web-platform/backend/.venv/bin/python -m pip install -r web-platform/backend/requirements-local.txt
+cd web-platform/backend
+.venv/bin/python -m pytest . ../tests
+cd ../..
+```
+
+Focused test file ကို စမ်းလိုပါက backend directory ထဲမှ ဥပမာ:
+
+```sh
+.venv/bin/python -m pytest ../tests/test_personal_local_entrypoint.py -q
+```
+
+Windows တွင် `.venv/Scripts/python.exe` ကို အသုံးပြုပါ။
+
+## Frontend checks
+
+```sh
+cd web-platform/frontend
+npm ci
+npm run lint
+npm run build
+npm test
+cd ../..
+```
+
+- `npm run lint` — ESLint quality check
+- `npm run build` — TypeScript project build နှင့် Vite production bundle
+- `npm test` — repository ရှိ frontend smoke/regression assertions
+
+Lint baseline မရှင်းသေးပါက errors/warnings အားလုံးကို မှတ်တမ်းတင်ပြီး တစ်သုတ်ချင်း ပြင်ပါ။ Lint ကို ဖြတ်ကျော်ရန် rules များကို ပိတ်ခြင်း သို့မဟုတ် findings များကို ဖျောက်ခြင်း မလုပ်ပါနှင့်။
+
+## Local application workflow
+
+Repository root မှ:
+
+- Windows: `start_application.bat`
+- Linux/macOS: `./run.sh`
+
+Launcher သည် Node.js 24.x ကို လိုအပ်သည်။ ပထမဆုံးစတင်ချိန်တွင် backend virtual environment / dependencies နှင့် frontend dependencies များကို ပြင်ဆင်နိုင်သည်။ Backend ကို `127.0.0.1:8000`၊ frontend ကို `127.0.0.1:3000` တွင် ဖွင့်ရန် ရည်ရွယ်ထားသည်။
+
+Local login မလုပ်မီ `web-platform/backend/.env` ထဲတွင် ကိုယ်ပိုင် `BOOTSTRAP_ADMIN_PASSWORD` သတ်မှတ်ပါ။ မျှဝေသုံးနိုင်သော password သို့မဟုတ် production secret ကို မသုံးပါနှင့်။ Personal Local mode အတွက် Supabase credential များကို မထည့်ပါနှင့်။
+
+## Safety rules for manual verification
+
+1. `ORIGINAL_READ_ONLY=true` နှင့် `ALLOW_SOURCE_WRITE=false` ကို မပြောင်းပါနှင့်။
+2. Import/scan/organize/backup/restore စမ်းသပ်ရာတွင် disposable copied fixtures ကိုသာ သုံးပါ။
+3. `SOURCE_ROOT`, `WORKING_ROOT`, `FINAL_ROOT`, `BACKUP_ROOT` တို့သည် သီးခြားပြီး သတ်မှတ်ထားသည့် isolation rules ကို လိုက်နာကြောင်း စစ်ပါ။
+4. Restore ကို active workspace ထဲသို့ တိုက်ရိုက်မလုပ်ပါနှင့်။ သီးခြား recovery destination ကိုသာ သုံးပါ။
+5. Test ပြီးလျှင် fixture data ကိုသာ ဖယ်ရှားပါ။ မူရင်း data ကို မရွှေ့၊ မဖျက်၊ မပြင်ပါနှင့်။
+6. Vercel production သည် paused/off အဖြစ် ဆက်ထားပါ။ ဤ guide အတွက် deploy မလိုအပ်ပါ။
+
+## Results and evidence
+
+Command တစ်ခုချင်းစီ၏ exit code, test count, failed/skipped count, runtime versions နှင့် error output ကို မှတ်တမ်းတင်ပါ။ Command မ run ရသေးပါက `pending` ဟုသာ မှတ်သားပါ။ Source code ထဲတွင် test ရှိနေခြင်းတစ်ခုတည်းဖြင့် test အောင်မြင်သည်ဟု မယူဆပါနှင့်။
+
+Real-office pilot သည် Phase 2 gate ဖြစ်သည်။ မူရင်းရုံး data မဟုတ်သော သီးခြား copy ကို အသုံးပြုပြီးမှ `python scripts/doka_pilot_check.py --source <COPY_OF_REAL_OFFICE_DATA> --require-ocr` ကို run ပါ။ Test fixtures သို့မဟုတ် repository test များကို real-office pilot အောင်မြင်မှုအဖြစ် မတွက်ပါနှင့်။
