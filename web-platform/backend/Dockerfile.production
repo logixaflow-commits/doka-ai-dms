@@ -1,39 +1,58 @@
-# Production Dockerfile for Enterprise DMS
-FROM python:3.11-slim
+# Multi-stage production image; build tools and pip cache stay out of runtime.
+FROM python:3.12-slim AS builder
 
-# Set working directory
+WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-production.txt ./
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements-production.txt
+
+
+FROM python:3.12-slim AS runtime
+
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     tesseract-ocr \
     tesseract-ocr-mya \
     tesseract-ocr-eng \
-    && rm -rf /var/lib/apt/lists/*
+    poppler-utils \
+    libpq5 \
+    libmagic1 \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Copy requirements first for better caching
-COPY requirements-production.txt .
-RUN pip install --no-cache-dir -r requirements-production.txt
+COPY --from=builder /opt/venv /opt/venv
+COPY app/ ./app/
+COPY config.yaml ./config.yaml
+COPY run.py ./run.py
 
-# Copy application code
-COPY . .
+RUN groupadd --system doka \
+    && useradd --system --gid doka --home-dir /app --shell /usr/sbin/nologin doka \
+    && mkdir -p uploads logs watch_folder processing_workspace organized duplicates \
+    && chown -R doka:doka /app
 
-# Create necessary directories
-RUN mkdir -p uploads logs watch_folder processing_workspace organized duplicates suspicious
+USER doka:doka
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://127.0.0.1:8000/health || exit 1
 
-# Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
