@@ -38,6 +38,8 @@ No item is marked complete merely because a sample snippet or proposed architect
 Work:
 - Reconcile this roadmap with `DOKA_PHASE_A_TO_E_STATUS.md`, `PHASE_A_AUDIT.md`, and current source before each implementation batch.
 - Review the reported npm advisories individually; choose compatible patched versions, update lockfiles intentionally, and avoid blind major upgrades.
+- Reconcile frontend manifest and lockfile metadata before dependency changes; the 2026-10-03 check found matching root dependency declarations, but this is not a vulnerability audit.
+- Keep the local test guide aligned with the current Python 3.12 / Node.js 24.x toolchain and the exact backend, frontend lint/build/smoke commands; distinguish code-level tests from real-office copied-data pilot evidence.
 - Retrieve and classify the full Dependabot alert inventory when repository permissions expose it; the earlier audit could only confirm the user's approximate count, not each alert.
 - Reduce the recorded ESLint baseline in small batches (unused imports/variables first, then unsafe any, effect dependencies/state-in-effect, React Refresh and immutability findings); only make lint blocking after the baseline is genuinely clean.
 - Review root-level launchers/configs before moving anything; preserve consumers and keep active runtime under `web-platform/`.
