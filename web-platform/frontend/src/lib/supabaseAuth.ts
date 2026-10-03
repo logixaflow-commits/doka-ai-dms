@@ -63,7 +63,9 @@ function clearSession() {
 }
 
 export function isSupabaseConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_KEY);
+  if (!SUPABASE_URL || !SUPABASE_KEY) return false;
+  const placeholders = ['your-project-ref', 'your_public_key'];
+  return !placeholders.some(value => SUPABASE_URL.includes(value) || SUPABASE_KEY.includes(value));
 }
 
 export function getSupabaseApiConfig() {
