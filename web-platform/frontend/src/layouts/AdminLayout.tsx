@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { getStoredUser, signOut } from '@/lib/supabaseAuth';
-import { isLocalAuthEnabled } from '@/lib/localAuth';
+import { isLocalAuthEnabled, signOutLocal } from '@/lib/localAuth';
 
 const baseMenuItems = [
   { title: 'Overview', url: '/admin/dashboard', icon: LayoutDashboard },
@@ -29,7 +29,8 @@ export default function AdminLayout() {
   const menuItems = localMode ? [localMenuItem] : import.meta.env.PROD ? baseMenuItems : [...baseMenuItems, localMenuItem];
 
   const handleLogout = async () => {
-    await signOut();
+    if (localMode) await signOutLocal();
+    else await signOut();
     navigate('/login', { replace: true });
   };
 
