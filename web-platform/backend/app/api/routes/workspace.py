@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/workspace", tags=["Safe Workspace"], dependencie
 
 
 class OrganizationApplyRequest(BaseModel):
-    approved_paths: list[str] = Field(default_factory=list, min_length=1)
+    approved_paths: list[str] = Field(default_factory=list, min_length=1, max_length=500)
     confirm: bool = Field(default=False, description="Must be true to copy approved files into Final.")
 
 
