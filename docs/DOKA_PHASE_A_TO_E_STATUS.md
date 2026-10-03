@@ -445,3 +445,16 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Latest observed Actions run `37096666075` for commit `1e18c340928bdc00d00057f2e9280b877e5ccd0b` failed in all three jobs. The connected GitHub response again supplied no step summaries or logs. Several superseded automatic runs were cancelled by the configured concurrency group. No workflow was manually dispatched or rerun.
 - Additional commits: `894cc85`, `d63890d`, `a67d3d9`, `dc64c55`, `8c2f49b`, `7474e39`, `c2ad6ea`, `1e18c34`, `d3e8e83`, `2bee3da`, `e04afbe`, `4b1050a`, `350719e`, `0675fbc`, `a555524`, `320cd74`.
 - These remain source-level changes with regression tests authored but not executed. Do not mark CI, real-machine acceptance, OCR accuracy, or Phase A–E release gates as passed.
+
+
+
+### 2026-10-03 — Backend, OCR, apply and frontend workflow boundary follow-up
+
+- Closed a production API boundary mismatch: the production frontend already presented Safe Workspace as local-only, but its filesystem-backed backend routes still accepted any valid Supabase session. Safe Workspace and working-copy file routes now return 404 in production; local/development authentication continues through the existing authenticated-user dependency.
+- Organization plans now bind to the import session and SHA-256 fingerprints of the inventory and effective understanding inputs. Apply rejects a plan if the scan/OCR inputs changed after the plan was generated, rather than copying files using stale review decisions.
+- Organization planning now consumes saved OCR correction metadata when categorizing files. The frontend clears previous proposals and approvals after a new scan, OCR run, or OCR correction, and requires a fresh review plan before apply.
+- PDF OCR now rejects PDFs above 200 pages, renders scanned PDFs one page at a time instead of holding all page images in memory, and applies configured timeouts to Tesseract and PDF rendering.
+- Recovery restore now validates archive entry count, per-file and total uncompressed size, compression ratio, duplicate paths, encrypted entries and special filesystem entries before extraction. Existing ZIP-slip checks, SHA-256 verification and Recovery-only restore remain in place.
+- Added regression tests for production Safe Workspace isolation, stale organization-plan rejection, OCR-correction categorization, bounded PDF OCR and bounded backup restore entries.
+- Commits: `931f7b9`, `3186058`, `51e213d`, `27ba1bb`, `4ecb731`, `78711bc`, `b905b7f`, `d007c90`, `3b5b8ea`, `23a6487`, `dd514a5`, `dfb5c56`, `4f55048`, `e816474`, `cad90ef`.
+- Verification boundary: these are source changes and regression tests only. No Python tests, frontend build, GitHub Actions workflow or real-office restore/OCR validation has been run in this pass. Do not treat the new tests as passed until an allowed runner executes them.
