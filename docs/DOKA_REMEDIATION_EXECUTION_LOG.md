@@ -72,3 +72,8 @@ Date: 2026-10-03
 - Duplicate detection now uses case-folded normalized archive paths so case-colliding entries cannot overwrite one another on case-insensitive Windows filesystems.
 - Added regression cases for case-colliding paths and reserved device names. Existing ZIP traversal, symlink, entry-count, size and compression-ratio checks remain.
 - Tests have not been executed; this is code-level hardening pending local/CI verification.
+## Local launcher Node engine alignment
+
+- The frontend declares Node.js `24.x` in `package.json`, while both root launchers previously accepted any installed Node version and then failed later during install/build.
+- Added an early Node major-version check to `start_application.bat` and `run.sh`; they now stop with a clear message unless Node 24.x is installed.
+- These are static launcher edits only; Windows and POSIX startup have not been executed in this environment.
