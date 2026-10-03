@@ -15,6 +15,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useApi } from '../context/ApiContext';
+const { normalizePickedFile } = require('../utils/uploadFile.cjs');
 
 const UploadScreen = () => {
   const [uploading, setUploading] = useState(false);
@@ -27,9 +28,8 @@ const UploadScreen = () => {
         type: ['application/pdf', 'image/*'],
       });
 
-      if (!result.canceled) {
-        setSelectedFile(result);
-      }
+      const file = normalizePickedFile(result);
+      if (file) setSelectedFile(file);
     } catch (error) {
       Alert.alert('Error', 'Failed to pick document');
     }
@@ -43,9 +43,8 @@ const UploadScreen = () => {
         quality: 1,
       });
 
-      if (!result.canceled) {
-        setSelectedFile(result);
-      }
+      const file = normalizePickedFile(result, 'image/jpeg');
+      if (file) setSelectedFile(file);
     } catch (error) {
       Alert.alert('Error', 'Failed to pick image');
     }
@@ -96,9 +95,9 @@ const UploadScreen = () => {
         <Card style={styles.card}>
           <Card.Content>
             <Title>Selected File</Title>
-            <Text style={styles.fileName}>{selectedFile.name || selectedFile.uri}</Text>
+            <Text style={styles.fileName}>{selectedFile.name}</Text>
             <Text style={styles.fileSize}>
-              {selectedFile.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : 'Unknown size'}
+              {selectedFile.size !== null ? `${(selectedFile.size / 1024).toFixed(2)} KB` : 'Unknown size'}
             </Text>
             
             {uploading ? (
