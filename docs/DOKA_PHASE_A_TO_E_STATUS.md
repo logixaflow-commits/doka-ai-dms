@@ -472,3 +472,11 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added regression tests for bounded Apply batches, image pixel limits, PDF render size, pilot backup exclusions and bilingual OCR gate evaluation.
 - Commits: `09faf34`, `4c00499`, `f7e9b22`, `979031b`, `ddec9dc`, `30afee5`, `919ebfd`, `6cba161`, `d1e2127`, `3378bd8`, `0e69b70`.
 - Verification boundary: changes and regression tests are committed but have not been executed in this pass. No GitHub Actions workflow was dispatched or rerun. Phase D still requires the documented pilot against a copied, representative real-office dataset on the target machine.
+
+
+
+### 2026-10-03 — Pilot input validity
+
+- The real-office pilot now refuses an empty source copy instead of allowing a zero-file run to satisfy import/scan equality checks.
+- Added a regression test for the empty-source blocked result.
+- Commits: `c83b772`, `84eabfa`.
