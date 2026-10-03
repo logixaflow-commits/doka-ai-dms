@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -10,38 +10,56 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme') as Theme;
-    return saved || 'system';
-  });
+function readSavedTheme(): Theme {
+  if (typeof window === 'undefined') return 'system';
 
+  try {
+    const saved = window.localStorage.getItem('theme');
+    return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(readSavedTheme);
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light');
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-
-    let effective: 'light' | 'dark';
-    if (theme === 'system') {
-      effective = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    } else {
-      effective = theme;
+  const setTheme = useCallback((nextTheme: Theme) => {
+    setThemeState(nextTheme);
+    try {
+      window.localStorage.setItem('theme', nextTheme);
+    } catch {
+      // Theme still changes for this session when storage is unavailable.
     }
+  }, []);
 
-    root.classList.add(effective);
-    const frame = window.requestAnimationFrame(() => setEffectiveTheme(effective));
-    return () => window.cancelAnimationFrame(frame);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const root = window.document.documentElement;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const applyTheme = () => {
+      const effective: 'light' | 'dark' =
+        theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
+      root.classList.remove('light', 'dark');
+      root.classList.add(effective);
+      setEffectiveTheme(effective);
+    };
+
+    applyTheme();
+    if (theme === 'system') media.addEventListener('change', applyTheme);
+
+    return () => {
+      if (theme === 'system') media.removeEventListener('change', applyTheme);
+    };
   }, [theme]);
 
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem('theme', theme);
-      setTheme(theme);
-    },
-    effectiveTheme,
-  };
+  const value = useMemo(
+    () => ({ theme, setTheme, effectiveTheme }),
+    [theme, setTheme, effectiveTheme],
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
