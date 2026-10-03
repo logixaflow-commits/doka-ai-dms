@@ -6,6 +6,7 @@ logout and one-time refresh semantics across backend restarts and processes.
 """
 
 from datetime import datetime, timedelta, timezone
+import os
 import secrets
 import sqlite3
 from pathlib import Path
@@ -38,17 +39,25 @@ def _connect_token_state() -> sqlite3.Connection:
     if any(path == root or path.is_relative_to(root) for root in protected_roots):
         raise OSError("LOCAL_AUTH_STATE_PATH must remain outside SOURCE_ROOT and WORKING_ROOT.")
     connection = sqlite3.connect(str(path), timeout=15)
-    connection.execute("PRAGMA busy_timeout = 15000")
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS local_token_state (
-            token_id TEXT PRIMARY KEY,
-            state TEXT NOT NULL CHECK (state IN ('revoked', 'used_refresh')),
-            expires_at REAL NOT NULL
+    try:
+        # The database is security state: local users must not be able to edit
+        # revocation/refresh records through a world-readable or group-writable file.
+        if os.name == "posix":
+            os.chmod(path, 0o600)
+        connection.execute("PRAGMA busy_timeout = 15000")
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS local_token_state (
+                token_id TEXT PRIMARY KEY,
+                state TEXT NOT NULL CHECK (state IN ('revoked', 'used_refresh')),
+                expires_at REAL NOT NULL
+            )
+            """
         )
-        """
-    )
-    return connection
+        return connection
+    except Exception:
+        connection.close()
+        raise
 
 
 def _login_key(username: str, client_host: str | None) -> str:
