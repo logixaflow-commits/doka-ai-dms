@@ -287,3 +287,26 @@ Required gates:
 - Staging-only DAST/load/chaos tests when a safe staging environment exists.
 
 A skipped/unavailable test is recorded as **not run**, never as passed. A deployment-ready code change is not the same as an approved production deployment.
+
+
+## 8. Execution log and evidence boundary
+
+### 2026-10-03 — Phase 1 security/configuration batch
+
+Implemented in the repository:
+- **SEC-002:** `web-platform/backend/app/main.py` now parses CORS as an explicit HTTP/HTTPS origin allowlist, rejects wildcard origins, credentials embedded in origins, paths, query strings, fragments, invalid ports and empty allowlists, and removes duplicate origins.
+- Added focused CORS regression cases in `web-platform/tests/test_cors_config.py`.
+- **Local auth boundary:** expanded `web-platform/tests/test_local_auth.py` to assert that refresh, identity (`/me`) and logout endpoints are denied in production, `prod` and staging environments, complementing the existing login/workspace denial coverage.
+- **Personal Local build contract:** documented `VITE_DOKA_EDITION=personal-local` for production-built local frontend, the backend `ENVIRONMENT=local|development` requirement, and the Supabase/local-auth separation in `web-platform/frontend/.env.example` and `web-platform/README.md`.
+
+Evidence status:
+- GitHub accepted the file commits; this confirms repository writes only.
+- The new/affected tests have **not been executed** in this work batch. No passing-test claim is made.
+- No GitHub Actions workflow was dispatched or rerun. No Vercel deployment or activation was performed.
+- Local token revocation and refresh replay state is still process-memory only. It does not survive a backend restart and remains an explicit Phase 1 security limitation until a durable local session-state design is implemented and tested.
+- Organization Apply/Undo, OCR limits, pilot schema and frontend session reset were inspected in source; their full test suites and browser/pilot acceptance remain pending execution.
+
+Next Phase 1 work:
+- Resolve the process-restart token-state limitation without introducing a cloud/Redis requirement into Personal Local.
+- Execute focused backend tests and frontend smoke/build checks in a suitable local environment; record exact commands/results.
+- Continue confirmed frontend accessibility/effect-cleanup and organization/undo edge-case audit before declaring Phase 1 accepted.
