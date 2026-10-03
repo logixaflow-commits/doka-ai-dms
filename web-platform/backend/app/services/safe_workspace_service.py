@@ -65,7 +65,12 @@ class SafeWorkspaceService:
         session_root = self._dir(session_id).resolve()
         if manifest.get("session_id") != session_id:
             raise ValueError("Import manifest does not belong to this session.")
-        expected_copy = (session_root / "source_copy").resolve()
+        copy_candidate = session_root / "source_copy"
+        if copy_candidate.is_symlink():
+            raise ValueError("Import working-copy directory cannot be a symlink.")
+        expected_copy = copy_candidate.resolve()
+        if expected_copy.parent != session_root:
+            raise ValueError("Import working-copy directory is outside its session.")
         configured_copy = Path(str(manifest.get("working_copy", ""))).expanduser().resolve()
         if configured_copy != expected_copy:
             raise ValueError("Import manifest working-copy path is invalid.")
@@ -87,6 +92,26 @@ class SafeWorkspaceService:
     def _lock(self, session_id: str) -> threading.Lock:
         with self._guard:
             return self._locks.setdefault(session_id, threading.Lock())
+
+    def _working_copy_destination(self, copy_root: Path, relative_path: str) -> Path:
+        relative = Path(relative_path)
+        if relative.is_absolute() or not relative.parts or any(part in {"", ".", ".."} for part in relative.parts):
+            raise ValueError("Source file has an unsafe relative path.")
+        destination = copy_root / relative
+        if destination.is_symlink():
+            raise ValueError("Working-copy destination cannot be a symlink.")
+        current = destination.parent
+        while current != copy_root:
+            if current.is_symlink():
+                raise ValueError("Working-copy parent directory cannot be a symlink.")
+            if copy_root not in current.parents:
+                raise ValueError("Working-copy destination is outside the import session.")
+            current = current.parent
+        try:
+            destination.resolve().relative_to(copy_root)
+        except ValueError as exc:
+            raise ValueError("Working-copy destination is outside the import session.") from exc
+        return destination
 
     def validate_source(self, source: Path) -> Path:
         source = source.expanduser().resolve()
@@ -144,6 +169,8 @@ class SafeWorkspaceService:
             status = self._read(status_path)
             manifest = self._read(manifest_path)
             source, copy_root = self.validate_manifest_paths(session_id, manifest)
+            if copy_root.is_symlink():
+                raise ValueError("Import working-copy directory cannot be a symlink.")
             copy_root.mkdir(parents=True, exist_ok=True)
             files = list(self._files(source))
             status.update({
@@ -157,8 +184,14 @@ class SafeWorkspaceService:
             try:
                 for src in files:
                     rel = src.relative_to(source).as_posix()
-                    dest = copy_root / Path(rel)
+                    dest = self._working_copy_destination(copy_root, rel)
                     try:
+                        if src.is_symlink():
+                            raise ValueError("Source file became a symlink during import.")
+                        try:
+                            src.resolve().relative_to(source)
+                        except ValueError as exc:
+                            raise ValueError("Source file escaped the selected source directory.") from exc
                         st = src.stat()
                         old = manifest["files"].get(rel)
                         if (old and old.get("size") == st.st_size and
@@ -169,6 +202,7 @@ class SafeWorkspaceService:
                             status["bytes_copied"] += st.st_size
                             continue
                         dest.parent.mkdir(parents=True, exist_ok=True)
+                        dest = self._working_copy_destination(copy_root, rel)
                         shutil.copy2(src, dest)
                         source_hash = sha256_file(src)
                         if sha256_file(dest) != source_hash:
