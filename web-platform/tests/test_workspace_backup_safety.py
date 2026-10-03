@@ -54,3 +54,50 @@ def test_backup_root_rejects_symlink(monkeypatch, tmp_path):
 
     with pytest.raises(ValueError, match="cannot be a symlink"):
         WorkspaceBackupService()._backup_root()
+
+def _write_test_archive(service, backup_root, archive_name, members):
+    import hashlib
+    import json
+    import zipfile
+
+    archive = backup_root / archive_name
+    with zipfile.ZipFile(archive, "w") as bundle:
+        for name, data in members:
+            bundle.writestr(name, data)
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    archive.with_suffix(".json").write_text(
+        json.dumps({"sha256": digest}), encoding="utf-8"
+    )
+    return archive
+
+
+def test_restore_rejects_case_colliding_paths_on_windows_filesystems(monkeypatch, tmp_path):
+    backup_root = tmp_path / "backups"
+    configure_roots(monkeypatch, tmp_path, backup_root)
+    service = WorkspaceBackupService()
+    service._backup_root()
+    archive = _write_test_archive(
+        service,
+        backup_root,
+        "workspace_case_collision.zip",
+        [("Folder/Report.txt", b"one"), ("folder/report.txt", b"two")],
+    )
+
+    with pytest.raises(ValueError, match="case-colliding"):
+        service.restore_to_recovery(archive.name)
+
+
+def test_restore_rejects_windows_reserved_device_names(monkeypatch, tmp_path):
+    backup_root = tmp_path / "backups"
+    configure_roots(monkeypatch, tmp_path, backup_root)
+    service = WorkspaceBackupService()
+    service._backup_root()
+    archive = _write_test_archive(
+        service,
+        backup_root,
+        "workspace_reserved_name.zip",
+        [("CON.txt", b"device name")],
+    )
+
+    with pytest.raises(ValueError, match="unsafe path"):
+        service.restore_to_recovery(archive.name)
