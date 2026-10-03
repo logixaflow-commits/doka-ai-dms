@@ -314,3 +314,9 @@ Next Phase 1 work:
 - Execute the new durable token-state, session-family logout, cross-environment endpoint and CORS regression tests; inspect the SQLite state file permissions and backup/restore implications on the target OS.
 - Execute focused backend tests and frontend smoke/build checks in a suitable local environment; record exact commands/results.
 - Continue confirmed frontend accessibility/effect-cleanup and organization/undo edge-case audit before declaring Phase 1 accepted.
+
+
+### CI observation — 2026-10-03
+
+- Latest observed automatic Doka Quality Checks run: `37107238360` for commit `a67341d`. GitHub reports all three jobs (frontend checks, backend regression tests and backend dependency audit) as failed, but each job exposes an empty step list and its log download returns `BlobNotFound`. This is insufficient evidence to attribute the failure to the code or to claim the tests ran.
+- Do not manually rerun or dispatch Actions solely to investigate this; keep the failure classified as **CI evidence unavailable/inconclusive** until GitHub exposes actual steps/logs or a local test environment is available.
