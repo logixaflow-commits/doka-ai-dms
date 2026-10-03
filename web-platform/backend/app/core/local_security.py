@@ -167,7 +167,7 @@ def invalidate_local_token(token: str) -> bool:
         # be able to extend an existing session-family revocation, even if another
         # token from the same session was already revoked/consumed.
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-    except JWTError:
+    except (JWTError, TypeError, ValueError):
         return False
     if payload.get("type") not in {"access", "refresh"} or payload.get("role") != "admin":
         return False
@@ -201,7 +201,7 @@ def invalidate_local_token(token: str) -> bool:
             )
         connection.commit()
         return True
-    except sqlite3.Error:
+    except (sqlite3.Error, OSError):
         if connection:
             connection.rollback()
         return False
@@ -251,7 +251,7 @@ def consume_local_refresh_token(token: str) -> Optional[dict]:
         )
         connection.commit()
         return payload
-    except sqlite3.Error:
+    except (sqlite3.Error, OSError):
         if connection:
             connection.rollback()
         return None
