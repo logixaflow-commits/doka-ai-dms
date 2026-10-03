@@ -30,12 +30,19 @@ export default function App() {
         return;
       }
 
-      const currentUser = isLocalAuthEnabled()
-        ? await getLocalCurrentUser()
-        : await getCurrentUser();
-      if (mounted) {
-        setUser(currentUser);
-        setLoading(false);
+      try {
+        const currentUser = isLocalAuthEnabled()
+          ? await getLocalCurrentUser()
+          : await getCurrentUser();
+        if (mounted) {
+          setUser(currentUser);
+          setLoading(false);
+        }
+      } catch {
+        if (mounted) {
+          setUser(null);
+          setLoading(false);
+        }
       }
     }
 
