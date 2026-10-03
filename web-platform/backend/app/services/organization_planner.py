@@ -152,7 +152,7 @@ class OrganizationPlanner:
 
         approved = set(approved_paths)
         proposals = {p["relative_path"]: p for p in plan.get("proposals", [])}
-        root = Path(manifest["working_copy"]).resolve()
+        _source_root, root = safe_workspace_service.validate_manifest_paths(session_id, manifest)
         final_root = settings.FINAL_ROOT.resolve()
         final_root.mkdir(parents=True, exist_ok=True)
         audit_path = safe_workspace_service._dir(session_id) / "organization_audit.jsonl"
