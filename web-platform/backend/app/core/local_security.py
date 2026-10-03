@@ -95,6 +95,8 @@ def decode_local_token(token: str, expected_type: str = "access") -> Optional[di
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         if payload.get("type") != expected_type or payload.get("role") != "admin":
             return None
+        if payload.get("jti") in _invalid_token_ids:
+            return None
         return payload
     except JWTError:
         return None
