@@ -31,7 +31,16 @@ class WorkspaceBackupService:
     """Create restorable snapshots of the writable DMS workspace only."""
 
     def _backup_root(self) -> Path:
-        root = settings.BACKUP_ROOT.resolve()
+        configured_root = Path(settings.BACKUP_ROOT).expanduser()
+        if configured_root.is_symlink():
+            raise ValueError("BACKUP_ROOT cannot be a symlink.")
+        root = configured_root.resolve()
+        protected_roots = [Path(settings.WORKING_ROOT).resolve()]
+        if settings.SOURCE_ROOT:
+            protected_roots.append(Path(settings.SOURCE_ROOT).expanduser().resolve())
+        for protected in protected_roots:
+            if root == protected or root.is_relative_to(protected) or protected.is_relative_to(root):
+                raise ValueError("BACKUP_ROOT must not overlap SOURCE_ROOT or WORKING_ROOT.")
         root.mkdir(parents=True, exist_ok=True)
         return root
 
