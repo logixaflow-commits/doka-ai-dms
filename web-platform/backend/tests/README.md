@@ -1,7 +1,13 @@
-# Testing Suite for Enterprise AI DMS
+# Retained Legacy Enterprise-Era Tests
+
+This directory contains the retained Enterprise-era backend tests. They are not included
+in the current automatic CI test discovery: `web-platform/backend/pytest.ini` selects
+`../tests`, and the automatic workflow runs pytest from `web-platform/backend` without
+overriding those configured test paths. The current Personal Local regression suite is
+in `web-platform/tests/`.
 
 ## Overview
-Comprehensive testing suite including unit tests, integration tests, and end-to-end tests.
+Historical Enterprise test suite notes: unit, integration, and end-to-end tests.
 
 ## Test Structure
 

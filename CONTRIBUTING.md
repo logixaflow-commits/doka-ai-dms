@@ -15,7 +15,7 @@ Keep the current safety boundary intact:
 ## Development prerequisites
 
 - Python 3.12
-- Node.js 20+
+- Node.js 24.x
 - Git
 - Tesseract OCR for OCR testing
 
@@ -30,7 +30,8 @@ Before considering a Personal Local change complete:
 5. Verify that the frontend only calls endpoints exposed by the Personal Local runtime.
 6. For document workflow changes, test against copied sample data and confirm the source remains unchanged.
 
-The current CI workflow is `.github/workflows/local-core-check.yml`.
+`.github/workflows/doka-quality.yml` runs automatically for relevant changes.
+`.github/workflows/local-core-check.yml` is available for deliberate manual runs only.
 
 ## Legacy enterprise code
 

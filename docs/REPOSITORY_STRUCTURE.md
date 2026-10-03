@@ -26,16 +26,17 @@ enterprise-ai-dms/
 │   └── docs/                   # web-platform documentation pointers
 ├── .gitignore
 ├── .editorconfig / .gitattributes
-├── pyproject.toml              # repository Python tooling configuration
+├── pyproject.toml              # Cloudflare Worker package metadata and build configuration
 ├── wrangler.jsonc              # active Cloudflare Worker deployment configuration
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── QUICKSTART.md
 ├── README.md
-├── start_application.bat       # primary Windows local launcher
-├── start_backend.bat
-├── start_frontend.bat
-├── run.bat / run.sh            # retained legacy launchers; verify before use
+├── start_application.bat       # current Windows local launcher
+├── start_backend.bat            # backend-only Windows launcher
+├── start_frontend.bat           # frontend-only Windows launcher
+├── run.sh                       # current Linux/macOS local launcher
+├── run.bat                      # Windows compatibility alias for start_application.bat
 └── vercel.json                 # retained deployment configuration
 ```
 
