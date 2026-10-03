@@ -1,5 +1,7 @@
 # Doka Phase A–E Delivery Gate
 
+> **Roadmap update (2026-10-03):** Execution phases and the complete remediation issue register are now consolidated in [DOKA_UNIFIED_REMEDIATION_ROADMAP.md](./DOKA_UNIFIED_REMEDIATION_ROADMAP.md). This file remains the historical A–E evidence/status record; use the unified roadmap for current prioritization and sequencing.
+
 This document is the working acceptance boundary for the Doka Personal Local Edition. Changes are applied directly to main; no feature branch is required for this local-first workflow.
 
 ## Phase A — Security hardening
