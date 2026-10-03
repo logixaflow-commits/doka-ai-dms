@@ -64,8 +64,8 @@ async def login(credentials: LocalLogin, request: Request):
 
 @router.post("/refresh")
 async def refresh(body: LocalRefresh):
-    if settings.ENVIRONMENT.lower() == "production":
-        raise HTTPException(status_code=404, detail="Local password authentication is disabled in production.")
+    if settings.ENVIRONMENT.strip().lower() not in {"development", "local", "test"}:
+        raise HTTPException(status_code=404, detail="Local password authentication is disabled outside local environments.")
     payload = consume_local_refresh_token(body.refresh_token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token.")
@@ -80,6 +80,8 @@ async def refresh(body: LocalRefresh):
 
 @router.get("/me")
 async def me(request: Request):
+    if settings.ENVIRONMENT.strip().lower() not in {"development", "local", "test"}:
+        raise HTTPException(status_code=404, detail="Local password authentication is disabled outside local environments.")
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication required.")
