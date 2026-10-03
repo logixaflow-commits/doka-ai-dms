@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import pytest
 from app.services.organization_planner import OrganizationPlanner, normalize_stem
 from app.core.config import settings
 from app.services.safe_workspace_service import SafeWorkspaceService
@@ -184,3 +185,12 @@ def test_apply_rejects_plan_after_inventory_or_ocr_changes(tmp_path, monkeypatch
     with pytest.raises(ValueError, match="plan is stale"):
         planner.apply(created["session_id"], approved)
     assert not (workspace / "Final").exists()
+
+
+
+def test_apply_rejects_oversized_and_duplicate_approval_batches():
+    planner = OrganizationPlanner()
+    with pytest.raises(ValueError, match="At most 500"):
+        planner.apply("session", [f"file-{index}.txt" for index in range(501)])
+    with pytest.raises(ValueError, match="Duplicate approved paths"):
+        planner.apply("session", ["invoice.txt", "invoice.txt"])
