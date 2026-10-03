@@ -107,3 +107,17 @@ def test_search_filters_extension_and_review(tmp_path, monkeypatch):
 
     assert service.search(created["session_id"], "invoice", extension=".pdf")["total"] == 1
     assert service.search(created["session_id"], "invoice", extension=".txt")["total"] == 0
+
+
+
+def test_source_write_flag_is_rejected_even_if_read_only_flag_is_disabled(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", False)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", True)
+    service = SafeWorkspaceService()
+    with pytest.raises(ValueError, match="ALLOW_SOURCE_WRITE"):
+        service.validate_source(source)
