@@ -166,19 +166,33 @@ class WorkspaceBackupService:
                     name = member.filename
                     posix_path = PurePosixPath(name)
                     windows_path = PureWindowsPath(name)
+                    raw_parts = name.rstrip("/").split("/") if name else []
+                    windows_reserved = {"CON", "PRN", "AUX", "NUL"} | {
+                        f"{prefix}{number}"
+                        for prefix in ("COM", "LPT")
+                        for number in range(1, 10)
+                    }
                     if (
                         not name
                         or "\\" in name
+                        or any(ord(char) < 32 for char in name)
                         or posix_path.is_absolute()
                         or windows_path.is_absolute()
                         or windows_path.drive
-                        or ".." in posix_path.parts
+                        or any(part in {"", ".", ".."} for part in raw_parts)
+                        or any(
+                            ":" in part
+                            or part.endswith((" ", "."))
+                            or part.split(".", 1)[0].upper() in windows_reserved
+                            for part in raw_parts
+                        )
                     ):
                         raise ValueError("Backup contains an unsafe path.")
-                    normalized_name = posix_path.as_posix().rstrip("/")
-                    if normalized_name in seen_paths:
-                        raise ValueError("Backup contains duplicate paths.")
-                    seen_paths.add(normalized_name)
+                    normalized_name = "/".join(raw_parts)
+                    collision_key = normalized_name.casefold()
+                    if collision_key in seen_paths:
+                        raise ValueError("Backup contains duplicate or case-colliding paths.")
+                    seen_paths.add(collision_key)
 
                     member_mode = (member.external_attr >> 16) & 0o170000
                     if member_mode == stat.S_IFLNK or member_mode not in (0, stat.S_IFREG, stat.S_IFDIR):
