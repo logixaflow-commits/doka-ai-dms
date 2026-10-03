@@ -56,6 +56,23 @@ function clearLocalSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+export async function signOutLocal() {
+  const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  try {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  } finally {
+    clearLocalSession();
+  }
+}
+
 export async function getLocalCurrentUser(): Promise<SupabaseUser | null> {
   let accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (!accessToken) return null;
