@@ -88,3 +88,65 @@ def test_restore_rejects_zip_path_traversal(tmp_path, monkeypatch):
     except ValueError as exc:
         assert "unsafe path" in str(exc).lower()
     assert not (tmp_path / "escape.txt").exists()
+
+
+def test_restore_rejects_modified_archive_before_extracting(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    workspace.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+
+    service = WorkspaceBackupService()
+    manifest = service.create()
+    archive = Path(manifest["archive"])
+    with archive.open("ab") as handle:
+        handle.write(b"tampered")
+
+    import pytest
+    with pytest.raises(ValueError, match="integrity verification failed"):
+        service.restore_to_recovery(archive.name)
+    recovery = workspace / "Recovery"
+    assert not recovery.exists() or not list(recovery.iterdir())
+
+
+def test_verify_rejects_archive_without_manifest(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    workspace.mkdir()
+    backups.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+
+    archive = backups / "workspace_orphan.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("data.txt", "data")
+
+    import pytest
+    service = WorkspaceBackupService()
+    with pytest.raises(ValueError, match="manifest is missing"):
+        service.verify(archive.name)
+
+
+def test_backup_excludes_symlinked_files(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    workspace.mkdir()
+    backups.mkdir()
+    outside = tmp_path / "outside-secret.txt"
+    outside.write_text("must not be backed up", encoding="utf-8")
+    (workspace / "inside.txt").write_text("safe", encoding="utf-8")
+    try:
+        (workspace / "linked-secret.txt").symlink_to(outside)
+    except (OSError, NotImplementedError):
+        import pytest
+        pytest.skip("Symlinks are not available on this platform")
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+    service = WorkspaceBackupService()
+    manifest = service.create()
+    with zipfile.ZipFile(manifest["archive"]) as zf:
+        names = zf.namelist()
+    assert "inside.txt" in names
+    assert "linked-secret.txt" not in names
