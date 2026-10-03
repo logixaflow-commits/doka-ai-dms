@@ -480,3 +480,10 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - The real-office pilot now refuses an empty source copy instead of allowing a zero-file run to satisfy import/scan equality checks.
 - Added a regression test for the empty-source blocked result.
 - Commits: `c83b772`, `84eabfa`.
+
+
+
+### 2026-10-03 — Per-session Apply/Undo serialization
+
+- Organization Apply and Undo now share the Safe Workspace per-session lock used by import/scan. This prevents those filesystem operations from racing each other or a resumed import for the same session.
+- Commit: `6bf1c36`.
