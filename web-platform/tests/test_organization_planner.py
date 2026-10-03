@@ -140,10 +140,47 @@ def test_organization_category_uses_document_content(tmp_path, monkeypatch):
     workspace_service.scan(created["session_id"])
     workspace_service._write(
         workspace_service._json_path(created["session_id"], "understanding.json"),
-        {"results": [{"relative_path": "2025_001.txt", "text_preview": "Commercial invoice. Invoice Number: 001. Payment due date: 2025-12-31"}]},
+        {"results": [{"relative_path": "2025_001.txt", "text_preview": "ordinary document text"}]},
+    )
+    workspace_service._write(
+        workspace_service._json_path(created["session_id"], "ocr_corrections.json"),
+        {"results": {"2025_001.txt": "Commercial invoice. Invoice Number: 001. Payment due date: 2025-12-31"}},
     )
     planner = OrganizationPlanner()
     plan = planner.plan(created["session_id"])
     proposal = plan["proposals"][0]
     assert proposal["category"] == "Invoices"
     assert "Invoices" in proposal["target_folder"]
+
+
+
+def test_apply_rejects_plan_after_inventory_or_ocr_changes(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    (source / "invoice.txt").write_text("Invoice 001 payment", encoding="utf-8")
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "FINAL_ROOT", workspace / "Final")
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    service.run_import(created["session_id"])
+    service.scan(created["session_id"])
+    planner = OrganizationPlanner()
+    plan = planner.plan(created["session_id"])
+    approved = [item["relative_path"] for item in plan["proposals"]]
+
+    service._write(
+        service._json_path(created["session_id"], "understanding.json"),
+        {"results": [{"relative_path": "invoice.txt", "text_preview": "updated OCR content"}]},
+    )
+
+    import pytest
+    with pytest.raises(ValueError, match="plan is stale"):
+        planner.apply(created["session_id"], approved)
+    assert not list((workspace / "Final").rglob("*")) if (workspace / "Final").exists() else True
