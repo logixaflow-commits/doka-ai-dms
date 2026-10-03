@@ -12,7 +12,7 @@ from typing import Any, Dict
 from loguru import logger
 
 from app.services.metadata_extractor import metadata_extractor
-from app.services.safe_workspace_service import SafeWorkspaceService, safe_workspace_service
+from app.services.safe_workspace_service import SafeWorkspaceService, safe_workspace_service, sha256_file
 
 
 TEXT_EXTENSIONS = {
@@ -83,17 +83,26 @@ class DocumentUnderstandingService:
         if not manifest:
             raise ValueError(f"Unknown import session: {session_id}")
 
-        root = Path(manifest["working_copy"]).resolve()
+        _source, root = self.workspace.validate_manifest_paths(session_id, manifest)
         if not root.is_dir():
             raise ValueError("Working copy does not exist.")
 
         results = []
-        for item in manifest.get("files", {}).values():
+        for relative_path, item in manifest.get("files", {}).items():
             if not item.get("verified"):
                 continue
-            path = Path(item["working_path"])
-            if not path.exists():
+            if item.get("relative_path") != relative_path:
+                raise ValueError("Import manifest contains an inconsistent relative path.")
+            path = (root / Path(relative_path)).resolve()
+            try:
+                path.relative_to(root)
+            except ValueError as exc:
+                raise ValueError("Import manifest file path is outside the working copy.") from exc
+            if not path.is_file():
                 continue
+            expected_hash = str(item.get("sha256", "")).lower()
+            if len(expected_hash) != 64 or sha256_file(path).lower() != expected_hash:
+                raise ValueError(f"Working-copy integrity check failed: {relative_path}")
             text, method = self._extract_text(path)
             metadata: Dict[str, Any] = {}
             if text.strip():
