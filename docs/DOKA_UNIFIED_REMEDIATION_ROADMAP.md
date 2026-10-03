@@ -41,6 +41,7 @@ Work:
 - Retrieve and classify the full Dependabot alert inventory when repository permissions expose it; the earlier audit could only confirm the user's approximate count, not each alert.
 - Reduce the recorded ESLint baseline in small batches (unused imports/variables first, then unsafe any, effect dependencies/state-in-effect, React Refresh and immutability findings); only make lint blocking after the baseline is genuinely clean.
 - Review root-level launchers/configs before moving anything; preserve consumers and keep active runtime under `web-platform/`.
+- Keep root Windows/POSIX launchers aligned with the frontend Node.js `24.x` engine and stop early with an actionable prerequisite error.
 - Keep automatic CI consolidated and report-only where a known baseline is intentionally being burned down.
 
 Exit criteria:
