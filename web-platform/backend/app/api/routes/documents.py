@@ -470,7 +470,7 @@ async def upload_document(
                     raise HTTPException(status_code=413, detail="File too large (max 100MB)")
                 await output.write(chunk)
     except Exception:
-        await __import__("anyio").to_thread.run_sync(
+        await anyio.to_thread.run_sync(
             lambda: workspace_path.unlink(missing_ok=True)
         )
         raise
