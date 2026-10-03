@@ -50,3 +50,18 @@ async def test_external_ai_requires_separate_explicit_consent(monkeypatch):
     with pytest.raises(RuntimeError, match="consent is required"):
         await service._with_fallback("sensitive-document", call)
     assert called is False
+
+@pytest.mark.asyncio
+async def test_external_embeddings_require_ai_enabled_and_consent(monkeypatch):
+    service = UnifiedAIService()
+    monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-key")
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
+
+    with pytest.raises(RuntimeError, match="consent is required"):
+        await service.get_embedding("private document text")
+
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_ENABLED", False)
+    with pytest.raises(RuntimeError, match="AI is disabled"):
+        await service.get_embedding("private document text")
