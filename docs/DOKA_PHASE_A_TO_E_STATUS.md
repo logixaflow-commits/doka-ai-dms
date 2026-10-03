@@ -495,3 +495,11 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Safe Workspace filesystem endpoints now require `ENVIRONMENT` to be one of `development`, `local` or `test`; production, staging and abbreviated production environment names are denied by default.
 - Added regression coverage for `production`, `prod` and `staging`.
 - Commits: `021b910`, `48b5f4d`.
+
+
+
+### 2026-10-03 — Local password-auth environment boundary
+
+- Local password login and refresh now use the same explicit `development` / `local` / `test` allowlist as Safe Workspace. Production, staging and `prod` deployments cannot issue Personal Local Edition tokens.
+- Added regression coverage for the non-local login boundary.
+- Commits: `b764c78`, `794509c`.
