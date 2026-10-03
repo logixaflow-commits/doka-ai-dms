@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import cloud_documents, cloud_storage, local_auth, workspace, workspace_files
+from app.api.routes import local_auth, workspace, workspace_files
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.observability import init_observability
