@@ -38,6 +38,8 @@ class OCRService:
         "image/png", "image/jpeg", "image/jpg", "image/tiff", "image/bmp", "image/webp"
     }
     SUPPORTED_PDF_TYPES = {"application/pdf"}
+    # Bound CPU and memory use when processing untrusted or unexpectedly large PDFs.
+    MAX_PDF_PAGES = 200
 
     def __init__(self):
         self.config = settings.ocr
@@ -187,6 +189,7 @@ class OCRService:
                 pil_image,
                 lang=self.lang_string,
                 config=custom_config,
+                timeout=self.timeout,
             )
 
             cleaned_text = self._clean_text(text)
@@ -243,52 +246,59 @@ class OCRService:
         raise OCRError(error_msg)
 
     def _process_pdf(self, pdf_path: Path) -> str:
-        """Process a PDF file by converting pages to images."""
+        """Process a bounded PDF one page at a time to cap peak memory use."""
         all_text = []
-
         try:
-            # First try pdfplumber for text-based PDFs
+            with pdfplumber.open(str(pdf_path)) as pdf:
+                page_count = len(pdf.pages)
+            if page_count > self.MAX_PDF_PAGES:
+                raise OCRError(
+                    f"PDF has {page_count} pages; the OCR limit is {self.MAX_PDF_PAGES} pages."
+                )
+
+            # Prefer direct text extraction for text-based PDFs.
             text = self._extract_pdf_text(pdf_path)
             if text and len(text.strip()) > 100:
                 logger.info(f"Extracted {len(text)} chars via pdfplumber (text-based PDF)")
                 return text
-        except Exception:
-            pass
 
-        # Fallback to OCR for scanned PDFs
-        try:
-            images = convert_from_path(
-                str(pdf_path),
-                dpi=self.dpi,
-                fmt="png",
-            )
-
-            for i, image in enumerate(images):
-                logger.debug(f"OCR on PDF page {i+1}/{len(images)}")
-
-                # Convert PIL to OpenCV for preprocessing
-                cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
-                if self.preprocessing:
-                    cv_image = self._preprocess_image(cv_image)
-
-                # Back to PIL for tesseract
-                pil_image = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
-
-                custom_config = f"--oem {self.oem} --psm {self.psm}"
-                page_text = pytesseract.image_to_string(
-                    pil_image,
-                    lang=self.lang_string,
-                    config=custom_config,
+            # Scanned PDFs are rendered one page at a time; never retain the full
+            # document as a list of page images in memory.
+            for page_number in range(1, page_count + 1):
+                images = convert_from_path(
+                    str(pdf_path),
+                    dpi=self.dpi,
+                    fmt="png",
+                    first_page=page_number,
+                    last_page=page_number,
+                    thread_count=1,
+                    timeout=self.timeout,
                 )
+                if not images:
+                    continue
+                image = images[0]
+                try:
+                    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+                    if self.preprocessing:
+                        cv_image = self._preprocess_image(cv_image)
+                    pil_image = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
+                    custom_config = f"--oem {self.oem} --psm {self.psm}"
+                    page_text = pytesseract.image_to_string(
+                        pil_image,
+                        lang=self.lang_string,
+                        config=custom_config,
+                        timeout=self.timeout,
+                    )
+                    if page_text.strip():
+                        all_text.append(f"--- Page {page_number} ---\\n{page_text}")
+                finally:
+                    image.close()
 
-                if page_text.strip():
-                    all_text.append(f"--- Page {i+1} ---\n{page_text}")
-
-            combined_text = "\n\n".join(all_text)
-            logger.info(f"OCR extracted {len(combined_text)} chars from {len(images)} PDF pages")
+            combined_text = "\\n\\n".join(all_text)
+            logger.info(f"OCR extracted {len(combined_text)} chars from {page_count} PDF pages")
             return self._clean_text(combined_text)
-
+        except OCRError:
+            raise
         except Exception as e:
             logger.error(f"PDF OCR failed for {pdf_path}: {e}")
             raise OCRError(f"PDF OCR failed: {e}") from e
