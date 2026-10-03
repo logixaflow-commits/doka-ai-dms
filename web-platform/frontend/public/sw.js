@@ -9,15 +9,14 @@ function isCacheableStaticRequest(request) {
   if (request.method !== 'GET' || request.headers.has('Authorization')) return false;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return false;
+  if (url.origin !== self.location.origin || url.search) return false;
 
   // Never cache API/authenticated data, document content, or signed URLs.
   if (
+    url.pathname === '/api' ||
     url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/auth/') ||
-    url.searchParams.has('token') ||
-    url.searchParams.has('signature') ||
-    url.searchParams.has('X-Amz-Signature')
+    url.pathname === '/auth' ||
+    url.pathname.startsWith('/auth/')
   ) return false;
 
   // Cache only the explicit app shell and build-generated static assets.
