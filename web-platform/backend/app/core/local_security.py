@@ -75,7 +75,7 @@ def clear_login_failures(username: str, client_host: str | None = None) -> None:
         _login_failures.pop(_login_key(username, client_host), None)
 
 
-def create_local_access_token(username: str) -> str:
+def create_local_access_token(username: str, session_id: str | None = None) -> str:
     # Fail before issuing credentials if the durable revocation store is unavailable.
     connection = _connect_token_state()
     connection.close()
@@ -86,7 +86,7 @@ def create_local_access_token(username: str) -> str:
             "role": "admin",
             "type": "access",
             "jti": secrets.token_urlsafe(18),
-            "sid": secrets.token_urlsafe(24),
+            "sid": session_id or secrets.token_urlsafe(24),
             "iat": now,
             "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         },
@@ -95,7 +95,7 @@ def create_local_access_token(username: str) -> str:
     )
 
 
-def create_local_refresh_token(username: str) -> str:
+def create_local_refresh_token(username: str, session_id: str | None = None) -> str:
     connection = _connect_token_state()
     connection.close()
     now = datetime.now(timezone.utc)
