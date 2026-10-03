@@ -54,3 +54,9 @@ Date: 2026-10-03
 
 - Re-inspection of `.github/workflows/doka-quality.yml` found two frontend `npm audit` executions: the JSON-report step already fails on any reported vulnerability, and a later clean-audit step repeated the same network audit.
 - Removed only the redundant second audit invocation. The first full JSON audit/report and failure gate remain in place; no CI run was dispatched.
+## Mandatory original-source read-only configuration
+
+- Re-audit found the active import service rejected `ALLOW_SOURCE_WRITE=true` but did not independently reject `ORIGINAL_READ_ONLY=false` when source writes were otherwise disabled.
+- The source validation gate now requires both `ORIGINAL_READ_ONLY=true` and `ALLOW_SOURCE_WRITE=false` before accepting a source directory.
+- Added a regression test for the missing `ORIGINAL_READ_ONLY=false` case while preserving the existing explicit source-write rejection test.
+- No original data was accessed or modified during this repository-only change. Tests remain pending execution.
