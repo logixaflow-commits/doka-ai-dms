@@ -147,7 +147,7 @@ def consume_local_refresh_token(token: str) -> Optional[dict]:
         expired = [key for key, value in _used_refresh_tokens.items() if value <= now]
         for key in expired:
             _used_refresh_tokens.pop(key, None)
-        if token_id in _used_refresh_tokens:
+        if token_id in _used_refresh_tokens or token_id in _invalid_token_ids:
             return None
         _used_refresh_tokens[token_id] = expiry
     return payload
