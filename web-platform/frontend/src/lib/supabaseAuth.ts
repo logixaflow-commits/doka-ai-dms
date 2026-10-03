@@ -9,6 +9,8 @@ export interface SupabaseUser {
   id: string;
   email?: string;
   user_metadata?: Record<string, unknown>;
+  username?: string;
+  role?: string;
 }
 
 interface AuthSession {
