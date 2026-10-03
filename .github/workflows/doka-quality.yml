@@ -143,22 +143,25 @@ jobs:
       - name: Install frontend dependencies
         working-directory: web-platform/frontend
         run: npm ci
-      - name: Capture dependency audit baseline
-        working-directory: web-platform/frontend
-        run: |
-          npm audit --json > npm-audit-before.json || true
-          node -e 'const a=require("./npm-audit-before.json"); console.log("Before remediation:", JSON.stringify(a.metadata?.vulnerabilities));'
-      - name: Apply semver-compatible dependency security fixes
-        working-directory: web-platform/frontend
-        run: npm audit fix --package-lock-only
-      - name: Reinstall from remediated lockfile
-        working-directory: web-platform/frontend
-        run: npm ci
-      - name: Report frontend dependency audit details
+      - name: Audit frontend dependencies
         working-directory: web-platform/frontend
         run: |
           npm audit --json > npm-audit.json || true
-          node -e 'const a=require("./npm-audit.json"); const rows=Object.entries(a.vulnerabilities || {}).map(([name,v]) => ({name,severity:v.severity,isDirect:v.isDirect,range:v.range,fixAvailable:v.fixAvailable})); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities,packages:rows}, null, 2));'
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const audit = JSON.parse(fs.readFileSync("npm-audit.json", "utf8"));
+          if (audit.error) {
+            console.error("npm audit could not complete:", audit.error);
+            process.exit(1);
+          }
+          const counts = audit.metadata?.vulnerabilities;
+          const packages = Object.entries(audit.vulnerabilities || {}).map(([name, v]) => ({
+            name, severity: v.severity, isDirect: v.isDirect, range: v.range, fixAvailable: v.fixAvailable
+          }));
+          console.log(JSON.stringify({ counts, packages }, null, 2));
+          if (!counts) throw new Error("npm audit did not return vulnerability totals.");
+          if (counts.total > 0) process.exit(1);
+          NODE
       - name: Report frontend lint baseline
         working-directory: web-platform/frontend
         run: |
@@ -179,7 +182,6 @@ jobs:
         with:
           name: frontend-security-remediation-candidate
           path: |
-            web-platform/frontend/npm-audit-before.json
             web-platform/frontend/npm-audit.json
             web-platform/frontend/eslint-report.json
             web-platform/frontend/package-lock.json
