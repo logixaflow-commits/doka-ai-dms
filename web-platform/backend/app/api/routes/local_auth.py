@@ -29,7 +29,7 @@ class LocalRefresh(BaseModel):
 @router.post("/login")
 async def login(credentials: LocalLogin, request: Request):
     if settings.ENVIRONMENT.strip().lower() not in {"development", "local", "test"}:
-        raise HTTPException(status_code=404, detail="Local password authentication is disabled in production.")
+        raise HTTPException(status_code=404, detail="Local password authentication is disabled outside local environments.")
     username = credentials.username.strip()
     client_host = request.client.host if request.client else None
 
