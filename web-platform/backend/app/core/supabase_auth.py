@@ -91,9 +91,9 @@ async def require_local_workspace_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> str:
     """Keep filesystem-backed Safe Workspace APIs out of production deployments."""
-    if settings.ENVIRONMENT.lower() == "production":
+    if settings.ENVIRONMENT.strip().lower() not in {"development", "local", "test"}:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Safe Workspace is available only in the Personal Local Edition.",
+            detail="Safe Workspace is available only in an explicitly local environment.",
         )
     return await require_authenticated_user(credentials)
