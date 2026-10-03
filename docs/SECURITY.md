@@ -10,9 +10,13 @@
 - Review Git history before sharing the repository if credentials or real office data were ever committed.
 - Prefer GitHub Secret Scanning / Push Protection and Dependabot where available.
 
-## Current CI boundary
+## Secret scanning and CI
 
-The current `Local Core Checks` workflow validates Python compilation, frontend build/smoke tests, and the Personal Local safety regression suite. It does not claim to be a full secret scanner or dependency vulnerability scanner.
+- Install pre-commit with `pipx install pre-commit`, then run `pre-commit install` to enable the pinned Gitleaks staged-file hook in `.pre-commit-config.yaml`.
+- Run `pre-commit run --all-files` before a large repository handoff.
+- The consolidated Doka Quality workflow also runs Gitleaks against the current checkout. This is not a historical Git-history scan; if a credential may have been committed in the past, run a dedicated history scan and rotate/revoke the credential.
+- Dependabot alerts and GitHub secret-scanning alerts must be reviewed in the repository Security tab; CI/npm/pip audits do not replace that inventory.
+- CodeQL and a report-only Semgrep baseline are configured in the quality workflow. Semgrep remains non-blocking until findings are triaged; CodeQL upload alone does not prove branch protection blocks PRs.
 
 ## Deferred enterprise material
 
