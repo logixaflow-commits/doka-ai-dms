@@ -54,6 +54,10 @@ Exit criteria:
 
 Work:
 - Re-audit local authentication, token invalidation, logout, environment guards, session switching, and workspace API boundaries.
+- Enforce `ORIGINAL_READ_ONLY=true` and `ALLOW_SOURCE_WRITE=false` at source-validation time; require `FINAL_ROOT` to be a dedicated path inside `WORKING_ROOT` and isolated from `SOURCE_ROOT`.
+- Keep Supabase-backed Cloud API routers out of the Personal Local entry point; use the dedicated cloud entry point for cloud document/storage APIs.
+- Keep `BACKUP_ROOT` disjoint from source/workspace paths, reject symlink roots, and reject cross-platform unsafe/case-colliding archive paths during restore.
+- Restrict the persistent local authentication SQLite state file to owner-only permissions on POSIX systems.
 - Close remaining test gaps around production/staging denial for local auth endpoints and process-restart semantics; persist local token revocation, session-family logout and refresh replay state in SQLite without requiring cloud DB/Redis.
 - Verify Organization Apply limits, duplicate-path rejection, per-session locking, incremental hash checks, and Undo behavior against implementation and tests.
 - Verify OCR pixel/page/resource limits and representative Myanmar/English extraction; ensure image/PDF handling fails safely on malformed/oversized input.
