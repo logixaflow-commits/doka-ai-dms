@@ -48,6 +48,7 @@ def test_scanned_pdf_is_rendered_one_page_at_a_time_with_timeouts(tmp_path, monk
     assert [call["first_page"] for call in calls] == [1, 2]
     assert all(call["first_page"] == call["last_page"] for call in calls)
     assert all(call["thread_count"] == 1 and call["timeout"] == 7 for call in calls)
+    assert all(call["size"] == 3500 for call in calls)
 
 
 def test_pdf_page_limit_is_checked_before_rendering(tmp_path, monkeypatch):
