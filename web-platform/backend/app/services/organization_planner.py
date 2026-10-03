@@ -91,6 +91,10 @@ class OrganizationPlanner:
         return inventory, understanding
 
     def plan(self, session_id: str) -> Dict[str, Any]:
+        with safe_workspace_service._lock(session_id):
+            return self._plan_locked(session_id)
+
+    def _plan_locked(self, session_id: str) -> Dict[str, Any]:
         inventory, understanding = self._planning_inputs(session_id)
         if not inventory:
             raise ValueError("Inventory is not available. Run scan first.")
