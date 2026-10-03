@@ -5,7 +5,7 @@ The current readiness target is the **Personal Local Edition**. It uses a React 
 ## Prerequisites
 
 - Python 3.12 recommended.
-- Node.js 20+ for the Vite frontend.
+- Node.js 24.x for the Vite frontend (matches the `engines` field in `web-platform/frontend/package.json`).
 - Tesseract OCR is optional for the first smoke test, but required for Myanmar/English OCR. On Windows, install Tesseract and make sure `tesseract --list-langs` includes `eng` and `mya`.
 - Git.
 
