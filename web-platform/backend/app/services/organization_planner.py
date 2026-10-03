@@ -66,9 +66,32 @@ class OrganizationPlanner:
         parts.append(year)
         return "/".join(parts)
 
+    @staticmethod
+    def _fingerprint(value: Dict[str, Any]) -> str:
+        import hashlib
+        canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def _planning_inputs(self, session_id: str) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        inventory = safe_workspace_service._read(
+            safe_workspace_service._json_path(session_id, "inventory.json")
+        )
+        understanding = safe_workspace_service._read(
+            safe_workspace_service._json_path(session_id, "understanding.json")
+        )
+        corrections = safe_workspace_service._read(
+            safe_workspace_service._json_path(session_id, "ocr_corrections.json")
+        )
+        correction_map = corrections.get("results", {})
+        for item in understanding.get("results", []):
+            corrected = correction_map.get(item.get("relative_path"))
+            if corrected is not None:
+                item["corrected_text"] = corrected
+                item["text_preview"] = corrected[:2000]
+        return inventory, understanding
+
     def plan(self, session_id: str) -> Dict[str, Any]:
-        inventory = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "inventory.json"))
-        understanding = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "understanding.json"))
+        inventory, understanding = self._planning_inputs(session_id)
         if not inventory:
             raise ValueError("Inventory is not available. Run scan first.")
         understood = {x["relative_path"]: x for x in understanding.get("results", [])}
@@ -125,8 +148,10 @@ class OrganizationPlanner:
             })
 
         plan = {
-            "schema_version": 2,
+            "schema_version": 3,
             "session_id": session_id,
+            "inventory_sha256": self._fingerprint(inventory),
+            "understanding_sha256": self._fingerprint(understanding),
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "ai_used": False,
             "requires_user_approval": True,
@@ -147,8 +172,17 @@ class OrganizationPlanner:
         manifest = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "manifest.json"))
         if not plan or not manifest:
             raise ValueError("Organization plan is not available.")
+        if plan.get("session_id") != session_id:
+            raise ValueError("Organization plan belongs to a different import session.")
         if not plan.get("requires_user_approval") or plan.get("organization_allowed") is not False:
             raise ValueError("Invalid organization plan state.")
+
+        current_inventory, current_understanding = self._planning_inputs(session_id)
+        if (
+            plan.get("inventory_sha256") != self._fingerprint(current_inventory)
+            or plan.get("understanding_sha256") != self._fingerprint(current_understanding)
+        ):
+            raise ValueError("Organization plan is stale; rescan/re-run OCR and build a new review plan before applying.")
 
         approved = set(approved_paths)
         proposals = {p["relative_path"]: p for p in plan.get("proposals", [])}
