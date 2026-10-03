@@ -10,7 +10,8 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { getStoredUser, isSupabaseConfigured, signOut } from '@/lib/supabaseAuth';
+import { getStoredUser, signOut } from '@/lib/supabaseAuth';
+import { isLocalAuthEnabled } from '@/lib/localAuth';
 
 const baseMenuItems = [
   { title: 'Overview', url: '/admin/dashboard', icon: LayoutDashboard },
@@ -24,7 +25,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = getStoredUser();
-  const localMode = import.meta.env.DEV && !isSupabaseConfigured();
+  const localMode = isLocalAuthEnabled();
   const menuItems = localMode ? [localMenuItem] : import.meta.env.PROD ? baseMenuItems : [...baseMenuItems, localMenuItem];
 
   const handleLogout = async () => {
