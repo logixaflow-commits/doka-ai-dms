@@ -86,6 +86,7 @@ def create_local_access_token(username: str) -> str:
             "role": "admin",
             "type": "access",
             "jti": secrets.token_urlsafe(18),
+            "sid": secrets.token_urlsafe(24),
             "iat": now,
             "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         },
@@ -104,6 +105,7 @@ def create_local_refresh_token(username: str) -> str:
             "role": "admin",
             "type": "refresh",
             "jti": secrets.token_urlsafe(18),
+            "sid": secrets.token_urlsafe(24),
             "iat": now,
             "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         },
@@ -118,20 +120,26 @@ def decode_local_token(token: str, expected_type: str = "access") -> Optional[di
         if payload.get("type") != expected_type or payload.get("role") != "admin":
             return None
         token_id = payload.get("jti")
+        session_id = payload.get("sid")
         if not isinstance(token_id, str) or not token_id:
             return None
         now = time.time()
         connection = _connect_token_state()
         try:
-            row = connection.execute(
-                "SELECT state, expires_at FROM local_token_state WHERE token_id = ?",
-                (token_id,),
-            ).fetchone()
-            if row and float(row[1]) > now:
-                if row[0] == "revoked" or (expected_type == "refresh" and row[0] == "used_refresh"):
+            rows = connection.execute(
+                "SELECT token_id, state, expires_at FROM local_token_state WHERE token_id IN (?, ?)",
+                (f"jti:{token_id}", f"sid:{session_id}" if isinstance(session_id, str) else ""),
+            ).fetchall()
+            for stored_id, state, expiry in rows:
+                if float(expiry) <= now:
+                    connection.execute("DELETE FROM local_token_state WHERE token_id = ?", (stored_id,))
+                    continue
+                if stored_id.startswith("sid:") and state == "revoked":
                     return None
-            elif row:
-                connection.execute("DELETE FROM local_token_state WHERE token_id = ?", (token_id,))
+                if stored_id == f"jti:{token_id}" and (
+                    state == "revoked" or (expected_type == "refresh" and state == "used_refresh")
+                ):
+                    return None
         finally:
             connection.close()
         return payload
@@ -158,14 +166,20 @@ def invalidate_local_token(token: str) -> bool:
     connection = None
     try:
         connection = _connect_token_state()
-        connection.execute(
-            """
-            INSERT INTO local_token_state (token_id, state, expires_at)
-            VALUES (?, 'revoked', ?)
-            ON CONFLICT(token_id) DO UPDATE SET state = 'revoked', expires_at = excluded.expires_at
-            """,
-            (token_id, expiry),
-        )
+        connection.execute("BEGIN IMMEDIATE")
+        state_keys = [f"jti:{token_id}"]
+        session_id = payload.get("sid")
+        if isinstance(session_id, str) and session_id:
+            state_keys.append(f"sid:{session_id}")
+        for state_key in state_keys:
+            connection.execute(
+                """
+                INSERT INTO local_token_state (token_id, state, expires_at)
+                VALUES (?, 'revoked', ?)
+                ON CONFLICT(token_id) DO UPDATE SET state = 'revoked', expires_at = excluded.expires_at
+                """,
+                (state_key, expiry),
+            )
         connection.commit()
         return True
     except sqlite3.Error:
@@ -196,16 +210,25 @@ def consume_local_refresh_token(token: str) -> Optional[dict]:
         connection.execute("BEGIN IMMEDIATE")
         now = time.time()
         connection.execute("DELETE FROM local_token_state WHERE expires_at <= ?", (now,))
+        session_id = payload.get("sid")
+        if isinstance(session_id, str):
+            revoked_session = connection.execute(
+                "SELECT 1 FROM local_token_state WHERE token_id = ? AND state = 'revoked' AND expires_at > ?",
+                (f"sid:{session_id}", now),
+            ).fetchone()
+            if revoked_session:
+                connection.rollback()
+                return None
         existing = connection.execute(
             "SELECT state FROM local_token_state WHERE token_id = ?",
-            (token_id,),
+            (f"jti:{token_id}",),
         ).fetchone()
         if existing:
             connection.rollback()
             return None
         connection.execute(
             "INSERT INTO local_token_state (token_id, state, expires_at) VALUES (?, 'used_refresh', ?)",
-            (token_id, expiry),
+            (f"jti:{token_id}", expiry),
         )
         connection.commit()
         return payload
