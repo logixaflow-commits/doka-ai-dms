@@ -72,8 +72,9 @@ def test_real_supabase_configuration_is_detected(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_filesystem_workspace_api_is_disabled_in_production(monkeypatch):
-    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+@pytest.mark.parametrize("environment", ["production", "prod", "staging"])
+async def test_filesystem_workspace_api_is_disabled_outside_local_environments(monkeypatch, environment):
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
     with pytest.raises(HTTPException) as error:
         await require_local_workspace_user(None)
     assert error.value.status_code == 404
