@@ -425,3 +425,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added local Safe Workspace UI controls to list backups, verify a selected backup, and restore it into a separate Recovery directory after explicit confirmation. The active workspace is not overwritten. Completed import sessions no longer poll status every three seconds.
 - Commits: `58fed41`, `9059d66`, `330093b`, `3c90cf4`, `f93c751`, `cfa0550`, `b934a0b`, `7c53691`, `bc90465`, `e4d690b`, `83c02d9`, `a3690e7`, `795d940`.
 - Verification boundary: source and regression tests were updated, but no local Python/Node test runner or GitHub Actions runner was executed for these commits. The GitHub Actions monthly usage constraint remains in effect; do not claim these tests passed until a runner executes them.
+
+### 2026-10-03 — Personal Local authentication and UI routing
+
+- Fixed the Local Edition login mismatch: when Vite runs in development without valid Supabase credentials, the frontend now authenticates through the backend's /api/auth/login and /api/auth/me endpoints using the configured local admin username/password.
+- Local access and refresh tokens are persisted in the same browser session keys used by the API client; expired access tokens are refreshed through /api/auth/refresh. Logout clears the browser session. Production continues to require Supabase Auth.
+- The Local Edition now opens directly into Safe Workspace, shows only local navigation, and redirects cloud-only pages back to Safe Workspace. Cloud mode retains its dashboard, cloud documents and activity routes.
+- Both frontend and backend now treat the documented example Supabase placeholder values as unconfigured, so copying the example environment files does not accidentally force local users through a nonfunctional cloud-auth path.
+- Aligned Vite's local API proxy with the backend's 127.0.0.1 bind address. Updated README/Quickstart to describe the local username and password requirements.
+- Commits: `10ee04c`, `a1974d1`, `3c6e347`, `19ab63c`, `dd8478a`, `0675fbc`, `a555524`, `320cd74`, `d3e8e83`, `2bee3da`, `e04afbe`, `4b1050a`, `350719e`.
+- Verification boundary: no frontend build or backend test suite was run because no runner was available within the Actions usage constraint. The added auth tests and frontend changes remain pending actual execution.
