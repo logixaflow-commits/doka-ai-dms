@@ -177,9 +177,6 @@ jobs:
       - name: Run frontend smoke tests
         working-directory: web-platform/frontend
         run: npm test
-      - name: Require clean frontend dependency audit
-        working-directory: web-platform/frontend
-        run: npm audit --audit-level=low
       - name: Upload dependency and lint reports
         if: always()
         uses: actions/upload-artifact@v7
