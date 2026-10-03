@@ -168,6 +168,12 @@ class OrganizationPlanner:
     def apply(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
         if not approved_paths:
             raise ValueError("No approved files were supplied.")
+        if len(approved_paths) > 500:
+            raise ValueError("At most 500 files may be approved in one apply operation.")
+        if any(not isinstance(path, str) or not path or len(path) > 1024 for path in approved_paths):
+            raise ValueError("Approved paths must be non-empty relative paths no longer than 1024 characters.")
+        if len(set(approved_paths)) != len(approved_paths):
+            raise ValueError("Duplicate approved paths are not allowed.")
         plan = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "organization_plan.json"))
         manifest = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "manifest.json"))
         if not plan or not manifest:
@@ -196,6 +202,9 @@ class OrganizationPlanner:
             proposal = proposals.get(rel)
             if not proposal:
                 results.append({"relative_path": rel, "status": "rejected", "reason": "Not in generated plan"})
+                continue
+            if proposal.get("action") not in {"suggest_move", "review", "review_version"}:
+                results.append({"relative_path": rel, "status": "rejected", "reason": "Proposal action is not eligible for apply"})
                 continue
             source = (root / rel).resolve()
             manifest_entry = manifest.get("files", {}).get(rel)
@@ -234,7 +243,8 @@ class OrganizationPlanner:
                 else:
                     import shutil
                     shutil.copy2(source, target)
-                    target_hash = __import__("hashlib").sha256(target.read_bytes()).hexdigest()
+                    # Hash incrementally; large office files must not be loaded into RAM.
+                    target_hash = sha256_file(target)
                     if target_hash != source_hash:
                         target.unlink(missing_ok=True)
                         raise IOError("Final copy SHA-256 verification failed")
