@@ -392,3 +392,7 @@ Evidence boundary:
 
 - Automatic push run 37114338756 for commit 0babf061fea1f2a3e40f7ead9bbc7262e572cac8 reports all four jobs failed, but every job record has steps=null and logs_url=null. No test, audit, CodeQL, Semgrep or SBOM command output is available.
 - The run was automatic; no workflow_dispatch or manual rerun was used. Classify this as runner/log evidence unavailable, not a confirmed code failure or a passing verification.
+
+### SEC-001 follow-up — 2026-10-03
+
+- Added a pinned Gitleaks pre-commit hook matching the CI version and documented setup. Historical Git-history scanning and itemized GitHub Secret Scanning/Dependabot alert review remain pending; no baseline is declared clean.
