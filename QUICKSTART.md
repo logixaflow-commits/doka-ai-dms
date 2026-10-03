@@ -24,7 +24,7 @@ The script creates `web-platform\\backend\\.venv`, installs the smaller Personal
 - Backend: `http://127.0.0.1:8000`
 - Frontend: `http://127.0.0.1:3000`
 
-Before login, set `BOOTSTRAP_ADMIN_PASSWORD` in `web-platform\\backend\\.env`.
+Before login, set a strong `BOOTSTRAP_ADMIN_PASSWORD` (at least 12 characters) in `web-platform\\backend\\.env`. The default username is `admin`; change it with `LOCAL_ADMIN_USERNAME` if needed. In local development, the frontend uses the backend's local login and does not require Supabase credentials.
 
 ## Manual start
 
