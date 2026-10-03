@@ -43,6 +43,7 @@ type OcrResult = {
 };
 type OcrValidationStatus = { available: boolean; executable?: string | null };
 type ActionResult = { status: string };
+type BackupInfo = { archive: string; created_at?: string; sha256?: string };
 
 function authHeaders() {
   const token = localStorage.getItem('access_token');
@@ -68,6 +69,7 @@ function LocalWorkspaceReview() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [ocrStatus, setOcrStatus] = useState<OcrValidationStatus | null>(null);
   const [backupStatus, setBackupStatus] = useState<string>('');
+  const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [sessions, setSessions] = useState<ImportSession[]>([]);
   const [showReviewOnly, setShowReviewOnly] = useState(false);
   const [extensionFilter, setExtensionFilter] = useState('');
@@ -97,8 +99,21 @@ function LocalWorkspaceReview() {
     }
   }, []);
 
+  const loadBackups = useCallback(async () => {
+    try {
+      const response = await api('/backups');
+      if (response.ok) {
+        const data = await response.json() as { backups?: BackupInfo[] };
+        setBackups(data.backups || []);
+      }
+    } catch {
+      setMessage('Backup list is unavailable. Check that the local backend is running.');
+    }
+  }, []);
+
   function resumeSession(id: string) {
     setSessionId(id);
+    setStatus(null);
     setProposals([]);
     setSelected(new Set());
     setSearchResults([]);
@@ -163,8 +178,34 @@ function LocalWorkspaceReview() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Backup failed');
       setBackupStatus(data.sha256 || '');
+      await loadBackups();
       setMessage('Workspace backup created and SHA-256 recorded.');
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Backup failed'); }
+    finally { setBusy(false); }
+  }
+
+  async function verifyBackup(archivePath: string) {
+    const archiveName = archivePath.split(/[\\/]/).pop() || archivePath;
+    setBusy(true); setMessage('');
+    try {
+      const response = await api(`/backups/verify?archive_name=${encodeURIComponent(archiveName)}`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Backup verification failed');
+      setMessage(data.verified ? `Backup verified: ${archiveName}` : `Backup integrity check failed: ${archiveName}`);
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'Backup verification failed'); }
+    finally { setBusy(false); }
+  }
+
+  async function restoreBackup(archivePath: string) {
+    const archiveName = archivePath.split(/[\\/]/).pop() || archivePath;
+    if (!window.confirm(`Restore ${archiveName} into a separate Recovery folder? The active workspace will not be overwritten.`)) return;
+    setBusy(true); setMessage('');
+    try {
+      const response = await api(`/backups/restore?archive_name=${encodeURIComponent(archiveName)}`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Backup restore failed');
+      setMessage(`Backup restored to Recovery: ${data.recovery_path}. Active workspace unchanged.`);
+    } catch (e) { setMessage(e instanceof Error ? e.message : 'Backup restore failed'); }
     finally { setBusy(false); }
   }
 
@@ -267,14 +308,15 @@ function LocalWorkspaceReview() {
 
   useEffect(() => {
     void Promise.resolve().then(loadSessions);
-  }, [loadSessions]);
+    void Promise.resolve().then(loadBackups);
+  }, [loadBackups, loadSessions]);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || ['completed', 'completed_with_errors', 'failed', 'scanned'].includes(status?.state || '')) return;
     void Promise.resolve().then(loadStatus);
     const timer = window.setInterval(() => void loadStatus(), 3000);
     return () => window.clearInterval(timer);
-  }, [loadStatus, sessionId]);
+  }, [loadStatus, sessionId, status?.state]);
 
   function toggle(path: string) {
     const next = new Set(selected);
@@ -347,7 +389,27 @@ function LocalWorkspaceReview() {
                 <Button variant="outline" onClick={validateOcr} disabled={busy}>Check OCR</Button>
               </div>
               {ocrStatus && <div className="text-xs text-slate-500">OCR: {ocrStatus.available ? 'Myanmar + English ready' : 'Needs attention'} · {ocrStatus.executable}</div>}
-              {backupStatus && <div className="text-xs text-slate-500 break-all">Backup SHA-256: {backupStatus}</div>}
+              {backupStatus && <div className="text-xs text-slate-500 break-all">Latest backup SHA-256: {backupStatus}</div>}
+              {backups.length > 0 && (
+                <div className="space-y-2 border-t pt-3">
+                  <div className="text-sm font-medium">Backup history</div>
+                  {backups.map(backup => {
+                    const archiveName = backup.archive.split(/[\\/]/).pop() || backup.archive;
+                    return (
+                      <div key={backup.archive} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2">
+                        <div className="min-w-0">
+                          <div className="break-all text-xs font-medium">{archiveName}</div>
+                          <div className="break-all text-xs text-slate-500">{backup.created_at || ''}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => verifyBackup(backup.archive)} disabled={busy}>Verify</Button>
+                          <Button size="sm" variant="outline" onClick={() => restoreBackup(backup.archive)} disabled={busy}>Restore to Recovery</Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
