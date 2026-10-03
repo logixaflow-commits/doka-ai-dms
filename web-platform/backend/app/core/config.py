@@ -377,8 +377,11 @@ class Settings:
         if self.STORAGE_TYPE == "local" and not self.MINIO_ENABLED:
             logger.info("Using local storage (MinIO disabled)")
 
-        # Personal mode safety boundary: SOURCE_ROOT is always treated as read-only,
-        # and every writable organization/quarantine path must stay inside WORKING_ROOT.
+        # Personal mode safety boundary: both flags must explicitly preserve the
+        # read-only source invariant. Do not allow a contradictory configuration
+        # where the source is declared writable even though writes are separately disabled.
+        if not self.ORIGINAL_READ_ONLY:
+            raise ValueError("Unsafe workspace configuration: ORIGINAL_READ_ONLY must remain true in personal local mode.")
         if self.ALLOW_SOURCE_WRITE:
             raise ValueError("Unsafe workspace configuration: ALLOW_SOURCE_WRITE must remain false in personal local mode.")
         if self.SOURCE_ROOT:
