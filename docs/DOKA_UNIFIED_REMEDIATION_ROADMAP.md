@@ -299,6 +299,7 @@ Implemented in the repository:
 - **Local auth boundary:** expanded `web-platform/tests/test_local_auth.py` to assert that refresh, identity (`/me`) and logout endpoints are denied in production, `prod` and staging environments, complementing the existing login/workspace denial coverage.
 - **Personal Local build contract:** documented `VITE_DOKA_EDITION=personal-local` for production-built local frontend, the backend `ENVIRONMENT=local|development` requirement, and the Supabase/local-auth separation in `web-platform/frontend/.env.example` and `web-platform/README.md`.
 - **FE-008 / workflow state:** `WorkspaceReview.tsx` now clears prior search/OCR results, drafts, proposals and approvals before scan/OCR/plan requests; starting a new import also clears previous session search results. Frontend smoke assertions cover these reset boundaries.
+- **Organization/OCR concurrency:** planning, document understanding and OCR correction writes now use the same per-session lock as scan, apply and undo, preventing those session mutations from racing each other in the local process.
 - **OCR test/runtime dependencies:** added `numpy` and `opencv-python-headless` to `web-platform/backend/requirements-local.txt`, because the active OCR module imports both at module load and the backend test workflow installs this local profile.
 
 Evidence status:
