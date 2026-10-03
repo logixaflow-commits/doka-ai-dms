@@ -111,3 +111,10 @@ Date: 2026-10-03
 - Rewrote mobile README to identify the app as a legacy prototype and document the current API contract mismatch: its document endpoints are not mounted by the active Personal Local entry point, while the Cloud API uses Supabase Auth and a different contract.
 - MOB-004 resumable/background upload remains blocked: the server contract currently provides no upload-session/chunk/commit API, and a client-only retry would restart the full upload rather than resume. MOB-002 image caching remains deferred because the current mobile screens do not render private document image previews; adding a cache before defining authorization, signed URL expiry and eviction would risk retaining private content.
 - The mobile package remains Expo SDK 50 / React Native 0.73 with no committed lockfile. Do not upgrade individual native dependencies; perform a coordinated Expo SDK upgrade, lockfile generation and dependency audit before native builds.
+
+## Phase 2–3 operations and QA artifacts — 2026-10-03
+
+- **OPS-001:** replaced the retained production Dockerfile with a Python 3.12 multi-stage build, isolated virtual environment, minimal runtime packages, non-root doka user, health check and explicit source/config copies. Added backend .dockerignore rules to keep .env files, virtual environments, databases, backups and private office data out of the build context. Docker build/runtime have not been executed.
+- **OPS-004 / QA-002:** added scripts/export_cloud_openapi.py and updated the consolidated backend CI job to emit an OpenAPI JSON artifact plus a coverage XML/terminal report. The coverage report is a baseline only; no threshold gate was introduced without an observed baseline. CI has not executed its steps.
+- **DR-003:** expanded docs/PERSONAL_LOCAL_RUNBOOK.md with a copied-data backup/restore drill, manifest/hash comparisons, duration evidence and explicit RTO/RPO approval requirement. No real restore drill was run.
+- The new CodeQL/Semgrep/SBOM/OpenAPI/coverage workflow changes were committed, but GitHub Actions automatic push runs continue to fail before exposing any steps/logs. No manual dispatch or rerun was made.
