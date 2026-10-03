@@ -80,6 +80,7 @@ def create_local_access_token(username: str, session_id: str | None = None) -> s
     connection = _connect_token_state()
     connection.close()
     now = datetime.now(timezone.utc)
+    session_expires_at = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     return jwt.encode(
         {
             "sub": username,
@@ -87,6 +88,7 @@ def create_local_access_token(username: str, session_id: str | None = None) -> s
             "type": "access",
             "jti": secrets.token_urlsafe(18),
             "sid": session_id or secrets.token_urlsafe(24),
+            "sid_exp": session_expires_at,
             "iat": now,
             "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         },
@@ -99,6 +101,7 @@ def create_local_refresh_token(username: str, session_id: str | None = None) -> 
     connection = _connect_token_state()
     connection.close()
     now = datetime.now(timezone.utc)
+    session_expires_at = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     return jwt.encode(
         {
             "sub": username,
@@ -106,8 +109,9 @@ def create_local_refresh_token(username: str, session_id: str | None = None) -> 
             "type": "refresh",
             "jti": secrets.token_urlsafe(18),
             "sid": session_id or secrets.token_urlsafe(24),
+            "sid_exp": session_expires_at,
             "iat": now,
-            "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            "exp": session_expires_at,
         },
         settings.SECRET_KEY,
         algorithm="HS256",
@@ -150,14 +154,20 @@ def decode_local_token(token: str, expected_type: str = "access") -> Optional[di
 
 def invalidate_local_token(token: str) -> bool:
     """Persist token revocation until the token's natural expiry."""
-    payload = decode_local_token(token, expected_type="access")
-    if not payload:
-        payload = decode_local_token(token, expected_type="refresh")
-    if not payload:
+    try:
+        # Decode the signed claims without consulting revocation state: logout must
+        # be able to extend an existing session-family revocation, even if another
+        # token from the same session was already revoked/consumed.
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+    except JWTError:
+        return False
+    if payload.get("type") not in {"access", "refresh"} or payload.get("role") != "admin":
         return False
     token_id = payload.get("jti")
+    session_id = payload.get("sid")
     try:
-        expiry = float(payload.get("exp"))
+        token_expiry = float(payload.get("exp"))
+        session_expiry = float(payload.get("sid_exp", token_expiry))
     except (TypeError, ValueError):
         return False
     if not isinstance(token_id, str) or not token_id:
@@ -167,16 +177,17 @@ def invalidate_local_token(token: str) -> bool:
     try:
         connection = _connect_token_state()
         connection.execute("BEGIN IMMEDIATE")
-        state_keys = [f"jti:{token_id}"]
-        session_id = payload.get("sid")
+        revocations = [(f"jti:{token_id}", token_expiry)]
         if isinstance(session_id, str) and session_id:
-            state_keys.append(f"sid:{session_id}")
-        for state_key in state_keys:
+            revocations.append((f"sid:{session_id}", session_expiry))
+        for state_key, expiry in revocations:
             connection.execute(
                 """
                 INSERT INTO local_token_state (token_id, state, expires_at)
                 VALUES (?, 'revoked', ?)
-                ON CONFLICT(token_id) DO UPDATE SET state = 'revoked', expires_at = excluded.expires_at
+                ON CONFLICT(token_id) DO UPDATE SET
+                    state = 'revoked',
+                    expires_at = MAX(local_token_state.expires_at, excluded.expires_at)
                 """,
                 (state_key, expiry),
             )
