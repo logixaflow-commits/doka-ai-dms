@@ -108,3 +108,14 @@ async def test_direct_provider_methods_require_explicit_consent(
 
     with pytest.raises(RuntimeError, match="consent is required"):
         await getattr(service, method_name)("private document text")
+
+@pytest.mark.asyncio
+async def test_external_embeddings_enforce_the_configured_input_limit(monkeypatch):
+    service = UnifiedAIService()
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_MAX_INPUT_CHARS", 1000)
+    monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-key")
+
+    with pytest.raises(ValueError, match="configured AI input limit"):
+        await service.get_embedding("x" * 1001)
