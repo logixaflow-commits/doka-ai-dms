@@ -401,3 +401,14 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Vercel automatically created production deployments for the commits in this sequence; commit `d4376fe` reached READY. A later follow-up commit `78e071b` contains the final metadata-validation and unchanged-save guards and must be the deployment used for final UI verification.
 - GitHub Actions jobs for commit `a6ed5df` were unable to allocate a hosted runner (`runner_id=0`, no steps). CI minutes are exhausted, so no test/build result is claimed for these changes.
 - Before Phase 1 & 2 can be called complete, verify the final `main` deployment is READY, then perform desktop/tablet/mobile browser checks, authenticated document upload/edit/search/batch/version/trash/restore checks, and a two-user ownership-isolation test. Do not use production data for destructive acceptance tests.
+
+
+## 2026-10-03 — CI consolidation and current verification boundary
+
+- Consolidated automatic source validation into `Doka Quality Checks`. `Local Core Checks` and `Vercel Production Smoke Check` are manual-dispatch only; Cloudflare Worker deployment remains explicitly gated. No Vercel deployment or reactivation was performed.
+- Removed the frontend workflow's automatic lockfile mutation/commit and the redundant install/audit-fix/reinstall sequence. Dependency remediation must be performed as a deliberate reviewed change, not by CI writing to `main`.
+- The latest observed `Doka Quality Checks` run for commit `9b1945e367ac2ff6d1ed04a5a3f7a95bbca0906e` (run `37095978985`, 2026-10-03) completed with failure in all three jobs: backend regression tests, frontend build/smoke tests, and backend dependency audit. GitHub's connected run/job responses did not include step summaries or downloadable logs, so the failing commands and root cause are **not verified**. Do not interpret these results as tests having run to completion or as evidence of a specific code defect.
+- No further Actions rerun was initiated because runner usage is constrained. The source/configuration audit is continuing without dispatching additional workflows.
+- Current repository state is not release-certified: automated checks are failing with unavailable diagnostics, full Dependabot alert inventory remains inaccessible through the connected GitHub interface, and Phase D still requires copied real-office data validation with before/after source hashes and verified backup/restore evidence.
+- The frontend package declares Node `24.x`; `QUICKSTART.md` now documents the matching prerequisite. The previous Node 20+ instruction was inconsistent with the package engine declaration.
+- Vercel production checks remain manual-only during the owner's pause. Do not treat historic READY deployments or earlier HTTP 200 checks as proof of current production health.
