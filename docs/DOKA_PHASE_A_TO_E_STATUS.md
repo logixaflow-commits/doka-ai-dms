@@ -435,3 +435,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Aligned Vite's local API proxy with the backend's 127.0.0.1 bind address. Updated README/Quickstart to describe the local username and password requirements.
 - Commits: `10ee04c`, `a1974d1`, `3c6e347`, `19ab63c`, `dd8478a`, `0675fbc`, `a555524`, `320cd74`, `d3e8e83`, `2bee3da`, `e04afbe`, `4b1050a`, `350719e`.
 - Verification boundary: no frontend build or backend test suite was run because no runner was available within the Actions usage constraint. The added auth tests and frontend changes remain pending actual execution.
+
+### 2026-10-03 — Additional import and recovery path hardening
+
+- Import sessions and the working-copy root now reject symlinked directories. Per-file import destinations are checked for symlinked parents before and after directory creation; a source file that changes into a symlink or resolves outside the selected source root is rejected.
+- Recovery restore now refuses a symlinked Recovery directory and verifies that its resolved destination remains inside WORKING_ROOT.
+- Additional regression tests cover symlinked import roots, symlinked destination parents and symlinked recovery roots.
+- Local auth integration now also treats backend Supabase example placeholders as unconfigured. This matches the frontend detection and allows the documented Personal Local .env template to use local JWT authentication without attempting Supabase token verification.
+- Latest observed Actions run `37096666075` for commit `1e18c340928bdc00d00057f2e9280b877e5ccd0b` failed in all three jobs. The connected GitHub response again supplied no step summaries or logs. Several superseded automatic runs were cancelled by the configured concurrency group. No workflow was manually dispatched or rerun.
+- Additional commits: `894cc85`, `d63890d`, `a67d3d9`, `dc64c55`, `8c2f49b`, `7474e39`, `c2ad6ea`, `1e18c34`, `d3e8e83`, `2bee3da`, `e04afbe`, `4b1050a`, `350719e`, `0675fbc`, `a555524`, `320cd74`.
+- These remain source-level changes with regression tests authored but not executed. Do not mark CI, real-machine acceptance, OCR accuracy, or Phase A–E release gates as passed.
