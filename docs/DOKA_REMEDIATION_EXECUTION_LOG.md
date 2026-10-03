@@ -129,3 +129,8 @@ Date: 2026-10-03
 
 - Added a pinned Gitleaks v8.24.3 pre-commit hook in .pre-commit-config.yaml, matching the CI scanner version, and documented installation/use in docs/SECURITY.md.
 - This adds staged-file scanning for contributors plus existing current-checkout CI scanning. It does not scan historical Git commits, and it does not replace GitHub Dependabot/Secret Scanning alert review. No pre-commit hook was installed or executed in this environment.
+
+## CI runner evidence update — latest code commit
+
+- Read-only inspection of automatic push run 37114518007 for commit e78d2353d639ce356d1c96d0e94f0663876e3fa8 shows all four jobs concluded failure with steps=null and logs_url=null. No command output is available; the run cannot establish test, audit, frontend, CodeQL or SBOM results.
+- No manual workflow dispatch or rerun was performed. Keep runtime verification pending.
