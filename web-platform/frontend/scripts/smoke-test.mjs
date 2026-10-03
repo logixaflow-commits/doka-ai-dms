@@ -38,6 +38,22 @@ if (!startImport.includes('setSearchResults([])')) {
   throw new Error('Starting a new import must clear previous session search results.');
 }
 
+const themeContext = fs.readFileSync(path.resolve('src/contexts/ThemeContext.tsx'), 'utf8');
+for (const required of [
+  'typeof window === \'undefined\'',
+  'window.localStorage.getItem',
+  'window.localStorage.setItem',
+  'useCallback',
+  'useMemo',
+  "media.addEventListener('change', applyTheme)",
+  "media.removeEventListener('change', applyTheme)",
+]) {
+  if (!themeContext.includes(required)) {
+    throw new Error(`ThemeContext safety or memoization contract is missing ${required}.`);
+  }
+}
+console.log('ThemeContext storage, system-theme and memoization smoke test passed.');
+
 console.log('Frontend smoke test passed.');
 
 const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
