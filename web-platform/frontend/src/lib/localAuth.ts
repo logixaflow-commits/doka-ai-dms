@@ -1,4 +1,4 @@
-import type { SupabaseUser } from '@/lib/supabaseAuth';
+import { isSupabaseConfigured, type SupabaseUser } from '@/lib/supabaseAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -9,7 +9,7 @@ type LocalSession = { access_token: string; refresh_token: string; token_type: '
 type LocalIdentity = { username: string; role: string };
 
 export function isLocalAuthEnabled() {
-  return import.meta.env.DEV && !Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+  return import.meta.env.DEV && !isSupabaseConfigured();
 }
 
 async function readError(response: Response) {
