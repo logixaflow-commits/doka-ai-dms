@@ -28,7 +28,10 @@ export async function signInLocal(username: string, password: string) {
   localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
   localStorage.setItem(REFRESH_TOKEN_KEY, session.refresh_token);
   const user = await getLocalCurrentUser();
-  if (!user) throw new Error('Local login succeeded but the session could not be verified.');
+  if (!user) {
+    clearLocalSession();
+    throw new Error('Local login succeeded but the session could not be verified.');
+  }
   return user;
 }
 
@@ -68,6 +71,8 @@ export async function signOutLocal() {
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
+  } catch {
+    // Clear browser credentials even when the local API is offline.
   } finally {
     clearLocalSession();
   }
