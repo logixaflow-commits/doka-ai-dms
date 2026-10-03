@@ -25,6 +25,17 @@ except ImportError:
     CONFIG_VALIDATOR_AVAILABLE = False
 
 
+def normalize_environment(value: str | None) -> str:
+    """Normalize common deployment aliases before applying security defaults."""
+    normalized = (value or "development").strip().lower()
+    return {"prod": "production"}.get(normalized, normalized)
+
+
+def default_debug_for_environment(environment: str) -> bool:
+    """Debug mode is off by default in production-like environments."""
+    return environment not in {"production", "staging"}
+
+
 @dataclass
 class SupplierConfig:
     name: str
@@ -110,8 +121,9 @@ class Settings:
 
     def _load_env(self):
         """Load configuration from environment variables."""
-        self.ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-        self.DEBUG = os.getenv("DEBUG", "False" if os.getenv("ENVIRONMENT", "development") == "production" else "True").lower() == "true"
+        self.ENVIRONMENT = normalize_environment(os.getenv("ENVIRONMENT"))
+        debug_default = "true" if default_debug_for_environment(self.ENVIRONMENT) else "false"
+        self.DEBUG = os.getenv("DEBUG", debug_default).strip().lower() == "true"
         self.SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_urlsafe(32)
         self.ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
