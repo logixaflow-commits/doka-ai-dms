@@ -6,30 +6,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { isSupabaseConfigured, signIn, signUp } from '@/lib/supabaseAuth';
+import { isLocalAuthEnabled, signInLocal } from '@/lib/localAuth';
 
-export default function Login({ onLogin }: { onLogin: () => void }) {
+export default function Login({ onLogin }: { onLogin: () => void | Promise<void> }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const configured = isSupabaseConfigured();
+  const localMode = isLocalAuthEnabled();
+  const configured = isSupabaseConfigured() || localMode;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     setMessage('');
     try {
-      if (!configured) throw new Error('Supabase Auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to the Vercel project, then redeploy.');
-      if (mode === 'login') {
-        await signIn(email.trim(), password);
-        onLogin();
+      if (localMode) {
+        await signInLocal(email.trim(), password);
+        await onLogin();
       } else {
-        const session = await signUp(email.trim(), password);
-        if (session.access_token) onLogin();
-        else {
-          setMessage('Account created. Check your email to confirm your account, then sign in.');
-          setMode('login');
+        if (!configured) throw new Error('Supabase Auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to the frontend environment.');
+        if (mode === 'login') {
+          await signIn(email.trim(), password);
+          await onLogin();
+        } else {
+          const session = await signUp(email.trim(), password);
+          if (session.access_token) await onLogin();
+          else {
+            setMessage('Account created. Check your email to confirm your account, then sign in.');
+            setMode('login');
+          }
         }
       }
     } catch (err) {
@@ -72,19 +79,19 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
               <div><p className="text-lg font-semibold tracking-tight">Doka</p><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-muted-foreground">Document workspace</p></div>
             </div>
             <div className="mb-8">
-              <p className="text-xs font-semibold uppercase tracking-[.18em] text-primary">{mode === 'login' ? 'WELCOME BACK' : 'GET STARTED'}</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight">{mode === 'login' ? 'Sign in to Doka' : 'Create your account'}</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{mode === 'login' ? 'Enter your details to access your private document library.' : 'Create an account to start your private document library.'}</p>
+              <p className="text-xs font-semibold uppercase tracking-[.18em] text-primary">{localMode ? 'PERSONAL LOCAL EDITION' : mode === 'login' ? 'WELCOME BACK' : 'GET STARTED'}</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight">{localMode || mode === 'login' ? 'Sign in to Doka' : 'Create your account'}</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{localMode ? 'Sign in with the local administrator credentials configured on this computer.' : mode === 'login' ? 'Enter your details to access your private document library.' : 'Create an account to start your private document library.'}</p>
             </div>
             <Card className="border-0 shadow-none">
               <CardContent className="p-0">
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-2"><Label htmlFor="email">Email address</Label><Input id="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" required className="h-12 rounded-xl bg-background px-4" /></div>
-                  <div className="space-y-2"><div className="flex items-center justify-between"><Label htmlFor="password">Password</Label><span className="text-[11px] text-muted-foreground">At least 8 characters</span></div><Input id="password" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={8} value={password} onChange={event => setPassword(event.target.value)} placeholder="Enter your password" required className="h-12 rounded-xl bg-background px-4" /></div>
+                  <div className="space-y-2"><Label htmlFor="email">{localMode ? 'Local username' : 'Email address'}</Label><Input id="email" type={localMode ? 'text' : 'email'} autoComplete={localMode ? 'username' : 'email'} value={email} onChange={event => setEmail(event.target.value)} placeholder={localMode ? 'admin' : 'you@example.com'} required className="h-12 rounded-xl bg-background px-4" /></div>
+                  <div className="space-y-2"><div className="flex items-center justify-between"><Label htmlFor="password">Password</Label><span className="text-[11px] text-muted-foreground">At least {localMode ? '12' : '8'} characters</span></div><Input id="password" type="password" autoComplete={localMode || mode === 'login' ? 'current-password' : 'new-password'} minLength={localMode ? 12 : 8} value={password} onChange={event => setPassword(event.target.value)} placeholder="Enter your password" required className="h-12 rounded-xl bg-background px-4" /></div>
                   {message && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">{message}</div>}
                   <Button type="submit" className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/15" disabled={loading || !configured}>{loading ? 'Please wait…' : mode === 'login' ? 'Sign in securely' : 'Create account'}<ArrowRight className="ml-2 h-4 w-4" /></Button>
                   {!configured && <p className="text-xs leading-5 text-rose-600">Authentication configuration is missing. Contact the administrator.</p>}
-                  <p className="text-center text-sm text-muted-foreground">{mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}<button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); }}>{mode === 'login' ? 'Create one' : 'Sign in'}</button></p>
+                  {!localMode && <p className="text-center text-sm text-muted-foreground">{mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}<button type="button" className="font-semibold text-primary hover:underline" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); }}>{mode === 'login' ? 'Create one' : 'Sign in'}</button></p>}
                 </form>
               </CardContent>
             </Card>
