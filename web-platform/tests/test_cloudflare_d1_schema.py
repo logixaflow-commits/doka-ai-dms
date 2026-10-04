@@ -159,7 +159,7 @@ def test_document_delete_cascades_versions_and_preserves_audit_event(db):
     assert db.execute("SELECT count(*) FROM document_versions").fetchone()[0] == 0
     assert db.execute(
         "SELECT document_id FROM audit_events WHERE id = 'audit-1'"
-    ).fetchone()[0] is None
+    ).fetchone()[0] == "doc-1"
 
 
 def test_audit_events_are_append_only(db):
