@@ -130,7 +130,8 @@ CREATE INDEX document_chunks_document_idx
 CREATE TABLE audit_events (
     id TEXT PRIMARY KEY,
     owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    document_id TEXT REFERENCES documents(id) ON DELETE SET NULL,
+    -- Historical identifier intentionally has no FK so hard deletion cannot rewrite audit history.
+    document_id TEXT,
     action TEXT NOT NULL CHECK (action IN (
         'upload', 'download', 'preview', 'update', 'trash', 'restore',
         'permanent_delete', 'version_create', 'version_restore'
