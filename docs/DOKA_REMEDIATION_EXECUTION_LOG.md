@@ -159,3 +159,25 @@ Environment blockers and Git:
 - Docker, Tesseract, Poppler, Gitleaks, Semgrep and pre-commit were unavailable. GitHub CLI was unauthenticated, so Dependabot inventory and detailed GitHub Actions logs remain unavailable. No live Supabase/two-user check, Docker image build, native mobile build, real-office pilot, or real restore/RTO/RPO drill was run.
 - No GitHub Actions run was manually dispatched or rerun. No Vercel production configuration/deployment was changed.
 - Work remains uncommitted on `main`; no commit or push was made. Review the complete working-tree diff before any future commit.
+
+
+## CI and security remediation update — 2026-10-04
+
+Direct-to-main changes (no feature branches or PRs):
+- `5c7c2c6`: flush imported working-copy content before restoring source timestamps; update the session file-set assertion to include the two persistent coordination lock files.
+- `20c70a0`: retain a redacted Gitleaks SARIF report as a short-lived CI artifact so findings can be triaged without exposing secret values.
+- `51ec514` / `7b31993`: add encryption-key regression tests, remove the hard-coded Fernet fallback, require a valid explicitly configured `ENCRYPTION_KEY`, and document key generation in the environment template. Remove API-key-shaped credentials from the legacy AI integration guide and replace documentation token examples with placeholders.
+- `cef69c8`: remove the unused, unavailable `unittest-xml>=0.7.1` test dependency that caused pip-audit to fail operationally.
+- `0a4c19e`: keep frontend lint/build/smoke checks running even when npm audit reports findings; the job still fails after those checks if the audit remains non-zero.
+- `6656007`: make the isolated symlink security job install only the test profile and run from the backend directory rather than installing the full ML/OCR runtime.
+
+Verification from Doka Quality Checks run `37221393963` (commit `6656007`):
+- Backend/repository regression suite: **290 passed, 11 warnings**.
+- Symlink security suite: **3 passed**.
+- Frontend install, lint baseline (0 errors), Vite production build (**1,817 modules transformed**) and frontend smoke suite all passed.
+- Root dependency audit passed; all backend requirements-profile audits passed.
+- Gitleaks: **no leaks found in the current checkout**. CodeQL, Semgrep baseline upload and SPDX SBOM generation completed successfully.
+- The overall workflow remains failed only because the frontend npm audit still reports five high-severity package findings in the Tailwind development dependency chain. The underlying `braces` advisory affects versions through 3.0.3 and currently lists no patched release; npm proposes Tailwind CSS 4.3.3, a major upgrade. Do not apply an unverified override. Tailwind v4 has a newer browser floor, so confirm supported browsers before migrating.
+- Historical credential exposure is not removed by editing the current tree. Treat the provider credentials formerly documented in the legacy AI guide as compromised and rotate them; Git history rewriting remains unperformed pending explicit approval.
+- Latest Vercel deployment for code-only/CI-only commits was cancelled by the configured ignored-build-step rule; this is not a failed Vite build. The previously READY production deployment remains on commit `e8a15c9`. No Vercel settings or production environment values were changed.
+- Cloud Edition runtime still uses the existing Supabase-backed Worker. D1/Storj migration and infrastructure provisioning remain separate, unstarted work; no Cloudflare resources were created or changed in this batch.

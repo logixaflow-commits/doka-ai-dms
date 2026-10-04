@@ -540,3 +540,14 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added `numpy` and `opencv-python-headless` to `requirements-local.txt`; the active OCR module imports both, and the backend regression workflow installs this profile.
 - These changes are committed but the backend pytest suite, frontend smoke test and production build have not been executed in this work batch.
 - Commits: `f8a68c0`, `6f28546`, `8e72dce`, `2bafff6`, `d0d1658`, `746fa3f`, `d7b4830`.
+
+
+### 2026-10-04 — Security and CI verification update
+
+- Direct-to-main fixes restored the Personal Local import timestamp behavior and aligned the session file inventory test with the persistent lock files.
+- Production security encryption no longer derives a Fernet key from a hard-coded fallback. Sensitive-data encryption now requires an explicitly configured valid `ENCRYPTION_KEY`; four regression tests cover missing, invalid and valid-key behavior.
+- Secret-shaped provider credentials and misleading token examples were removed from the current documentation tree. Gitleaks now produces a redacted SARIF artifact for triage and the latest current-tree scan reports no leaks. Historical Git objects still contain the old credential material, so provider key rotation is mandatory; history purge is not performed without explicit approval.
+- CI run `37221393963`: backend suite **290 passed**; Linux symlink suite **3 passed**; frontend lint baseline had **0 errors**; frontend build and smoke tests passed; root and backend dependency audits passed; CodeQL, Semgrep baseline and SPDX SBOM steps succeeded.
+- The consolidated workflow remains non-green solely because npm audit reports five high findings in the Tailwind v3 development dependency chain. The common root advisory is in `braces` (affected through 3.0.3; no patched version listed), and npm offers Tailwind CSS 4.3.3 as a semver-major fix. Tailwind v4 raises the supported browser floor; defer migration until the project's minimum browser support is confirmed.
+- The Vercel build was intentionally skipped by the configured ignored-build-step rule for commits that did not change frontend build inputs. The latest Vite build and smoke tests nevertheless passed in GitHub Actions. Do not interpret those skipped Vercel deployments as a failed frontend build.
+- Phase A is not fully closed while historical credentials require rotation and frontend dev-dependency findings remain. Cloud Edition D1/Storj migration is still pending; the current Cloudflare Worker remains Supabase-backed and no Cloudflare infrastructure was provisioned.
