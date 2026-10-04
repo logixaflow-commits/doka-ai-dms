@@ -56,8 +56,17 @@ jobs:
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/repo:ro" \
+            -v "$RUNNER_TEMP:/report" \
             zricethezav/gitleaks:v8.24.3 \
-            dir --redact --no-banner --exit-code 1 /repo
+            dir --redact --report-format sarif --report-path /report/gitleaks.sarif --no-banner --exit-code 1 /repo
+      - name: Upload redacted secret scan findings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gitleaks-redacted-report
+          path: ${{ runner.temp }}/gitleaks.sarif
+          if-no-files-found: ignore
+          retention-days: 3
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
