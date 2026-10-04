@@ -689,6 +689,8 @@ def test_import_rejects_file_replaced_by_outside_symlink_before_open(
         if path.is_file()
     }
     assert workspace_files == {
+        f"imports/{created['session_id']}/.metadata.lock",
+        f"imports/{created['session_id']}/.operation.lock",
         f"imports/{created['session_id']}/manifest.json",
         f"imports/{created['session_id']}/status.json",
     }

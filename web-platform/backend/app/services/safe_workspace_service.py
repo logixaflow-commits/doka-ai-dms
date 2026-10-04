@@ -1072,8 +1072,8 @@ class SafeWorkspaceService:
                                         source_hash = self._copy_and_hash(
                                             source_handle, destination_handle
                                         )
-                                        self._set_working_copy_metadata(destination_handle, st)
                                         destination_handle.flush()
+                                        self._set_working_copy_metadata(destination_handle, st)
                                         if self._hash_open_file(destination_handle) != source_hash:
                                             raise IOError("SHA-256 verification failed")
                                     entry = {
