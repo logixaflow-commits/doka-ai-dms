@@ -238,10 +238,12 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install backend dependencies
-        run: python -m pip install -r web-platform/backend/requirements.txt
+      - name: Install backend test dependencies
+        working-directory: web-platform/backend
+        run: python -m pip install -r requirements-test.txt
       - name: Run symlink security tests
-        run: pytest web-platform/backend/tests/test_symlink_safety.py -v -o addopts=""
+        working-directory: web-platform/backend
+        run: pytest tests/test_symlink_safety.py -v -o addopts=""
 
   frontend-checks:
     name: Frontend build and smoke tests
