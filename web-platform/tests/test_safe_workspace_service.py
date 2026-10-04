@@ -24,6 +24,36 @@ def test_source_cannot_overlap_workspace(tmp_path: Path, monkeypatch):
         service.validate_source(source)
 
 
+def test_overlapping_workspace_validation_does_not_create_workspace(
+    tmp_path: Path, monkeypatch
+):
+    source = tmp_path / "source"
+    workspace = source / "not-created-workspace"
+    source.mkdir()
+    original_file = source / "existing.txt"
+    original_file.write_bytes(b"Synthetic source data")
+    original_contents = {
+        path.relative_to(source): path.read_bytes()
+        for path in source.rglob("*")
+        if path.is_file()
+    }
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="overlap"):
+        SafeWorkspaceService().validate_source()
+
+    assert not workspace.exists()
+    assert {
+        path.relative_to(source): path.read_bytes()
+        for path in source.rglob("*")
+        if path.is_file()
+    } == original_contents
+
+
 def test_source_outside_workspace_is_allowed(tmp_path: Path, monkeypatch):
     workspace = tmp_path / "workspace"
     source = tmp_path / "source"

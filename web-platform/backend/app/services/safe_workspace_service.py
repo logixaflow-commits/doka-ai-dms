@@ -820,7 +820,7 @@ class SafeWorkspaceService:
         if not candidate.is_dir():
             raise ValueError("Source directory is invalid.")
 
-        working = self.root
+        working = settings.WORKING_ROOT.expanduser().resolve()
         overlap = (
             candidate == working
             or candidate.is_relative_to(working)
