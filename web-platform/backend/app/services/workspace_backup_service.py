@@ -10,7 +10,10 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from app.core.config import settings
-from app.services.safe_workspace_service import safe_workspace_service
+from app.services.safe_workspace_service import (
+    _SESSION_COORDINATION_FILES,
+    safe_workspace_service,
+)
 
 _HASH_CHUNK_SIZE = 1024 * 1024
 _MAX_RESTORE_ENTRIES = 100_000
@@ -65,6 +68,12 @@ class WorkspaceBackupService:
                         continue
                     rel = path.relative_to(source)
                     if rel.parts and rel.parts[0] == "Recovery":
+                        continue
+                    if (
+                        len(rel.parts) >= 3
+                        and rel.parts[0] == "imports"
+                        and path.name in _SESSION_COORDINATION_FILES
+                    ):
                         continue
                     if path.name.endswith(".tmp"):
                         continue

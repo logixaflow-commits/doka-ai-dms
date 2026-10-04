@@ -27,7 +27,11 @@ from app.core.config import settings  # noqa: E402
 from app.services.document_understanding_service import document_understanding_service  # noqa: E402
 from app.services.ocr_validation_service import ocr_validation_service  # noqa: E402
 from app.services.organization_planner import organization_planner  # noqa: E402
-from app.services.safe_workspace_service import SafeWorkspaceService, sha256_file  # noqa: E402
+from app.services.safe_workspace_service import (  # noqa: E402
+    SafeWorkspaceService,
+    _SESSION_COORDINATION_FILES,
+    sha256_file,
+)
 from app.services.workspace_backup_service import workspace_backup_service  # noqa: E402
 
 
@@ -48,6 +52,12 @@ def workspace_backup_snapshot(root: Path) -> dict[str, str]:
             continue
         relative = path.relative_to(root)
         if relative.parts and relative.parts[0] == "Recovery":
+            continue
+        if (
+            len(relative.parts) >= 3
+            and relative.parts[0] == "imports"
+            and path.name in _SESSION_COORDINATION_FILES
+        ):
             continue
         snapshot[relative.as_posix()] = sha256_file(path)
     return snapshot

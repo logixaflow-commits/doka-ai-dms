@@ -45,6 +45,25 @@ def test_backup_excludes_recovery_artifacts(tmp_path, monkeypatch):
     assert not any(name.startswith("Recovery/") for name in names)
 
 
+def test_backup_excludes_session_coordination_locks(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    backups = tmp_path / "backups"
+    session = workspace / "imports" / "0123456789abcdef0123456789abcdef"
+    session.mkdir(parents=True)
+    (session / ".operation.lock").write_bytes(b"\0")
+    (session / ".metadata.lock").write_bytes(b"\0")
+    (session / "status.json").write_text('{"state":"created"}', encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "BACKUP_ROOT", backups)
+
+    manifest = WorkspaceBackupService().create()
+    with zipfile.ZipFile(manifest["archive"]) as archive:
+        names = archive.namelist()
+
+    assert "imports/0123456789abcdef0123456789abcdef/status.json" in names
+    assert not any(name.endswith((".operation.lock", ".metadata.lock")) for name in names)
+
+
 
 def test_restore_to_recovery_does_not_change_active_workspace(tmp_path, monkeypatch):
     workspace = tmp_path / "workspace"

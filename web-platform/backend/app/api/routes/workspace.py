@@ -21,13 +21,13 @@ class ImportRequest(BaseModel):
 
 
 @router.get("/imports")
-async def list_imports(limit: int = 50):
+def list_imports(limit: int = 50):
     if not 1 <= limit <= 200:
         raise HTTPException(status_code=400, detail="Invalid limit.")
     return {"imports": safe_workspace_service.list_sessions(limit)}
 
 @router.post("/imports")
-async def create_import(request: ImportRequest, background_tasks: BackgroundTasks):
+def create_import(request: ImportRequest, background_tasks: BackgroundTasks):
     try:
         status = safe_workspace_service.create_import()
         background_tasks.add_task(safe_workspace_service.run_import, status["session_id"])
@@ -37,12 +37,12 @@ async def create_import(request: ImportRequest, background_tasks: BackgroundTask
 
 
 @router.get("/ocr/validate")
-async def validate_ocr():
+def validate_ocr():
     return ocr_validation_service.validate()
 
 
 @router.post("/backups")
-async def create_backup():
+def create_backup():
     try:
         return workspace_backup_service.create()
     except Exception as exc:
@@ -50,12 +50,12 @@ async def create_backup():
 
 
 @router.get("/backups")
-async def list_backups():
+def list_backups():
     return {"backups": workspace_backup_service.list_backups()}
 
 
 @router.post("/backups/verify")
-async def verify_backup(archive_name: str):
+def verify_backup(archive_name: str):
     try:
         return workspace_backup_service.verify(archive_name)
     except ValueError as exc:
@@ -63,7 +63,7 @@ async def verify_backup(archive_name: str):
 
 
 @router.post("/backups/restore")
-async def restore_backup(archive_name: str):
+def restore_backup(archive_name: str):
     try:
         return workspace_backup_service.restore_to_recovery(archive_name)
     except ValueError as exc:
@@ -71,12 +71,12 @@ async def restore_backup(archive_name: str):
 
 
 @router.post("/backups/prune")
-async def prune_backups():
+def prune_backups():
     return workspace_backup_service.prune()
 
 
 @router.post("/imports/{session_id}/resume")
-async def resume_import(session_id: str, background_tasks: BackgroundTasks):
+def resume_import(session_id: str, background_tasks: BackgroundTasks):
     try:
         status = safe_workspace_service.status(session_id)
         background_tasks.add_task(safe_workspace_service.run_import, session_id)
@@ -86,7 +86,7 @@ async def resume_import(session_id: str, background_tasks: BackgroundTasks):
 
 
 @router.post("/imports/{session_id}/understand")
-async def understand_import(session_id: str):
+def understand_import(session_id: str):
     try:
         from app.services.document_understanding_service import document_understanding_service
         return document_understanding_service.analyze(session_id)
@@ -95,7 +95,7 @@ async def understand_import(session_id: str):
 
 
 @router.post("/imports/{session_id}/plan")
-async def organization_plan(session_id: str):
+def organization_plan(session_id: str):
     try:
         from app.services.organization_planner import organization_planner
         return organization_planner.plan(session_id)
@@ -104,7 +104,7 @@ async def organization_plan(session_id: str):
 
 
 @router.post("/imports/{session_id}/apply")
-async def apply_organization(session_id: str, request: OrganizationApplyRequest):
+def apply_organization(session_id: str, request: OrganizationApplyRequest):
     if request.confirm is not True:
         raise HTTPException(status_code=400, detail="Explicit confirm=true is required.")
     try:
@@ -119,7 +119,7 @@ class OCRCorrectionRequest(BaseModel):
 
 
 @router.get("/imports/{session_id}/understanding")
-async def get_understanding(session_id: str):
+def get_understanding(session_id: str):
     try:
         return safe_workspace_service.get_understanding(session_id)
     except ValueError as exc:
@@ -127,9 +127,9 @@ async def get_understanding(session_id: str):
 
 
 @router.put("/imports/{session_id}/understanding/{relative_path:path}")
-async def save_ocr_correction(session_id: str, relative_path: str, request: OCRCorrectionRequest):
+def save_ocr_correction(session_id: str, relative_path: str, request: OCRCorrectionRequest):
     try:
-        with safe_workspace_service._lock(session_id):
+        with safe_workspace_service._session_operation(session_id, "ocr_correction"):
             manifest = safe_workspace_service._read(
                 safe_workspace_service._json_path(session_id, "manifest.json")
             )
@@ -163,7 +163,7 @@ async def save_ocr_correction(session_id: str, relative_path: str, request: OCRC
 
 
 @router.post("/imports/{session_id}/undo")
-async def undo_organization(session_id: str):
+def undo_organization(session_id: str):
     try:
         from app.services.organization_planner import organization_planner
         return organization_planner.undo(session_id)
@@ -172,7 +172,7 @@ async def undo_organization(session_id: str):
 
 
 @router.post("/imports/{session_id}/scan")
-async def scan_import(session_id: str):
+def scan_import(session_id: str):
     try:
         return safe_workspace_service.scan(session_id)
     except ValueError as exc:
@@ -180,7 +180,7 @@ async def scan_import(session_id: str):
 
 
 @router.get("/imports/{session_id}")
-async def import_status(session_id: str):
+def import_status(session_id: str):
     try:
         return safe_workspace_service.status(session_id)
     except ValueError as exc:
@@ -188,7 +188,7 @@ async def import_status(session_id: str):
 
 
 @router.get("/imports/{session_id}/search")
-async def search_import(
+def search_import(
     session_id: str,
     q: str = "",
     limit: int = 100,
@@ -212,7 +212,7 @@ async def search_import(
 
 
 @router.get("/imports/{session_id}/inventory")
-async def import_inventory(session_id: str, limit: int = 500, offset: int = 0):
+def import_inventory(session_id: str, limit: int = 500, offset: int = 0):
     if not 1 <= limit <= 5000 or offset < 0:
         raise HTTPException(status_code=400, detail="Invalid limit/offset.")
     try:

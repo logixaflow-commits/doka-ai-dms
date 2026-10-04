@@ -78,7 +78,7 @@ class DocumentUnderstandingService:
         return "", "not_text_extracted"
 
     def analyze(self, session_id: str) -> Dict[str, Any]:
-        with self.workspace._lock(session_id):
+        with self.workspace._session_operation(session_id, "understanding"):
             return self._analyze_locked(session_id)
 
     def _analyze_locked(self, session_id: str) -> Dict[str, Any]:

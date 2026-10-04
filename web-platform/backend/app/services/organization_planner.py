@@ -91,7 +91,7 @@ class OrganizationPlanner:
         return inventory, understanding
 
     def plan(self, session_id: str) -> Dict[str, Any]:
-        with safe_workspace_service._lock(session_id):
+        with safe_workspace_service._session_operation(session_id, "planning"):
             return self._plan_locked(session_id)
 
     def _plan_locked(self, session_id: str) -> Dict[str, Any]:
@@ -170,11 +170,6 @@ class OrganizationPlanner:
 
 
     def apply(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
-        # Serialize apply with import/scan and undo operations for this session.
-        with safe_workspace_service._lock(session_id):
-            return self._apply_locked(session_id, approved_paths)
-
-    def _apply_locked(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
         if not approved_paths:
             raise ValueError("No approved files were supplied.")
         if len(approved_paths) > 500:
@@ -183,6 +178,10 @@ class OrganizationPlanner:
             raise ValueError("Approved paths must be non-empty relative paths no longer than 1024 characters.")
         if len(set(approved_paths)) != len(approved_paths):
             raise ValueError("Duplicate approved paths are not allowed.")
+        with safe_workspace_service._session_operation(session_id, "apply"):
+            return self._apply_locked(session_id, approved_paths)
+
+    def _apply_locked(self, session_id: str, approved_paths: List[str]) -> Dict[str, Any]:
         plan = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "organization_plan.json"))
         manifest = safe_workspace_service._read(safe_workspace_service._json_path(session_id, "manifest.json"))
         if not plan or not manifest:
@@ -288,8 +287,7 @@ class OrganizationPlanner:
 
 
     def undo(self, session_id: str) -> Dict[str, Any]:
-        # Do not race undo against a concurrent Apply for the same import session.
-        with safe_workspace_service._lock(session_id):
+        with safe_workspace_service._session_operation(session_id, "undo"):
             return self._undo_locked(session_id)
 
     def _undo_locked(self, session_id: str) -> Dict[str, Any]:

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import ntpath
 import os
+import re
 import stat
 import tempfile
 import threading
+import time
 import uuid
-import re
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +28,11 @@ _SESSION_METADATA_FILES = {
     "ocr_corrections.json",
     "organization_plan.json",
 }
+_SESSION_COORDINATION_FILES = frozenset({".operation.lock", ".metadata.lock"})
+
+
+class SessionOperationInProgress(ValueError):
+    """Raised when another mutating operation already owns an import session."""
 
 
 def utc_now() -> str:
@@ -45,6 +52,7 @@ class SafeWorkspaceService:
 
     def __init__(self) -> None:
         self._locks: Dict[str, threading.Lock] = {}
+        self._active_operations: Dict[str, str] = {}
         self._guard = threading.Lock()
 
     @property
@@ -149,10 +157,16 @@ class SafeWorkspaceService:
     def _read(self, path: Path) -> Dict[str, Any]:
         path = self._validate_metadata_path(path)
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-        try:
-            descriptor = os.open(path, flags)
-        except FileNotFoundError:
-            return {}
+        for attempt in range(10):
+            try:
+                descriptor = os.open(path, flags)
+                break
+            except FileNotFoundError:
+                return {}
+            except PermissionError:
+                if os.name != "nt" or attempt == 9:
+                    raise
+                time.sleep(0.01)
         with os.fdopen(descriptor, "r", encoding="utf-8") as handle:
             return json.load(handle)
 
@@ -179,13 +193,125 @@ class SafeWorkspaceService:
                 os.fsync(handle.fileno())
             path = self._validate_metadata_path(path)
             temporary_path = self._validate_temporary_path(temporary_path, path)
-            os.replace(temporary_path, path)
+            for attempt in range(10):
+                try:
+                    os.replace(temporary_path, path)
+                    break
+                except PermissionError:
+                    if os.name != "nt" or attempt == 9:
+                        raise
+                    time.sleep(0.01)
         finally:
             temporary_path.unlink(missing_ok=True)
 
     def _lock(self, session_id: str) -> threading.Lock:
         with self._guard:
             return self._locks.setdefault(session_id, threading.Lock())
+
+    @contextmanager
+    def _cross_process_lock(
+        self, session_id: str, name: str, *, blocking: bool
+    ) -> Iterator[None]:
+        if name not in {"operation", "metadata"}:
+            raise ValueError("Invalid import-session lock name.")
+        session = self._dir(session_id)
+        lock_path = session / f".{name}.lock"
+        if lock_path.is_symlink():
+            raise ValueError("Import-session lock file cannot be a symlink.")
+        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(lock_path, flags, 0o600)
+        locked = False
+        try:
+            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                raise ValueError("Import-session lock path must be a regular file.")
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"\0")
+                os.fsync(descriptor)
+
+            if os.name == "nt":
+                import msvcrt
+
+                while True:
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    try:
+                        msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+                        break
+                    except OSError as exc:
+                        contended = exc.errno in {
+                            errno.EACCES, errno.EAGAIN, errno.EDEADLK,
+                        } or getattr(exc, "winerror", None) in {33, 36}
+                        if not contended:
+                            raise
+                        if not blocking:
+                            raise SessionOperationInProgress(
+                                "Cannot start operation; another operation is already running."
+                            ) from exc
+                        time.sleep(0.01)
+            else:
+                import fcntl
+
+                mode = fcntl.LOCK_EX
+                if not blocking:
+                    mode |= fcntl.LOCK_NB
+                try:
+                    fcntl.flock(descriptor, mode)
+                except OSError as exc:
+                    if not blocking and exc.errno in {errno.EACCES, errno.EAGAIN}:
+                        raise SessionOperationInProgress(
+                            "Cannot start operation; another operation is already running."
+                        ) from exc
+                    raise
+            locked = True
+            yield
+        finally:
+            try:
+                if locked:
+                    if os.name == "nt":
+                        import msvcrt
+
+                        os.lseek(descriptor, 0, os.SEEK_SET)
+                        msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                    else:
+                        import fcntl
+
+                        fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
+    @contextmanager
+    def _metadata_lock(self, session_id: str) -> Iterator[None]:
+        with self._lock(session_id):
+            with self._cross_process_lock(session_id, "metadata", blocking=True):
+                yield
+
+    @contextmanager
+    def _session_operation(self, session_id: str, operation: str) -> Iterator[None]:
+        with self._guard:
+            active = self._active_operations.get(session_id)
+            if active:
+                raise SessionOperationInProgress(
+                    f"Cannot start {operation}; {active} is already running."
+                )
+            self._active_operations[session_id] = operation
+        try:
+            with self._cross_process_lock(
+                session_id, "operation", blocking=False
+            ):
+                yield
+        finally:
+            with self._guard:
+                if self._active_operations.get(session_id) == operation:
+                    del self._active_operations[session_id]
+
+    def _update_status(self, session_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        status_path = self._json_path(session_id, "status.json")
+        with self._metadata_lock(session_id):
+            status = self._read(status_path)
+            if not status:
+                raise ValueError(f"Unknown import session: {session_id}")
+            status.update(updates)
+            self._write(status_path, status)
+        return status
 
     def _open_posix_source_file(self, source: Path, source_path: Path):
         nofollow = getattr(os, "O_NOFOLLOW", None)
@@ -868,104 +994,150 @@ class SafeWorkspaceService:
         manifest_path = self._json_path(session_id, "manifest.json")
         if not status_path.exists() or not manifest_path.exists():
             raise ValueError(f"Unknown import session: {session_id}")
-        with self._lock(session_id):
-            status = self._read(status_path)
-            manifest = self._read(manifest_path)
-            source, copy_root = self.validate_manifest_paths(session_id, manifest)
-            if copy_root.is_symlink():
-                raise ValueError("Import working-copy directory cannot be a symlink.")
-            self._ensure_working_copy_root(copy_root)
-            files = list(self._files(source))
-            status.update({
-                "state": "running", "files_total": len(files),
-                "files_copied": 0, "files_verified": 0, "files_failed": 0,
-                "bytes_total": 0,
-                "bytes_copied": 0, "progress": 0.0,
-                "updated_at": utc_now(), "error": None,
-            })
-            self._write(status_path, status)
-            try:
-                for src in files:
-                    rel = src.relative_to(source).as_posix()
-                    try:
-                        with self._open_source_file(source, src) as source_handle:
-                            st = os.fstat(source_handle.fileno())
-                            status["bytes_total"] += st.st_size
-                            old = manifest["files"].get(rel)
-                            source_hash = self._hash_open_file(source_handle)
-                            try:
-                                with self._open_working_copy_file(
-                                    copy_root, rel, create=False
-                                ) as (dest, existing_handle):
-                                    if (
-                                        old
-                                        and old.get("size") == st.st_size
-                                        and old.get("source_mtime_ns") == st.st_mtime_ns
-                                        and old.get("verified")
-                                        and source_hash == old.get("sha256")
-                                        and self._hash_open_file(existing_handle)
-                                        == old.get("sha256")
-                                    ):
-                                        status["files_verified"] += 1
-                                        status["bytes_copied"] += st.st_size
-                                        continue
-                                    raise FileExistsError(
-                                        "Working-copy destination already exists and "
-                                        "is not a verified copy."
-                                    )
-                            except FileNotFoundError:
-                                pass
+        try:
+            with self._session_operation(session_id, "import"):
+                status = self._read(status_path)
+                manifest = self._read(manifest_path)
+                source, copy_root = self.validate_manifest_paths(session_id, manifest)
+                if copy_root.is_symlink():
+                    raise ValueError("Import working-copy directory cannot be a symlink.")
+                status = self._update_status(
+                    session_id,
+                    {
+                        "state": "running", "files_total": 0,
+                        "files_copied": 0, "files_verified": 0, "files_failed": 0,
+                        "bytes_total": 0, "bytes_copied": 0, "progress": 0.0,
+                        "updated_at": utc_now(), "error": None,
+                    },
+                )
 
-                            source_handle.seek(0)
-                            with self._open_working_copy_file(
-                                copy_root, rel, create=True
-                            ) as (dest, destination_handle):
-                                source_hash = self._copy_and_hash(
-                                    source_handle, destination_handle
-                                )
-                                self._set_working_copy_metadata(destination_handle, st)
-                                destination_handle.flush()
-                                if self._hash_open_file(destination_handle) != source_hash:
-                                    raise IOError("SHA-256 verification failed")
-                            manifest["files"][rel] = {
+                try:
+                    self._ensure_working_copy_root(copy_root)
+                    files = list(self._files(source))
+                    status = self._update_status(
+                        session_id, {"files_total": len(files), "updated_at": utc_now()}
+                    )
+
+                    for src in files:
+                        rel = src.relative_to(source).as_posix()
+                        entry: Dict[str, Any]
+                        copied = False
+                        byte_count = 0
+                        try:
+                            current_manifest = self._read(manifest_path)
+                            old = current_manifest.get("files", {}).get(rel)
+
+                            with self._open_source_file(source, src) as source_handle:
+                                st = os.fstat(source_handle.fileno())
+                                byte_count = st.st_size
+                                source_hash = self._hash_open_file(source_handle)
+                                already_verified = False
+                                try:
+                                    with self._open_working_copy_file(
+                                        copy_root, rel, create=False
+                                    ) as (_dest, existing_handle):
+                                        already_verified = bool(
+                                            old
+                                            and old.get("size") == st.st_size
+                                            and old.get("source_mtime_ns") == st.st_mtime_ns
+                                            and old.get("verified")
+                                            and source_hash == old.get("sha256")
+                                            and self._hash_open_file(existing_handle)
+                                            == old.get("sha256")
+                                        )
+                                        if not already_verified:
+                                            raise FileExistsError(
+                                                "Working-copy destination already exists and "
+                                                "is not a verified copy."
+                                            )
+                                except FileNotFoundError:
+                                    pass
+
+                                if already_verified:
+                                    entry = old
+                                else:
+                                    source_handle.seek(0)
+                                    with self._open_working_copy_file(
+                                        copy_root, rel, create=True
+                                    ) as (dest, destination_handle):
+                                        source_hash = self._copy_and_hash(
+                                            source_handle, destination_handle
+                                        )
+                                        self._set_working_copy_metadata(destination_handle, st)
+                                        destination_handle.flush()
+                                        if self._hash_open_file(destination_handle) != source_hash:
+                                            raise IOError("SHA-256 verification failed")
+                                    entry = {
+                                        "relative_path": rel, "source_path": str(src),
+                                        "working_path": str(dest), "filename": src.name,
+                                        "extension": src.suffix.lower(), "size": st.st_size,
+                                        "source_mtime_ns": st.st_mtime_ns,
+                                        "created_at": datetime.fromtimestamp(
+                                            st.st_ctime, timezone.utc
+                                        ).isoformat(),
+                                        "modified_at": datetime.fromtimestamp(
+                                            st.st_mtime, timezone.utc
+                                        ).isoformat(),
+                                        "sha256": source_hash, "verified": True,
+                                        "status": "copied",
+                                    }
+                                    copied = True
+                        except Exception as exc:
+                            entry = {
                                 "relative_path": rel, "source_path": str(src),
-                                "working_path": str(dest), "filename": src.name,
-                                "extension": src.suffix.lower(), "size": st.st_size,
-                                "source_mtime_ns": st.st_mtime_ns,
-                                "created_at": datetime.fromtimestamp(
-                                    st.st_ctime, timezone.utc
-                                ).isoformat(),
-                                "modified_at": datetime.fromtimestamp(
-                                    st.st_mtime, timezone.utc
-                                ).isoformat(),
-                                "sha256": source_hash, "verified": True, "status": "copied",
+                                "filename": src.name, "extension": src.suffix.lower(),
+                                "verified": False, "status": "failed", "error": str(exc),
                             }
-                        status["files_copied"] += 1
-                        status["files_verified"] += 1
-                        status["bytes_copied"] += st.st_size
-                    except Exception as exc:
-                        manifest["files"][rel] = {
-                            "relative_path": rel, "source_path": str(src),
-                            "filename": src.name, "extension": src.suffix.lower(),
-                            "verified": False, "status": "failed", "error": str(exc),
-                        }
-                        status["files_failed"] += 1
-                        logger.exception("Import failed for %s", src)
-                    status["progress"] = (status["files_verified"] / len(files)) if files else 1.0
+                            status["files_failed"] += 1
+                            logger.exception("Import failed for %s", src)
+                        else:
+                            if copied:
+                                status["files_copied"] += 1
+                            status["files_verified"] += 1
+                            status["bytes_copied"] += byte_count
+
+                        status["bytes_total"] += byte_count
+                        status["progress"] = (
+                            status["files_verified"] / len(files) if files else 1.0
+                        )
+                        status["updated_at"] = utc_now()
+                        with self._metadata_lock(session_id):
+                            current_manifest = self._read(manifest_path)
+                            current_manifest.setdefault("files", {})[rel] = entry
+                            self._write(manifest_path, current_manifest)
+                        status = self._update_status(
+                            session_id,
+                            {
+                                key: status[key]
+                                for key in (
+                                    "files_total", "files_copied", "files_verified",
+                                    "files_failed", "bytes_total", "bytes_copied",
+                                    "progress", "updated_at",
+                                )
+                            },
+                        )
+
+                    status["progress"] = 1.0
+                    status["state"] = (
+                        "completed" if status["files_failed"] == 0 else "completed_with_errors"
+                    )
                     status["updated_at"] = utc_now()
-                    self._write(manifest_path, manifest)
-                    self._write(status_path, status)
-                status["progress"] = 1.0
-                status["state"] = "completed" if status["files_failed"] == 0 else "completed_with_errors"
-            except Exception as exc:
-                status["state"] = "failed"
-                status["error"] = str(exc)
-                logger.exception("Import session failed: %s", session_id)
-            finally:
-                status["updated_at"] = utc_now()
-                self._write(manifest_path, manifest)
-                self._write(status_path, status)
-            return status
+                    status = self._update_status(
+                        session_id,
+                        {
+                            "state": status["state"], "progress": status["progress"],
+                            "updated_at": status["updated_at"],
+                        },
+                    )
+                except Exception as exc:
+                    logger.exception("Import session failed: %s", session_id)
+                    status = self._update_status(
+                        session_id,
+                        {"state": "failed", "error": str(exc), "updated_at": utc_now()},
+                    )
+                return status
+        except SessionOperationInProgress:
+            return self.status(session_id)
 
     def scan(self, session_id: str) -> Dict[str, Any]:
         session = self._dir(session_id)
@@ -973,60 +1145,85 @@ class SafeWorkspaceService:
         status_path = session / "status.json"
         if not manifest_path.exists() or not status_path.exists():
             raise ValueError(f"Unknown import session: {session_id}")
-        with self._lock(session_id):
+        with self._session_operation(session_id, "scan"):
             manifest = self._read(manifest_path)
             status = self._read(status_path)
-            if status.get("state") not in {"completed", "completed_with_errors", "scanned"}:
-                raise ValueError("Import is not complete. Finish the safe import before scanning.")
+            if status.get("state") not in {
+                "completed", "completed_with_errors", "scanned"
+            }:
+                raise ValueError(
+                    "Import is not complete. Finish the safe import before scanning."
+                )
+            previous_state = status["state"]
             _source, root = self.validate_manifest_paths(session_id, manifest)
             if not root.is_dir():
                 raise ValueError("Working copy does not exist.")
-            inventory, unreadable = [], []
-            hashes: Dict[str, list] = {}
-            names: Dict[str, list] = {}
-            for path in self._files(root):
-                rel = path.relative_to(root).as_posix()
-                try:
-                    st = path.stat()
-                    digest = sha256_file(path)
-                    item = {
-                        "relative_path": rel, "filename": path.name,
-                        "extension": path.suffix.lower(), "size": st.st_size,
-                        "created_at": datetime.fromtimestamp(st.st_ctime, timezone.utc).isoformat(),
-                        "modified_at": datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat(),
-                        "sha256": digest, "readable": True, "status": "indexed",
-                    }
-                    inventory.append(item)
-                    hashes.setdefault(digest, []).append(rel)
-                    names.setdefault(path.name.casefold(), []).append(rel)
-                except Exception as exc:
-                    unreadable.append({"relative_path": rel, "filename": path.name,
-                                       "readable": False, "status": "unreadable", "error": str(exc)})
-            duplicate_groups = [v for v in hashes.values() if len(v) > 1]
-            collisions = [v for v in names.values() if len(v) > 1]
-            result = {
-                "schema_version": 1, "session_id": session_id, "scanned_at": utc_now(),
-                "working_copy": str(root), "files_total": len(inventory) + len(unreadable),
-                "files_readable": len(inventory), "files_unreadable": len(unreadable),
-                "exact_duplicate_groups": len(duplicate_groups),
-                "exact_duplicate_files": sum(map(len, duplicate_groups)),
-                "filename_collision_groups": len(collisions),
-                "inventory": inventory, "unreadable": unreadable,
-                "duplicate_groups": duplicate_groups, "filename_collision_groups_detail": collisions,
-            }
-            self._write(session / "inventory.json", result)
-            status = self._read(status_path)
-            status.update({
-                "state": "scanned", "updated_at": utc_now(),
-                "files_total": result["files_total"], "files_verified": result["files_readable"],
-                "files_failed": result["files_unreadable"],
-                "exact_duplicate_groups": result["exact_duplicate_groups"],
-                "filename_collision_groups": result["filename_collision_groups"],
-            })
-            self._write(status_path, status)
-            return {k: v for k, v in result.items() if k not in {
-                "inventory", "unreadable", "duplicate_groups", "filename_collision_groups_detail"
-            }}
+            self._update_status(
+                session_id, {"state": "scanning", "updated_at": utc_now(), "error": None}
+            )
+
+            try:
+                inventory, unreadable = [], []
+                hashes: Dict[str, list] = {}
+                names: Dict[str, list] = {}
+                for path in self._files(root):
+                    rel = path.relative_to(root).as_posix()
+                    try:
+                        st = path.stat()
+                        digest = sha256_file(path)
+                        item = {
+                            "relative_path": rel, "filename": path.name,
+                            "extension": path.suffix.lower(), "size": st.st_size,
+                            "created_at": datetime.fromtimestamp(st.st_ctime, timezone.utc).isoformat(),
+                            "modified_at": datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat(),
+                            "sha256": digest, "readable": True, "status": "indexed",
+                        }
+                        inventory.append(item)
+                        hashes.setdefault(digest, []).append(rel)
+                        names.setdefault(path.name.casefold(), []).append(rel)
+                    except Exception as exc:
+                        unreadable.append({
+                            "relative_path": rel, "filename": path.name,
+                            "readable": False, "status": "unreadable", "error": str(exc),
+                        })
+                duplicate_groups = [v for v in hashes.values() if len(v) > 1]
+                collisions = [v for v in names.values() if len(v) > 1]
+                result = {
+                    "schema_version": 1, "session_id": session_id, "scanned_at": utc_now(),
+                    "working_copy": str(root), "files_total": len(inventory) + len(unreadable),
+                    "files_readable": len(inventory), "files_unreadable": len(unreadable),
+                    "exact_duplicate_groups": len(duplicate_groups),
+                    "exact_duplicate_files": sum(map(len, duplicate_groups)),
+                    "filename_collision_groups": len(collisions),
+                    "inventory": inventory, "unreadable": unreadable,
+                    "duplicate_groups": duplicate_groups,
+                    "filename_collision_groups_detail": collisions,
+                }
+                self._write(session / "inventory.json", result)
+                self._update_status(
+                    session_id,
+                    {
+                        "state": "scanned", "updated_at": utc_now(), "error": None,
+                        "files_total": result["files_total"],
+                        "files_verified": result["files_readable"],
+                        "files_failed": result["files_unreadable"],
+                        "exact_duplicate_groups": result["exact_duplicate_groups"],
+                        "filename_collision_groups": result["filename_collision_groups"],
+                    },
+                )
+                return {k: v for k, v in result.items() if k not in {
+                    "inventory", "unreadable", "duplicate_groups",
+                    "filename_collision_groups_detail"
+                }}
+            except Exception as exc:
+                self._update_status(
+                    session_id,
+                    {
+                        "state": previous_state, "updated_at": utc_now(),
+                        "error": f"Scan failed: {exc}",
+                    },
+                )
+                raise
 
     def search(
         self,
@@ -1040,10 +1237,9 @@ class SafeWorkspaceService:
         inventory_path = self._json_path(session_id, "inventory.json")
         if not inventory_path.exists():
             raise ValueError("Inventory is not available. Run scan first.")
-        with self._lock(session_id):
-            value = self._read(inventory_path)
-            understanding = self._read(self._json_path(session_id, "understanding.json"))
-            corrections = self._read(self._json_path(session_id, "ocr_corrections.json"))
+        value = self._read(inventory_path)
+        understanding = self._read(self._json_path(session_id, "understanding.json"))
+        corrections = self._read(self._json_path(session_id, "ocr_corrections.json"))
         if not value:
             raise ValueError("Inventory is not available. Run scan first.")
         if limit < 1 or limit > 1000:
@@ -1121,8 +1317,7 @@ class SafeWorkspaceService:
             session_dir = self._dir(session_dir.name)
             if not session_dir.is_dir():
                 continue
-            with self._lock(session_dir.name):
-                status = self._read(self._json_path(session_dir.name, "status.json"))
+            status = self._read(self._json_path(session_dir.name, "status.json"))
             if status:
                 sessions.append({
                     "session_id": session_dir.name,
@@ -1139,10 +1334,7 @@ class SafeWorkspaceService:
 
     def status(self, session_id: str) -> Dict[str, Any]:
         status_path = self._json_path(session_id, "status.json")
-        if not status_path.exists():
-            raise ValueError(f"Unknown import session: {session_id}")
-        with self._lock(session_id):
-            value = self._read(status_path)
+        value = self._read(status_path)
         if not value:
             raise ValueError(f"Unknown import session: {session_id}")
         return value
@@ -1152,24 +1344,22 @@ class SafeWorkspaceService:
         understanding_path = session / "understanding.json"
         if not understanding_path.exists():
             raise ValueError("Understanding is not available. Run Read / OCR first.")
-        with self._lock(session_id):
-            value = self._read(understanding_path)
-            if not value:
-                raise ValueError("Understanding is not available. Run Read / OCR first.")
-            corrections = self._read(session / "ocr_corrections.json")
-            for item in value.get("results", []):
-                relative_path = item.get("relative_path")
-                if relative_path in corrections.get("results", {}):
-                    item["corrected_text"] = corrections["results"][relative_path]
-                    item["ocr_corrected"] = True
-            return value
+        value = self._read(understanding_path)
+        if not value:
+            raise ValueError("Understanding is not available. Run Read / OCR first.")
+        corrections = self._read(session / "ocr_corrections.json")
+        for item in value.get("results", []):
+            relative_path = item.get("relative_path")
+            if relative_path in corrections.get("results", {}):
+                item["corrected_text"] = corrections["results"][relative_path]
+                item["ocr_corrected"] = True
+        return value
 
     def inventory(self, session_id: str, limit: int = 500, offset: int = 0) -> Dict[str, Any]:
         inventory_path = self._json_path(session_id, "inventory.json")
         if not inventory_path.exists():
             raise ValueError("Inventory is not available. Run scan first.")
-        with self._lock(session_id):
-            value = self._read(inventory_path)
+        value = self._read(inventory_path)
         if not value:
             raise ValueError("Inventory is not available. Run scan first.")
         items = value.get("inventory", [])

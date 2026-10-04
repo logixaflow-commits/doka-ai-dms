@@ -1,10 +1,70 @@
+import multiprocessing
+import os
 import threading
 from pathlib import Path
 
 import pytest
 
 from app.core.config import settings
-from app.services.safe_workspace_service import SafeWorkspaceService, sha256_file
+from app.services.safe_workspace_service import (
+    SafeWorkspaceService,
+    SessionOperationInProgress,
+    sha256_file,
+)
+
+
+def _process_workspace(path):
+    settings.WORKING_ROOT = Path(path)
+
+
+def _process_hold_operation(workspace, session_id, ready, release, result):
+    _process_workspace(workspace)
+    try:
+        with SafeWorkspaceService()._session_operation(session_id, "process-test"):
+            result.put("acquired")
+            ready.set()
+            if not release.wait(timeout=10):
+                result.put("hold-timeout")
+    except SessionOperationInProgress:
+        result.put("conflict")
+        ready.set()
+    except Exception as exc:
+        result.put(("error", repr(exc)))
+        ready.set()
+
+
+def _process_update_status(workspace, session_id, field, barrier, result):
+    _process_workspace(workspace)
+    try:
+        barrier.wait(timeout=10)
+        SafeWorkspaceService()._update_status(session_id, {field: True})
+        result.put("updated")
+    except Exception as exc:
+        result.put(("error", repr(exc)))
+
+
+def _process_exit_with_operation(workspace, session_id, acquired):
+    _process_workspace(workspace)
+    with SafeWorkspaceService()._session_operation(session_id, "crash-test"):
+        acquired.set()
+        os._exit(0)
+
+
+def _process_write_status(workspace, session_id, marker, barrier, result):
+    _process_workspace(workspace)
+    service = SafeWorkspaceService()
+    status_path = service._json_path(session_id, "status.json")
+    try:
+        barrier.wait(timeout=10)
+        for sequence in range(30):
+            service._write(status_path, {
+                "marker": marker,
+                "sequence": sequence,
+                "payload": marker * 16384,
+            })
+        result.put("written")
+    except Exception as exc:
+        result.put(("error", repr(exc)))
 
 
 def test_sha256_file(tmp_path: Path):
@@ -393,6 +453,8 @@ def test_safe_import_copies_nested_files_and_preserves_source(tmp_path, monkeypa
         if path.is_file()
     }
     assert workspace_files == {
+        f"imports/{created['session_id']}/.metadata.lock",
+        f"imports/{created['session_id']}/.operation.lock",
         f"imports/{created['session_id']}/manifest.json",
         f"imports/{created['session_id']}/source_copy/Department-A/invoice.txt",
         f"imports/{created['session_id']}/status.json",
@@ -674,7 +736,7 @@ def test_copy_and_hash_use_the_same_opened_source_file(tmp_path, monkeypatch):
 @pytest.mark.parametrize(
     "reader", ["status", "list_sessions", "search", "inventory", "understanding"]
 )
-def test_session_state_readers_wait_for_mutations(tmp_path, monkeypatch, reader):
+def test_session_state_readers_do_not_wait_for_metadata_lock(tmp_path, monkeypatch, reader):
     workspace = tmp_path / "workspace"
     source = tmp_path / "source"
     workspace.mkdir()
@@ -724,15 +786,264 @@ def test_session_state_readers_wait_for_mutations(tmp_path, monkeypatch, reader)
     try:
         thread = threading.Thread(target=read_status)
         thread.start()
-        assert not read_started.wait(timeout=1)
+        assert read_started.wait(timeout=1)
+        assert read_finished.wait(timeout=1)
     finally:
         lock.release()
 
-    assert read_started.wait(timeout=1)
-    assert read_finished.wait(timeout=1)
     thread.join(timeout=1)
     assert not thread.is_alive()
     assert not errors
+
+
+def _configure_synthetic_workspace(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+    return workspace, source
+
+
+def test_status_polling_is_prompt_during_import_and_import_stays_verified(
+    tmp_path, monkeypatch
+):
+    workspace, source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    source_file = source / "synthetic.txt"
+    source_file.write_text("synthetic import payload", encoding="utf-8")
+    original = source_file.read_bytes()
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    import_started = threading.Event()
+    continue_import = threading.Event()
+    status_returned = threading.Event()
+    results = []
+    errors = []
+    original_open = service._open_source_file
+
+    def blocked_open(source_root, path):
+        import_started.set()
+        if not continue_import.wait(timeout=5):
+            raise TimeoutError("Test did not release the import worker.")
+        return original_open(source_root, path)
+
+    monkeypatch.setattr(service, "_open_source_file", blocked_open)
+
+    def run_import():
+        try:
+            results.append(service.run_import(session["session_id"]))
+        except Exception as exc:
+            errors.append(exc)
+
+    worker = threading.Thread(target=run_import)
+    worker.start()
+    try:
+        assert import_started.wait(timeout=2)
+
+        def poll_status():
+            try:
+                results.append(service.status(session["session_id"]))
+            except Exception as exc:
+                errors.append(exc)
+            finally:
+                status_returned.set()
+
+        poller = threading.Thread(target=poll_status)
+        poller.start()
+        assert status_returned.wait(timeout=1)
+        poller.join(timeout=1)
+        assert not poller.is_alive()
+        polled = results.pop()
+        assert polled["state"] == "running"
+        assert 0 <= polled["progress"] < 1
+    finally:
+        continue_import.set()
+        worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert not errors
+    completed = service.status(session["session_id"])
+    copied = workspace / "imports" / session["session_id"] / "source_copy" / "synthetic.txt"
+    manifest = service._read(service._json_path(session["session_id"], "manifest.json"))
+    assert completed["state"] == "completed"
+    assert completed["progress"] == 1
+    assert completed["files_copied"] == completed["files_verified"] == 1
+    assert copied.read_bytes() == original
+    assert manifest["files"]["synthetic.txt"]["sha256"] == sha256_file(copied)
+    assert source_file.read_bytes() == original
+
+
+def test_status_polling_is_prompt_during_scan_and_scan_completes(
+    tmp_path, monkeypatch
+):
+    _workspace, source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    (source / "synthetic.txt").write_text("synthetic scan payload", encoding="utf-8")
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    assert service.run_import(session["session_id"])["state"] == "completed"
+    scan_started = threading.Event()
+    continue_scan = threading.Event()
+    status_returned = threading.Event()
+    results = []
+    errors = []
+    original_files = service._files
+
+    def blocked_files(root):
+        for path in original_files(root):
+            scan_started.set()
+            if not continue_scan.wait(timeout=5):
+                raise TimeoutError("Test did not release the scan worker.")
+            yield path
+
+    monkeypatch.setattr(service, "_files", blocked_files)
+
+    def run_scan():
+        try:
+            results.append(service.scan(session["session_id"]))
+        except Exception as exc:
+            errors.append(exc)
+
+    worker = threading.Thread(target=run_scan)
+    worker.start()
+    try:
+        assert scan_started.wait(timeout=2)
+
+        def poll_status():
+            try:
+                results.append(service.status(session["session_id"]))
+            except Exception as exc:
+                errors.append(exc)
+            finally:
+                status_returned.set()
+
+        poller = threading.Thread(target=poll_status)
+        poller.start()
+        assert status_returned.wait(timeout=1)
+        poller.join(timeout=1)
+        assert not poller.is_alive()
+        polled = results.pop()
+        assert polled["state"] == "scanning"
+    finally:
+        continue_scan.set()
+        worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert not errors
+    final_status = service.status(session["session_id"])
+    inventory = service.inventory(session["session_id"])
+    assert final_status["state"] == "scanned"
+    assert final_status["files_total"] == final_status["files_verified"] == 1
+    assert inventory["total"] == 1
+
+
+def test_concurrent_status_reads_observe_complete_atomic_json(tmp_path, monkeypatch):
+    workspace, source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    for index in range(8):
+        (source / f"synthetic-{index}.txt").write_text(
+            f"synthetic payload {index}", encoding="utf-8"
+        )
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    status_path = service._json_path(session["session_id"], "status.json")
+    replacement_started = threading.Event()
+    allow_replace = threading.Event()
+    original_replace = os.replace
+    paused = False
+    read_errors = []
+    results = []
+
+    def pause_first_status_replace(source_path, destination_path):
+        nonlocal paused
+        if Path(destination_path) == status_path and not paused:
+            paused = True
+            replacement_started.set()
+            if not allow_replace.wait(timeout=5):
+                raise TimeoutError("Test did not release atomic status replacement.")
+        return original_replace(source_path, destination_path)
+
+    monkeypatch.setattr(
+        "app.services.safe_workspace_service.os.replace", pause_first_status_replace
+    )
+
+    worker = threading.Thread(
+        target=lambda: results.append(service.run_import(session["session_id"]))
+    )
+    worker.start()
+    try:
+        assert replacement_started.wait(timeout=2)
+        start_readers = threading.Barrier(9)
+
+        def read_status_repeatedly():
+            try:
+                start_readers.wait(timeout=2)
+                for _ in range(20):
+                    results.append(service.status(session["session_id"]))
+            except Exception as exc:
+                read_errors.append(exc)
+
+        readers = [threading.Thread(target=read_status_repeatedly) for _ in range(8)]
+        for reader in readers:
+            reader.start()
+        start_readers.wait(timeout=2)
+        allow_replace.set()
+        for reader in readers:
+            reader.join(timeout=5)
+            assert not reader.is_alive()
+    finally:
+        allow_replace.set()
+        worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert not read_errors
+    assert all(isinstance(value, dict) and "state" in value for value in results)
+    manifest = service._read(service._json_path(session["session_id"], "manifest.json"))
+    copied_files = list(
+        (workspace / "imports" / session["session_id"] / "source_copy").rglob("*")
+    )
+    assert len(manifest["files"]) == 8
+    assert all(entry["verified"] for entry in manifest["files"].values())
+    assert len([path for path in copied_files if path.is_file()]) == 8
+
+
+def test_concurrent_import_and_scan_do_not_corrupt_session(tmp_path, monkeypatch):
+    workspace, source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    source_file = source / "synthetic.txt"
+    source_file.write_text("concurrent synthetic payload", encoding="utf-8")
+    original = source_file.read_bytes()
+    service = SafeWorkspaceService()
+    session = service.create_import()
+    import_started = threading.Event()
+    continue_import = threading.Event()
+    results = []
+    original_open = service._open_source_file
+
+    def blocked_open(source_root, path):
+        import_started.set()
+        if not continue_import.wait(timeout=5):
+            raise TimeoutError("Test did not release the import worker.")
+        return original_open(source_root, path)
+
+    monkeypatch.setattr(service, "_open_source_file", blocked_open)
+    worker = threading.Thread(
+        target=lambda: results.append(service.run_import(session["session_id"]))
+    )
+    worker.start()
+    try:
+        assert import_started.wait(timeout=2)
+        assert service.run_import(session["session_id"])["state"] == "running"
+        with pytest.raises(ValueError, match="already running"):
+            service.scan(session["session_id"])
+    finally:
+        continue_import.set()
+        worker.join(timeout=5)
+    assert not worker.is_alive()
+    final_status = service.status(session["session_id"])
+    copied = workspace / "imports" / session["session_id"] / "source_copy" / "synthetic.txt"
+    manifest = service._read(service._json_path(session["session_id"], "manifest.json"))
+    assert results[0]["state"] == final_status["state"] == "completed"
+    assert copied.read_bytes() == original
+    assert manifest["files"]["synthetic.txt"]["sha256"] == sha256_file(copied)
+    assert source_file.read_bytes() == original
 
 
 def test_search_total_counts_matches_beyond_limit(tmp_path, monkeypatch):
@@ -858,3 +1169,160 @@ def test_source_requires_original_read_only_flag(tmp_path: Path, monkeypatch):
 
     with pytest.raises(ValueError, match="ORIGINAL_READ_ONLY"):
         SafeWorkspaceService().validate_source(source)
+
+
+def test_cross_process_session_operation_has_single_owner(tmp_path, monkeypatch):
+    workspace, _source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    service = SafeWorkspaceService()
+    session_id = service.create_import()["session_id"]
+    context = multiprocessing.get_context("spawn")
+    first_ready = context.Event()
+    release_first = context.Event()
+    first_result = context.Queue()
+    second_ready = context.Event()
+    second_release = context.Event()
+    second_result = context.Queue()
+    first = context.Process(
+        target=_process_hold_operation,
+        args=(str(workspace), session_id, first_ready, release_first, first_result),
+    )
+    second = context.Process(
+        target=_process_hold_operation,
+        args=(str(workspace), session_id, second_ready, second_release, second_result),
+    )
+
+    first.start()
+    try:
+        assert first_ready.wait(timeout=10)
+        assert first_result.get(timeout=2) == "acquired"
+        second.start()
+        assert second_ready.wait(timeout=10)
+        assert second_result.get(timeout=2) == "conflict"
+    finally:
+        release_first.set()
+        if first.is_alive():
+            first.join(timeout=10)
+        if second.pid and second.is_alive():
+            second.join(timeout=10)
+    assert first.exitcode == 0
+    assert second.exitcode == 0
+
+
+def test_cross_process_status_updates_do_not_lose_fields(tmp_path, monkeypatch):
+    workspace, _source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    service = SafeWorkspaceService()
+    session_id = service.create_import()["session_id"]
+    context = multiprocessing.get_context("spawn")
+    barrier = context.Barrier(2)
+    result = context.Queue()
+    processes = [
+        context.Process(
+            target=_process_update_status,
+            args=(str(workspace), session_id, field, barrier, result),
+        )
+        for field in ("worker_one", "worker_two")
+    ]
+    for process in processes:
+        process.start()
+    for process in processes:
+        process.join(timeout=15)
+        assert not process.is_alive()
+        assert process.exitcode == 0
+    assert [result.get(timeout=2) for _ in processes] == ["updated", "updated"]
+    status = service.status(session_id)
+    assert status["worker_one"] is True
+    assert status["worker_two"] is True
+
+
+def test_cross_process_reservation_recovers_after_process_exit(tmp_path, monkeypatch):
+    workspace, _source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    service = SafeWorkspaceService()
+    session_id = service.create_import()["session_id"]
+    context = multiprocessing.get_context("spawn")
+    acquired = context.Event()
+    process = context.Process(
+        target=_process_exit_with_operation,
+        args=(str(workspace), session_id, acquired),
+    )
+    process.start()
+    assert acquired.wait(timeout=10)
+    process.join(timeout=10)
+    assert process.exitcode == 0
+
+    with service._session_operation(session_id, "after-crash"):
+        assert service.status(session_id)["state"] == "created"
+
+
+def test_cross_process_operations_on_different_sessions_run_concurrently(
+    tmp_path, monkeypatch
+):
+    workspace, _source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    service = SafeWorkspaceService()
+    first_session = service.create_import()["session_id"]
+    second_session = service.create_import()["session_id"]
+    context = multiprocessing.get_context("spawn")
+    first_ready = context.Event()
+    release_first = context.Event()
+    first_result = context.Queue()
+    second_ready = context.Event()
+    second_release = context.Event()
+    second_result = context.Queue()
+    first = context.Process(
+        target=_process_hold_operation,
+        args=(str(workspace), first_session, first_ready, release_first, first_result),
+    )
+    second = context.Process(
+        target=_process_hold_operation,
+        args=(str(workspace), second_session, second_ready, second_release, second_result),
+    )
+
+    first.start()
+    try:
+        assert first_ready.wait(timeout=10)
+        assert first_result.get(timeout=2) == "acquired"
+        second.start()
+        assert second_ready.wait(timeout=10)
+        assert second_result.get(timeout=2) == "acquired"
+    finally:
+        release_first.set()
+        second_release.set()
+        first.join(timeout=10)
+        if second.pid:
+            second.join(timeout=10)
+    assert first.exitcode == 0
+    assert second.exitcode == 0
+
+
+def test_cross_process_atomic_json_replacement(tmp_path, monkeypatch):
+    workspace, _source = _configure_synthetic_workspace(tmp_path, monkeypatch)
+    service = SafeWorkspaceService()
+    session_id = service.create_import()["session_id"]
+    status_path = service._json_path(session_id, "status.json")
+    service._write(status_path, {
+        "marker": "A",
+        "sequence": -1,
+        "payload": "A" * 16384,
+    })
+    context = multiprocessing.get_context("spawn")
+    barrier = context.Barrier(2)
+    result = context.Queue()
+    process = context.Process(
+        target=_process_write_status,
+        args=(str(workspace), session_id, "B", barrier, result),
+    )
+    process.start()
+    barrier.wait(timeout=10)
+    snapshots = 0
+    while process.is_alive():
+        value = service._read(status_path)
+        assert value["marker"] in {"A", "B"}
+        assert len(value["payload"]) == 16384
+        assert value["payload"] == value["marker"] * 16384
+        snapshots += 1
+    process.join(timeout=10)
+    assert process.exitcode == 0
+    assert result.get(timeout=2) == "written"
+    final_value = service._read(status_path)
+    assert final_value["marker"] in {"A", "B"}
+    assert final_value["payload"] == final_value["marker"] * 16384
+    assert snapshots > 0

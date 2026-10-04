@@ -62,6 +62,10 @@ def test_workspace_backup_snapshot_matches_backup_exclusions(tmp_path):
     (tmp_path / "Recovery" / "restore_old").mkdir(parents=True)
     (tmp_path / "Recovery" / "restore_old" / "old.txt").write_text("old", encoding="utf-8")
     (tmp_path / "temporary.tmp").write_text("partial", encoding="utf-8")
+    session = tmp_path / "imports" / "0123456789abcdef0123456789abcdef"
+    session.mkdir(parents=True)
+    (session / ".operation.lock").write_bytes(b"\0")
+    (session / ".metadata.lock").write_bytes(b"\0")
     (tmp_path / "keep.txt").write_text("keep", encoding="utf-8")
 
     snapshot = module.workspace_backup_snapshot(tmp_path)
