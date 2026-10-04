@@ -47,8 +47,9 @@ def _validate_parameters(parameters: Sequence[Any]) -> tuple[Any, ...]:
 
 
 def _prepared(binding: Any, sql: str, parameters: Sequence[Any]):
-    statement = binding.prepare(_validate_sql(sql))
+    query = _validate_sql(sql)
     values = _validate_parameters(parameters)
+    statement = binding.prepare(query)
     return statement.bind(*values) if values else statement
 
 
