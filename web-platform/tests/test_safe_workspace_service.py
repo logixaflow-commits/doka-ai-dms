@@ -369,6 +369,145 @@ def test_safe_import_copies_nested_files_and_preserves_source(tmp_path, monkeypa
     }
 
 
+def _prepare_destination_attack_import(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    source_file = source / "nested" / "invoice.txt"
+    source_file.parent.mkdir(parents=True)
+    workspace.mkdir()
+    source_file.write_bytes(b"Synthetic source contents for destination security")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    copy_root = workspace / "imports" / created["session_id"] / "source_copy"
+    copy_root.mkdir()
+    destination = copy_root / "nested" / "invoice.txt"
+    destination.parent.mkdir()
+    return service, created, source_file, destination
+
+
+def test_import_rejects_destination_hard_link_without_modifying_source(
+    tmp_path, monkeypatch
+):
+    service, created, source_file, destination = _prepare_destination_attack_import(
+        tmp_path, monkeypatch
+    )
+    source_bytes = source_file.read_bytes()
+    source_digest = sha256_file(source_file)
+    destination.hardlink_to(source_file)
+
+    result = service.run_import(created["session_id"])
+
+    assert result["state"] == "completed_with_errors"
+    assert result["files_failed"] == 1
+    assert source_file.read_bytes() == source_bytes
+    assert sha256_file(source_file) == source_digest
+    assert destination.read_bytes() == source_bytes
+    assert sha256_file(destination) == source_digest
+
+
+def test_import_rejects_destination_symlink_to_source(
+    tmp_path, monkeypatch, make_symlink
+):
+    service, created, source_file, destination = _prepare_destination_attack_import(
+        tmp_path, monkeypatch
+    )
+    source_bytes = source_file.read_bytes()
+    source_digest = sha256_file(source_file)
+    make_symlink(destination, source_file)
+
+    result = service.run_import(created["session_id"])
+
+    assert result["state"] == "completed_with_errors"
+    assert result["files_failed"] == 1
+    assert source_file.read_bytes() == source_bytes
+    assert sha256_file(source_file) == source_digest
+    assert destination.is_symlink()
+
+
+def test_import_rejects_destination_symlink_to_outside_file(
+    tmp_path, monkeypatch, make_symlink
+):
+    service, created, source_file, destination = _prepare_destination_attack_import(
+        tmp_path, monkeypatch
+    )
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_bytes(b"Synthetic outside sentinel")
+    source_bytes = source_file.read_bytes()
+    source_digest = sha256_file(source_file)
+    outside_bytes = outside_file.read_bytes()
+    outside_digest = sha256_file(outside_file)
+    make_symlink(destination, outside_file)
+
+    result = service.run_import(created["session_id"])
+
+    assert result["state"] == "completed_with_errors"
+    assert result["files_failed"] == 1
+    assert source_file.read_bytes() == source_bytes
+    assert sha256_file(source_file) == source_digest
+    assert outside_file.read_bytes() == outside_bytes
+    assert sha256_file(outside_file) == outside_digest
+    assert destination.is_symlink()
+
+
+def test_import_rejects_destination_parent_replaced_by_symlink(
+    tmp_path, monkeypatch, make_symlink
+):
+    service, created, source_file, destination = _prepare_destination_attack_import(
+        tmp_path, monkeypatch
+    )
+    copy_root = destination.parents[1]
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "sentinel.txt"
+    sentinel.write_bytes(b"Synthetic outside sentinel")
+    source_bytes = source_file.read_bytes()
+    source_digest = sha256_file(source_file)
+    sentinel_bytes = sentinel.read_bytes()
+    sentinel_digest = sha256_file(sentinel)
+    original_open = service._open_working_copy_file
+
+    def replace_parent_before_open(copy_path, relative_path, *, create):
+        (copy_root / "nested").rmdir()
+        make_symlink(copy_root / "nested", outside, target_is_directory=True)
+        return original_open(copy_path, relative_path, create=create)
+
+    monkeypatch.setattr(service, "_open_working_copy_file", replace_parent_before_open)
+    result = service.run_import(created["session_id"])
+
+    assert result["state"] == "completed_with_errors"
+    assert result["files_failed"] == 1
+    assert source_file.read_bytes() == source_bytes
+    assert sha256_file(source_file) == source_digest
+    assert sentinel.read_bytes() == sentinel_bytes
+    assert sha256_file(sentinel) == sentinel_digest
+    assert not (outside / "invoice.txt").exists()
+
+
+def test_import_does_not_overwrite_preexisting_destination(tmp_path, monkeypatch):
+    service, created, source_file, destination = _prepare_destination_attack_import(
+        tmp_path, monkeypatch
+    )
+    preexisting_bytes = b"Synthetic pre-existing destination"
+    destination.write_bytes(preexisting_bytes)
+    source_bytes = source_file.read_bytes()
+    source_digest = sha256_file(source_file)
+    destination_digest = sha256_file(destination)
+
+    result = service.run_import(created["session_id"])
+
+    assert result["state"] == "completed_with_errors"
+    assert result["files_failed"] == 1
+    assert source_file.read_bytes() == source_bytes
+    assert sha256_file(source_file) == source_digest
+    assert destination.read_bytes() == preexisting_bytes
+    assert sha256_file(destination) == destination_digest
+
+
 def test_import_rejects_file_replaced_by_outside_symlink_before_open(
     tmp_path, monkeypatch, make_symlink
 ):

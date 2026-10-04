@@ -9,9 +9,10 @@ import tempfile
 import threading
 import uuid
 import re
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Iterator, Optional
 
 from loguru import logger
 from app.core.config import settings
@@ -186,26 +187,6 @@ class SafeWorkspaceService:
         with self._guard:
             return self._locks.setdefault(session_id, threading.Lock())
 
-    def _working_copy_destination(self, copy_root: Path, relative_path: str) -> Path:
-        relative = Path(relative_path)
-        if relative.is_absolute() or not relative.parts or any(part in {"", ".", ".."} for part in relative.parts):
-            raise ValueError("Source file has an unsafe relative path.")
-        destination = copy_root / relative
-        if destination.is_symlink():
-            raise ValueError("Working-copy destination cannot be a symlink.")
-        current = destination.parent
-        while current != copy_root:
-            if current.is_symlink():
-                raise ValueError("Working-copy parent directory cannot be a symlink.")
-            if copy_root not in current.parents:
-                raise ValueError("Working-copy destination is outside the import session.")
-            current = current.parent
-        try:
-            destination.resolve().relative_to(copy_root)
-        except ValueError as exc:
-            raise ValueError("Working-copy destination is outside the import session.") from exc
-        return destination
-
     def _open_posix_source_file(self, source: Path, source_path: Path):
         nofollow = getattr(os, "O_NOFOLLOW", None)
         directory = getattr(os, "O_DIRECTORY", None)
@@ -377,13 +358,444 @@ class SafeWorkspaceService:
         raise ValueError("Secure source-file opening is unavailable on this platform.")
 
     @staticmethod
-    def _copy_and_hash(source_handle, destination: Path) -> str:
+    def _copy_and_hash(source_handle, destination_handle) -> str:
         digest = hashlib.sha256()
-        with destination.open("wb") as output:
-            for chunk in iter(lambda: source_handle.read(CHUNK_SIZE), b""):
-                output.write(chunk)
-                digest.update(chunk)
+        for chunk in iter(lambda: source_handle.read(CHUNK_SIZE), b""):
+            destination_handle.write(chunk)
+            digest.update(chunk)
         return digest.hexdigest()
+
+    @staticmethod
+    def _working_copy_parts(copy_root: Path, relative_path: str) -> tuple[Path, tuple[str, ...]]:
+        relative = Path(relative_path)
+        if (
+            relative.is_absolute()
+            or not relative.parts
+            or any(part in {"", ".", ".."} for part in relative.parts)
+        ):
+            raise ValueError("Source file has an unsafe relative path.")
+
+        workspace = settings.WORKING_ROOT.expanduser().resolve(strict=True)
+        try:
+            copy_parts = copy_root.relative_to(workspace).parts
+        except ValueError as exc:
+            raise ValueError("Working-copy destination is outside the workspace.") from exc
+        if not copy_parts or any(part in {"", ".", ".."} for part in copy_parts):
+            raise ValueError("Working-copy destination is outside the workspace.")
+        return workspace, (*copy_parts, *relative.parts)
+
+    def _ensure_working_copy_root(self, copy_root: Path) -> None:
+        workspace = settings.WORKING_ROOT.expanduser().resolve(strict=True)
+        try:
+            parts = copy_root.relative_to(workspace).parts
+        except ValueError as exc:
+            raise ValueError("Working-copy destination is outside the workspace.") from exc
+        if not parts or any(part in {"", ".", ".."} for part in parts):
+            raise ValueError("Working-copy destination is outside the workspace.")
+
+        if os.name == "posix":
+            nofollow = getattr(os, "O_NOFOLLOW", None)
+            directory = getattr(os, "O_DIRECTORY", None)
+            if nofollow is None or directory is None or os.open not in os.supports_dir_fd:
+                raise ValueError("Secure working-copy creation is unavailable on this platform.")
+            flags = os.O_RDONLY | directory | nofollow
+            current_fd = os.open(workspace.anchor, flags)
+            try:
+                for component in workspace.parts[1:]:
+                    next_fd = os.open(component, flags, dir_fd=current_fd)
+                    os.close(current_fd)
+                    current_fd = next_fd
+                for component in parts:
+                    try:
+                        os.mkdir(component, mode=0o700, dir_fd=current_fd)
+                    except FileExistsError:
+                        pass
+                    next_fd = os.open(component, flags, dir_fd=current_fd)
+                    os.close(current_fd)
+                    current_fd = next_fd
+            finally:
+                os.close(current_fd)
+            return
+
+        if os.name != "nt":
+            raise ValueError("Secure working-copy creation is unavailable on this platform.")
+
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateFileW.argtypes = (
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE,
+        )
+        kernel32.CreateFileW.restype = wintypes.HANDLE
+        kernel32.CreateDirectoryW.argtypes = (wintypes.LPCWSTR, wintypes.LPVOID)
+        kernel32.CreateDirectoryW.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        kernel32.GetFileInformationByHandleEx.argtypes = (
+            wintypes.HANDLE,
+            ctypes.c_int,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+        )
+        kernel32.GetFileInformationByHandleEx.restype = wintypes.BOOL
+        kernel32.GetFinalPathNameByHandleW.argtypes = (
+            wintypes.HANDLE,
+            wintypes.LPWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+        )
+        kernel32.GetFinalPathNameByHandleW.restype = wintypes.DWORD
+
+        class FileAttributeTagInfo(ctypes.Structure):
+            _fields_ = [("FileAttributes", wintypes.DWORD), ("ReparseTag", wintypes.DWORD)]
+
+        invalid_handle = ctypes.c_void_p(-1).value
+        share_read_write = 0x00000001 | 0x00000002
+        pinned_directories = []
+
+        def final_path(handle):
+            buffer = ctypes.create_unicode_buffer(32768)
+            length = kernel32.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)
+            if not length or length >= len(buffer):
+                raise OSError(ctypes.get_last_error(), "Cannot resolve working-copy path")
+            value = buffer.value
+            if value.startswith("\\\\?\\UNC\\"):
+                value = "\\\\" + value[8:]
+            elif value.startswith("\\\\?\\"):
+                value = value[4:]
+            return ntpath.normcase(ntpath.normpath(value))
+
+        def open_directory(path):
+            handle = kernel32.CreateFileW(
+                str(path),
+                0x00000080,
+                share_read_write,
+                None,
+                3,
+                0x00200000 | 0x02000000,
+                None,
+            )
+            if handle == invalid_handle:
+                raise OSError(ctypes.get_last_error(), "Cannot securely open working-copy directory")
+            try:
+                info = FileAttributeTagInfo()
+                if not kernel32.GetFileInformationByHandleEx(
+                    handle, 9, ctypes.byref(info), ctypes.sizeof(info)
+                ):
+                    raise OSError(ctypes.get_last_error(), "Cannot inspect working-copy directory")
+                if not info.FileAttributes & 0x10 or info.FileAttributes & 0x400:
+                    raise ValueError("Working-copy directory cannot be a reparse point.")
+                if final_path(handle) != ntpath.normcase(ntpath.normpath(str(path))):
+                    raise ValueError("Working-copy directory changed during import.")
+                return handle
+            except Exception:
+                kernel32.CloseHandle(handle)
+                raise
+
+        try:
+            pinned_directories.append(open_directory(workspace))
+            parent = workspace
+            for component in parts:
+                parent = parent / component
+                if not kernel32.CreateDirectoryW(str(parent), None):
+                    error = ctypes.get_last_error()
+                    if error != 183:
+                        raise OSError(error, "Cannot create working-copy directory")
+                pinned_directories.append(open_directory(parent))
+        finally:
+            for handle in reversed(pinned_directories):
+                kernel32.CloseHandle(handle)
+
+    @contextmanager
+    def _open_posix_working_copy_file(
+        self, copy_root: Path, relative_path: str, *, create: bool
+    ) -> Iterator[tuple[Path, Any]]:
+        nofollow = getattr(os, "O_NOFOLLOW", None)
+        directory = getattr(os, "O_DIRECTORY", None)
+        if nofollow is None or directory is None or os.open not in os.supports_dir_fd:
+            raise ValueError("Secure working-copy creation is unavailable on this platform.")
+
+        workspace, parts = self._working_copy_parts(copy_root, relative_path)
+        directory_flags = os.O_RDONLY | directory | nofollow
+        current_fd = os.open(workspace.anchor, directory_flags)
+        file_fd = None
+        try:
+            for component in workspace.parts[1:]:
+                next_fd = os.open(component, directory_flags, dir_fd=current_fd)
+                os.close(current_fd)
+                current_fd = next_fd
+            for component in parts[:-1]:
+                try:
+                    os.mkdir(component, mode=0o700, dir_fd=current_fd)
+                except FileExistsError:
+                    pass
+                next_fd = os.open(component, directory_flags, dir_fd=current_fd)
+                os.close(current_fd)
+                current_fd = next_fd
+
+            if create:
+                flags = os.O_RDWR | os.O_CREAT | os.O_EXCL | nofollow
+                flags |= getattr(os, "O_CLOEXEC", 0)
+                file_fd = os.open(parts[-1], flags, 0o600, dir_fd=current_fd)
+            else:
+                flags = os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0)
+                file_fd = os.open(parts[-1], flags, dir_fd=current_fd)
+
+            opened_stat = os.fstat(file_fd)
+            if not stat.S_ISREG(opened_stat.st_mode):
+                raise ValueError("Working-copy destination is not a regular file.")
+            if opened_stat.st_nlink != 1:
+                raise ValueError("Working-copy destination has unexpected hard links.")
+            handle = os.fdopen(file_fd, "r+b" if create else "rb")
+            file_fd = None
+            destination = copy_root.joinpath(*Path(relative_path).parts)
+            try:
+                yield destination, handle
+            finally:
+                handle.close()
+        finally:
+            if file_fd is not None:
+                os.close(file_fd)
+            os.close(current_fd)
+
+    @contextmanager
+    def _open_windows_working_copy_file(
+        self, copy_root: Path, relative_path: str, *, create: bool
+    ) -> Iterator[tuple[Path, Any]]:
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+
+        workspace, parts = self._working_copy_parts(copy_root, relative_path)
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateFileW.argtypes = (
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE,
+        )
+        kernel32.CreateFileW.restype = wintypes.HANDLE
+        kernel32.CreateDirectoryW.argtypes = (wintypes.LPCWSTR, wintypes.LPVOID)
+        kernel32.CreateDirectoryW.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        kernel32.GetFileInformationByHandleEx.argtypes = (
+            wintypes.HANDLE,
+            ctypes.c_int,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+        )
+        kernel32.GetFileInformationByHandleEx.restype = wintypes.BOOL
+        kernel32.GetFinalPathNameByHandleW.argtypes = (
+            wintypes.HANDLE,
+            wintypes.LPWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+        )
+        kernel32.GetFinalPathNameByHandleW.restype = wintypes.DWORD
+
+        class FileAttributeTagInfo(ctypes.Structure):
+            _fields_ = [("FileAttributes", wintypes.DWORD), ("ReparseTag", wintypes.DWORD)]
+
+        invalid_handle = ctypes.c_void_p(-1).value
+        share_read_write = 0x00000001 | 0x00000002
+        open_existing = 3
+        create_new = 1
+        open_reparse_point = 0x00200000
+        backup_semantics = 0x02000000
+        file_attribute_directory = 0x00000010
+        file_attribute_reparse_point = 0x00000400
+        pinned_directories = []
+        file_handle = invalid_handle
+
+        def attributes(handle):
+            result = FileAttributeTagInfo()
+            if not kernel32.GetFileInformationByHandleEx(
+                handle, 9, ctypes.byref(result), ctypes.sizeof(result)
+            ):
+                raise OSError(ctypes.get_last_error(), "Cannot inspect working-copy entry")
+            return result.FileAttributes
+
+        def final_path(handle):
+            buffer = ctypes.create_unicode_buffer(32768)
+            length = kernel32.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)
+            if not length or length >= len(buffer):
+                raise OSError(ctypes.get_last_error(), "Cannot resolve working-copy path")
+            value = buffer.value
+            if value.startswith("\\\\?\\UNC\\"):
+                value = "\\\\" + value[8:]
+            elif value.startswith("\\\\?\\"):
+                value = value[4:]
+            return ntpath.normcase(ntpath.normpath(value))
+
+        def open_directory(path, expected_path):
+            handle = kernel32.CreateFileW(
+                str(path),
+                0x00000080,
+                share_read_write,
+                None,
+                open_existing,
+                open_reparse_point | backup_semantics,
+                None,
+            )
+            if handle == invalid_handle:
+                raise OSError(ctypes.get_last_error(), "Cannot securely open working-copy directory")
+            try:
+                entry_attributes = attributes(handle)
+                if (
+                    not entry_attributes & file_attribute_directory
+                    or entry_attributes & file_attribute_reparse_point
+                ):
+                    raise ValueError("Working-copy parent directory cannot be a reparse point.")
+                actual_path = final_path(handle)
+                expected = ntpath.normcase(ntpath.normpath(str(expected_path)))
+                if actual_path != expected:
+                    raise ValueError("Working-copy parent directory changed during import.")
+                return handle
+            except Exception:
+                kernel32.CloseHandle(handle)
+                raise
+
+        try:
+            pinned_directories.append(open_directory(workspace, workspace))
+            parent = workspace
+            for component in parts[:-1]:
+                parent = parent / component
+                if not kernel32.CreateDirectoryW(str(parent), None):
+                    error = ctypes.get_last_error()
+                    if error != 183:
+                        raise OSError(error, "Cannot create working-copy directory")
+                pinned_directories.append(open_directory(parent, parent))
+
+            destination = parent / parts[-1]
+            if create:
+                file_handle = kernel32.CreateFileW(
+                    str(destination),
+                    0xC0000000,
+                    share_read_write,
+                    None,
+                    create_new,
+                    open_reparse_point,
+                    None,
+                )
+            else:
+                file_handle = kernel32.CreateFileW(
+                    str(destination),
+                    0x80000000,
+                    share_read_write,
+                    None,
+                    open_existing,
+                    open_reparse_point,
+                    None,
+                )
+            if file_handle == invalid_handle:
+                raise OSError(ctypes.get_last_error(), "Cannot securely open working-copy file")
+
+            file_attributes = attributes(file_handle)
+            if file_attributes & (file_attribute_directory | file_attribute_reparse_point):
+                raise ValueError("Working-copy destination cannot be a reparse point or directory.")
+            opened_path = final_path(file_handle)
+            expected_path = ntpath.normcase(ntpath.normpath(str(destination)))
+            if opened_path != expected_path:
+                raise ValueError("Working-copy destination changed during import.")
+
+            descriptor = msvcrt.open_osfhandle(
+                int(file_handle),
+                (os.O_RDWR if create else os.O_RDONLY) | getattr(os, "O_BINARY", 0),
+            )
+            file_handle = invalid_handle
+            handle = os.fdopen(descriptor, "r+b" if create else "rb")
+            opened_stat = os.fstat(handle.fileno())
+            if not stat.S_ISREG(opened_stat.st_mode) or opened_stat.st_nlink != 1:
+                handle.close()
+                raise ValueError("Working-copy destination is not a new, unlinked regular file.")
+            try:
+                yield destination, handle
+            finally:
+                handle.close()
+        finally:
+            if file_handle != invalid_handle:
+                kernel32.CloseHandle(file_handle)
+            for directory_handle in reversed(pinned_directories):
+                kernel32.CloseHandle(directory_handle)
+
+    @contextmanager
+    def _open_working_copy_file(
+        self, copy_root: Path, relative_path: str, *, create: bool
+    ) -> Iterator[tuple[Path, Any]]:
+        if os.name == "posix":
+            with self._open_posix_working_copy_file(
+                copy_root, relative_path, create=create
+            ) as opened:
+                yield opened
+            return
+        if os.name == "nt":
+            with self._open_windows_working_copy_file(
+                copy_root, relative_path, create=create
+            ) as opened:
+                yield opened
+            return
+        raise ValueError("Secure working-copy creation is unavailable on this platform.")
+
+    @staticmethod
+    def _hash_open_file(handle) -> str:
+        digest = hashlib.sha256()
+        handle.seek(0)
+        for chunk in iter(lambda: handle.read(CHUNK_SIZE), b""):
+            digest.update(chunk)
+        return digest.hexdigest()
+
+    @staticmethod
+    def _set_working_copy_metadata(handle, source_stat) -> None:
+        descriptor = handle.fileno()
+        os.chmod(descriptor, stat.S_IMODE(source_stat.st_mode))
+        if os.name == "posix":
+            os.utime(
+                descriptor,
+                ns=(source_stat.st_atime_ns, source_stat.st_mtime_ns),
+            )
+            return
+        if os.name != "nt":
+            raise ValueError("Secure working-copy metadata updates are unavailable.")
+
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+
+        class FileTime(ctypes.Structure):
+            _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
+
+        def file_time(timestamp_ns):
+            ticks = timestamp_ns // 100 + 116444736000000000
+            return FileTime(ticks & 0xFFFFFFFF, ticks >> 32)
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.SetFileTime.argtypes = (
+            wintypes.HANDLE,
+            ctypes.POINTER(FileTime),
+            ctypes.POINTER(FileTime),
+            ctypes.POINTER(FileTime),
+        )
+        kernel32.SetFileTime.restype = wintypes.BOOL
+        access_time = file_time(source_stat.st_atime_ns)
+        modified_time = file_time(source_stat.st_mtime_ns)
+        if not kernel32.SetFileTime(
+            msvcrt.get_osfhandle(descriptor),
+            None,
+            ctypes.byref(access_time),
+            ctypes.byref(modified_time),
+        ):
+            raise OSError(ctypes.get_last_error(), "Cannot preserve working-copy timestamps")
 
     def validate_source(self, source: Optional[Path] = None) -> Path:
         if settings.SOURCE_ROOT is None:
@@ -462,7 +874,7 @@ class SafeWorkspaceService:
             source, copy_root = self.validate_manifest_paths(session_id, manifest)
             if copy_root.is_symlink():
                 raise ValueError("Import working-copy directory cannot be a symlink.")
-            copy_root.mkdir(parents=True, exist_ok=True)
+            self._ensure_working_copy_root(copy_root)
             files = list(self._files(source))
             status.update({
                 "state": "running", "files_total": len(files),
@@ -476,44 +888,45 @@ class SafeWorkspaceService:
                 for src in files:
                     rel = src.relative_to(source).as_posix()
                     try:
-                        dest = self._working_copy_destination(copy_root, rel)
                         with self._open_source_file(source, src) as source_handle:
                             st = os.fstat(source_handle.fileno())
                             status["bytes_total"] += st.st_size
                             old = manifest["files"].get(rel)
-                            if (
-                                old
-                                and old.get("size") == st.st_size
-                                and old.get("source_mtime_ns") == st.st_mtime_ns
-                                and old.get("verified")
-                                and dest.is_file()
-                                and not dest.is_symlink()
-                            ):
-                                source_digest = hashlib.sha256()
-                                for chunk in iter(
-                                    lambda: source_handle.read(CHUNK_SIZE), b""
-                                ):
-                                    source_digest.update(chunk)
-                                source_hash = source_digest.hexdigest()
-                                if (
-                                    source_hash == old.get("sha256")
-                                    and sha256_file(dest) == old.get("sha256")
-                                ):
-                                    status["files_verified"] += 1
-                                    status["bytes_copied"] += st.st_size
-                                    continue
-                                source_handle.seek(0)
+                            source_hash = self._hash_open_file(source_handle)
+                            try:
+                                with self._open_working_copy_file(
+                                    copy_root, rel, create=False
+                                ) as (dest, existing_handle):
+                                    if (
+                                        old
+                                        and old.get("size") == st.st_size
+                                        and old.get("source_mtime_ns") == st.st_mtime_ns
+                                        and old.get("verified")
+                                        and source_hash == old.get("sha256")
+                                        and self._hash_open_file(existing_handle)
+                                        == old.get("sha256")
+                                    ):
+                                        status["files_verified"] += 1
+                                        status["bytes_copied"] += st.st_size
+                                        continue
+                                    raise FileExistsError(
+                                        "Working-copy destination already exists and "
+                                        "is not a verified copy."
+                                    )
+                            except FileNotFoundError:
+                                pass
 
-                            dest.parent.mkdir(parents=True, exist_ok=True)
-                            dest = self._working_copy_destination(copy_root, rel)
-                            source_hash = self._copy_and_hash(source_handle, dest)
-                            os.chmod(dest, stat.S_IMODE(st.st_mode))
-                            os.utime(
-                                dest,
-                                ns=(st.st_atime_ns, st.st_mtime_ns),
-                            )
-                            if sha256_file(dest) != source_hash:
-                                raise IOError("SHA-256 verification failed")
+                            source_handle.seek(0)
+                            with self._open_working_copy_file(
+                                copy_root, rel, create=True
+                            ) as (dest, destination_handle):
+                                source_hash = self._copy_and_hash(
+                                    source_handle, destination_handle
+                                )
+                                self._set_working_copy_metadata(destination_handle, st)
+                                destination_handle.flush()
+                                if self._hash_open_file(destination_handle) != source_hash:
+                                    raise IOError("SHA-256 verification failed")
                             manifest["files"][rel] = {
                                 "relative_path": rel, "source_path": str(src),
                                 "working_path": str(dest), "filename": src.name,

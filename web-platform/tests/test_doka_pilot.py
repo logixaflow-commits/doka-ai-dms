@@ -25,6 +25,7 @@ def test_doka_pilot_gate_preserves_source_and_creates_reproducible_report(tmp_pa
     final = workspace / "Final"
     quarantine = workspace / "Quarantine"
     monkeypatch.setattr(config_module.settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(config_module.settings, "SOURCE_ROOT", source)
     monkeypatch.setattr(config_module.settings, "BACKUP_ROOT", backups)
     monkeypatch.setattr(config_module.settings, "FINAL_ROOT", final)
     monkeypatch.setattr(config_module.settings, "QUARANTINE_ROOT", quarantine)
@@ -37,7 +38,8 @@ def test_doka_pilot_gate_preserves_source_and_creates_reproducible_report(tmp_pa
     )
 
     assert module.main() == 0
-    report = json.loads(capsys.readouterr().out)
+    output = capsys.readouterr().out
+    report = json.loads(output[output.index("{"):])
 
     assert report["gate"] == "passed"
     assert report["source_unchanged"] is True
@@ -94,6 +96,7 @@ def test_doka_pilot_rejects_empty_source_copy(tmp_path, monkeypatch, capsys):
     )
 
     assert module.main() == 2
-    report = json.loads(capsys.readouterr().out)
+    output = capsys.readouterr().out
+    report = json.loads(output[output.index("{"):])
     assert report["gate"] == "blocked"
     assert "no regular files" in report["reason"]

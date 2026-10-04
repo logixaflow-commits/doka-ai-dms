@@ -39,8 +39,9 @@ def isolate_local_auth_state(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_local_login_requires_configured_password(monkeypatch):
     monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "")
-    with pytest.raises(Exception, match="not configured"):
+    with pytest.raises(HTTPException, match="not configured") as error:
         await login(LocalLogin(username="admin", password="anything"), _request())
+    assert error.value.status_code == 503
 
 
 @pytest.mark.asyncio
@@ -430,11 +431,18 @@ def test_protected_local_workspace_route_rejects_anonymous_and_accepts_local_tok
     monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "local-auth.sqlite3")
     app = FastAPI()
     app.include_router(workspace.router)
+    from app.api.routes.workspace_files import router as workspace_files_router
+
+    app.include_router(workspace_files_router)
     token = create_local_access_token("local-admin")
 
     with TestClient(app) as client:
         anonymous = client.get("/api/workspace/imports")
         assert anonymous.status_code == 401
+        anonymous_file = client.get(
+            f"/api/workspace/imports/{'a' * 32}/files/synthetic.txt"
+        )
+        assert anonymous_file.status_code == 401
 
         forged_identity = client.get(
             "/api/workspace/imports",
@@ -494,6 +502,9 @@ async def test_cloud_auth_uses_supabase_identity_with_synthetic_mock(monkeypatch
             return False
 
         async def get(self, url, headers):
+            assert url == "https://synthetic-project.invalid/auth/v1/user"
+            assert headers["apikey"] == "synthetic-publishable-key"
+            assert headers["Authorization"] == "Bearer synthetic-cloud-token"
             return FakeResponse()
 
     monkeypatch.setattr(supabase_auth.httpx, "AsyncClient", FakeClient)
