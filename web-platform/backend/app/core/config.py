@@ -409,17 +409,21 @@ class Settings:
         if self.ALLOW_SOURCE_WRITE:
             raise ValueError("Unsafe workspace configuration: ALLOW_SOURCE_WRITE must remain false in personal local mode.")
         if self.SOURCE_ROOT:
-            source = self.SOURCE_ROOT.resolve()
+            try:
+                self.SOURCE_ROOT = self.SOURCE_ROOT.expanduser().resolve()
+            except (OSError, RuntimeError, ValueError):
+                raise ValueError("Unsafe workspace configuration: SOURCE_ROOT is invalid.") from None
+            source = self.SOURCE_ROOT
             working = self.WORKING_ROOT.resolve()
             try:
                 overlap = source == working or working.is_relative_to(source) or source.is_relative_to(working)
             except AttributeError:
                 overlap = source == working or str(working).startswith(str(source) + os.sep) or str(source).startswith(str(working) + os.sep)
             if overlap:
-                raise ValueError(f"Unsafe workspace configuration: SOURCE_ROOT ({source}) and WORKING_ROOT ({working}) overlap.")
+                raise ValueError("Unsafe workspace configuration: SOURCE_ROOT and WORKING_ROOT must not overlap.")
         auth_state = self.LOCAL_AUTH_STATE_PATH.resolve()
         if self.SOURCE_ROOT:
-            source = self.SOURCE_ROOT.resolve()
+            source = self.SOURCE_ROOT
             if auth_state == source or auth_state.is_relative_to(source):
                 raise ValueError("Unsafe local auth state configuration: LOCAL_AUTH_STATE_PATH must not be inside SOURCE_ROOT.")
         if auth_state == self.WORKING_ROOT.resolve() or auth_state.is_relative_to(self.WORKING_ROOT.resolve()):
@@ -428,11 +432,11 @@ class Settings:
         working = self.WORKING_ROOT.resolve()
         backup = self.BACKUP_ROOT.resolve()
         if backup == working or backup.is_relative_to(working):
-            raise ValueError(f"Unsafe workspace configuration: BACKUP_ROOT ({backup}) must not be inside WORKING_ROOT ({working}).")
+            raise ValueError("Unsafe workspace configuration: BACKUP_ROOT must not be inside WORKING_ROOT.")
         if self.SOURCE_ROOT:
-            source = self.SOURCE_ROOT.resolve()
+            source = self.SOURCE_ROOT
             if backup == source or backup.is_relative_to(source):
-                raise ValueError(f"Unsafe workspace configuration: BACKUP_ROOT ({backup}) must not be inside SOURCE_ROOT ({source}).")
+                raise ValueError("Unsafe workspace configuration: BACKUP_ROOT must not be inside SOURCE_ROOT.")
         for root_attr in ("FINAL_ROOT", "QUARANTINE_ROOT"):
             writable_root = getattr(self, root_attr)
             try:
@@ -440,10 +444,7 @@ class Settings:
             except AttributeError:
                 inside = str(writable_root.resolve()).startswith(str(working) + os.sep)
             if not inside:
-                raise ValueError(
-                    f"Unsafe workspace configuration: {root_attr} ({writable_root}) "
-                    f"must be inside WORKING_ROOT ({working})."
-                )
+                raise ValueError(f"Unsafe workspace configuration: {root_attr} must be inside WORKING_ROOT.")
 
         # Ensure directories exist
         for path_attr in ["WATCH_FOLDER", "PROCESSING_WORKSPACE", "ORGANIZED_ROOT",

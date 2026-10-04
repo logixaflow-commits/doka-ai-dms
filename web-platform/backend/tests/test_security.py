@@ -19,13 +19,13 @@ class TestPasswordHashing:
     def test_hash_and_verify(self):
         password = "test_password_123"
         hashed = hash_password(password)
-        assert verify_password(password, hashed) is True
+        assert verify_password(password, hashed) == (True, False)
 
     def test_verify_wrong_password(self):
         password = "correct_password"
         wrong = "wrong_password"
         hashed = hash_password(password)
-        assert verify_password(wrong, hashed) is False
+        assert verify_password(wrong, hashed) == (False, False)
 
     def test_hash_is_different_each_time(self):
         password = "same_password"

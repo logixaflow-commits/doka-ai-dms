@@ -32,11 +32,16 @@ Configured paths are:
 - `BACKUP_ROOT`: workspace backups.
 
 Writable paths must remain inside the working area. Source-write mode is rejected in personal mode.
+`SOURCE_ROOT` is canonicalized during configuration loading. Imports use only that configured root; API clients cannot supply a replacement source path. Traversal, outside paths, workspace overlap, and symlink escapes are rejected. Source files are opened with no-follow/handle-based checks, then copied and SHA-256 verified before downstream work.
+
+## Local authentication boundary
+
+Local login is enabled only in the `development` or `local` environment and uses the configured bootstrap administrator credentials. Local session tokens protect Local workspace routes only; they are not accepted as Cloud/Supabase identities. Cloud authentication never falls back to Local tokens, and Supabase-backed routes fail closed when Supabase verification is unavailable or rejects a token. Keep Personal Local and Cloud configuration separate.
 
 ## Normal workflow
 
 1. Open the Safe Workspace page.
-2. Start an import using the source folder or configured `SOURCE_ROOT`.
+2. Start an import from the configured `SOURCE_ROOT`.
 3. Wait until files are copied and hash-verified.
 4. Scan the working copy.
 5. Run Read / OCR.
@@ -164,4 +169,3 @@ Set these in the local `.env` before starting the backend:
 - `BOOTSTRAP_ADMIN_PASSWORD=<strong password>` (12+ characters)
 
 The React login screen uses `/api/auth/login`. Workspace APIs require the resulting bearer token. The password is never embedded in the frontend or repository.
-

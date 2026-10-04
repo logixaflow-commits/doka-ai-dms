@@ -45,7 +45,12 @@ async def login(request: Request, response: Response, login_data: UserLogin, db:
         (User.username == login_data.username) | (User.email == login_data.username)
     ).first()
 
-    if not user or not verify_password(login_data.password, user.password_hash):
+    password_valid, needs_rehash = (
+        verify_password(login_data.password, user.password_hash)
+        if user
+        else (False, False)
+    )
+    if not user or not password_valid:
         record_login_attempt(ip, success=False)
         log_audit("LOGIN_FAILED", 0, {"username": login_data.username, "ip": ip})
         raise HTTPException(
@@ -60,8 +65,13 @@ async def login(request: Request, response: Response, login_data: UserLogin, db:
             detail="Account is deactivated. Contact administrator."
         )
 
+    if needs_rehash:
+        user.password_hash = hash_password(login_data.password)
+
     # Check if 2FA is enabled
     if user.totp_enabled:
+        if needs_rehash:
+            db.commit()
         # Return 2FA required response
         return {
             "requires_2fa": True,

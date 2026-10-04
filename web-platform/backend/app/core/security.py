@@ -6,41 +6,21 @@ from datetime import datetime, timedelta
 from typing import Optional, Union
 import jwt
 from jwt.exceptions import InvalidTokenError as JWTError
-import bcrypt
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from app.core.auth_boundary import database_user_id_from_payload
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.database import User
 from app.models.schemas import UserRole
 from app.core.logging import get_logger
+from app.core.passwords import hash_password, verify_password
 
 logger = get_logger(__name__)
 
 # HTTP Bearer for token auth
 security_bearer = HTTPBearer(auto_error=False)
-
-
-# =============================================================================
-# Password Utilities
-# =============================================================================
-def hash_password(password: str) -> str:
-    """Hash a plain-text password using bcrypt."""
-    password_bytes = password.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password_bytes, salt)
-    return hashed.decode('utf-8')
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain-text password against a bcrypt hash."""
-    try:
-        password_bytes = plain_password.encode('utf-8')
-        hash_bytes = hashed_password.encode('utf-8')
-        return bcrypt.checkpw(password_bytes, hash_bytes)
-    except Exception:
-        return False
 
 
 # =============================================================================
@@ -68,7 +48,7 @@ def decode_token(token: str) -> Optional[dict]:
     """Decode and validate a JWT token. Returns None if invalid."""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        return payload
+        return payload if isinstance(payload, dict) else None
     except JWTError as e:
         logger.debug(f"Token decode failed: {e}")
         return None
@@ -90,14 +70,14 @@ async def get_current_user(
         )
 
     payload = decode_token(credentials.credentials)
-    if payload is None or payload.get("type") != "access":
+    if payload is None or not isinstance(payload, dict):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user_id: Optional[int] = payload.get("sub")
+    user_id = database_user_id_from_payload(payload)
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -105,7 +85,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

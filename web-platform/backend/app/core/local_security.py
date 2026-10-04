@@ -27,6 +27,17 @@ _login_guard = threading.Lock()
 _login_failures: dict[str, list[float]] = {}
 
 
+def is_local_auth_payload(payload: dict) -> bool:
+    """Identify Local tokens, including tokens issued before the explicit marker."""
+    if not isinstance(payload, dict):
+        return False
+    return (
+        payload.get("auth_provider") == "personal-local"
+        or "sid" in payload
+        or "sid_exp" in payload
+    )
+
+
 def _connect_token_state() -> sqlite3.Connection:
     path = Path(settings.LOCAL_AUTH_STATE_PATH).expanduser()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -103,6 +114,7 @@ def create_local_access_token(username: str, session_id: str | None = None) -> s
             "sub": username,
             "role": "admin",
             "type": "access",
+            "auth_provider": "personal-local",
             "jti": secrets.token_urlsafe(18),
             "sid": session_id or secrets.token_urlsafe(24),
             "sid_exp": session_expires_at.timestamp(),
@@ -124,6 +136,7 @@ def create_local_refresh_token(username: str, session_id: str | None = None) -> 
             "sub": username,
             "role": "admin",
             "type": "refresh",
+            "auth_provider": "personal-local",
             "jti": secrets.token_urlsafe(18),
             "sid": session_id or secrets.token_urlsafe(24),
             "sid_exp": session_expires_at.timestamp(),
@@ -138,6 +151,8 @@ def create_local_refresh_token(username: str, session_id: str | None = None) -> 
 def decode_local_token(token: str, expected_type: str = "access") -> Optional[dict]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        if not isinstance(payload, dict):
+            return None
         if payload.get("type") != expected_type or payload.get("role") != "admin":
             return None
         token_id = payload.get("jti")
