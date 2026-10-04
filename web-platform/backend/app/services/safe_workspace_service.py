@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import ntpath
 import os
-import shutil
+import stat
 import tempfile
 import threading
 import uuid
@@ -205,28 +206,224 @@ class SafeWorkspaceService:
             raise ValueError("Working-copy destination is outside the import session.") from exc
         return destination
 
-    def validate_source(self, source: Path) -> Path:
-        source = source.expanduser().resolve()
-        if not source.is_dir():
-            raise ValueError(f"Source folder does not exist: {source}")
-        working = self.root
+    def _open_posix_source_file(self, source: Path, source_path: Path):
+        nofollow = getattr(os, "O_NOFOLLOW", None)
+        directory = getattr(os, "O_DIRECTORY", None)
+        if nofollow is None or directory is None or os.open not in os.supports_dir_fd:
+            raise ValueError("Secure source-file opening is unavailable on this platform.")
+
+        source_root = Path(settings.SOURCE_ROOT).expanduser().resolve(strict=True)
         try:
-            overlap = source == working or source.is_relative_to(working) or working.is_relative_to(source)
-        except AttributeError:
-            overlap = source == working or str(source).startswith(str(working) + os.sep) or str(working).startswith(str(source) + os.sep)
+            source_parts = source.relative_to(source_root).parts
+            file_parts = source_path.relative_to(source).parts
+        except ValueError as exc:
+            raise ValueError("Source file is outside the configured source root.") from exc
+        parts = (*source_parts, *file_parts)
+        if not parts or any(part in {"", ".", ".."} for part in parts):
+            raise ValueError("Source file has an unsafe relative path.")
+
+        directory_flags = os.O_RDONLY | directory | nofollow
+        current_fd = os.open(source_root.anchor, directory_flags)
+        file_fd = None
+        try:
+            for part in source_root.parts[1:]:
+                next_fd = os.open(part, directory_flags, dir_fd=current_fd)
+                os.close(current_fd)
+                current_fd = next_fd
+            for part in parts[:-1]:
+                next_fd = os.open(part, directory_flags, dir_fd=current_fd)
+                os.close(current_fd)
+                current_fd = next_fd
+
+            file_flags = os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0)
+            file_flags |= getattr(os, "O_NONBLOCK", 0)
+            file_fd = os.open(parts[-1], file_flags, dir_fd=current_fd)
+            if not stat.S_ISREG(os.fstat(file_fd).st_mode):
+                raise ValueError("Source entry is not a regular file.")
+            result = os.fdopen(file_fd, "rb")
+            file_fd = None
+            return result
+        finally:
+            os.close(current_fd)
+            if file_fd is not None:
+                os.close(file_fd)
+
+    def _open_windows_source_file(self, source: Path, source_path: Path):
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateFileW.argtypes = (
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE,
+        )
+        kernel32.CreateFileW.restype = wintypes.HANDLE
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        kernel32.GetFileInformationByHandleEx.argtypes = (
+            wintypes.HANDLE,
+            ctypes.c_int,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+        )
+        kernel32.GetFileInformationByHandleEx.restype = wintypes.BOOL
+        kernel32.GetFileType.argtypes = (wintypes.HANDLE,)
+        kernel32.GetFileType.restype = wintypes.DWORD
+        kernel32.GetFinalPathNameByHandleW.argtypes = (
+            wintypes.HANDLE,
+            wintypes.LPWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+        )
+        kernel32.GetFinalPathNameByHandleW.restype = wintypes.DWORD
+
+        class FileAttributeTagInfo(ctypes.Structure):
+            _fields_ = [("FileAttributes", wintypes.DWORD), ("ReparseTag", wintypes.DWORD)]
+
+        def final_path(handle):
+            buffer = ctypes.create_unicode_buffer(32768)
+            length = kernel32.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)
+            if not length or length >= len(buffer):
+                raise OSError(ctypes.get_last_error(), "Cannot resolve opened source path")
+            value = buffer.value
+            if value.startswith("\\\\?\\UNC\\"):
+                value = "\\\\" + value[8:]
+            elif value.startswith("\\\\?\\"):
+                value = value[4:]
+            return ntpath.normcase(ntpath.normpath(value))
+
+        def attributes(handle):
+            result = FileAttributeTagInfo()
+            if not kernel32.GetFileInformationByHandleEx(
+                handle, 9, ctypes.byref(result), ctypes.sizeof(result)
+            ):
+                raise OSError(ctypes.get_last_error(), "Cannot inspect opened source entry")
+            return result.FileAttributes
+
+        invalid_handle = ctypes.c_void_p(-1).value
+        share = 0x00000001 | 0x00000002 | 0x00000004
+        open_existing = 3
+        open_reparse_point = 0x00200000
+        backup_semantics = 0x02000000
+        file_attribute_reparse_point = 0x00000400
+        file_attribute_directory = 0x00000010
+
+        root_path = Path(settings.SOURCE_ROOT).expanduser().resolve(strict=True)
+        root_handle = kernel32.CreateFileW(
+            str(root_path), 0x00000080, share, None, open_existing,
+            open_reparse_point | backup_semantics, None,
+        )
+        if root_handle == invalid_handle:
+            raise OSError(ctypes.get_last_error(), "Cannot securely open configured source root")
+        try:
+            root_attributes = attributes(root_handle)
+            if (
+                not root_attributes & file_attribute_directory
+                or root_attributes & file_attribute_reparse_point
+            ):
+                raise ValueError("Configured source root is invalid.")
+            canonical_root = final_path(root_handle)
+            expected_root = ntpath.normcase(ntpath.normpath(str(root_path)))
+            if canonical_root != expected_root:
+                raise ValueError("Configured source root changed during import.")
+        finally:
+            kernel32.CloseHandle(root_handle)
+
+        try:
+            source.relative_to(root_path)
+            source_path.relative_to(source)
+        except ValueError as exc:
+            raise ValueError("Source file is outside the configured source root.") from exc
+
+        handle = kernel32.CreateFileW(
+            str(source_path), 0x80000000, share, None, open_existing,
+            open_reparse_point | 0x08000000, None,
+        )
+        if handle == invalid_handle:
+            raise OSError(ctypes.get_last_error(), "Cannot securely open source file")
+        try:
+            file_attributes = attributes(handle)
+            if (
+                file_attributes & (file_attribute_directory | file_attribute_reparse_point)
+                or kernel32.GetFileType(handle) != 1
+            ):
+                raise ValueError("Source entry is not a regular file.")
+            opened_path = final_path(handle)
+            try:
+                if ntpath.commonpath((canonical_root, opened_path)) != canonical_root:
+                    raise ValueError("Source file is outside the configured source root.")
+            except ValueError as exc:
+                raise ValueError("Source file is outside the configured source root.") from exc
+            descriptor = msvcrt.open_osfhandle(
+                int(handle), os.O_RDONLY | getattr(os, "O_BINARY", 0)
+            )
+            handle = invalid_handle
+            return os.fdopen(descriptor, "rb")
+        finally:
+            if handle != invalid_handle:
+                kernel32.CloseHandle(handle)
+
+    def _open_source_file(self, source: Path, source_path: Path):
+        if os.name == "posix":
+            return self._open_posix_source_file(source, source_path)
+        if os.name == "nt":
+            return self._open_windows_source_file(source, source_path)
+        raise ValueError("Secure source-file opening is unavailable on this platform.")
+
+    @staticmethod
+    def _copy_and_hash(source_handle, destination: Path) -> str:
+        digest = hashlib.sha256()
+        with destination.open("wb") as output:
+            for chunk in iter(lambda: source_handle.read(CHUNK_SIZE), b""):
+                output.write(chunk)
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    def validate_source(self, source: Optional[Path] = None) -> Path:
+        if settings.SOURCE_ROOT is None:
+            raise ValueError("SOURCE_ROOT is not configured.")
+        try:
+            source_root = Path(settings.SOURCE_ROOT).expanduser().resolve(strict=True)
+        except (OSError, RuntimeError, ValueError):
+            raise ValueError("Configured source root is invalid.") from None
+        if not source_root.is_dir():
+            raise ValueError("Configured source root is invalid.")
+
+        try:
+            candidate = (
+                Path(source).expanduser().resolve(strict=True)
+                if source is not None
+                else source_root
+            )
+        except (OSError, RuntimeError, ValueError):
+            raise ValueError("Source directory is invalid.") from None
+        if not candidate.is_relative_to(source_root):
+            raise ValueError("Source path is outside the configured source root.")
+        if not candidate.is_dir():
+            raise ValueError("Source directory is invalid.")
+
+        working = self.root
+        overlap = (
+            candidate == working
+            or candidate.is_relative_to(working)
+            or working.is_relative_to(candidate)
+        )
         if overlap:
             raise ValueError("Source folder cannot overlap the writable workspace.")
         if settings.ALLOW_SOURCE_WRITE:
             raise ValueError("Unsafe configuration: ALLOW_SOURCE_WRITE must remain false.")
         if not settings.ORIGINAL_READ_ONLY:
             raise ValueError("Unsafe configuration: ORIGINAL_READ_ONLY must remain true.")
-        return source
+        return candidate
 
     def create_import(self, source: Optional[str] = None) -> Dict[str, Any]:
-        configured = Path(source) if source else settings.SOURCE_ROOT
-        if configured is None:
-            raise ValueError("SOURCE_ROOT is not configured.")
-        source_path = self.validate_source(configured)
+        source_path = self.validate_source(Path(source) if source is not None else None)
         session_id = uuid.uuid4().hex
         session = self._dir(session_id)
         session.mkdir(parents=True, exist_ok=False)
@@ -270,7 +467,7 @@ class SafeWorkspaceService:
             status.update({
                 "state": "running", "files_total": len(files),
                 "files_copied": 0, "files_verified": 0, "files_failed": 0,
-                "bytes_total": sum(p.stat().st_size for p in files if p.exists()),
+                "bytes_total": 0,
                 "bytes_copied": 0, "progress": 0.0,
                 "updated_at": utc_now(), "error": None,
             })
@@ -280,36 +477,56 @@ class SafeWorkspaceService:
                     rel = src.relative_to(source).as_posix()
                     try:
                         dest = self._working_copy_destination(copy_root, rel)
-                        if src.is_symlink():
-                            raise ValueError("Source file became a symlink during import.")
-                        try:
-                            src.resolve().relative_to(source)
-                        except ValueError as exc:
-                            raise ValueError("Source file escaped the selected source directory.") from exc
-                        st = src.stat()
-                        old = manifest["files"].get(rel)
-                        if (old and old.get("size") == st.st_size and
-                            old.get("source_mtime_ns") == st.st_mtime_ns and
-                            old.get("verified") and dest.exists() and
-                            sha256_file(dest) == old.get("sha256")):
-                            status["files_verified"] += 1
-                            status["bytes_copied"] += st.st_size
-                            continue
-                        dest.parent.mkdir(parents=True, exist_ok=True)
-                        dest = self._working_copy_destination(copy_root, rel)
-                        shutil.copy2(src, dest)
-                        source_hash = sha256_file(src)
-                        if sha256_file(dest) != source_hash:
-                            raise IOError("SHA-256 verification failed")
-                        manifest["files"][rel] = {
-                            "relative_path": rel, "source_path": str(src),
-                            "working_path": str(dest), "filename": src.name,
-                            "extension": src.suffix.lower(), "size": st.st_size,
-                            "source_mtime_ns": st.st_mtime_ns,
-                            "created_at": datetime.fromtimestamp(st.st_ctime, timezone.utc).isoformat(),
-                            "modified_at": datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat(),
-                            "sha256": source_hash, "verified": True, "status": "copied",
-                        }
+                        with self._open_source_file(source, src) as source_handle:
+                            st = os.fstat(source_handle.fileno())
+                            status["bytes_total"] += st.st_size
+                            old = manifest["files"].get(rel)
+                            if (
+                                old
+                                and old.get("size") == st.st_size
+                                and old.get("source_mtime_ns") == st.st_mtime_ns
+                                and old.get("verified")
+                                and dest.is_file()
+                                and not dest.is_symlink()
+                            ):
+                                source_digest = hashlib.sha256()
+                                for chunk in iter(
+                                    lambda: source_handle.read(CHUNK_SIZE), b""
+                                ):
+                                    source_digest.update(chunk)
+                                source_hash = source_digest.hexdigest()
+                                if (
+                                    source_hash == old.get("sha256")
+                                    and sha256_file(dest) == old.get("sha256")
+                                ):
+                                    status["files_verified"] += 1
+                                    status["bytes_copied"] += st.st_size
+                                    continue
+                                source_handle.seek(0)
+
+                            dest.parent.mkdir(parents=True, exist_ok=True)
+                            dest = self._working_copy_destination(copy_root, rel)
+                            source_hash = self._copy_and_hash(source_handle, dest)
+                            os.chmod(dest, stat.S_IMODE(st.st_mode))
+                            os.utime(
+                                dest,
+                                ns=(st.st_atime_ns, st.st_mtime_ns),
+                            )
+                            if sha256_file(dest) != source_hash:
+                                raise IOError("SHA-256 verification failed")
+                            manifest["files"][rel] = {
+                                "relative_path": rel, "source_path": str(src),
+                                "working_path": str(dest), "filename": src.name,
+                                "extension": src.suffix.lower(), "size": st.st_size,
+                                "source_mtime_ns": st.st_mtime_ns,
+                                "created_at": datetime.fromtimestamp(
+                                    st.st_ctime, timezone.utc
+                                ).isoformat(),
+                                "modified_at": datetime.fromtimestamp(
+                                    st.st_mtime, timezone.utc
+                                ).isoformat(),
+                                "sha256": source_hash, "verified": True, "status": "copied",
+                            }
                         status["files_copied"] += 1
                         status["files_verified"] += 1
                         status["bytes_copied"] += st.st_size

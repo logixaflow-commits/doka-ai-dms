@@ -18,6 +18,7 @@ def test_source_cannot_overlap_workspace(tmp_path: Path, monkeypatch):
     source = workspace / "source"
     source.mkdir(parents=True)
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
     service = SafeWorkspaceService()
     with pytest.raises(ValueError, match="overlap"):
         service.validate_source(source)
@@ -29,10 +30,148 @@ def test_source_outside_workspace_is_allowed(tmp_path: Path, monkeypatch):
     workspace.mkdir()
     source.mkdir()
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
     monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
     monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
     service = SafeWorkspaceService()
     assert service.validate_source(source) == source.resolve()
+
+
+def test_source_root_and_child_are_accepted(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    child = source_root / "Department-A"
+    workspace.mkdir()
+    child.mkdir(parents=True)
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+    service = SafeWorkspaceService()
+
+    assert service.validate_source() == source_root.resolve()
+    assert service.validate_source(child) == child.resolve()
+
+
+def test_source_outside_configured_root_is_rejected(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    source_root.mkdir()
+    outside.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="outside the configured source root"):
+        SafeWorkspaceService().validate_source(outside)
+
+
+def test_source_sibling_with_similar_prefix_is_rejected(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "Source"
+    sibling = tmp_path / "Source-Outside"
+    workspace.mkdir()
+    source_root.mkdir()
+    sibling.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="outside the configured source root"):
+        SafeWorkspaceService().validate_source(sibling)
+
+
+def test_source_traversal_is_rejected(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    source_root.mkdir()
+    outside.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    traversal = source_root / ".." / "outside"
+    with pytest.raises(ValueError, match="outside the configured source root"):
+        SafeWorkspaceService().validate_source(traversal)
+
+
+def test_source_absolute_path_outside_root_is_rejected(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    source_root.mkdir()
+    outside.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="outside the configured source root"):
+        SafeWorkspaceService().validate_source(outside.resolve())
+
+
+def test_source_symlink_escape_is_rejected(
+    tmp_path: Path, monkeypatch, make_symlink
+):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    source_root.mkdir()
+    outside.mkdir()
+    link = source_root / "linked-outside"
+    make_symlink(link, outside, target_is_directory=True)
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="outside the configured source root"):
+        SafeWorkspaceService().validate_source(link)
+
+
+def test_missing_source_is_rejected_without_disclosing_absolute_path(
+    tmp_path: Path, monkeypatch
+):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    missing = source_root / "missing"
+    workspace.mkdir()
+    source_root.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="Source directory is invalid") as exc_info:
+        SafeWorkspaceService().validate_source(missing)
+    assert str(missing) not in str(exc_info.value)
+
+
+def test_create_import_rejects_source_override_outside_configured_root(
+    tmp_path: Path, monkeypatch
+):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    source_root.mkdir()
+    outside.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="outside the configured source root"):
+        SafeWorkspaceService().create_import(str(outside))
 
 
 def test_list_sessions_rejects_symlinked_imports_root(tmp_path, monkeypatch, make_symlink):
@@ -175,9 +314,192 @@ def test_safe_import_scan_search_and_resume(tmp_path, monkeypatch):
     assert results["total"] == 1
 
     assert (source / "invoice.txt").read_bytes() == original
+    copied_file = (
+        workspace / "imports" / created["session_id"] / "source_copy" / "invoice.txt"
+    )
+    assert copied_file.read_bytes() == original
     listed = service.list_sessions()
     assert listed[0]["session_id"] == created["session_id"]
     assert listed[0]["state"] == "scanned"
+
+
+def test_safe_import_copies_nested_files_and_preserves_source(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    nested = source / "Department-A"
+    workspace.mkdir()
+    nested.mkdir(parents=True)
+    source_file = nested / "invoice.txt"
+    source_file.write_text("Synthetic nested import", encoding="utf-8")
+    original = source_file.read_bytes()
+    original_mtime = source_file.stat().st_mtime_ns
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    result = service.run_import(created["session_id"])
+    copied = (
+        workspace
+        / "imports"
+        / created["session_id"]
+        / "source_copy"
+        / "Department-A"
+        / "invoice.txt"
+    )
+    manifest = service._read(service._json_path(created["session_id"], "manifest.json"))
+
+    assert result["state"] == "completed"
+    assert copied.read_bytes() == original
+    assert copied.stat().st_mtime_ns == original_mtime
+    assert manifest["files"]["Department-A/invoice.txt"]["sha256"] == sha256_file(copied)
+    assert source_file.read_bytes() == original
+    workspace_files = {
+        path.relative_to(workspace).as_posix()
+        for path in workspace.rglob("*")
+        if path.is_file()
+    }
+    assert workspace_files == {
+        f"imports/{created['session_id']}/manifest.json",
+        f"imports/{created['session_id']}/source_copy/Department-A/invoice.txt",
+        f"imports/{created['session_id']}/status.json",
+    }
+
+
+def test_import_rejects_file_replaced_by_outside_symlink_before_open(
+    tmp_path, monkeypatch, make_symlink
+):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    source.mkdir()
+    outside.mkdir()
+    source_file = source / "invoice.txt"
+    source_file.write_text("Synthetic source content", encoding="utf-8")
+    outside_file = outside / "private.txt"
+    outside_file.write_text("Synthetic outside content", encoding="utf-8")
+    outside_original = outside_file.read_bytes()
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    original_open = service._open_source_file
+
+    def replace_before_open(selected_source, path):
+        path.unlink()
+        make_symlink(path, outside_file)
+        return original_open(selected_source, path)
+
+    monkeypatch.setattr(service, "_open_source_file", replace_before_open)
+    created = service.create_import()
+    result = service.run_import(created["session_id"])
+    copied = workspace / "imports" / created["session_id"] / "source_copy" / "invoice.txt"
+
+    assert result["state"] == "completed_with_errors"
+    assert result["files_failed"] == 1
+    assert not copied.exists()
+    assert outside_file.read_bytes() == outside_original
+    workspace_files = {
+        path.relative_to(workspace).as_posix()
+        for path in workspace.rglob("*")
+        if path.is_file()
+    }
+    assert workspace_files == {
+        f"imports/{created['session_id']}/manifest.json",
+        f"imports/{created['session_id']}/status.json",
+    }
+
+
+def test_import_rejects_parent_directory_replaced_by_outside_symlink(
+    tmp_path, monkeypatch, make_symlink
+):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    department = source / "Department-A"
+    outside = tmp_path / "outside"
+    workspace.mkdir()
+    department.mkdir(parents=True)
+    outside.mkdir()
+    (department / "invoice.txt").write_text("Synthetic source content", encoding="utf-8")
+    outside_file = outside / "private.txt"
+    outside_file.write_text("Synthetic outside content", encoding="utf-8")
+    outside_original = outside_file.read_bytes()
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    original_open = service._open_source_file
+
+    def replace_parent_before_open(selected_source, path):
+        department.rename(source / "Department-A-held")
+        make_symlink(department, outside, target_is_directory=True)
+        return original_open(selected_source, path)
+
+    monkeypatch.setattr(service, "_open_source_file", replace_parent_before_open)
+    created = service.create_import()
+    result = service.run_import(created["session_id"])
+    copied = (
+        workspace
+        / "imports"
+        / created["session_id"]
+        / "source_copy"
+        / "Department-A"
+        / "invoice.txt"
+    )
+
+    assert result["state"] == "completed_with_errors"
+    assert result["files_failed"] == 1
+    assert not copied.exists()
+    assert outside_file.read_bytes() == outside_original
+    held_file = source / "Department-A-held" / "invoice.txt"
+    assert held_file.read_text(encoding="utf-8") == "Synthetic source content"
+
+
+def test_copy_and_hash_use_the_same_opened_source_file(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+    source_file = source / "invoice.txt"
+    source_file.write_text("Synthetic original content", encoding="utf-8")
+    original = source_file.read_bytes()
+    replacement = b"Synthetic replacement content"
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    original_open = service._open_source_file
+
+    def replace_after_open(selected_source, path):
+        handle = original_open(selected_source, path)
+        path.rename(source / "held-original.txt")
+        path.write_bytes(replacement)
+        return handle
+
+    monkeypatch.setattr(service, "_open_source_file", replace_after_open)
+    created = service.create_import()
+    result = service.run_import(created["session_id"])
+    copied = workspace / "imports" / created["session_id"] / "source_copy" / "invoice.txt"
+    manifest = service._read(service._json_path(created["session_id"], "manifest.json"))
+
+    assert result["state"] == "completed"
+    assert copied.read_bytes() == original
+    assert (source / "held-original.txt").read_bytes() == original
+    assert source_file.read_bytes() == replacement
+    assert manifest["files"]["invoice.txt"]["sha256"] == sha256_file(copied)
 
 
 @pytest.mark.parametrize(
@@ -296,6 +618,7 @@ def test_source_write_flag_is_rejected_even_if_read_only_flag_is_disabled(tmp_pa
     workspace.mkdir()
     source.mkdir()
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
     monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", False)
     monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", True)
     service = SafeWorkspaceService()
@@ -360,6 +683,7 @@ def test_source_requires_original_read_only_flag(tmp_path: Path, monkeypatch):
     workspace.mkdir()
     source.mkdir()
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
     monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", False)
     monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
 

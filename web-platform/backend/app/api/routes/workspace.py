@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.services.safe_workspace_service import safe_workspace_service
 from app.services.workspace_backup_service import workspace_backup_service
@@ -19,7 +17,7 @@ class OrganizationApplyRequest(BaseModel):
 
 
 class ImportRequest(BaseModel):
-    source: Optional[str] = Field(default=None, description="Local source folder; defaults to SOURCE_ROOT.")
+    model_config = ConfigDict(extra="forbid")
 
 
 @router.get("/imports")
@@ -31,7 +29,7 @@ async def list_imports(limit: int = 50):
 @router.post("/imports")
 async def create_import(request: ImportRequest, background_tasks: BackgroundTasks):
     try:
-        status = safe_workspace_service.create_import(request.source)
+        status = safe_workspace_service.create_import()
         background_tasks.add_task(safe_workspace_service.run_import, status["session_id"])
         return {"message": "Import started. Source is read-only; work happens on a verified copy.", **status}
     except ValueError as exc:

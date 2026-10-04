@@ -37,12 +37,10 @@ async def require_authenticated_user(
     # Production must use Supabase Auth. Local HS256 tokens remain available only
     # for the local/development edition where Supabase is intentionally optional.
     if not _supabase_configured():
-        if settings.ENVIRONMENT.lower() == "production":
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Supabase Auth is not configured on the production API.",
-            )
-        return await require_local_staff(credentials)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Supabase Auth is not configured for this environment.",
+        )
 
     token = credentials.credentials
     base_url = os.getenv("SUPABASE_URL", "").rstrip("/")
@@ -96,4 +94,4 @@ async def require_local_workspace_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Safe Workspace is available only in an explicitly local environment.",
         )
-    return await require_authenticated_user(credentials)
+    return await require_local_staff(credentials)

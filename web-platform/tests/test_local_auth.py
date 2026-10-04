@@ -1,16 +1,29 @@
 import json
 import importlib
+import io
 import sqlite3
+from datetime import datetime, timedelta, timezone
+import httpx
 import jwt
 import pytest
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.testclient import TestClient
+from loguru import logger
 from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.local_security import create_local_access_token, decode_local_token, clear_login_failures
 import app.core.local_security as local_security
+import app.core.supabase_auth as supabase_auth
+from app.api.routes import workspace
+from app.api.routes.local_auth import router as local_auth_router
 from app.api.routes.local_auth import LocalLogin, LocalRefresh, login, logout, me, refresh
 from app.core.supabase_auth import _supabase_configured, require_local_workspace_user
+
+
+def _credentials(token: str) -> HTTPAuthorizationCredentials:
+    return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
 
 def _request(host: str = "127.0.0.1") -> Request:
@@ -39,6 +52,202 @@ async def test_local_login_and_token_roundtrip(monkeypatch):
     payload = decode_local_token(result["access_token"])
     assert payload and payload["sub"] == "admin" and payload["role"] == "admin"
     assert decode_local_token(result["refresh_token"], expected_type="access") is None
+
+
+@pytest.mark.parametrize(
+    "password",
+    [
+        "ASCII-password-42",
+        "\u1019\u103c\u1014\u103a\u1019\u102c-password-42",
+        "Mixed-\u1019\u103c\u1014\u103a\u1019\u102c-password-42",
+        "Caf\u00e9-password-42",
+        " password-with-boundary-spaces-42 ",
+        "Emoji-\U0001f512-password-42",
+        "\u1019" * 12,
+        "\u1019" * 25,
+    ],
+)
+def test_local_login_accepts_exact_ascii_and_unicode_passwords(
+    tmp_path, monkeypatch, password
+):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "synthetic-unicode-user")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", password)
+    monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "local-auth.sqlite3")
+
+    app = FastAPI()
+    app.include_router(local_auth_router, prefix="/api/auth")
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/auth/login",
+            json={"username": "synthetic-unicode-user", "password": password},
+        )
+
+    assert response.status_code == 200
+    assert decode_local_token(response.json()["access_token"])["sub"] == "synthetic-unicode-user"
+
+
+def test_local_login_rejects_malformed_request_without_disclosing_password(
+    tmp_path, monkeypatch
+):
+    configured_password = "Synthetic-configured-password-42"
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "synthetic-unicode-user")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", configured_password)
+    monkeypatch.setattr(
+        settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "local-auth.sqlite3"
+    )
+
+    app = FastAPI()
+    app.include_router(local_auth_router, prefix="/api/auth")
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/auth/login",
+            content=b"{",
+            headers={"Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 422
+    assert configured_password not in response.text
+    assert "access_token" not in response.text
+    assert "refresh_token" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_local_login_does_not_trim_password_whitespace(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "synthetic-space-user")
+    monkeypatch.setattr(
+        settings, "BOOTSTRAP_ADMIN_PASSWORD", " password-with-spaces-42 "
+    )
+    clear_login_failures("synthetic-space-user", "127.0.0.1")
+
+    with pytest.raises(HTTPException) as error:
+        await login(
+            LocalLogin(
+                username="synthetic-space-user",
+                password="password-with-spaces-42",
+            ),
+            _request(),
+        )
+
+    assert error.value.status_code == 401
+    assert error.value.detail == "Invalid username or password."
+    clear_login_failures("synthetic-space-user", "127.0.0.1")
+
+
+def test_local_login_unicode_mismatch_does_not_disclose_credentials(
+    tmp_path, monkeypatch
+):
+    configured_password = "Expected-\u1019\u103c\u1014\u103a\u1019\u102c-42"
+    submitted_password = "Submitted-\u1019\u103c\u1014\u103a\u1019\u102c-42"
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "synthetic-unicode-user")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", configured_password)
+    monkeypatch.setattr(
+        settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "local-auth.sqlite3"
+    )
+
+    app = FastAPI()
+    app.include_router(local_auth_router, prefix="/api/auth")
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/auth/login",
+            json={
+                "username": "synthetic-unicode-user",
+                "password": submitted_password,
+            },
+        )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid username or password."}
+    assert configured_password not in response.text
+    assert submitted_password not in response.text
+    assert "access_token" not in response.text
+    assert "refresh_token" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_local_login_rejects_unicode_password_mismatch(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "synthetic-unicode-user")
+    monkeypatch.setattr(
+        settings,
+        "BOOTSTRAP_ADMIN_PASSWORD",
+        "Cafe\u0301-password-42",
+    )
+    clear_login_failures("synthetic-unicode-user", "127.0.0.1")
+
+    with pytest.raises(HTTPException) as error:
+        await login(
+            LocalLogin(
+                username="synthetic-unicode-user",
+                password="Caf\u00e9-password-42",
+            ),
+            _request(),
+        )
+
+    assert error.value.status_code == 401
+    assert error.value.detail == "Invalid username or password."
+    assert "Cafe" not in error.value.detail
+    clear_login_failures("synthetic-unicode-user", "127.0.0.1")
+
+
+@pytest.mark.asyncio
+async def test_local_login_rejects_invalid_unicode_scalar_as_bad_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "synthetic-unicode-user")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "synthetic-password-42")
+    clear_login_failures("synthetic-unicode-user", "127.0.0.1")
+
+    with pytest.raises(HTTPException) as error:
+        await login(
+            LocalLogin(
+                username="synthetic-unicode-user",
+                password="synthetic-password-\ud800",
+            ),
+            _request(),
+        )
+
+    assert error.value.status_code == 401
+    clear_login_failures("synthetic-unicode-user", "127.0.0.1")
+
+
+@pytest.mark.asyncio
+async def test_local_login_does_not_truncate_long_utf8_password_or_store_or_log_it(
+    tmp_path, monkeypatch
+):
+    password = "\u1019" * 25
+    different_password = ("\u1019" * 24) + "\u1018"
+    database_path = tmp_path / "local-auth.sqlite3"
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "synthetic-long-password-user")
+    monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", password)
+    monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", database_path)
+    clear_login_failures("synthetic-long-password-user", "127.0.0.1")
+    log_stream = io.StringIO()
+    sink_id = logger.add(log_stream, level="DEBUG")
+    try:
+        result = await login(
+            LocalLogin(username="synthetic-long-password-user", password=password),
+            _request(),
+        )
+        with pytest.raises(HTTPException) as error:
+            await login(
+                LocalLogin(
+                    username="synthetic-long-password-user",
+                    password=different_password,
+                ),
+                _request(),
+            )
+    finally:
+        logger.remove(sink_id)
+        clear_login_failures("synthetic-long-password-user", "127.0.0.1")
+
+    assert error.value.status_code == 401
+    assert password.encode("utf-8") not in database_path.read_bytes()
+    assert password not in log_stream.getvalue()
+    assert password not in result["access_token"]
 
 
 def test_local_access_token_contains_no_password():
@@ -90,6 +299,166 @@ async def test_filesystem_workspace_api_is_disabled_outside_local_environments(m
     assert error.value.status_code == 404
 
 
+@pytest.mark.asyncio
+async def test_local_workspace_rejects_anonymous_invalid_and_expired_tokens(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    now = datetime.now(timezone.utc)
+    expired_token = jwt.encode(
+        {
+            "sub": "admin",
+            "role": "admin",
+            "type": "access",
+            "jti": "expired-token",
+            "sid": "expired-session",
+            "iat": now - timedelta(minutes=2),
+            "exp": now - timedelta(minutes=1),
+        },
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+    for credentials in (None, _credentials("invalid-local-token"), _credentials(expired_token)):
+        with pytest.raises(HTTPException) as error:
+            await require_local_workspace_user(credentials)
+        assert error.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_local_workspace_accepts_valid_local_token_without_supabase(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_PUBLISHABLE_KEY", raising=False)
+    token = create_local_access_token("local-admin")
+
+    assert await require_local_workspace_user(_credentials(token)) == "local-admin"
+
+
+@pytest.mark.asyncio
+async def test_local_workspace_remains_available_when_supabase_is_unavailable(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setenv("SUPABASE_URL", "https://synthetic-project.invalid")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "synthetic-publishable-key")
+    calls = []
+
+    class UnavailableClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url, headers):
+            calls.append(url)
+            raise httpx.ConnectError("Synthetic Supabase outage")
+
+    monkeypatch.setattr(supabase_auth.httpx, "AsyncClient", UnavailableClient)
+    token = create_local_access_token("local-admin")
+
+    assert await require_local_workspace_user(_credentials(token)) == "local-admin"
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_local_workspace_never_accepts_supabase_identity_or_calls_supabase(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setenv("SUPABASE_URL", "https://synthetic-project.invalid")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "synthetic-publishable-key")
+    calls = []
+
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"id": "synthetic-cloud-user"}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url, headers):
+            calls.append(url)
+            return FakeResponse()
+
+    monkeypatch.setattr(supabase_auth.httpx, "AsyncClient", FakeClient)
+
+    with pytest.raises(HTTPException) as error:
+        await require_local_workspace_user(_credentials("synthetic-supabase-token"))
+    assert error.value.status_code == 401
+    assert calls == []
+
+    now = datetime.now(timezone.utc)
+    cloud_token = jwt.encode(
+        {
+            "sub": "synthetic-cloud-user",
+            "role": "authenticated",
+            "aud": "authenticated",
+            "iss": "https://synthetic-project.invalid/auth/v1",
+            "iat": now,
+            "exp": now + timedelta(minutes=5),
+        },
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+    with pytest.raises(HTTPException) as cloud_token_error:
+        await require_local_workspace_user(_credentials(cloud_token))
+    assert cloud_token_error.value.status_code == 401
+    assert calls == []
+
+    local_token = create_local_access_token("local-admin")
+    assert await require_local_workspace_user(_credentials(local_token)) == "local-admin"
+    assert calls == []
+
+
+def test_protected_local_workspace_route_rejects_anonymous_and_accepts_local_token(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setattr(settings, "WORKING_ROOT", tmp_path / "workspace")
+    monkeypatch.setattr(settings, "SOURCE_ROOT", tmp_path / "source")
+    monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "local-auth.sqlite3")
+    app = FastAPI()
+    app.include_router(workspace.router)
+    token = create_local_access_token("local-admin")
+
+    with TestClient(app) as client:
+        anonymous = client.get("/api/workspace/imports")
+        assert anonymous.status_code == 401
+
+        forged_identity = client.get(
+            "/api/workspace/imports",
+            headers={
+                "X-User-ID": "forged-admin",
+                "X-Username": "forged-admin",
+                "X-User-Role": "admin",
+            },
+        )
+        assert forged_identity.status_code == 401
+
+        invalid = client.get(
+            "/api/workspace/imports",
+            headers={"Authorization": "Bearer invalid-local-token"},
+        )
+        assert invalid.status_code == 401
+
+        authenticated = client.get(
+            "/api/workspace/imports",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert authenticated.status_code == 200
+        assert authenticated.json() == {"imports": []}
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("environment", ["production", "prod", "staging"])
@@ -99,6 +468,144 @@ async def test_local_password_login_is_disabled_outside_local_environments(monke
         await login(LocalLogin(username="admin", password="irrelevant"), _request())
     assert error.value.status_code == 404
 
+
+
+@pytest.mark.asyncio
+async def test_cloud_auth_uses_supabase_identity_with_synthetic_mock(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setenv("SUPABASE_URL", "https://synthetic-project.invalid")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "synthetic-publishable-key")
+
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"id": "synthetic-cloud-user"}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url, headers):
+            return FakeResponse()
+
+    monkeypatch.setattr(supabase_auth.httpx, "AsyncClient", FakeClient)
+
+    from app.core.supabase_auth import require_authenticated_user
+
+    assert (
+        await require_authenticated_user(_credentials("synthetic-cloud-token"))
+        == "synthetic-cloud-user"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("environment", ["production", "staging", "prod"])
+async def test_cloud_auth_without_supabase_configuration_fails_closed(
+    monkeypatch, environment
+):
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_PUBLISHABLE_KEY", raising=False)
+    token = create_local_access_token("synthetic-local-admin")
+
+    from app.core.supabase_auth import require_authenticated_user
+
+    with pytest.raises(HTTPException) as error:
+        await require_authenticated_user(_credentials(token))
+    assert error.value.status_code == 503
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("environment", ["development", "local", "test"])
+async def test_cloud_auth_without_supabase_rejects_local_token_in_every_environment(
+    monkeypatch, environment
+):
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_PUBLISHABLE_KEY", raising=False)
+    token = create_local_access_token("synthetic-local-admin")
+
+    from app.core.supabase_auth import require_authenticated_user
+
+    with pytest.raises(HTTPException) as error:
+        await require_authenticated_user(_credentials(token))
+
+    assert error.value.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_cloud_auth_rejects_local_token_when_supabase_is_configured(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+    monkeypatch.setenv("SUPABASE_URL", "https://synthetic-project.invalid")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "synthetic-publishable-key")
+
+    class UnauthorizedResponse:
+        status_code = 401
+
+        @staticmethod
+        def json():
+            return {"message": "synthetic rejection"}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url, headers):
+            return UnauthorizedResponse()
+
+    monkeypatch.setattr(supabase_auth.httpx, "AsyncClient", FakeClient)
+    token = create_local_access_token("synthetic-local-admin")
+
+    from app.core.supabase_auth import require_authenticated_user
+
+    with pytest.raises(HTTPException) as error:
+        await require_authenticated_user(_credentials(token))
+
+    assert error.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_cloud_auth_fails_closed_when_supabase_is_unavailable(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+    monkeypatch.setenv("SUPABASE_URL", "https://synthetic-project.invalid")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "synthetic-publishable-key")
+
+    class UnavailableClient:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url, headers):
+            raise httpx.ConnectError("synthetic Supabase outage")
+
+    monkeypatch.setattr(supabase_auth.httpx, "AsyncClient", UnavailableClient)
+    token = create_local_access_token("synthetic-local-admin")
+
+    from app.core.supabase_auth import require_authenticated_user
+
+    with pytest.raises(HTTPException) as error:
+        await require_authenticated_user(_credentials(token))
+
+    assert error.value.status_code == 503
 
 
 @pytest.mark.asyncio

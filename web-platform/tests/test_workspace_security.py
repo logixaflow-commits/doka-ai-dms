@@ -47,6 +47,7 @@ def test_workspace_file_preview_rejects_path_escape_and_tampering(tmp_path: Path
     }
     (tmp_path / "source").mkdir()
     (imports / session_id / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(settings, "SOURCE_ROOT", tmp_path / "source")
 
     path, entry = _safe_file(session_id, "safe.txt")
     assert path == (working_copy / "safe.txt").resolve()

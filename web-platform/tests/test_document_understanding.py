@@ -77,6 +77,7 @@ def test_analyze_uses_session_bound_verified_copy_not_manifest_absolute_paths(tm
         },
     }
     (session / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
 
     service = DocumentUnderstandingService(SafeWorkspaceService())
     result = service.analyze(session_id)
@@ -108,6 +109,7 @@ def test_analyze_rejects_manifest_working_copy_escape(tmp_path, monkeypatch):
         "files": {},
     }
     (session / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
 
     service = DocumentUnderstandingService(SafeWorkspaceService())
     with pytest.raises(ValueError, match="working-copy path is invalid"):
@@ -145,6 +147,7 @@ def test_analyze_records_ocr_method_separately_from_detected_language(tmp_path, 
         },
     }
     (session / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
 
     service = DocumentUnderstandingService(SafeWorkspaceService())
     service._extract_text = lambda _path: ("recognized Myanmar and English text", "mya+eng")

@@ -47,7 +47,15 @@ async def login(credentials: LocalLogin, request: Request):
             detail="Local admin password is not configured. Set BOOTSTRAP_ADMIN_PASSWORD.",
         )
 
-    if username != settings.LOCAL_ADMIN_USERNAME or not secrets.compare_digest(credentials.password, configured):
+    try:
+        password_matches = secrets.compare_digest(
+            credentials.password.encode("utf-8"),
+            configured.encode("utf-8"),
+        )
+    except UnicodeEncodeError:
+        password_matches = False
+
+    if username != settings.LOCAL_ADMIN_USERNAME or not password_matches:
         record_login_failure(username, client_host)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

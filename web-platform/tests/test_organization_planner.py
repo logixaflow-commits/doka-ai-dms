@@ -63,6 +63,7 @@ def test_organization_apply_rejects_tampered_target(tmp_path, monkeypatch):
     source.mkdir()
     (source / "invoice.txt").write_text("invoice payment", encoding="utf-8")
     monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
     monkeypatch.setattr(settings, "FINAL_ROOT", workspace / "Final")
     monkeypatch.setattr(settings, "QUARANTINE_ROOT", workspace / "Quarantine")
 
