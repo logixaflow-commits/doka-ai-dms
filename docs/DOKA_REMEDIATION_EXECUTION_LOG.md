@@ -191,3 +191,12 @@ Verification from Doka Quality Checks run `37221393963` (commit `6656007`):
 - Added offline SQLite schema tests and fake-binding adapter tests. CI run 37223169768 verifies the adapter tests and prior schema tests; the final chunk/version integrity guard is awaiting the next main-branch run.
 - The active Cloudflare Worker continues to use Supabase Auth, Supabase PostgREST metadata and Supabase Storage. No D1 or Turso resources/bindings were provisioned and no live data was moved.
 - D1 schema/adapter code is preparation only: SQLite and fake-binding tests do not replace remote D1 tests, authenticated multi-tenant isolation tests, Turso replay/recovery drills, or a production rollback rehearsal.
+
+
+## D1/Turso schema and adapter verification — 2026-10-04
+
+- Added the D1 metadata baseline and a separate Turso sync receipt table. The D1 schema includes an immutable audit journal, transactional outbox, idempotent jobs and chunk/version ownership triggers.
+- Added a prepared-statement-only Python Worker D1 adapter with scalar parameter validation, row/first-row/write helpers, atomic batch support and safe error wrapping. It is not yet imported into the active production Worker.
+- Latest backend regression run 37223395446: **309 passed, 11 warnings**. This includes the schema, chunk/version integrity, D1 adapter and Turso receipt tests. This is an offline SQLite/fake-binding suite, not a remote D1/Turso integration test.
+- Frontend Vite build and smoke checks passed, but the consolidated workflow still fails at the frontend dependency audit due to the five high Tailwind v3 dependency-chain findings. The frontend build itself is not the failure.
+- No D1/Turso resource or binding was provisioned; no production data was moved. The live Worker remains Supabase-backed.

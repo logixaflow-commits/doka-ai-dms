@@ -51,12 +51,20 @@ document. The database constraints are integrity controls, not authorization.
 
 ## Turso idempotency
 
-Apply cloudflare_worker/turso_migrations/0001_sync_receipts.sql to the Turso
-database separately. The consumer must insert event_id into sync_receipts
-inside the same Turso transaction as all mirror changes. If the receipt already
-exists, treat the event as successfully applied. Only after Turso commits may
-the consumer mark the D1 outbox event delivered. This covers redelivery after a
-consumer crash between the Turso commit and the D1 acknowledgement.
+Apply the same metadata baseline to the secondary Turso database first,
+then create its idempotency receipt table. After the database is provisioned,
+the two SQL files can be applied sequentially with:
+
+```sh
+turso db shell doka-secondary < cloudflare_worker/migrations/0001_doka_cloud_baseline.sql
+turso db shell doka-secondary < cloudflare_worker/turso_migrations/0001_sync_receipts.sql
+```
+
+The consumer must insert event_id into sync_receipts inside the same Turso
+transaction as all mirror changes. If the receipt already exists, treat the
+event as successfully applied. Only after Turso commits may the consumer mark
+the D1 outbox event delivered. This covers redelivery after a consumer crash
+between the Turso commit and the D1 acknowledgement.
 
 The outbox payload must contain only the minimum metadata needed for replication.
 Never include bearer tokens, signed URLs, raw document bytes, or unbounded OCR
@@ -90,6 +98,8 @@ python -m pytest web-platform/tests/test_cloudflare_d1_schema.py -q
 ```
 
 These tests execute the SQL using Python's SQLite engine and exercise the D1
-adapter with a fake binding. They validate local contracts, but do not prove
-Cloudflare D1 deployment compatibility, remote transaction behavior or production
-integration. Remote D1 tests are still required.
+adapter with a fake binding. The latest verified backend regression run reported
+309 passed and 11 warnings, including the schema/version ownership guard. These
+tests validate local contracts, but do not prove Cloudflare D1 deployment
+compatibility, remote transaction behavior or production integration. Remote D1
+tests are still required.

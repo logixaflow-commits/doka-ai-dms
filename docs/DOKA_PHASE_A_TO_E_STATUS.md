@@ -561,3 +561,11 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added SQLite schema tests and fake-binding adapter tests. CI run 37223169768 verifies the adapter tests and prior schema tests; the final chunk/version consistency guard is awaiting the next main-branch run.
 - Current Cloudflare Worker remains Supabase Auth + Supabase metadata + Supabase Storage. No D1/Turso resources or bindings were created; no production data was migrated. The Cloudflare Worker production deployment workflow was skipped for these code-only commits.
 - Cloudflare's Python Workers runtime supports D1 bindings, prepared statements and atomic batch operations; production use still requires a real non-production D1 binding and remote integration/rollback tests.
+
+
+### 2026-10-04 — D1/Turso baseline and adapter verification
+
+- Cloud Edition now has a SQLite-compatible D1 schema baseline covering users, organizations/memberships, documents/versions/permissions, OCR chunks, immutable audit events, idempotent jobs and a transactional outbox. Document chunks must reference a version belonging to the same document; both insert and update are guarded.
+- Added a Turso receipt schema for event-level idempotency and a prepared-statement Python D1 adapter. The adapter is not wired into the production Worker; the active Worker still uses Supabase Auth, Supabase metadata and Supabase Storage.
+- Backend CI run 37223395446 verified the new schema and adapter tests as part of **309 passed, 11 warnings**. The same run's frontend job remains failed on the existing five-high npm audit findings; Vite build and frontend smoke checks passed. CodeQL and backend dependency audit jobs were still running when this status was recorded.
+- No D1/Turso databases or bindings were provisioned and no production data was migrated. Remote D1/Turso integration, Storj, QStash and rollback tests remain open.
