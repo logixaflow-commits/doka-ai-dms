@@ -29,6 +29,8 @@ has passed.
 
 ## D1 schema
 
+The prepared-statement runtime adapter is implemented in cloudflare_worker/d1.py. It resolves the D1 binding from the Worker ASGI scope, uses parameter binding for all values, and exposes row, first-row, write and atomic-batch operations. It is not imported by the active Supabase-backed entry point yet.
+
 The migration at cloudflare_worker/migrations/0001_doka_cloud_baseline.sql creates:
 
 - users, organizations and organization membership roles;
@@ -66,8 +68,9 @@ state, and a reconciliation report.
 1. Create a non-production D1 database and apply the migration with Wrangler.
 2. Run the same integrity/constraint suite against remote D1 (SQLite tests alone
    are not a D1 integration test).
-3. Implement D1 repository adapters behind the existing Cloud API contract while
-   keeping Supabase Auth as the identity verifier.
+3. Wire the tested D1 adapter into the Worker behind the existing Cloud API
+   contract while keeping Supabase Auth as the identity verifier; add remote D1
+   integration tests before changing any production route.
 4. Implement the Storj adapter and verify upload/download integrity, signed URL
    expiry, CORS behavior, multipart abort and object cleanup.
 5. Back up Supabase metadata and inventory object counts/bytes/checksums. Import
@@ -86,6 +89,7 @@ Run from the repository root:
 python -m pytest web-platform/tests/test_cloudflare_d1_schema.py -q
 ```
 
-These tests execute the SQL using Python's SQLite engine. They validate the
-schema contract, but do not prove Cloudflare D1 deployment compatibility or
-production behavior.
+These tests execute the SQL using Python's SQLite engine and exercise the D1
+adapter with a fake binding. They validate local contracts, but do not prove
+Cloudflare D1 deployment compatibility, remote transaction behavior or production
+integration. Remote D1 tests are still required.

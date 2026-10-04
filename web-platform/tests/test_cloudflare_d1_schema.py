@@ -162,6 +162,48 @@ def test_document_delete_cascades_versions_and_preserves_audit_event(db):
     ).fetchone()[0] == "doc-1"
 
 
+def test_document_chunks_must_reference_a_version_of_the_same_document(db):
+    seed_user(db)
+    seed_document(db, "doc-1", object_key="documents/user-1/doc-1")
+    seed_document(db, "doc-2", object_key="documents/user-1/doc-2")
+    db.execute(
+        """
+        INSERT INTO document_versions(
+            id, document_id, version_no, object_key, filename, size_bytes, sha256
+        ) VALUES ('version-1', 'doc-1', 1, 'documents/user-1/doc-1/v1', 'sample.pdf', 12, ?)
+        """,
+        (VALID_HASH,),
+    )
+
+    with pytest.raises(sqlite3.IntegrityError, match="version mismatch"):
+        db.execute(
+            """
+            INSERT INTO document_chunks(
+                id, document_id, version_id, chunk_index, content, content_sha256
+            ) VALUES ('chunk-bad', 'doc-2', 'version-1', 0, 'private text', ?)
+            """,
+            (VALID_HASH,),
+        )
+
+    db.execute(
+        """
+        INSERT INTO document_chunks(
+            id, document_id, version_id, chunk_index, content, content_sha256
+        ) VALUES ('chunk-1', 'doc-1', 'version-1', 0, 'private text', ?)
+        """,
+        (VALID_HASH,),
+    )
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute(
+            """
+            INSERT INTO document_chunks(
+                id, document_id, version_id, chunk_index, content, content_sha256
+            ) VALUES ('chunk-duplicate', 'doc-1', 'version-1', 0, 'duplicate', ?)
+            """,
+            (VALID_HASH,),
+        )
+
+
 def test_audit_events_are_append_only(db):
     seed_user(db)
     db.execute(

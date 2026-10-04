@@ -110,7 +110,7 @@ CREATE INDEX document_permissions_user_idx
 CREATE TABLE document_chunks (
     id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    version_id TEXT REFERENCES document_versions(id) ON DELETE CASCADE,
+    version_id TEXT NOT NULL REFERENCES document_versions(id) ON DELETE CASCADE,
     chunk_index INTEGER NOT NULL CHECK (chunk_index >= 0),
     content TEXT NOT NULL,
     content_sha256 TEXT NOT NULL CHECK (
@@ -126,6 +126,27 @@ CREATE TABLE document_chunks (
 
 CREATE INDEX document_chunks_document_idx
     ON document_chunks(document_id, version_id, chunk_index);
+
+-- A chunk must always belong to a version of the same document.
+CREATE TRIGGER document_chunks_version_matches_document_insert
+BEFORE INSERT ON document_chunks
+WHEN NOT EXISTS (
+    SELECT 1 FROM document_versions
+    WHERE id = NEW.version_id AND document_id = NEW.document_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'document chunk version mismatch');
+END;
+
+CREATE TRIGGER document_chunks_version_matches_document_update
+BEFORE UPDATE OF document_id, version_id ON document_chunks
+WHEN NOT EXISTS (
+    SELECT 1 FROM document_versions
+    WHERE id = NEW.version_id AND document_id = NEW.document_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'document chunk version mismatch');
+END;
 
 CREATE TABLE audit_events (
     id TEXT PRIMARY KEY,

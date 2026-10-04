@@ -181,3 +181,13 @@ Verification from Doka Quality Checks run `37221393963` (commit `6656007`):
 - Historical credential exposure is not removed by editing the current tree. Treat the provider credentials formerly documented in the legacy AI guide as compromised and rotate them; Git history rewriting remains unperformed pending explicit approval.
 - Latest Vercel deployment for code-only/CI-only commits was cancelled by the configured ignored-build-step rule; this is not a failed Vite build. The previously READY production deployment remains on commit `e8a15c9`. No Vercel settings or production environment values were changed.
 - Cloud Edition runtime still uses the existing Supabase-backed Worker. D1/Storj migration and infrastructure provisioning remain separate, unstarted work; no Cloudflare resources were created or changed in this batch.
+
+
+## Cloud Edition D1/Turso groundwork — 2026-10-04
+
+- Added an offline D1 metadata baseline with owner/organization-scoped documents, versions, explicit permissions, OCR chunks, append-only audit events, idempotent jobs and a transactional outbox. Chunk rows now require a version belonging to the same document; SQL triggers enforce this relationship on insert and update.
+- Added a Turso sync-receipt migration for event-level idempotency. Apply the same metadata schema to Turso before adding receipts.
+- Added a Python Worker D1 adapter that uses prepared statements and bound scalar parameters, with safe error wrapping and an atomic batch helper. It is intentionally not imported by the production Worker until a real D1 binding and staging migration are ready.
+- Added offline SQLite schema tests and fake-binding adapter tests. CI run 37223169768 verifies the adapter tests and prior schema tests; the final chunk/version integrity guard is awaiting the next main-branch run.
+- The active Cloudflare Worker continues to use Supabase Auth, Supabase PostgREST metadata and Supabase Storage. No D1 or Turso resources/bindings were provisioned and no live data was moved.
+- D1 schema/adapter code is preparation only: SQLite and fake-binding tests do not replace remote D1 tests, authenticated multi-tenant isolation tests, Turso replay/recovery drills, or a production rollback rehearsal.

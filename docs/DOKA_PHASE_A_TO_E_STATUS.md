@@ -551,3 +551,13 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - The consolidated workflow remains non-green solely because npm audit reports five high findings in the Tailwind v3 development dependency chain. The common root advisory is in `braces` (affected through 3.0.3; no patched version listed), and npm offers Tailwind CSS 4.3.3 as a semver-major fix. Tailwind v4 raises the supported browser floor; defer migration until the project's minimum browser support is confirmed.
 - The Vercel build was intentionally skipped by the configured ignored-build-step rule for commits that did not change frontend build inputs. The latest Vite build and smoke tests nevertheless passed in GitHub Actions. Do not interpret those skipped Vercel deployments as a failed frontend build.
 - Phase A is not fully closed while historical credentials require rotation and frontend dev-dependency findings remain. Cloud Edition D1/Storj migration is still pending; the current Cloudflare Worker remains Supabase-backed and no Cloudflare infrastructure was provisioned.
+
+
+### 2026-10-04 — Cloud Edition D1/Turso groundwork
+
+- Added an offline D1 metadata baseline for users, organizations/memberships, owner/organization-scoped documents, versions, explicit document permissions, OCR/search chunks, append-only audit events, jobs and a transactional Turso outbox.
+- Added a separate Turso sync-receipt migration. The same SQLite-compatible metadata baseline is intended to be applied to the secondary Turso database before the receipt table; each event receipt must be committed in the same Turso transaction as its mirrored changes.
+- Added a Python D1 binding adapter using prepared statements, scalar parameter validation, first-row/read/write operations and atomic batch support. It is not connected to the active Worker yet.
+- Added SQLite schema tests and fake-binding adapter tests. CI run 37223169768 verifies the adapter tests and prior schema tests; the final chunk/version consistency guard is awaiting the next main-branch run.
+- Current Cloudflare Worker remains Supabase Auth + Supabase metadata + Supabase Storage. No D1/Turso resources or bindings were created; no production data was migrated. The Cloudflare Worker production deployment workflow was skipped for these code-only commits.
+- Cloudflare's Python Workers runtime supports D1 bindings, prepared statements and atomic batch operations; production use still requires a real non-production D1 binding and remote integration/rollback tests.
