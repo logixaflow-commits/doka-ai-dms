@@ -12,7 +12,6 @@ from fastapi import HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 from jwt.exceptions import InvalidTokenError as JWTError
-from passlib.context import CryptContext
 from loguru import logger
 import re
 
@@ -75,6 +74,8 @@ class ProductionSecurity:
     """Production security implementation"""
     
     def __init__(self):
+        from passlib.context import CryptContext
+
         self.pwd_context = CryptContext(
             schemes=["bcrypt"],
             deprecated="auto",
@@ -216,25 +217,29 @@ class ProductionSecurity:
         """Validate CSRF token"""
         return hmac.compare_digest(token, session_token)
     
+    @staticmethod
+    def _get_fernet():
+        """Load encryption only from an explicitly configured Fernet key."""
+        from cryptography.fernet import Fernet
+
+        key = os.getenv("ENCRYPTION_KEY")
+        if not key:
+            raise ValueError(
+                "ENCRYPTION_KEY must be configured before using sensitive-data encryption."
+            )
+
+        try:
+            return Fernet(key.encode("ascii"))
+        except (UnicodeEncodeError, ValueError) as exc:
+            raise ValueError("ENCRYPTION_KEY must be a valid Fernet key.") from exc
+
     def encrypt_sensitive_data(self, data: str) -> str:
-        """Encrypt sensitive data"""
-        from cryptography.fernet import Fernet
-        import os
-        
-        key = os.getenv("ENCRYPTION_KEY", "default-key-32-chars-")
-        fernet = Fernet(key.encode() if len(key) == 44 else key.encode().ljust(44, b'='))
-        encrypted = fernet.encrypt(data.encode())
-        return encrypted.decode()
-    
+        """Encrypt sensitive data with the configured Fernet key."""
+        return self._get_fernet().encrypt(data.encode()).decode()
+
     def decrypt_sensitive_data(self, encrypted_data: str) -> str:
-        """Decrypt sensitive data"""
-        from cryptography.fernet import Fernet
-        import os
-        
-        key = os.getenv("ENCRYPTION_KEY", "default-key-32-chars-")
-        fernet = Fernet(key.encode() if len(key) == 44 else key.encode().ljust(44, b'='))
-        decrypted = fernet.decrypt(encrypted_data.encode())
-        return decrypted.decode()
+        """Decrypt sensitive data with the configured Fernet key."""
+        return self._get_fernet().decrypt(encrypted_data.encode()).decode()
     
     def log_security_event(self, event_type: str, details: dict, request: Request):
         """Log security event"""

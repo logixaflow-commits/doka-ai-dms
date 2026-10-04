@@ -235,28 +235,28 @@ POST /api/analysis/detect-fracture
 ### **Detect Function**
 ```bash
 curl -X POST http://localhost:8000/api/analysis/detect-function \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -F "text=Invoice No: INV-001 Total: $5000"
 ```
 
 ### **Detect Fracture**
 ```bash
 curl -X POST http://localhost:8000/api/analysis/detect-fracture \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -F "text=Document is partially damaged and unreadable"
 ```
 
 ### **Analyze Document**
 ```bash
 curl -X POST http://localhost:8000/api/analysis/analyze-document \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -F "file=@document.pdf"
 ```
 
 ### **Batch Analyze**
 ```bash
 curl -X POST http://localhost:8000/api/analysis/batch-analyze \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -F "document_ids=[1,2,3,4,5]"
 ```
 

@@ -2,15 +2,15 @@
 
 ## 🔑 Configured API Keys
 
-Your AI API keys have been successfully added to the Enterprise DMS system:
+Configure provider credentials through a deployment secret manager or an untracked local `.env` file. Never commit live API keys or access tokens.
 
 | Provider | API Key | Model | Status |
 |----------|---------|-------|--------|
-| **OpenAI** | `AQ.Ab8...` (partial) | gpt-4o-mini | ✅ Configured |
-| **Gemini** | `AQ.Ab8RN6Iry_636_xxG5Ixl_BYjlfUOrQiIceLVNqA9ON6LiH4Zw` | gemini-pro | ✅ Configured |
-| **Hugging Face** | `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` | sentence-transformers/all-MiniLM-L6-v2 | ✅ Configured |
-| **OpenRouter** | `sk-or-v1-7b7f2b69...` (partial) | anthropic/claude-3-haiku | ✅ Configured |
-| **Groq** | `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` | llama-3.3-70b-versatile | ✅ Configured |
+| **OpenAI** | Set through secret manager | gpt-4o-mini | Not stored in repository |
+| **Gemini** | Set through secret manager | gemini-pro | Not stored in repository |
+| **Hugging Face** | Set through secret manager | sentence-transformers/all-MiniLM-L6-v2 | Not stored in repository |
+| **OpenRouter** | Set through secret manager | anthropic/claude-3-haiku | Not stored in repository |
+| **Groq** | Set through secret manager | llama-3.3-70b-versatile | Not stored in repository |
 
 ---
 
@@ -43,16 +43,16 @@ Your AI API keys have been successfully added to the Enterprise DMS system:
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 
-GEMINI_API_KEY=AQ.Ab8RN6Iry_636_xxG5Ixl_BYjlfUOrQiIceLVNqA9ON6LiH4Zw
+GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-pro
 
-HUGGINGFACE_API_KEY=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
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
 HUGGINGFACE_MODEL=sentence-transformers/all-MiniLM-L6-v2
 
-OPENROUTER_API_KEY=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
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 OPENROUTER_MODEL=anthropic/claude-3-haiku
 
-GROQ_API_KEY=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
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
 
 AI_ENHANCED_DUPLICATE_DETECTION=True

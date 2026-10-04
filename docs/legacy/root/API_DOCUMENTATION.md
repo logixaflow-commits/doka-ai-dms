@@ -43,8 +43,8 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "ACCESS_TOKEN_PLACEHOLDER",
+  "refresh_token": "REFRESH_TOKEN_PLACEHOLDER",
   "user": {
     "id": 1,
     "username": "admin",
