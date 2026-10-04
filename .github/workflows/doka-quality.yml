@@ -258,6 +258,8 @@ jobs:
         working-directory: web-platform/frontend
         run: npm ci
       - name: Audit frontend dependencies
+        id: frontend_audit
+        continue-on-error: true
         working-directory: web-platform/frontend
         run: |
           npm audit --json > npm-audit.json || true
@@ -298,6 +300,11 @@ jobs:
             web-platform/frontend/package-lock.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Enforce frontend dependency audit result
+        if: steps.frontend_audit.outcome == 'failure'
+        run: |
+          echo "::error::Frontend dependency audit found unresolved vulnerabilities."
+          exit 1
 
   security-supply-chain:
     name: Static analysis and SBOM
