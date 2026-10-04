@@ -33,6 +33,31 @@ def test_import_route_rejects_source_override(tmp_path, monkeypatch):
     assert calls == [()]
     assert result["session_id"] == "a" * 32
 
+    monkeypatch.setattr(
+        workspace_routes.safe_workspace_service, "run_import", lambda _session_id: None
+    )
+    app = FastAPI()
+    app.include_router(workspace_routes.router)
+    app.dependency_overrides[require_local_workspace_user] = lambda: {
+        "user_id": "synthetic-test-user"
+    }
+    with TestClient(app) as client:
+        rejected = client.post("/api/workspace/imports", json={"source": str(outside)})
+        accepted = client.post("/api/workspace/imports", json={})
+
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"] == [
+        {
+            "type": "extra_forbidden",
+            "loc": ["body", "source"],
+            "msg": "Extra inputs are not permitted",
+            "input": str(outside),
+        }
+    ]
+    assert accepted.status_code == 200
+    assert accepted.json()["session_id"] == "a" * 32
+    assert calls == [(), ()]
+
 
 @pytest.mark.parametrize("operation", ["import", "scan"])
 def test_workspace_status_and_health_routes_remain_responsive(

@@ -61,6 +61,8 @@ async def test_local_login_and_token_roundtrip(monkeypatch):
         "ASCII-password-42",
         "\u1019\u103c\u1014\u103a\u1019\u102c-password-42",
         "Mixed-\u1019\u103c\u1014\u103a\u1019\u102c-password-42",
+        "Korean-\uc548\ub155\ud558\uc138\uc694-\ube44\ubc00\ubc88\ud638-42",
+        "Mixed-\u1019\u103c\u1014\u103a\u1019\u102c-\ud55c\uad6d\uc5b4-42",
         "Caf\u00e9-password-42",
         " password-with-boundary-spaces-42 ",
         "Emoji-\U0001f512-password-42",
@@ -332,6 +334,37 @@ async def test_local_workspace_accepts_valid_local_token_without_supabase(monkey
     token = create_local_access_token("local-admin")
 
     assert await require_local_workspace_user(_credentials(token)) == "local-admin"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("supabase_url", "publishable_key"),
+    [
+        ("", ""),
+        ("https://synthetic-project.invalid", ""),
+        ("", "synthetic-publishable-key"),
+        ("https://synthetic-project.invalid", "synthetic-publishable-key"),
+    ],
+)
+async def test_local_workspace_auth_ignores_supabase_configuration(
+    monkeypatch, supabase_url, publishable_key
+):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "local")
+    monkeypatch.setenv("SUPABASE_URL", supabase_url)
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", publishable_key)
+    supabase_calls = []
+
+    def unexpected_supabase_initialization(**_kwargs):
+        supabase_calls.append(True)
+        raise AssertionError("Personal Local attempted Supabase authentication.")
+
+    monkeypatch.setattr(
+        supabase_auth.httpx, "AsyncClient", unexpected_supabase_initialization
+    )
+    token = create_local_access_token("local-admin")
+
+    assert await require_local_workspace_user(_credentials(token)) == "local-admin"
+    assert supabase_calls == []
 
 
 @pytest.mark.asyncio

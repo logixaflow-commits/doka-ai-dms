@@ -79,7 +79,7 @@ def test_restore_rejects_case_colliding_paths_on_windows_filesystems(monkeypatch
     )
 
     with pytest.raises(ValueError, match="case-colliding"):
-        service.restore_to_recovery(archive.name)
+        service.restore_to_recovery(archive.name, confirm=True)
 
 
 def test_restore_rejects_windows_reserved_device_names(monkeypatch, tmp_path):
@@ -94,4 +94,4 @@ def test_restore_rejects_windows_reserved_device_names(monkeypatch, tmp_path):
     )
 
     with pytest.raises(ValueError, match="unsafe path"):
-        service.restore_to_recovery(archive.name)
+        service.restore_to_recovery(archive.name, confirm=True)

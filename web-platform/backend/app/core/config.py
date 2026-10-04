@@ -197,6 +197,7 @@ class Settings:
 
         # Backup
         self.BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", "30"))
+        self.BACKUP_MINIMUM_RETAINED = int(os.getenv("BACKUP_MINIMUM_RETAINED", "5"))
 
         # SMTP Email Configuration (Enterprise Feature)
         self.SMTP_ENABLED = os.getenv("SMTP_ENABLED", "false").lower() == "true"
@@ -393,6 +394,8 @@ class Settings:
             raise ValueError("SECRET_KEY must contain at least 32 bytes for HS256 signing.")
         if self.BOOTSTRAP_ADMIN_PASSWORD and len(self.BOOTSTRAP_ADMIN_PASSWORD) < 12:
             raise ValueError("BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters.")
+        if self.BACKUP_MINIMUM_RETAINED < 1:
+            raise ValueError("BACKUP_MINIMUM_RETAINED must be at least 1.")
 
         if not 1000 <= self.AI_MAX_INPUT_CHARS <= 1_000_000:
             raise ValueError("AI_MAX_INPUT_CHARS must be between 1000 and 1000000.")

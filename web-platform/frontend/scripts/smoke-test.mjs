@@ -174,6 +174,9 @@ const adminLayout = fs.readFileSync(path.resolve('src/layouts/AdminLayout.tsx'),
 if (!localAuth.includes("VITE_DOKA_EDITION === 'personal-local'")) {
   throw new Error('Packaged Personal Local Edition must have an explicit production build flag.');
 }
+if (!localAuth.includes("if (import.meta.env.VITE_DOKA_EDITION === 'personal-local') return true;")) {
+  throw new Error('Explicit Personal Local builds must not switch to Supabase when its credentials are present.');
+}
 if (!adminLayout.includes("isLocalAuthEnabled()")) {
   throw new Error('Admin navigation must use the shared local-edition detection rule.');
 }

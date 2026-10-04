@@ -31,6 +31,15 @@ _SESSION_METADATA_FILES = {
 _SESSION_COORDINATION_FILES = frozenset({".operation.lock", ".metadata.lock"})
 
 
+def is_session_coordination_file(relative_path: Path) -> bool:
+    return (
+        len(relative_path.parts) == 3
+        and relative_path.parts[0] == "imports"
+        and re.fullmatch(r"[0-9a-f]{32}", relative_path.parts[1]) is not None
+        and relative_path.name in _SESSION_COORDINATION_FILES
+    )
+
+
 class SessionOperationInProgress(ValueError):
     """Raised when another mutating operation already owns an import session."""
 

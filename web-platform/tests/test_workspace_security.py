@@ -77,7 +77,7 @@ def test_backup_restore_rejects_zip_slip(tmp_path: Path, monkeypatch):
 
     service = WorkspaceBackupService()
     with pytest.raises(ValueError, match="unsafe path"):
-        service.restore_to_recovery(archive.name)
+        service.restore_to_recovery(archive.name, confirm=True)
     assert not (workspace / "escaped.txt").exists()
     assert not (tmp_path / "escaped.txt").exists()
 
@@ -182,6 +182,6 @@ def test_backup_restore_rejects_archives_over_entry_limit(tmp_path, monkeypatch)
     monkeypatch.setattr(backup_module, "_MAX_RESTORE_ENTRIES", 0)
 
     with pytest.raises(ValueError, match="too many entries"):
-        service.restore_to_recovery(Path(manifest["archive"]).name)
+        service.restore_to_recovery(Path(manifest["archive"]).name, confirm=True)
     recovery_root = workspace / "Recovery"
     assert not recovery_root.exists() or not list(recovery_root.glob("restore_*"))

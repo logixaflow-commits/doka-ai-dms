@@ -62,14 +62,28 @@ def test_workspace_backup_snapshot_matches_backup_exclusions(tmp_path):
     (tmp_path / "Recovery" / "restore_old").mkdir(parents=True)
     (tmp_path / "Recovery" / "restore_old" / "old.txt").write_text("old", encoding="utf-8")
     (tmp_path / "temporary.tmp").write_text("partial", encoding="utf-8")
-    session = tmp_path / "imports" / "0123456789abcdef0123456789abcdef"
+    session_id = "0123456789abcdef0123456789abcdef"
+    session = tmp_path / "imports" / session_id
     session.mkdir(parents=True)
     (session / ".operation.lock").write_bytes(b"\0")
     (session / ".metadata.lock").write_bytes(b"\0")
+    nested = session / "source_copy" / "Department-A"
+    nested.mkdir(parents=True)
+    (nested / ".operation.lock").write_text("synthetic user document", encoding="utf-8")
+    (nested / ".metadata.lock").write_text("synthetic user metadata", encoding="utf-8")
+    (tmp_path / ".operation.lock").write_text("outside imports", encoding="utf-8")
+    (tmp_path / "imports" / ".metadata.lock").write_text("imports root", encoding="utf-8")
     (tmp_path / "keep.txt").write_text("keep", encoding="utf-8")
 
     snapshot = module.workspace_backup_snapshot(tmp_path)
-    assert set(snapshot) == {"imports/status.json", "keep.txt"}
+    assert set(snapshot) == {
+        "imports/status.json",
+        f"imports/{session_id}/source_copy/Department-A/.operation.lock",
+        f"imports/{session_id}/source_copy/Department-A/.metadata.lock",
+        ".operation.lock",
+        "imports/.metadata.lock",
+        "keep.txt",
+    }
 
 
 def test_ocr_pilot_requires_real_myanmar_and_english_samples():

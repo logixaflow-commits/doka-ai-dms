@@ -46,6 +46,12 @@ def test_local_login_and_protected_workspace_require_valid_local_session(
     monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "batch0-local-admin")
     monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", "synthetic-local-password")
     monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "auth.sqlite3")
+    monkeypatch.setenv("SUPABASE_URL", "https://synthetic-project.invalid")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "synthetic-publishable-key")
+    monkeypatch.setattr(
+        "app.core.supabase_auth.httpx.AsyncClient",
+        lambda **_kwargs: pytest.fail("Personal Local attempted Supabase authentication."),
+    )
     client = TestClient(create_app())
 
     assert client.get("/api/workspace/imports").status_code == 401
@@ -110,6 +116,25 @@ def test_local_login_and_protected_workspace_require_valid_local_session(
         )
         assert rejected.status_code == 401
         assert bad_token not in rejected.text
+
+
+def test_cloud_and_personal_local_apps_mount_separate_auth_routes(monkeypatch):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "test")
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000")
+    local_paths = {route.path for route in create_app().routes}
+
+    from app.cloud_main import create_app as create_cloud_app
+
+    cloud_paths = {route.path for route in create_cloud_app().routes}
+
+    assert "/api/auth/login" in local_paths
+    assert "/api/workspace/imports" in local_paths
+    assert "/api/documents" not in local_paths
+    assert "/api/storage/objects" not in local_paths
+    assert "/api/auth/login" not in cloud_paths
+    assert "/api/workspace/imports" not in cloud_paths
+    assert "/api/documents" in cloud_paths
+    assert "/api/storage/objects" in cloud_paths
 
 
 def test_local_tokens_are_distinguishable_from_legacy_database_tokens(

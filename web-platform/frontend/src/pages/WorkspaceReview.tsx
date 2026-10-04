@@ -226,7 +226,7 @@ function LocalWorkspaceReview() {
     if (!window.confirm(`Restore ${archiveName} into a separate Recovery folder? The active workspace will not be overwritten.`)) return;
     setBusy(true); setMessage('');
     try {
-      const response = await api(`/backups/restore?archive_name=${encodeURIComponent(archiveName)}`, { method: 'POST' });
+      const response = await api(`/backups/restore?archive_name=${encodeURIComponent(archiveName)}&confirm=true`, { method: 'POST' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Backup restore failed');
       setMessage(`Backup restored to Recovery: ${data.recovery_path}. Active workspace unchanged.`);

@@ -159,6 +159,52 @@ def test_source_outside_configured_root_is_rejected(tmp_path: Path, monkeypatch)
         SafeWorkspaceService().validate_source(outside)
 
 
+def test_missing_source_root_is_rejected(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", None)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="SOURCE_ROOT is not configured"):
+        SafeWorkspaceService().validate_source()
+
+
+@pytest.mark.parametrize("invalid_root_type", ["missing", "file"])
+def test_invalid_source_root_is_rejected(
+    tmp_path: Path, monkeypatch, invalid_root_type
+):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    workspace.mkdir()
+    if invalid_root_type == "file":
+        source_root.write_text("synthetic non-directory root", encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="Configured source root is invalid"):
+        SafeWorkspaceService().validate_source()
+
+
+def test_invalid_source_candidate_file_is_rejected(tmp_path: Path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source_root = tmp_path / "source"
+    workspace.mkdir()
+    source_root.mkdir()
+    source_file = source_root / "not-a-directory.txt"
+    source_file.write_text("synthetic file", encoding="utf-8")
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source_root)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    with pytest.raises(ValueError, match="Source directory is invalid"):
+        SafeWorkspaceService().validate_source(source_file)
+
+
 def test_source_sibling_with_similar_prefix_is_rejected(tmp_path: Path, monkeypatch):
     workspace = tmp_path / "workspace"
     source_root = tmp_path / "Source"

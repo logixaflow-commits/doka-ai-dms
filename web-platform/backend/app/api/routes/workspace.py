@@ -63,16 +63,21 @@ def verify_backup(archive_name: str):
 
 
 @router.post("/backups/restore")
-def restore_backup(archive_name: str):
+def restore_backup(archive_name: str, confirm: bool = False):
     try:
-        return workspace_backup_service.restore_to_recovery(archive_name)
+        return workspace_backup_service.restore_to_recovery(
+            archive_name, confirm=confirm
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/backups/prune")
-def prune_backups():
-    return workspace_backup_service.prune()
+def prune_backups(confirm: bool = False, dry_run: bool = False):
+    try:
+        return workspace_backup_service.prune(confirm=confirm, dry_run=dry_run)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/imports/{session_id}/resume")

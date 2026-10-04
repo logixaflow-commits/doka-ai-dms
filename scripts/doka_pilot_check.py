@@ -29,7 +29,7 @@ from app.services.ocr_validation_service import ocr_validation_service  # noqa: 
 from app.services.organization_planner import organization_planner  # noqa: E402
 from app.services.safe_workspace_service import (  # noqa: E402
     SafeWorkspaceService,
-    _SESSION_COORDINATION_FILES,
+    is_session_coordination_file,
     sha256_file,
 )
 from app.services.workspace_backup_service import workspace_backup_service  # noqa: E402
@@ -53,11 +53,7 @@ def workspace_backup_snapshot(root: Path) -> dict[str, str]:
         relative = path.relative_to(root)
         if relative.parts and relative.parts[0] == "Recovery":
             continue
-        if (
-            len(relative.parts) >= 3
-            and relative.parts[0] == "imports"
-            and path.name in _SESSION_COORDINATION_FILES
-        ):
+        if is_session_coordination_file(relative):
             continue
         snapshot[relative.as_posix()] = sha256_file(path)
     return snapshot
@@ -144,7 +140,7 @@ def main() -> int:
     backup = workspace_backup_service.create(session_id=session_id)
     backup_name = Path(backup["archive"]).name
     backup_verify = workspace_backup_service.verify(backup_name)
-    recovery = workspace_backup_service.restore_to_recovery(backup_name)
+    recovery = workspace_backup_service.restore_to_recovery(backup_name, confirm=True)
     recovery_root = Path(recovery["recovery_path"])
     try:
         recovery_snapshot = source_snapshot(recovery_root)

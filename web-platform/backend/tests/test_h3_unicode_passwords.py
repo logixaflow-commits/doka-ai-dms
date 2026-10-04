@@ -13,7 +13,9 @@ from app.main import create_app
         "ASCII-Pass123!",
         "မြန်မာစကားဝှက်၁၂၃!",
         "日本語パスワード-123!",
+        "한국어비밀번호-123!",
         "Mixed-ASCII-မြန်မာ-123!",
+        "Mixed-ASCII-မြန်မာ-한국어-123!",
     ],
 )
 def test_password_hashing_preserves_ascii_and_unicode(password):
@@ -77,7 +79,7 @@ def test_unicode_passwords_over_bcrypt_byte_limit_are_prehash_supported():
 def test_local_unicode_password_login_round_trip_and_exact_comparison(
     monkeypatch, tmp_path
 ):
-    password = "မြန်မာ-Local-Password123!"
+    password = "မြန်မာ-한국어-Local-Password123!"
     monkeypatch.setattr(settings, "ENVIRONMENT", "test")
     monkeypatch.setattr(settings, "LOCAL_ADMIN_USERNAME", "unicode-admin")
     monkeypatch.setattr(settings, "BOOTSTRAP_ADMIN_PASSWORD", password)

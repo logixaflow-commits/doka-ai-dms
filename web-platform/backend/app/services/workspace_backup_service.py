@@ -2,16 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import re
 import shutil
 import stat
+import threading
+import time
 import zipfile
+import errno
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Any
+from typing import Any, Iterator
 
 from app.core.config import settings
 from app.services.safe_workspace_service import (
-    _SESSION_COORDINATION_FILES,
+    is_session_coordination_file,
     safe_workspace_service,
 )
 
@@ -20,6 +26,8 @@ _MAX_RESTORE_ENTRIES = 100_000
 _MAX_RESTORE_TOTAL_BYTES = 100 * 1024 * 1024 * 1024
 _MAX_RESTORE_MEMBER_BYTES = 20 * 1024 * 1024 * 1024
 _MAX_RESTORE_COMPRESSION_RATIO = 10_000
+_BACKUP_OPERATION_GUARD = threading.Lock()
+_SHA256_PATTERN = re.compile(r"[0-9a-fA-F]{64}")
 
 
 def _sha256(path: Path) -> str:
@@ -32,6 +40,134 @@ def _sha256(path: Path) -> str:
 
 class WorkspaceBackupService:
     """Create restorable snapshots of the writable DMS workspace only."""
+
+    @contextmanager
+    def _backup_operation_lock(self, root: Path) -> Iterator[None]:
+        """Serialize backup mutations in this process and across processes."""
+        lock_path = root / ".backup-operation.lock"
+        with _BACKUP_OPERATION_GUARD:
+            if lock_path.is_symlink():
+                raise ValueError("Backup operation lock cannot be a symlink.")
+            flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+            descriptor = os.open(lock_path, flags, 0o600)
+            locked = False
+            try:
+                if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                    raise ValueError("Backup operation lock must be a regular file.")
+                if os.name == "nt":
+                    import msvcrt
+
+                    while True:
+                        os.lseek(descriptor, 0, os.SEEK_SET)
+                        try:
+                            msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+                            break
+                        except OSError as exc:
+                            contended = exc.errno in {
+                                errno.EACCES, errno.EAGAIN, errno.EDEADLK,
+                            } or getattr(exc, "winerror", None) in {33, 36}
+                            if not contended:
+                                raise
+                            time.sleep(0.01)
+                else:
+                    import fcntl
+
+                    fcntl.flock(descriptor, fcntl.LOCK_EX)
+                locked = True
+                yield
+            finally:
+                try:
+                    if locked:
+                        if os.name == "nt":
+                            import msvcrt
+
+                            os.lseek(descriptor, 0, os.SEEK_SET)
+                            msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                        else:
+                            import fcntl
+
+                            fcntl.flock(descriptor, fcntl.LOCK_UN)
+                finally:
+                    os.close(descriptor)
+
+    def _validated_backup_file(self, root: Path, name: str) -> Path:
+        if not name or Path(name).name != name or "/" in name or "\\" in name:
+            raise ValueError("Backup metadata contains an invalid filename.")
+        path = root / name
+        if path.is_symlink():
+            raise ValueError("Backup retention cannot inspect symlinked files.")
+        try:
+            resolved = path.resolve(strict=True)
+            resolved.relative_to(root)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise ValueError("Backup retention encountered a path outside BACKUP_ROOT.") from exc
+        if resolved.parent != root or not stat.S_ISREG(resolved.stat().st_mode):
+            raise ValueError("Backup retention encountered a non-regular file.")
+        return resolved
+
+    def _retention_records(self, root: Path) -> list[dict[str, Any]]:
+        archives: dict[str, Path] = {}
+        manifests: dict[str, Path] = {}
+        for path in root.iterdir():
+            if path.name == ".backup-operation.lock":
+                continue
+            if not path.name.startswith("workspace_"):
+                continue
+            if path.suffix.lower() not in {".zip", ".json"}:
+                continue
+            if path.is_symlink():
+                raise ValueError("Backup retention cannot inspect symlinked files.")
+            validated = self._validated_backup_file(root, path.name)
+            stem = path.stem
+            target = archives if path.suffix.lower() == ".zip" else manifests
+            if stem in target:
+                raise ValueError("Backup retention found duplicate backup entries.")
+            target[stem] = validated
+
+        if set(archives) != set(manifests):
+            raise ValueError("Backup retention found an incomplete archive/manifest pair.")
+
+        records = []
+        for stem, archive in archives.items():
+            manifest_path = manifests[stem]
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, ValueError) as exc:
+                raise ValueError("Backup retention found unreadable or invalid metadata.") from exc
+            if not isinstance(manifest, dict):
+                raise ValueError("Backup retention found invalid metadata.")
+            digest = manifest.get("sha256")
+            created_at = manifest.get("created_at")
+            archive_name = manifest.get("archive")
+            if (
+                manifest.get("schema_version") != 1
+                or not isinstance(digest, str)
+                or _SHA256_PATTERN.fullmatch(digest) is None
+                or not isinstance(created_at, str)
+                or not isinstance(archive_name, str)
+                or Path(archive_name).name != archive.name
+            ):
+                raise ValueError("Backup retention found incomplete metadata.")
+            try:
+                created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("Backup retention found an invalid creation time.") from exc
+            if created.tzinfo is None or created.utcoffset() is None:
+                raise ValueError("Backup retention found a timezone-naive creation time.")
+            if _sha256(archive).lower() != digest.lower():
+                raise ValueError("Backup retention found an archive that failed integrity verification.")
+            if not zipfile.is_zipfile(archive):
+                raise ValueError("Backup retention found an invalid archive.")
+            records.append({
+                "archive": archive,
+                "manifest": manifest_path,
+                "created_at": created.astimezone(timezone.utc),
+            })
+        return sorted(
+            records,
+            key=lambda record: (record["created_at"], record["archive"].name),
+            reverse=True,
+        )
 
     def _backup_root(self) -> Path:
         configured_root = Path(settings.BACKUP_ROOT).expanduser()
@@ -50,6 +186,12 @@ class WorkspaceBackupService:
     def create(self, session_id: str | None = None) -> dict[str, Any]:
         source = safe_workspace_service.root.resolve()
         backup_root = self._backup_root()
+        with self._backup_operation_lock(backup_root):
+            return self._create_locked(source, backup_root, session_id)
+
+    def _create_locked(
+        self, source: Path, backup_root: Path, session_id: str | None
+    ) -> dict[str, Any]:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         archive = backup_root / f"workspace_{timestamp}.zip"
         temporary_archive = archive.with_suffix(".zip.tmp")
@@ -69,11 +211,7 @@ class WorkspaceBackupService:
                     rel = path.relative_to(source)
                     if rel.parts and rel.parts[0] == "Recovery":
                         continue
-                    if (
-                        len(rel.parts) >= 3
-                        and rel.parts[0] == "imports"
-                        and path.name in _SESSION_COORDINATION_FILES
-                    ):
+                    if is_session_coordination_file(rel):
                         continue
                     if path.name.endswith(".tmp"):
                         continue
@@ -143,7 +281,16 @@ class WorkspaceBackupService:
             "verified": digest == expected,
         }
 
-    def restore_to_recovery(self, archive_name: str) -> dict[str, Any]:
+    def restore_to_recovery(
+        self, archive_name: str, *, confirm: bool = False
+    ) -> dict[str, Any]:
+        if confirm is not True:
+            raise ValueError("Restore requires explicit confirmation.")
+        backup_root = self._backup_root()
+        with self._backup_operation_lock(backup_root):
+            return self._restore_to_recovery_locked(archive_name)
+
+    def _restore_to_recovery_locked(self, archive_name: str) -> dict[str, Any]:
         archive = self._resolve_archive(archive_name)
         verification = self.verify(archive.name)
         if not verification["verified"]:
@@ -235,18 +382,42 @@ class WorkspaceBackupService:
             "active_workspace_changed": False,
         }
 
-    def prune(self) -> dict[str, Any]:
+    def prune(self, *, confirm: bool = False, dry_run: bool = False) -> dict[str, Any]:
+        if dry_run is not True and confirm is not True:
+            raise ValueError("Pruning backups requires explicit confirmation.")
         root = self._backup_root()
-        cutoff = datetime.now(timezone.utc).timestamp() - settings.BACKUP_RETENTION_DAYS * 86400
-        removed = []
-        for path in root.iterdir():
-            if not path.is_file() or path.stat().st_mtime >= cutoff:
-                continue
-            if path.suffix.lower() not in {".zip", ".json"} or not path.name.startswith("workspace_"):
-                continue
-            path.unlink(missing_ok=True)
-            removed.append(path.name)
-        return {"retention_days": settings.BACKUP_RETENTION_DAYS, "removed": removed}
+        with self._backup_operation_lock(root):
+            records = self._retention_records(root)
+            minimum = max(1, int(settings.BACKUP_MINIMUM_RETAINED))
+            cutoff = datetime.now(timezone.utc).timestamp() - settings.BACKUP_RETENTION_DAYS * 86400
+            protected = {record["archive"].name for record in records[:minimum]}
+            retained = []
+            candidates = []
+            for record in records:
+                archive_name = record["archive"].name
+                if archive_name in protected or record["created_at"].timestamp() >= cutoff:
+                    retained.append(record)
+                else:
+                    candidates.append(record)
+
+            removed: list[str] = []
+            if not dry_run:
+                # The plan is rebuilt under the cross-process lock at execution time.
+                for record in candidates:
+                    archive = self._validated_backup_file(root, record["archive"].name)
+                    manifest = self._validated_backup_file(root, record["manifest"].name)
+                    archive.unlink()
+                    manifest.unlink()
+                    removed.append(archive.name)
+
+            return {
+                "retention_days": settings.BACKUP_RETENTION_DAYS,
+                "minimum_retained": minimum,
+                "dry_run": dry_run,
+                "retained": [record["archive"].name for record in retained],
+                "would_remove": [record["archive"].name for record in candidates],
+                "removed": removed,
+            }
 
 
 workspace_backup_service = WorkspaceBackupService()
