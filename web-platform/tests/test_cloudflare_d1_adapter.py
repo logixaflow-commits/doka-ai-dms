@@ -1,7 +1,14 @@
 """Unit tests for the prepared-statement D1 adapter."""
+from pathlib import Path
+import sys
 from types import SimpleNamespace
 
 import pytest
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from cloudflare_worker.d1 import D1Database, D1DatabaseError
 
