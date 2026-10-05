@@ -24,12 +24,18 @@ def migration_files(directory: Path) -> list[Path]:
     return sorted(files, key=lambda p: int(MIGRATION_RE.match(p.name).group(1)))
 
 
+def git_blob_sha(path: Path) -> str:
+    data = path.read_bytes()
+    header = f"blob {len(data)}\\0".encode("utf-8")
+    return hashlib.sha1(header + data).hexdigest()
+
+
 def manifest_for(files: list[Path]) -> list[dict[str, str | int]]:
     return [
         {
             "number": int(MIGRATION_RE.match(path.name).group(1)),
             "name": path.name,
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "git_blob_sha": git_blob_sha(path),
         }
         for path in files
     ]
