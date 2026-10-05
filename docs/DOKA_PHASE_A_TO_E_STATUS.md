@@ -578,3 +578,16 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Added a Turso receipt schema for event-level idempotency and a prepared-statement Python D1 adapter. The adapter is not wired into the production Worker; the active Worker still uses Supabase Auth, Supabase metadata and Supabase Storage.
 - Backend CI run 37223395446 verified the new schema and adapter tests as part of **309 passed, 11 warnings**. The same run's frontend job remains failed on the existing five-high npm audit findings; Vite build and frontend smoke checks passed. CodeQL and backend dependency audit jobs were still running when this status was recorded.
 - No D1/Turso databases or bindings were provisioned and no production data was migrated. Remote D1/Turso integration, Storj, QStash and rollback tests remain open.
+
+
+### 2026-10-05 — Cloud security boundary and CI closure
+
+- D1 authorization integrity guards are now checked in as cloudflare_worker/migrations/0002_authorization_integrity.sql: organization-owned documents require an organization-member owner; permission recipients must be organization members; grants require the document owner or organization owner/admin; and each organization can have at most one owner role.
+- Added SQLite regression coverage for those authorization constraints.
+- Added a dependency-free QStash signature verifier that validates HS256, Upstash issuer/subject, exp/nbf, raw-body SHA-256 and both current/next signing keys. It is a boundary utility only; no live QStash provider was provisioned or connected.
+- OCR input handling now fails closed for unsupported MIME types, invalid PDF headers, empty/symlink inputs and oversized files, with configurable file/page/pixel limits while preserving existing OCR resource-limit compatibility.
+- Backup Recovery now verifies each extracted regular file against the archive bytes after extraction, in addition to archive-level and path/safety checks.
+- Added a reviewed D1 migration manifest and CI verification gate. The gate checks contiguous migration numbering and Git blob checksums before any future migration apply workflow can proceed.
+- Latest Doka Quality Checks run 37262271881 for commit 701aed0bf377ca963a42a39d9a1fea722d9651ce completed successfully: frontend build/smoke, backend regression, backend dependency audit, root dependency audit, static analysis/SBOM and symlink security all passed.
+- No D1/Turso/Storj/QStash resources were provisioned and no production data was migrated. The active Cloudflare Worker remains on the existing Supabase-backed architecture.
+- Remaining release gates are operational rather than source-only: real authenticated two-user isolation, non-production remote D1/Turso integration and replay tests, real QStash signed delivery/retry drill, real-office OCR benchmark, and restore/RTO/RPO rehearsal. These require the corresponding environments/data and are not claimed as passed by CI.
