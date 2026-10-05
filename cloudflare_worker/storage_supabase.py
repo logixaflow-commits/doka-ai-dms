@@ -58,7 +58,10 @@ class SupabaseDirectStorageProvider:
         signed_path = str(payload.get("url") or "").strip()
         if not token:
             raise RuntimeError("Supabase signed upload response did not contain a token")
-        signed_url = signed_path if signed_path.startswith("http") else f"{self.config.base_url.rstrip('/')}{signed_path}"
+        if signed_path:
+            signed_url = signed_path if signed_path.startswith("http") else f"{self.config.base_url.rstrip('/')}{signed_path}"
+        else:
+            signed_url = f"{url}?token={quote(token, safe='')}"
         if "token=" not in signed_url:
             separator = "&" if "?" in signed_url else "?"
             signed_url = f"{signed_url}{separator}token={quote(token, safe='')}"
