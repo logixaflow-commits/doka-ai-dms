@@ -21,6 +21,11 @@ Spec: docs/superpowers/specs/2026-10-05-cloud-storage-architecture-design.md
 - Google Drive is export/backup only.
 - Vercel remains paused; no deployment is performed as part of this feature.
 - No paid-only dependency is introduced solely for this feature.
+- `STORAGE_PROVIDER=mock` is a supported local-test mode using in-memory and local-filesystem mock providers.
+- `STORAGE_PROVIDER=hybrid` is the real-credential mode that enables the configured provider router; missing provider credentials fail closed for that provider.
+- Existing documents default to `storage_provider=supabase`; migration is additive and read-only before any write-path cutover.
+- Existing documents are migrated lazily on access/use; rollback must be possible by switching back to Supabase-only routing without rewriting existing objects.
+- B2 quota guard warns at 80% usage and blocks new B2 source uploads at 95%; Google Drive fallback is explicit/configurable and never silently changes the normal source-of-truth policy.
 - README is updated whenever architecture, configuration, workflow, or release gates materially change.
 
 ## Review Focus
@@ -29,6 +34,17 @@ Spec: docs/superpowers/specs/2026-10-05-cloud-storage-architecture-design.md
 - An expired, malformed, or owner-mismatched upload/download request must not leak signed credentials.
 - B2 multipart failures must be abortable and retry-safe without buffering the full file in the Worker.
 - Cloudinary usage lookup failures must degrade safely to Supabase fallback without exposing account credentials.
+- Mock mode must never require network credentials and must be deterministic for tests.
+- A pre-existing Supabase document must remain readable during and after metadata migration, and rollback must not require moving its bytes.
+- B2 quota calculations must be fail-safe: stale/unknown usage cannot silently authorize a new B2 upload above the configured safety threshold.
+
+### Task 0: Local mock mode and backward-compatible routing foundation
+Files: create `web-platform/backend/app/services/storage_mock.py`; modify `web-platform/backend/app/services/storage_router.py`; tests in `web-platform/tests/test_storage_mock_mode.py`.
+Interfaces: `MockStorageProvider`; `StorageRouter(provider_mode)` with `mock`, `hybrid`, and Supabase-only fallback modes.
+- [ ] Write failing tests proving `STORAGE_PROVIDER=mock` uses in-memory metadata plus local filesystem bytes and requires no real credentials.
+- [ ] Implement mock providers with deterministic signed-upload/session behavior suitable for local and CI tests.
+- [ ] Test `STORAGE_PROVIDER=hybrid` selects configured real providers and falls back safely when credentials are absent; never silently expose secrets.
+- [ ] Run focused tests and commit: `feat: add local mock and hybrid storage modes`.
 
 ### Task 1: Provider-neutral contracts and routing
 Files: web-platform/backend/app/services/cloud_storage.py; create web-platform/backend/app/services/storage_router.py; tests in web-platform/tests/test_cloud_storage_routing.py and existing test_cloud_storage.py.
@@ -63,13 +79,30 @@ Interfaces: CloudinaryStorageProvider.create_upload_session, get_signed_download
 - [ ] Implement signed browser upload parameters for preview/thumbnail/cover artifacts under 10 MB.
 - [ ] Run focused tests and commit: feat: add Cloudinary derivative routing and credit guard.
 
-### Task 5: Supabase metadata migration
+### Task 5: Backward-compatible metadata migration and lazy migration
+Files: create `supabase/migrations/20261005120000_doka_storage_provider_metadata.sql`; test `web-platform/tests/test_doka_storage_metadata_migration.py`; create `docs/DOKA_STORAGE_MIGRATION_ROLLBACK.md`.
+- [ ] Add `storage_provider` with default `supabase` plus provider/object/status/region/preview/export/backup fields while preserving owner/RLS columns.
+- [ ] Keep the first migration phase read-only: no existing object bytes are copied or rewritten by the migration itself.
+- [ ] Define lazy migration-on-access for existing rows and prove reads remain Supabase-backed until a successful provider transition is recorded.
+- [ ] Define rollback to Supabase-only routing without moving or deleting existing Supabase objects; new writes can be pinned to Supabase while previously migrated metadata remains recoverable.
+- [ ] Run migration/rollback contract tests and commit: `feat: add backward-compatible storage metadata migration`.
+
+### Task 6: B2 quota guard and emergency fallback
+Files: create `cloudflare_worker/b2_quota.py`; modify `cloudflare_worker/main.py`; tests `web-platform/tests/test_cloudflare_b2_quota.py`.
+Interfaces: `B2QuotaGuard.get_usage`, `B2QuotaGuard.evaluate`, `QuotaDecision`; configuration `DOKA_B2_WARNING_PERCENT=80`, `DOKA_B2_BLOCK_PERCENT=95`, optional `DOKA_B2_QUOTA_FALLBACK=google_drive`.
+- [ ] Write failing tests for <80% normal, >=80% warning, >=95% block, unknown/stale usage fail-safe, and explicit Google Drive fallback.
+- [ ] Implement usage monitoring without exposing B2 credentials; return only stable quota state/warning codes to the UI.
+- [ ] At 80%, emit an admin/operator alert signal; at 95%, reject new B2 source upload sessions.
+- [ ] If explicit Google Drive fallback is enabled and available, route the blocked upload to the documented emergency Drive path; otherwise return a stable `b2_quota_blocked` error. Drive fallback must be opt-in and must not silently make Drive the normal source store.
+- [ ] Run focused quota tests and commit: `feat: add B2 quota guard and emergency fallback`.
+
+### Task 7: Supabase metadata migration
 Files: create supabase/migrations/20261005120000_doka_storage_provider_metadata.sql; test web-platform/tests/test_doka_storage_metadata_migration.py.
 - [ ] Add provider/object/status/region/preview/export/backup fields while preserving owner/RLS columns.
 - [ ] Add constraints for supported providers and non-negative sizes.
 - [ ] Run migration contract tests and commit: feat: add cloud storage metadata schema.
 
-### Task 6: Cloud API upload-session/completion/download endpoints
+### Task 8: Cloud API upload-session/completion/download endpoints
 Files: cloudflare_worker/main.py; frontend DocumentUpload.tsx and cloudDocuments.ts; tests for API and frontend upload contracts.
 Interfaces: POST /api/storage/upload-sessions; POST /api/storage/uploads/{session_id}/complete; POST /api/storage/multipart; POST /api/storage/multipart/{upload_id}/parts/{part_number}; POST /api/storage/multipart/{upload_id}/complete; POST /api/storage/multipart/{upload_id}/abort; POST /api/storage/download-url.
 - [ ] Test authentication, ownership, expiry, provider-neutral signed instructions, completion, download URLs, and multipart.
@@ -77,7 +110,7 @@ Interfaces: POST /api/storage/upload-sessions; POST /api/storage/uploads/{sessio
 - [ ] Replace frontend Worker file proxy upload with session -> provider direct upload -> completion.
 - [ ] Run focused backend/frontend tests and commit: feat: expose direct cloud storage upload workflow.
 
-### Task 7: Google Drive export/backup adapter
+### Task 9: Google Drive export/backup adapter
 Files: create web-platform/backend/app/services/google_drive_storage.py; tests/test_google_drive_storage.py; create docs/DOKA_GOOGLE_DRIVE_EXPORT.md.
 Interfaces: GoogleDriveExporter.export_document, create_backup_manifest, restore_manifest.
 - [ ] Test idempotent export/backup, checksum recording, remote references, and secret redaction.
@@ -86,23 +119,24 @@ Interfaces: GoogleDriveExporter.export_document, create_backup_manifest, restore
 - [ ] Keep Drive outside normal source upload routing.
 - [ ] Run focused tests and commit: feat: add Google Drive export and backup adapter.
 
-### Task 8: Version, restore, and integrity integration
+### Task 10: Version, restore, and integrity integration
 Files: new migration if required; cloudflare_worker/main.py; tests/test_document_versioning_safety.py and test_cloud_storage_integrity.py.
 - [ ] Test provider/object/checksum preservation through version creation and restore.
 - [ ] Test checksum mismatch, owner mismatch, provider failure, and idempotent completion.
 - [ ] Ensure failed uploads remain non-ready/quarantined.
 - [ ] Run the version/integrity suite and commit: feat: make version restore storage-provider aware.
 
-### Task 9: Configuration, quotas, and deployment gates
+### Task 11: Configuration, quotas, and deployment gates
 Files: Worker configuration, backend .env.example, .github/workflows/cloudflare-worker-deploy.yml, docs/DOKA_ENVIRONMENT_MATRIX.md, docs/DOKA_CLOUDFLARE_WORKERS_SETUP.md.
-Configuration: B2 endpoint/bucket/key ID/application key; Cloudinary cloud name/API key/API secret; DOKA_CLOUDINARY_LOW_CREDIT_THRESHOLD; Google Drive OAuth configuration; existing Supabase and DOKA_SINGLE_USER_EMAIL.
+Configuration: `STORAGE_PROVIDER=mock|hybrid`; B2 endpoint/bucket/key ID/application key; `DOKA_B2_WARNING_PERCENT=80`; `DOKA_B2_BLOCK_PERCENT=95`; optional `DOKA_B2_QUOTA_FALLBACK=google_drive`; Cloudinary cloud name/API key/API secret; `DOKA_CLOUDINARY_LOW_CREDIT_THRESHOLD`; Google Drive OAuth configuration; existing Supabase and `DOKA_SINGLE_USER_EMAIL`.
 - [ ] Test missing/partial configuration and non-secret readiness flags.
-- [ ] Add quota guards for Supabase 50 MiB and Cloudinary 10 MB.
+- [ ] Add quota guards for Supabase 50 MiB, Cloudinary 10 MB, and B2 80%/95% thresholds.
+- [ ] Add configuration tests proving mock mode is credential-free and hybrid mode is fail-closed when real credentials are incomplete.
 - [ ] Block production verification when provider readiness is incomplete.
 - [ ] Keep Vercel paused and documented.
 - [ ] Commit: chore: add cloud storage configuration and release gates.
 
-### Task 10: README and application structure documentation
+### Task 12: README and application structure documentation
 Files: README.md; create docs/DOKA_APPLICATION_STRUCTURE.md; update DOKA_PHASE_A_TO_E_STATUS.md and DOKA_UNIFIED_REMEDIATION_ROADMAP.md.
 - [ ] Add current Cloud Edition routing table, direct-upload rule, security boundary, setup links, and operator-supplied credential notes to README.
 - [ ] Document frontend, Cloudflare Worker, Supabase, local backend, mobile, infrastructure, and archived/legacy boundaries.
@@ -110,7 +144,7 @@ Files: README.md; create docs/DOKA_APPLICATION_STRUCTURE.md; update DOKA_PHASE_A
 - [ ] Record Vercel paused and deployment gates.
 - [ ] Run documentation checks and commit: docs: document Doka cloud storage architecture and structure.
 
-### Task 11: Full regression and security verification
+### Task 13: Full regression and security verification
 - [ ] Run focused cloud storage tests.
 - [ ] Run Supabase migration/security tests.
 - [ ] Run backend regression, static analysis, dependency audit, and frontend build/smoke checks.
