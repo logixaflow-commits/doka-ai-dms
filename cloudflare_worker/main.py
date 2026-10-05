@@ -371,6 +371,29 @@ async def _audit(request, user_id: str, action: str, document_id: str | None = N
         pass
 
 
+@app.post("/api/documents")
+async def create_document(request: Request, file: UploadFile = File(...), user_id: str = Depends(require_user)):
+    # Bytes must never be proxied through the Worker. Keep the route for clients
+    # that have not upgraded yet, but fail closed instead of buffering the file.
+    raise HTTPException(status_code=410, detail="Direct upload is required. Create an upload session first.")
+
+
+class UploadSessionRequest(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+    content_type: str = Field(min_length=3, max_length=255)
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(min_length=64, max_length=64)
+    artifact_type: Literal["source", "preview", "thumbnail", "cover"] = "source"
+    document_id: str | None = None
+
+
+class UploadCompletionRequest(BaseModel):
+    session_id: str = Field(min_length=20, max_length=4096)
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(min_length=64, max_length=64)
+    provider_result: dict = Field(default_factory=dict)
+
+
 @app.post("/api/storage/multipart/initiate")
 async def initiate_storage_multipart(
     request: Request,
@@ -521,28 +544,6 @@ async def complete_storage_multipart(
     return {"document": rows[0], "warnings": []}
 
 
-
-@app.post("/api/documents")
-async def create_document(request: Request, file: UploadFile = File(...), user_id: str = Depends(require_user)):
-    # Bytes must never be proxied through the Worker. Keep the route for clients
-    # that have not upgraded yet, but fail closed instead of buffering the file.
-    raise HTTPException(status_code=410, detail="Direct upload is required. Create an upload session first.")
-
-
-class UploadSessionRequest(BaseModel):
-    filename: str = Field(min_length=1, max_length=255)
-    content_type: str = Field(min_length=3, max_length=255)
-    size_bytes: int = Field(gt=0)
-    sha256: str = Field(min_length=64, max_length=64)
-    artifact_type: Literal["source", "preview", "thumbnail", "cover"] = "source"
-    document_id: str | None = None
-
-
-class UploadCompletionRequest(BaseModel):
-    session_id: str = Field(min_length=20, max_length=4096)
-    size_bytes: int = Field(gt=0)
-    sha256: str = Field(min_length=64, max_length=64)
-    provider_result: dict = Field(default_factory=dict)
 
 
 @app.post("/api/storage/upload-session")
