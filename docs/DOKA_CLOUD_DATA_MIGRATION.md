@@ -17,7 +17,7 @@ has passed.
 - **Turso is an asynchronous secondary replica / disaster-recovery target.**
   A source mutation and its outbox event must be committed in the same D1
   batch transaction. QStash delivers the outbox event to a consumer.
-- **Storj holds document bytes.** D1 stores only object keys, size, MIME type,
+- **Cloudinary holds document bytes.** D1 stores only object keys, size, MIME type,
   SHA-256 and metadata. Use separate documents/, thumbnails/, exports/
   and backups/ prefixes.
 - **Vectorize holds embeddings.** D1 stores chunk text and the Vectorize ID;
@@ -92,10 +92,10 @@ redelivery tests remain required.
 3. Wire the tested D1 adapter into the Worker behind the existing Cloud API
    contract while keeping Supabase Auth as the identity verifier; add remote D1
    integration tests before changing any production route.
-4. Implement the Storj adapter and verify upload/download integrity, signed URL
+4. Implement the Cloudinary adapter and verify upload/download integrity, signed URL
    expiry, CORS behavior, multipart abort and object cleanup.
 5. Back up Supabase metadata and inventory object counts/bytes/checksums. Import
-   only into a staging D1/Storj namespace; compare counts, ownership, versions,
+   only into a staging D1/Cloudinary namespace; compare counts, ownership, versions,
    audit rows and SHA-256 hashes.
 6. Run two-user and two-organization isolation tests, QStash replay tests, Turso
    restore/reconciliation drills, and a production rollback rehearsal.
