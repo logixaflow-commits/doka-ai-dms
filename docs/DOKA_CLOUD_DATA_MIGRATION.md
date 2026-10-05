@@ -66,10 +66,21 @@ event as successfully applied. Only after Turso commits may the consumer mark
 the D1 outbox event delivered. This covers redelivery after a consumer crash
 between the Turso commit and the D1 acknowledgement.
 
-The outbox payload must contain only the minimum metadata needed for replication.
-Never include bearer tokens, signed URLs, raw document bytes, or unbounded OCR
-text in queue payloads. Use bounded retries, exponential backoff, a dead-letter
-state, and a reconciliation report.
+The D1 outbox dispatcher is implemented in `cloudflare_worker/outbox.py`.
+It atomically leases one pending (or expired-lease) event using a conditional
+UPDATE/RETURNING statement, increments the attempt count, and recovers abandoned
+processing leases. A successful publish marks the event delivered; failures use
+bounded exponential backoff and transition to dead after the configured
+`max_attempts`. The stored error is a fixed safe code, not a provider exception.
+
+The QStash publish callback receives only the event ID. The consumer must verify
+the QStash signature over the raw request body before parsing it, then fetch the
+event from D1. Never include bearer tokens, signed URLs, raw document bytes, or
+unbounded OCR text in queue payloads. The lease reduces concurrent duplicate
+publishes but cannot eliminate the crash window after QStash accepts a message
+and before D1 is acknowledged; the consumer must remain idempotent using the
+Turso `sync_receipts` table. A reconciliation report and remote concurrency/
+redelivery tests remain required.
 
 ## Next migration gates
 
