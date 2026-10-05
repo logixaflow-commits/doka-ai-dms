@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from shared.storage_contracts import (
+from cloudflare_worker.storage_contracts_compat import (
     CLOUDINARY_DERIVATIVE_MAX_BYTES,
     SUPABASE_SOURCE_MAX_BYTES,
     StorageArtifactType,

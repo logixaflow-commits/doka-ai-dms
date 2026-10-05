@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass
 from urllib.parse import quote
 
-from shared.storage_contracts import (
+from cloudflare_worker.storage_contracts_compat import (
     CLOUDINARY_DERIVATIVE_MAX_BYTES,
     SignedUpload,
     StorageObjectRef,

@@ -217,7 +217,7 @@ jobs:
         run: python scripts/verify_d1_migrations.py --manifest cloudflare_worker/migrations/manifest.json
       - name: Run Personal Local and repository regression suite
         working-directory: web-platform/backend
-        run: python -m pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml
+        run: PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml
       - name: Export Cloud API OpenAPI contract
         working-directory: web-platform/backend
         run: python ../../scripts/export_cloud_openapi.py artifacts/cloud-openapi.json
@@ -246,10 +246,8 @@ jobs:
       - name: Compile Cloudflare Worker and shared contracts
         run: python -m compileall -q cloudflare_worker shared
       - name: Run cloud storage provider contracts
-        env:
-          PYTHONPATH: web-platform/backend
         run: |
-          python -m pytest -q             web-platform/tests/test_cloud_storage_routing.py             web-platform/tests/test_cloudflare_storage_direct_upload.py             web-platform/tests/test_cloudflare_b2_storage.py             web-platform/tests/test_cloudflare_b2_quota.py             web-platform/tests/test_cloudflare_cloudinary_guard.py             web-platform/tests/test_cloudflare_storage_router.py             web-platform/tests/test_doka_storage_metadata_migration.py
+          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest -q             web-platform/tests/test_cloud_storage_routing.py             web-platform/tests/test_cloudflare_storage_direct_upload.py             web-platform/tests/test_cloudflare_b2_storage.py             web-platform/tests/test_cloudflare_b2_quota.py             web-platform/tests/test_cloudflare_cloudinary_guard.py             web-platform/tests/test_cloudflare_storage_router.py             web-platform/tests/test_doka_storage_metadata_migration.py
 
   symlink-security:
     name: Symlink security tests

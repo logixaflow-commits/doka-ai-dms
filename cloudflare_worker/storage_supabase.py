@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import quote
 
-from shared.storage_contracts import (
+from cloudflare_worker.storage_contracts_compat import (
     SUPABASE_SOURCE_MAX_BYTES,
     SignedUpload,
     StorageObjectRef,

@@ -18,6 +18,9 @@ dev = [
     "workers-runtime-sdk",
 ]
 
+[project.scripts]
+build = "cloudflare_worker.build:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["cloudflare_worker*", "shared*"]
