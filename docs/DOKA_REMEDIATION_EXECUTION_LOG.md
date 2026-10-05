@@ -180,7 +180,7 @@ Verification from Doka Quality Checks run `37221393963` (commit `6656007`):
 - The overall workflow remains failed only because the frontend npm audit still reports five high-severity package findings in the Tailwind development dependency chain. The underlying `braces` advisory affects versions through 3.0.3 and currently lists no patched release; npm proposes Tailwind CSS 4.3.3, a major upgrade. Do not apply an unverified override. Tailwind v4 has a newer browser floor, so confirm supported browsers before migrating.
 - Historical credential exposure is not removed by editing the current tree. Treat the provider credentials formerly documented in the legacy AI guide as compromised and rotate them; Git history rewriting remains unperformed pending explicit approval.
 - Latest Vercel deployment for code-only/CI-only commits was cancelled by the configured ignored-build-step rule; this is not a failed Vite build. The previously READY production deployment remains on commit `e8a15c9`. No Vercel settings or production environment values were changed.
-- Cloud Edition runtime still uses the existing Supabase-backed Worker. D1/Storj migration and infrastructure provisioning remain separate, unstarted work; no Cloudflare resources were created or changed in this batch.
+- Cloud Edition runtime still uses the existing Supabase-backed Worker. D1/Cloudinary migration and infrastructure provisioning remain separate, unstarted work; no Cloudflare resources were created or changed in this batch.
 
 
 ## Cloud Edition D1/Turso groundwork — 2026-10-04
