@@ -29,7 +29,7 @@ NOW = datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)
 
 def test_claim_uses_lease_and_recovers_expired_processing_events():
     db = FakeD1({"id": "evt-1", "lease_token": "token-1"})
-    assert asyncio.run(claim_next(db, now=NOW, lease_seconds=60)) == {"id": "evt-1"}
+    assert asyncio.run(claim_next(db, now=NOW, lease_seconds=60)) == {"id": "evt-1", "lease_token": "token-1"}
     kind, sql, params = db.calls[0]
     assert kind == "first"
     assert "status = 'processing'" in sql
