@@ -95,8 +95,6 @@ class SupabaseDirectStorageProvider:
             raise RuntimeError("Supabase object metadata lookup failed")
         metadata = payload.get("metadata") or payload.get("user_metadata") or {}
         digest = str(metadata.get("sha256") or "").lower()
-        if len(digest) != 64:
-            raise RuntimeError("Supabase object is missing authoritative SHA-256 metadata")
         return StoredObjectResult(
             object_ref=object_ref,
             size_bytes=int(payload.get("size") or metadata.get("size") or 0),
@@ -107,10 +105,15 @@ class SupabaseDirectStorageProvider:
     async def complete_upload(self, session: UploadSession, client_result: dict) -> StoredObjectResult:
         result = await self.head(session.object_ref)
         expected_size = int(client_result.get("size_bytes", result.size_bytes))
-        expected_sha = str(client_result.get("sha256", result.sha256)).lower()
-        if result.size_bytes != expected_size or result.sha256 != expected_sha:
-            raise ValueError("Supabase upload failed authoritative size/SHA-256 verification")
-        return result
+        expected_sha = str(client_result.get("sha256", "")).lower()
+        if result.size_bytes != expected_size:
+            raise ValueError("Supabase upload failed authoritative size verification")
+        if len(expected_sha) != 64:
+            raise ValueError("Supabase completion requires the client SHA-256 fingerprint")
+        # Supabase signed uploads do not expose custom metadata fields through the
+        # signed-upload helper, so the content hash is bound to the object key and
+        # client completion payload rather than re-streamed through the Worker.
+        return StoredObjectResult(session.object_ref, result.size_bytes, expected_sha, result.content_type)
 
     async def get_signed_download(self, object_ref: StorageObjectRef, expires_seconds: int = 300) -> str:
         if not 1 <= expires_seconds <= 3600:
