@@ -1,7 +1,7 @@
 import asyncio
 
 from cloudflare_worker.storage_google_drive import GoogleDriveConfig, GoogleDriveExportProvider
-from cloudflare_worker.storage_contracts_compat import UploadMetadata
+from storage_contracts_compat import UploadMetadata
 
 
 def run(coro):
@@ -48,7 +48,7 @@ def test_google_drive_completion_verifies_owner_size_and_sha256():
         fetcher,
     )
     result = run(provider.verify_completion(
-        provider_ref := __import__("cloudflare_worker.storage_contracts_compat", fromlist=["StorageObjectRef"]).StorageObjectRef("google_drive", "pending/owner/a"*1, "owner"),
+        provider_ref := __import__("storage_contracts_compat", fromlist=["StorageObjectRef"]).StorageObjectRef("google_drive", "pending/owner/a"*1, "owner"),
         "drive-file-1",
         expected_size=1024,
         expected_sha256="a" * 64,
