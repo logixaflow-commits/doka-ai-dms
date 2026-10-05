@@ -150,7 +150,7 @@ if (!app.includes('path="activity"') || !auditPage.includes('listCloudAuditEvent
 }
 console.log('Cloud versioning, preview and audit smoke tests passed.');
 
-const contract = JSON.parse(fs.readFileSync(path.resolve('../../shared/contracts/cloud-document.schema.json'), 'utf8'));
+const contract = JSON.parse(fs.readFileSync(path.resolve('../../cloudflare_worker/shared/contracts/cloud-document.schema.json'), 'utf8'));
 for (const field of ['id', 'owner_id', 'object_key', 'filename', 'sha256', 'deleted_at', 'folder_path']) {
   if (!contract.required.includes(field)) throw new Error(`Canonical document contract is missing ${field}.`);
 }
