@@ -1,6 +1,9 @@
 -- Replace the legacy SECURITY DEFINER version RPCs with owner-scoped SECURITY INVOKER functions.
 -- Authenticated callers are protected by table RLS and explicit auth.uid() predicates.
-create or replace function public.doka_replace_document_version(
+drop function if exists public.doka_replace_document_version(uuid,text,text,text,bigint,text);
+drop function if exists public.doka_restore_document_version(uuid,uuid);
+
+create function public.doka_replace_document_version(
   p_document_id uuid,
   p_object_key text,
   p_filename text,
@@ -68,7 +71,7 @@ begin
 end;
 $$;
 
-create or replace function public.doka_restore_document_version(
+create function public.doka_restore_document_version(
   p_document_id uuid,
   p_version_id uuid
 )
