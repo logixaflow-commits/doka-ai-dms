@@ -17,7 +17,7 @@ Render is not part of the active deployment. The free Render option was not sele
 - Cloudflare Worker `doka` latest deployment (2026-10-05 07:39 UTC) is receiving 100% traffic on version `2655ae42-b180-432e-b87f-542c97f9e8ce`; the Cloudflare API reports the deployment source as Wrangler.
 - Supabase has the Doka schema migrations through `20261005073729_doka_version_rpc_execute_hardening`.
 - Owner-scoped RLS and private Storage policies are installed. Version RPCs validate `auth.uid()` and the parent document owner; anonymous users cannot execute version/bulk RPCs.
-- Vercel production is live again. Deployment `dpl_vyP8LeS8eNNJcLHKMMqLk8mEPGdr` for commit `280060321c9d0508ae18eabf3859dd11d8988739` is READY and owns `enterprise-ai-dms.vercel.app`. The production HTTP smoke check returned 200 with the expected Doka title.
+- Vercel production is intentionally paused by the owner; do not reactivate or deploy it without explicit authorization. Deployment `dpl_vyP8LeS8eNNJcLHKMMqLk8mEPGdr` for commit `280060321c9d0508ae18eabf3859dd11d8988739` is READY and owns `enterprise-ai-dms.vercel.app`. The production HTTP smoke check returned 200 with the expected Doka title.
 - The latest Vercel production build succeeded after fixing Tailwind/PostCSS import ordering in `web-platform/frontend/src/index.css`; `npm ci` reported 0 vulnerabilities during the build. Interactive authenticated production acceptance is still pending.
 - Doka Quality Checks run 485 on commit `34f961c987404e5b880fe5b37c9252434fe366ec` completed successfully across backend regression, frontend build/smoke, dependency audits, symlink security and CodeQL/SBOM.
 - Authenticated upload/restore/version and two-user isolation have not yet been proven with separate real user sessions.
