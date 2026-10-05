@@ -33,6 +33,8 @@ def test_google_drive_resumable_session_keeps_oauth_secret_out_of_browser_upload
 
 def test_google_drive_completion_verifies_owner_size_and_sha256():
     async def fetcher(url, **kwargs):
+        if url.endswith("/token"):
+            return 200, {"access_token": "short-lived-access-token"}
         return 200, {
             "id": "drive-file-1",
             "size": "1024",
