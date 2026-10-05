@@ -22,7 +22,7 @@ from pyodide.ffi import to_js
 from workers import asgi, env as worker_env
 
 from shared.storage_contracts import StorageArtifactType, UploadMetadata, owner_object_key
-from cloudflare_worker.storage_runtime import build_storage_router, sign_session, verify_session
+from cloudflare_worker.storage_runtime import build_google_drive_provider, build_storage_router, sign_session, verify_session
 from cloudflare_worker.storage_b2 import B2PartReceipt, MultipartUpload
 from cloudflare_worker.b2_quota import evaluate_b2_quota
 from shared.storage_contracts import SignedUpload, StorageObjectRef
@@ -72,7 +72,7 @@ async def _fetch(request, url: str, *, method: str = "GET", headers: dict | None
         options["body"] = body
     response = await js_fetch(url, to_js(options, dict_converter=Object.fromEntries))
     if return_headers:
-        header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256")
+        header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
         for name in header_names:
             value = response.headers.get(name)
@@ -460,6 +460,13 @@ class UploadSessionRequest(BaseModel):
     document_id: str | None = None
 
 
+class DriveExportCompletionRequest(BaseModel):
+    session_id: str = Field(min_length=20, max_length=4096)
+    file_id: str = Field(min_length=1, max_length=512)
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(min_length=64, max_length=64)
+
+
 class UploadCompletionRequest(BaseModel):
     session_id: str = Field(min_length=20, max_length=4096)
     size_bytes: int = Field(gt=0)
@@ -617,6 +624,108 @@ async def complete_storage_multipart(
     return {"document": rows[0], "warnings": []}
 
 
+
+
+@app.post("/api/documents/{document_id}/export/google-drive/upload-session")
+async def create_google_drive_export_session(
+    request: Request,
+    document_id: str,
+    user_id: str = Depends(require_user),
+):
+    token = _token_from_request(request)
+    query = f"select=id,filename,content_type,size_bytes,sha256,storage_provider,object_key&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+    status, rows = await _fetch(
+        request, f"{_base(request)}/rest/v1/doka_documents?{query}",
+        headers={**_supabase_headers(request, token), "Accept": "application/json"},
+    )
+    if status >= 300:
+        raise HTTPException(status_code=503, detail=f"Document lookup failed ({status}).")
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    document = rows[0]
+    provider = build_google_drive_provider(request, _storage_fetcher)
+    if provider is None:
+        raise HTTPException(status_code=503, detail="Google Drive OAuth export is not configured.")
+    metadata = UploadMetadata(
+        filename=str(document["filename"]),
+        content_type=str(document["content_type"]),
+        size_bytes=int(document["size_bytes"]),
+        sha256=str(document["sha256"]).lower(),
+        owner_id=user_id,
+    )
+    try:
+        _, upload, expires_at = await provider.create_upload_session(metadata)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    source_provider_name = str(document.get("storage_provider") or "supabase")
+    source_router = build_storage_router(request, token, _storage_fetcher)
+    source_provider = _provider_for(source_router, source_provider_name)
+    try:
+        download_url = await source_provider.get_signed_download(
+            StorageObjectRef(source_provider_name, str(document["object_key"]), user_id),
+            expires_seconds=300,
+        )
+    except (RuntimeError, ValueError, NotImplementedError) as exc:
+        raise HTTPException(status_code=503, detail=f"Source download session failed: {exc}") from exc
+    session_payload = {
+        "owner_id": user_id,
+        "document_id": document_id,
+        "provider": "google_drive",
+        "filename": metadata.filename,
+        "content_type": metadata.content_type,
+        "size_bytes": metadata.size_bytes,
+        "sha256": metadata.sha256,
+        "expires_at": expires_at,
+    }
+    return {
+        "session_id": sign_session(_storage_session_secret(request), session_payload),
+        "provider": "google_drive",
+        "expires_at": expires_at,
+        "source_document": {"id": document_id, "size_bytes": metadata.size_bytes, "sha256": metadata.sha256, "download_url": download_url},
+        "upload": {"method": upload.method, "url": upload.url, "headers": upload.headers, "fields": upload.fields},
+    }
+
+
+@app.post("/api/documents/{document_id}/export/google-drive/complete")
+async def complete_google_drive_export(
+    request: Request,
+    document_id: str,
+    payload: DriveExportCompletionRequest,
+    user_id: str = Depends(require_user),
+):
+    try:
+        signed = verify_session(_storage_session_secret(request), payload.session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if signed.get("owner_id") != user_id or signed.get("document_id") != document_id or signed.get("provider") != "google_drive":
+        raise HTTPException(status_code=403, detail="Google Drive export session is not valid for this user/document.")
+    if int(signed.get("size_bytes", 0)) != payload.size_bytes or str(signed.get("sha256", "")).lower() != payload.sha256.lower():
+        raise HTTPException(status_code=400, detail="Google Drive export completion does not match the issued session.")
+    provider = build_google_drive_provider(request, _storage_fetcher)
+    if provider is None:
+        raise HTTPException(status_code=503, detail="Google Drive OAuth export is not configured.")
+    try:
+        stored = await provider.verify_completion(
+            StorageObjectRef("google_drive", f"pending/{user_id}/{payload.sha256.lower()}", user_id),
+            payload.file_id,
+            expected_size=payload.size_bytes,
+            expected_sha256=payload.sha256.lower(),
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"Google Drive export verification failed: {exc}") from exc
+    status, rows = await _fetch(
+        request,
+        f"{_base(request)}/rest/v1/doka_documents?id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}",
+        method="PATCH",
+        headers={**_supabase_headers(request, token, "application/json"), "Prefer": "return=representation"},
+        body=json.dumps({"export_provider": "google_drive", "export_reference": stored.object_ref.object_key, "export_status": "ready"}),
+    )
+    if status >= 300 or not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=503, detail=f"Google Drive export metadata update failed ({status}).")
+    await _audit(request, user_id, "export", document_id, str(signed.get("filename")), {
+        "provider": "google_drive", "file_id": payload.file_id, "sha256": payload.sha256.lower(),
+    })
+    return {"document": rows[0]}
 
 
 @app.post("/api/storage/upload-session")
