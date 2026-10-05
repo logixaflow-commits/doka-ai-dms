@@ -315,7 +315,7 @@ export async function moveCloudDocument(documentId: string, folderPath: string) 
 export interface CloudAuditEvent {
   id: string;
   document_id: string | null;
-  action: 'upload' | 'download' | 'preview' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'version_create' | 'version_restore';
+  action: 'upload' | 'download' | 'preview' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'version_create' | 'version_restore' | 'export' | 'backup';
   filename: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
