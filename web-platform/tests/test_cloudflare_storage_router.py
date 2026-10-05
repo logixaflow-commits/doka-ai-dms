@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 
 from cloudflare_worker.storage_router import CloudStorageRouter
-from shared.storage_contracts import StorageArtifactType, UploadMetadata
+from cloudflare_worker.storage_contracts_compat import StorageArtifactType, UploadMetadata
 
 
 class Provider:
