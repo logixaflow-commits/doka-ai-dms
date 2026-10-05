@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  bulkUpdateCloudDocuments, createCloudDocumentVersion, getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocumentVersions, listCloudDocuments, listCloudFolders, permanentlyDeleteCloudDocument,
+  bulkUpdateCloudDocuments, createCloudDocumentVersion, exportCloudDocumentToGoogleDrive, getCloudDocumentDownloadUrl, getCloudDocumentPreviewUrl, listCloudDocumentVersions, listCloudDocuments, listCloudFolders, permanentlyDeleteCloudDocument,
   restoreCloudDocument, restoreCloudDocumentVersion, trashCloudDocument,
   updateCloudDocument, uploadCloudDocument, type CloudDocument, type CloudDocumentVersion,
 } from '@/lib/cloudDocuments';
@@ -178,6 +178,16 @@ export default function CloudDocuments() {
       setError(err instanceof Error ? err.message : 'Unable to create a download link.');
       setBusy(false);
     }
+  }
+
+  async function exportToGoogleDrive(item: CloudDocument) {
+    setBusy(true); setError(''); setMessage('');
+    try {
+      await exportCloudDocumentToGoogleDrive(item.id);
+      setMessage(`Backup of “${item.filename}” was verified in Google Drive.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to export this document to Google Drive.');
+    } finally { setBusy(false); }
   }
 
   async function preview(item: CloudDocument) {
@@ -492,6 +502,7 @@ export default function CloudDocuments() {
                       <Button size="sm" variant="ghost" onClick={() => void trash(item)} disabled={busy} className="h-9 rounded-lg text-rose-600 hover:text-rose-700" aria-label={`Trash ${item.filename}`}><Trash2 className="mr-1 h-4 w-4" />Trash</Button>
                       {['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain', 'text/csv'].includes((item.content_type || '').split(';')[0].trim().toLowerCase()) && <Button size="sm" variant="outline" onClick={() => void preview(item)} disabled={busy} className="h-9 rounded-lg"><Eye className="mr-2 h-4 w-4" />Preview</Button>}
                       <Button size="sm" variant="outline" onClick={() => void download(item)} disabled={busy} className="h-9 rounded-lg"><ArrowDownToLine className="mr-2 h-4 w-4" />Download</Button>
+                      <Button size="sm" variant="outline" onClick={() => void exportToGoogleDrive(item)} disabled={busy} className="h-9 rounded-lg"><HardDrive className="mr-2 h-4 w-4" />Drive backup</Button>
                     </>
                   )}
                 </div>
@@ -513,7 +524,7 @@ export default function CloudDocuments() {
             </div>
             <div className="mt-5 rounded-xl border border-border/70 p-4">
               <p className="text-sm font-medium">Upload a new version</p>
-              <p className="mt-1 text-xs text-muted-foreground">The current file is retained as a previous version. Maximum size: 50 MiB.</p>
+              <p className="mt-1 text-xs text-muted-foreground">The current file is retained as a previous version. Maximum size: configured upload limit.</p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <input type="file" onChange={event => setVersionFile(event.target.files?.[0] || null)} disabled={busy} className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs" />
                 <Button onClick={() => void saveVersion()} disabled={busy || !versionFile}>Save new version</Button>
