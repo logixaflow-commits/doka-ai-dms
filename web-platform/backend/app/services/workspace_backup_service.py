@@ -372,6 +372,23 @@ class WorkspaceBackupService:
                     except ValueError as exc:
                         raise ValueError("Backup contains an unsafe path.") from exc
                 zf.extractall(target)
+
+                # Verify every extracted regular file against the bytes stored in
+                # the archive before reporting the recovery as usable. The archive
+                # digest protects the container; this second pass protects the
+                # extracted recovery tree from implementation or filesystem errors.
+                for member in members:
+                    if member.is_dir():
+                        continue
+                    member_path = target / Path(*PurePosixPath(member.filename).parts)
+                    if not member_path.is_file() or member_path.is_symlink():
+                        raise ValueError("Backup restore produced an invalid file entry.")
+                    expected = hashlib.sha256()
+                    with zf.open(member, "r") as source:
+                        for chunk in iter(lambda: source.read(_HASH_CHUNK_SIZE), b""):
+                            expected.update(chunk)
+                    if _sha256(member_path) != expected.hexdigest():
+                        raise ValueError("Backup restore verification failed for an extracted file.")
         except Exception:
             shutil.rmtree(target, ignore_errors=True)
             raise
