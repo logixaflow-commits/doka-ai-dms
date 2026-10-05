@@ -20,7 +20,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["cloudflare_worker*"]
+include = ["cloudflare_worker*", "shared*"]
 exclude = [
     "mobile*",
     "archive*",
