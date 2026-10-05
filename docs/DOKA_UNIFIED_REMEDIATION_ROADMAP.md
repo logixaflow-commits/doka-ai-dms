@@ -19,6 +19,14 @@ No item is marked complete merely because a sample snippet or proposed architect
 
 ## 2. Non-negotiable boundaries
 
+### 2026-10-05 — Live Supabase security advisor remediation
+
+- **SEC-011:** live Supabase security advisor identified two exposed `SECURITY DEFINER` version RPCs executable by `authenticated`. The project was checked before change; both functions intentionally retain `SECURITY DEFINER` for trusted version operations, so the safer least-privilege fix was to revoke `EXECUTE` from `authenticated` while retaining execution for `service_role`/`postgres`.
+- The revoke was applied successfully to `public.doka_replace_document_version(uuid,text,text,text,bigint,text)` and `public.doka_restore_document_version(uuid,uuid)` and rechecked: `authenticated` no longer has `EXECUTE` on either function. The security advisor cleared that warning; only leaked-password protection remains.
+- **Auth leaked-password protection** is still enabled=false at the Supabase project level. The connected management surface does not expose an auth-password setting mutation, so this remains an external dashboard/configuration gate rather than an unverified code change.
+- Performance advisor also reports one unused audit-event index; this is informational and is not being dropped without workload evidence.
+
+
 > **2026-10-05 reconciliation:** Source-level CI is currently green for the latest recorded Doka Quality Checks run, including backend regression, frontend build/smoke, dependency audits, static analysis/SBOM and symlink security. Vercel production remains intentionally paused; recent Git-connected deployments were canceled by the configured ignored-build-step rule, not by a reported build failure. Remaining release blockers are operational evidence gates: real local browser acceptance, copied-office OCR/pilot/restore evidence, authenticated two-user cloud isolation, non-production D1/Turso integration/replay, live QStash delivery/retry, and recovery RTO/RPO rehearsal.
 
 1. Original source data is read-only: `ORIGINAL_READ_ONLY=true`, `ALLOW_SOURCE_WRITE=false`.
