@@ -100,6 +100,11 @@ async def require_user(
     )
     if status != 200 or not isinstance(user, dict) or not user.get("id"):
         raise HTTPException(status_code=401, detail="Invalid or expired Supabase session.")
+    allowed_email = _env(request, "DOKA_SINGLE_USER_EMAIL").strip().casefold()
+    if allowed_email:
+        user_email = str(user.get("email") or "").strip().casefold()
+        if not user_email or user_email != allowed_email:
+            raise HTTPException(status_code=403, detail="This Doka instance is restricted to its configured single user.")
     return str(user["id"])
 
 
