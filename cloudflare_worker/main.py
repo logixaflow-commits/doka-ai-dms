@@ -23,8 +23,8 @@ from workers import asgi, env as worker_env
 
 from shared.storage_contracts import StorageArtifactType, UploadMetadata, owner_object_key
 from storage_runtime import build_google_drive_provider, build_storage_router, sign_session, verify_session
-from cloudflare_worker.storage_b2 import B2PartReceipt, MultipartUpload
-from cloudflare_worker.b2_quota import evaluate_b2_quota
+from storage_b2 import B2PartReceipt, MultipartUpload
+from b2_quota import evaluate_b2_quota
 from shared.storage_contracts import SignedUpload, StorageObjectRef
 
 
