@@ -155,4 +155,4 @@ def test_worker_supports_optional_single_user_allowlist_without_disabling_auth()
     assert 'DOKA_SINGLE_USER_EMAIL' in WORKER_SOURCE
     assert 'status_code=403' in WORKER_SOURCE
     assert 'This Doka instance is restricted to its configured single user.' in WORKER_SOURCE
-    assert 'Depends(require_user)' in WORKER_SOURCE
+    assert 'Depends(require_user)' in WORKER_SOURCE\n\ndef test_worker_config_exposes_single_user_readiness_without_exposing_identity():\n    assert '"single_user_configured": bool(_env(request, "DOKA_SINGLE_USER_EMAIL").strip())' in WORKER_SOURCE\n
