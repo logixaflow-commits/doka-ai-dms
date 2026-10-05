@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router'
 import { ThemeProvider } from './contexts/ThemeContext'
 import './index.css'
 import App from './App.tsx'
+import { initSentry } from './lib/sentry'
+
+initSentry()
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
