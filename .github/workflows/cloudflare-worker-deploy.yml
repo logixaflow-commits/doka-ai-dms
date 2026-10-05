@@ -63,5 +63,11 @@ jobs:
               payload = json.load(response)
           if payload.get("status") != "healthy":
               raise SystemExit(f"Unexpected Worker health payload: {payload!r}")
-          print("Production Worker health check passed.")
+          with urlopen("https://doka.logixaflow.workers.dev/api/config", timeout=20) as response:
+              if response.status != 200:
+                  raise SystemExit(f"Worker config returned HTTP {response.status}")
+              config = json.load(response)
+          if not config.get("single_user_configured"):
+              raise SystemExit("Single-user production gate is not configured; refusing deployment verification.")
+          print("Production Worker health and single-user readiness checks passed.")
           PY
