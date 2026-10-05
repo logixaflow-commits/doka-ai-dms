@@ -9,7 +9,7 @@ from urllib.parse import quote
 from workers import env as worker_env
 
 from shared.storage_contracts import StorageObjectRef, UploadMetadata
-from cloudflare_worker.storage_b2 import B2StorageConfig, B2StorageProvider
+from storage_b2 import B2StorageConfig, B2StorageProvider
 from cloudflare_worker.storage_cloudinary import CloudinaryConfig, CloudinaryDerivativeProvider
 from cloudflare_worker.storage_router import CloudStorageRouter
 from cloudflare_worker.storage_supabase import SupabaseDirectStorageProvider, SupabaseStorageConfig
