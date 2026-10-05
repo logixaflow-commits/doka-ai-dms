@@ -5,6 +5,10 @@
   "buildCommand": "cd web-platform/frontend && npm run build",
   "outputDirectory": "web-platform/frontend/dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- web-platform/frontend shared vercel.json"
 }
