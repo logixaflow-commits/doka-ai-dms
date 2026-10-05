@@ -4,7 +4,7 @@ Last reviewed: 2026-10-05
 
 ## Active production architecture
 
-- Frontend: Vercel — `https://enterprise-ai-dms.vercel.app`
+- Frontend: Vercel — intentionally paused by the owner; the previously verified alias is retained as historical evidence only
 - Cloud API: Cloudflare Python Worker — `https://doka.logixaflow.workers.dev`
 - Auth, metadata and object storage: Supabase project `jkobgssaqifzrqfirdfu`
 - Private Storage bucket: `doka-documents`, 50 MiB per-object limit
