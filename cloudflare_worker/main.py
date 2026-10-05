@@ -23,6 +23,8 @@ from workers import asgi, env as worker_env
 
 from shared.storage_contracts import StorageArtifactType, UploadMetadata, owner_object_key
 from cloudflare_worker.storage_runtime import build_storage_router, sign_session, verify_session
+from cloudflare_worker.storage_b2 import B2PartReceipt, MultipartUpload
+from shared.storage_contracts import SignedUpload, StorageObjectRef
 
 
 bearer = HTTPBearer(auto_error=False)
@@ -367,6 +369,156 @@ async def _audit(request, user_id: str, action: str, document_id: str | None = N
         )
     except Exception:
         pass
+
+
+@app.post("/api/storage/multipart/initiate")
+async def initiate_storage_multipart(
+    request: Request,
+    payload: UploadSessionRequest,
+    user_id: str = Depends(require_user),
+):
+    metadata = _validate_upload_metadata(request, user_id, payload.model_dump())
+    if metadata.artifact_type is not StorageArtifactType.SOURCE or metadata.size_bytes <= 5 * 1024 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="B2 multipart is reserved for source objects above 5 GiB.")
+    router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
+    if router.b2 is None:
+        raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+    upload = await router.b2.initiateMultipartUpload(metadata)
+    signed_payload = {
+        "owner_id": user_id,
+        "provider": "b2",
+        "object_key": upload.object_ref.object_key,
+        "sha256": metadata.sha256,
+        "filename": metadata.filename,
+        "content_type": metadata.content_type,
+        "size_bytes": metadata.size_bytes,
+        "artifact_type": metadata.artifact_type.value,
+        "upload_id": upload.upload_id,
+        "part_size_bytes": upload.part_size_bytes,
+        "expires_at": upload.expires_at,
+        "storage_region": _env(request, "B2_REGION", ""),
+    }
+    return {
+        "session_id": sign_session(_storage_session_secret(request), signed_payload),
+        "provider": "b2",
+        "object_key": upload.object_ref.object_key,
+        "upload_id": upload.upload_id,
+        "part_size_bytes": upload.part_size_bytes,
+        "expires_at": upload.expires_at,
+    }
+
+
+class MultipartPartRequest(BaseModel):
+    session_id: str = Field(min_length=20, max_length=4096)
+    part_number: int = Field(ge=1, le=10000)
+    checksum: str = Field(min_length=64, max_length=64)
+
+
+@app.post("/api/storage/multipart/part")
+async def sign_storage_multipart_part(
+    request: Request,
+    payload: MultipartPartRequest,
+    user_id: str = Depends(require_user),
+):
+    try:
+        signed = verify_session(_storage_session_secret(request), payload.session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if signed.get("owner_id") != user_id or signed.get("provider") != "b2":
+        raise HTTPException(status_code=403, detail="Multipart session is not valid for this user.")
+    router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
+    if router.b2 is None:
+        raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+    upload = MultipartUpload(
+        upload_id=str(signed["upload_id"]),
+        object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
+        part_size_bytes=int(signed["part_size_bytes"]),
+        expires_at=int(signed["expires_at"]),
+    )
+    receipt = await router.b2.uploadPart(upload, payload.part_number, payload.checksum)
+    return {
+        "part_number": receipt.part_number,
+        "checksum": receipt.checksum,
+        "upload": {
+            "method": receipt.signed_request.method,
+            "url": receipt.signed_request.url,
+            "headers": receipt.signed_request.headers,
+            "fields": receipt.signed_request.fields,
+        },
+    }
+
+
+class MultipartCompletePart(BaseModel):
+    part_number: int = Field(ge=1, le=10000)
+    etag: str = Field(min_length=1, max_length=1024)
+    checksum: str = Field(min_length=64, max_length=64)
+
+
+class MultipartCompleteRequest(BaseModel):
+    session_id: str = Field(min_length=20, max_length=4096)
+    parts: list[MultipartCompletePart] = Field(min_length=1, max_length=10000)
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(min_length=64, max_length=64)
+
+
+@app.post("/api/storage/multipart/complete")
+async def complete_storage_multipart(
+    request: Request,
+    payload: MultipartCompleteRequest,
+    user_id: str = Depends(require_user),
+):
+    try:
+        signed = verify_session(_storage_session_secret(request), payload.session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if signed.get("owner_id") != user_id or signed.get("provider") != "b2":
+        raise HTTPException(status_code=403, detail="Multipart session is not valid for this user.")
+    if int(signed.get("size_bytes", 0)) != payload.size_bytes or str(signed.get("sha256", "")).lower() != payload.sha256.lower():
+        raise HTTPException(status_code=400, detail="Multipart completion does not match the issued session.")
+    router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
+    if router.b2 is None:
+        raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+    upload = MultipartUpload(
+        upload_id=str(signed["upload_id"]),
+        object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
+        part_size_bytes=int(signed["part_size_bytes"]),
+        expires_at=int(signed["expires_at"]),
+    )
+    receipts = [B2PartReceipt(p.part_number, p.etag, p.checksum.lower(), SignedUpload("PUT", "", {}, {})) for p in payload.parts]
+    try:
+        stored = await router.b2.completeMultipartUpload(upload, receipts)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=f"B2 multipart completion failed: {exc}") from exc
+    base = _base(request)
+    record = {
+        "owner_id": user_id,
+        "object_key": stored.object_ref.object_key,
+        "filename": str(signed["filename"]),
+        "content_type": str(signed["content_type"]),
+        "size_bytes": stored.size_bytes,
+        "sha256": payload.sha256.lower(),
+        "status": "active",
+        "metadata": {},
+        "storage_provider": "b2",
+        "storage_status": "ready",
+        "storage_region": str(signed.get("storage_region") or "") or None,
+    }
+    record = {key: value for key, value in record.items() if value is not None}
+    status, rows = await _fetch(
+        request, f"{base}/rest/v1/doka_documents", method="POST",
+        headers={**_supabase_headers(request, _token_from_request(request), "application/json"), "Prefer":"return=representation"},
+        body=json.dumps(record),
+    )
+    if status >= 300 or not isinstance(rows, list) or not rows:
+        try:
+            await router.b2.delete(stored.object_ref)
+        except Exception:
+            pass
+        raise HTTPException(status_code=503, detail=f"Document metadata creation failed ({status}).")
+    await _audit(request, user_id, "upload", str(rows[0].get("id")), rows[0].get("filename"), {
+        "size_bytes": stored.size_bytes, "sha256": payload.sha256.lower(), "storage_provider": "b2",
+    })
+    return {"document": rows[0], "warnings": []}
 
 
 @app.post("/api/documents")
