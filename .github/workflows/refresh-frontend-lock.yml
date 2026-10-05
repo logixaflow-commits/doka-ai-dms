@@ -1,0 +1,36 @@
+name: Refresh Frontend Lockfile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web-platform/frontend/package.json"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: web-platform/frontend/package-lock.json
+      - name: Refresh lockfile
+        working-directory: web-platform/frontend
+        run: npm install --package-lock-only
+      - name: Commit lockfile
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web-platform/frontend/package-lock.json
+          git commit -m "chore(frontend): refresh npm lockfile"
+          git push
