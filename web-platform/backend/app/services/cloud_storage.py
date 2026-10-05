@@ -134,18 +134,19 @@ class CloudinaryObjectStorage:
         if expected_sha256 and digest.lower() != expected_sha256.lower():
             raise StorageIntegrityError("Upload content does not match the expected SHA-256.")
 
+        mime_type = content_type or "application/octet-stream"
         timestamp = int(__import__("time").time())
         params: dict[str, object] = {
             "public_id": key,
             "timestamp": timestamp,
             "type": "private",
             "overwrite": "false",
-            "context": f"sha256={digest}|content_type={content_type or 'application/octet-stream'}",
+            "context": f"sha256={digest}|content_type={mime_type}",
         }
         response = httpx.post(
             f"{self.upload_base_url}/raw/upload",
             data=self._signed_params(params),
-            files={"file": (key.rsplit("/", 1)[-1], data, content_type or "application/octet-stream")},
+            files={"file": (key.rsplit("/", 1)[-1], data, mime_type)},
             timeout=60.0,
         )
         if response.status_code >= 300:
