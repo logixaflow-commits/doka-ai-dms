@@ -75,6 +75,12 @@ async def require_authenticated_user(
             detail="Invalid Supabase Auth response.",
         ) from exc
 
+    allowed_email = os.getenv("DOKA_SINGLE_USER_EMAIL", "").strip().casefold()
+    if allowed_email:
+        user_email = str(user.get("email", "")).strip().casefold()
+        if not user_email or user_email != allowed_email:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This Doka instance is restricted to its configured single user.")
+
     user_id = str(user.get("id", "")).strip()
     if not user_id:
         raise HTTPException(
