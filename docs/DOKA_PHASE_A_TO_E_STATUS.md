@@ -559,7 +559,7 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - CI run `37221393963`: backend suite **290 passed**; Linux symlink suite **3 passed**; frontend lint baseline had **0 errors**; frontend build and smoke tests passed; root and backend dependency audits passed; CodeQL, Semgrep baseline and SPDX SBOM steps succeeded.
 - The consolidated workflow remains non-green solely because npm audit reports five high findings in the Tailwind v3 development dependency chain. The common root advisory is in `braces` (affected through 3.0.3; no patched version listed), and npm offers Tailwind CSS 4.3.3 as a semver-major fix. Tailwind v4 raises the supported browser floor; defer migration until the project's minimum browser support is confirmed.
 - The Vercel build was intentionally skipped by the configured ignored-build-step rule for commits that did not change frontend build inputs. The latest Vite build and smoke tests nevertheless passed in GitHub Actions. Do not interpret those skipped Vercel deployments as a failed frontend build.
-- Phase A is not fully closed while historical credentials require rotation and frontend dev-dependency findings remain. Cloud Edition D1/Storj migration is still pending; the current Cloudflare Worker remains Supabase-backed and no Cloudflare infrastructure was provisioned.
+- Phase A is not fully closed while historical credentials require rotation and frontend dev-dependency findings remain. Cloud Edition D1/Cloudinary migration is still pending; the current Cloudflare Worker remains Supabase-backed and no Cloudflare infrastructure was provisioned.
 
 
 ### 2026-10-04 — Cloud Edition D1/Turso groundwork
@@ -577,7 +577,7 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Cloud Edition now has a SQLite-compatible D1 schema baseline covering users, organizations/memberships, documents/versions/permissions, OCR chunks, immutable audit events, idempotent jobs and a transactional outbox. Document chunks must reference a version belonging to the same document; both insert and update are guarded.
 - Added a Turso receipt schema for event-level idempotency and a prepared-statement Python D1 adapter. The adapter is not wired into the production Worker; the active Worker still uses Supabase Auth, Supabase metadata and Supabase Storage.
 - Backend CI run 37223395446 verified the new schema and adapter tests as part of **309 passed, 11 warnings**. The same run's frontend job remains failed on the existing five-high npm audit findings; Vite build and frontend smoke checks passed. CodeQL and backend dependency audit jobs were still running when this status was recorded.
-- No D1/Turso databases or bindings were provisioned and no production data was migrated. Remote D1/Turso integration, Storj, QStash and rollback tests remain open.
+- No D1/Turso databases or bindings were provisioned and no production data was migrated. Remote D1/Turso integration, Cloudinary, QStash and rollback tests remain open.
 
 
 ### 2026-10-05 — Cloud security boundary and CI closure
@@ -589,5 +589,5 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Backup Recovery now verifies each extracted regular file against the archive bytes after extraction, in addition to archive-level and path/safety checks.
 - Added a reviewed D1 migration manifest and CI verification gate. The gate checks contiguous migration numbering and Git blob checksums before any future migration apply workflow can proceed.
 - Latest Doka Quality Checks run 37262271881 for commit 701aed0bf377ca963a42a39d9a1fea722d9651ce completed successfully: frontend build/smoke, backend regression, backend dependency audit, root dependency audit, static analysis/SBOM and symlink security all passed.
-- No D1/Turso/Storj/QStash resources were provisioned and no production data was migrated. The active Cloudflare Worker remains on the existing Supabase-backed architecture.
+- No D1/Turso/Cloudinary/QStash resources were provisioned and no production data was migrated. The active Cloudflare Worker remains on the existing Supabase-backed architecture.
 - Remaining release gates are operational rather than source-only: real authenticated two-user isolation, non-production remote D1/Turso integration and replay tests, real QStash signed delivery/retry drill, real-office OCR benchmark, and restore/RTO/RPO rehearsal. These require the corresponding environments/data and are not claimed as passed by CI.
