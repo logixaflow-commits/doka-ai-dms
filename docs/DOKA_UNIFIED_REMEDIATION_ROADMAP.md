@@ -1,6 +1,6 @@
 # Doka Unified Remediation & Delivery Roadmap
 
-Last reconciled: 2026-10-03  
+Last reconciled: 2026-10-05  
 Inputs: the existing Phase A–E delivery gate, Personal Local Master Plan, Master Product Plan, Phase A audit, and the newly added Executive Summary of Remediation Plan.  
 Product priority: **Personal Local Edition first**. Cloud/enterprise/mobile work remains gated and must not destabilize the local product.
 
@@ -18,6 +18,8 @@ Status meanings:
 No item is marked complete merely because a sample snippet or proposed architecture exists.
 
 ## 2. Non-negotiable boundaries
+
+> **2026-10-05 reconciliation:** Source-level CI is currently green for the latest recorded Doka Quality Checks run, including backend regression, frontend build/smoke, dependency audits, static analysis/SBOM and symlink security. Vercel production remains intentionally paused; recent Git-connected deployments were canceled by the configured ignored-build-step rule, not by a reported build failure. Remaining release blockers are operational evidence gates: real local browser acceptance, copied-office OCR/pilot/restore evidence, authenticated two-user cloud isolation, non-production D1/Turso integration/replay, live QStash delivery/retry, and recovery RTO/RPO rehearsal.
 
 1. Original source data is read-only: `ORIGINAL_READ_ONLY=true`, `ALLOW_SOURCE_WRITE=false`.
 2. All processing and organization happen on a verified working copy; no source-root writes, destructive moves, or overwrite of different content.
