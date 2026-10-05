@@ -69,8 +69,7 @@ CORS is restricted in the Worker code to
 The production frontend defaults to
 `https://doka.logixaflow.workers.dev`. Local Vite development continues to
 use the local API proxy. `VITE_API_BASE_URL` is optional and can override the
-production API origin (no trailing slash and no `/api` suffix). GitHub
-`main` commits trigger a Vercel production deployment.
+production API origin (no trailing slash and no `/api` suffix). Vercel production is intentionally paused by the owner; do not reactivate or deploy it without explicit authorization.
 
 ## Supabase schema and permissions
 
