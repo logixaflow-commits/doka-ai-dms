@@ -18,7 +18,7 @@ Render is not part of the active deployment. The free Render option was not sele
 - Supabase has the Doka schema migrations through `20261005073729_doka_version_rpc_execute_hardening`.
 - Owner-scoped RLS and private Storage policies are installed. Version RPCs validate `auth.uid()` and the parent document owner; anonymous users cannot execute version/bulk RPCs.
 - Vercel production is intentionally paused by the owner; do not reactivate or deploy it without explicit authorization. The previously verified deployment `dpl_vyP8LeS8eNNJcLHKMMqLk8mEPGdr` is historical evidence only. It is not current production state while Vercel is intentionally paused.
-- The latest Vercel production build succeeded after fixing Tailwind/PostCSS import ordering in `web-platform/frontend/src/index.css`; `npm ci` reported 0 vulnerabilities during the build. Interactive authenticated production acceptance is still pending.
+- The latest verified Vercel build evidence is retained as a reproducibility check; no current Vercel production deployment is claimed while the project is paused.
 - Doka Quality Checks run 485 on commit `34f961c987404e5b880fe5b37c9252434fe366ec` completed successfully across backend regression, frontend build/smoke, dependency audits, symlink security and CodeQL/SBOM.
 - Authenticated upload/restore/version and two-user isolation have not yet been proven with separate real user sessions.
 
