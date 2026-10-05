@@ -192,4 +192,4 @@ Current feature-branch verification includes:
 - Frontend `npm ci` and production `npm run build`.
 - Supabase Security Advisor recheck after the version-RPC security migration.
 
-Full production readiness still requires real authenticated browser E2E, real B2/Cloudinary credentials, Google Drive OAuth/export-restore proof, backup restore drill, OCR pilot, and final main-branch CI/release approval.
+Latest isolated verification: **381 backend tests passed** with 11 non-blocking deprecation warnings, the frontend production build passed, and the Supabase migration history was reconciled to the live schema. Full production readiness still requires real authenticated browser E2E, real B2/Cloudinary credentials, Google Drive OAuth/export-restore proof, backup restore drill, OCR pilot, and final main-branch CI/release approval.
