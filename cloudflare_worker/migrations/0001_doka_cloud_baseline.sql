@@ -215,6 +215,7 @@ CREATE TABLE outbox_events (
     max_attempts INTEGER NOT NULL DEFAULT 8 CHECK (max_attempts BETWEEN 1 AND 20),
     available_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     lease_until TEXT,
+    lease_token TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     delivered_at TEXT,
     last_error TEXT
