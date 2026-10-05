@@ -43,7 +43,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   backend-dependency-audit:
@@ -259,17 +259,17 @@ jobs:
       - name: Install frontend dependencies
         working-directory: web-platform/frontend
         run: npm install --no-audit --no-fund
-      - name: Export regenerated frontend lockfile
+      - name: Commit regenerated frontend lockfile once
+        if: github.sha == 'abc41a9fa5b18ac369932ed8d4c6b2819caa1e94'
         working-directory: web-platform/frontend
         run: |
-          python - <<'PY'
-          import base64, gzip
-          from pathlib import Path
-          encoded = base64.b64encode(gzip.compress(Path("package-lock.json").read_bytes(), compresslevel=9)).decode()
-          print("LOCKFILE_GZIP_BASE64_BEGIN")
-          print(encoded)
-          print("LOCKFILE_GZIP_BASE64_END")
-          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git diff --cached --quiet && exit 0
+          git commit -m "build: regenerate frontend lockfile for Tailwind v4"
+          git push origin HEAD:main
+
       - name: Audit frontend dependencies
         id: frontend_audit
         continue-on-error: true
