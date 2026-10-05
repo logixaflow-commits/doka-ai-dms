@@ -17,8 +17,8 @@ alter table public.doka_document_versions
   add column if not exists storage_status text not null default 'ready',
   add column if not exists storage_region text;
 
-update public.doka_documents set storage_provider='supabase' where storage_provider is null or btrim(storage_provider)='';
-update public.doka_documents set storage_status='ready' where storage_status is null or btrim(storage_status)='';
+update public.doka_documents set storage_provider = 'supabase' where storage_provider is null or btrim(storage_provider)='';
+update public.doka_documents set storage_status = 'ready' where storage_status is null or btrim(storage_status)='';
 update public.doka_document_versions set storage_provider='supabase' where storage_provider is null or btrim(storage_provider)='';
 update public.doka_document_versions set storage_status='ready' where storage_status is null or btrim(storage_status)='';
 
@@ -34,9 +34,9 @@ alter table public.doka_document_versions
   drop constraint if exists doka_document_versions_storage_status_check;
 
 alter table public.doka_documents
-  add constraint doka_documents_storage_provider_check check (storage_provider in ('supabase','b2','mock')),
-  add constraint doka_documents_storage_status_check check (storage_status in ('pending','uploading','ready','quarantined','failed','deleting')),
-  add constraint doka_documents_preview_provider_check check (preview_provider is null or preview_provider in ('cloudinary','supabase','mock')),
+  add constraint doka_documents_storage_provider_check check (storage_provider in ('supabase', 'b2', 'mock')),
+  add constraint doka_documents_storage_status_check check (storage_status in ('pending', 'uploading', 'ready', 'quarantined', 'failed', 'deleting')),
+  add constraint doka_documents_preview_provider_check check (preview_provider is null or preview_provider in ('cloudinary', 'supabase', 'mock')),
   add constraint doka_documents_export_provider_check check (export_provider is null or export_provider = 'google_drive'),
   add constraint doka_documents_backup_provider_check check (backup_provider is null or backup_provider = 'google_drive');
 
