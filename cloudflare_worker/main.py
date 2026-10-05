@@ -165,7 +165,8 @@ async def public_config(request: Request):
         "storage": "supabase",
         "local_workspace_available": False,
         "supabase_auth_configured": bool(_env(request, "SUPABASE_URL") and _env(request, "SUPABASE_PUBLISHABLE_KEY")),
-        "storage_bucket_configured": bool(_env(request, "SUPABASE_STORAGE_BUCKET")),\n        "single_user_configured": bool(_env(request, "DOKA_SINGLE_USER_EMAIL").strip()),
+        "storage_bucket_configured": bool(_env(request, "SUPABASE_STORAGE_BUCKET")),
+        "single_user_configured": bool(_env(request, "DOKA_SINGLE_USER_EMAIL").strip()),
     }
 
 
