@@ -166,7 +166,17 @@ Doka uses its own B2-backed document metadata usage as the application quota led
 
 ### Google Drive export / backup
 
-Google Drive is the intended user-owned export/backup destination, but there is no connected Google Drive account-management tool in this environment. The application therefore must not pretend Drive export/restore is live. The remaining gate is real OAuth/token configuration plus an authenticated export/restore drill.
+Google Drive is implemented as a configuration-gated user-owned export path. The Worker refreshes a Google OAuth token, creates a resumable Drive upload session, the browser streams the source directly to the Drive session, and the Worker verifies the Drive file size/SHA-256 before recording `export_reference`.
+
+Server-side bindings:
+```env
+GOOGLE_DRIVE_CLIENT_ID=<OAuth client id>
+GOOGLE_DRIVE_CLIENT_SECRET=<OAuth client secret>
+GOOGLE_DRIVE_REFRESH_TOKEN=<OAuth refresh token>
+GOOGLE_DRIVE_FOLDER_ID=<optional target folder>
+```
+
+These are never browser `VITE_*` secrets. Export/restore is still not considered production-proven until real OAuth credentials are configured and an authenticated export + recovery drill succeeds.
 
 ### Vercel status
 
