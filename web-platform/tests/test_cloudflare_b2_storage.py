@@ -45,7 +45,7 @@ def test_b2_part_presign_does_not_buffer_part():
     meta = UploadMetadata("huge.bin", "application/octet-stream", B2_MULTIPART_THRESHOLD_BYTES + 1, hashlib.sha256(b"x").hexdigest(), "owner")
     upload = run(provider.initiateMultipartUpload(meta)) if False else None
     from cloudflare_worker.storage_b2 import MultipartUpload
-    from cloudflare_worker.storage_contracts_compat import StorageObjectRef
+    from storage_contracts_compat import StorageObjectRef
     m = MultipartUpload("u-1", StorageObjectRef("b2", "users/owner/documents/x/huge.bin", "owner"), 100*1024*1024, 9999999999)
     part = run(provider.uploadPart(m, 1, hashlib.sha256(b"part").hexdigest()))
     assert part.signed_request.method == "PUT"
