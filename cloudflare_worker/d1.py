@@ -5,6 +5,7 @@ until a D1 database and binding have been provisioned and migration gates pass.
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -41,8 +42,17 @@ def _validate_sql(sql: str) -> str:
 
 def _validate_parameters(parameters: Sequence[Any]) -> tuple[Any, ...]:
     values = tuple(parameters)
-    if any(not isinstance(value, (str, int, float, bool, type(None))) for value in values):
-        raise TypeError("D1 parameters must be scalar strings, numbers, booleans or null.")
+    for value in values:
+        if not isinstance(value, (str, int, float, bool, type(None))):
+            raise TypeError("D1 parameters must be scalar strings, numbers, booleans or null.")
+        # Python integers can exceed JavaScript's exact integer range. Passing
+        # those through a Worker binding would silently change their value.
+        if type(value) is int and abs(value) > 9_007_199_254_740_991:
+            raise TypeError("D1 integer parameters must be within JavaScript's safe integer range.")
+        # D1's JS binding cannot safely serialize NaN or infinities as SQL
+        # numeric values; reject them before invoking the runtime.
+        if isinstance(value, float) and not math.isfinite(value):
+            raise TypeError("D1 floating-point parameters must be finite numbers.")
     return values
 
 
