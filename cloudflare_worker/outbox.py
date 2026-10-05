@@ -7,6 +7,7 @@ credentials never enter queue payloads.
 from __future__ import annotations
 
 import inspect
+from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable
 
@@ -21,7 +22,8 @@ CLAIM_SQL = """
 UPDATE outbox_events
 SET status = 'processing',
     attempts = attempts + 1,
-    lease_until = ?
+    lease_until = ?,
+    lease_token = ?
 WHERE id = (
     SELECT id
     FROM outbox_events
@@ -33,7 +35,7 @@ WHERE id = (
     ORDER BY created_at, id
     LIMIT 1
 )
-RETURNING id, event_type, aggregate_type, aggregate_id, attempts, max_attempts
+RETURNING id, event_type, aggregate_type, aggregate_id, attempts, max_attempts, lease_token
 """
 
 DELIVER_SQL = """
@@ -41,8 +43,9 @@ UPDATE outbox_events
 SET status = 'delivered',
     delivered_at = ?,
     lease_until = NULL,
+    lease_token = NULL,
     last_error = NULL
-WHERE id = ? AND status = 'processing'
+WHERE id = ? AND status = 'processing' AND lease_token = ?
 """
 
 RETRY_SQL = """
@@ -50,8 +53,9 @@ UPDATE outbox_events
 SET status = ?,
     available_at = ?,
     lease_until = NULL,
+    lease_token = NULL,
     last_error = ?
-WHERE id = ? AND status = 'processing'
+WHERE id = ? AND status = 'processing' AND lease_token = ?
 """
 
 
@@ -77,15 +81,16 @@ async def claim_next(
     instant = _utc(now)
     stamp = _stamp(instant)
     lease_until = _stamp(instant + timedelta(seconds=lease_seconds))
-    return await db.first(CLAIM_SQL, (lease_until, stamp, stamp))
+    lease_token = str(uuid4())
+    return await db.first(CLAIM_SQL, (lease_until, lease_token, stamp, stamp))
 
 
 async def mark_delivered(
-    db: D1Database, event_id: str, *, now: datetime | None = None
+    db: D1Database, event_id: str, lease_token: str, *, now: datetime | None = None
 ) -> None:
-    if not event_id or len(event_id) > 255:
-        raise ValueError("Invalid outbox event ID.")
-    await db.execute(DELIVER_SQL, (_stamp(_utc(now)), event_id))
+    if not event_id or len(event_id) > 255 or not lease_token or len(lease_token) > 64:
+        raise ValueError("Invalid outbox delivery lease.")
+    await db.execute(DELIVER_SQL, (_stamp(_utc(now)), event_id, lease_token))
 
 
 async def mark_retry(
@@ -97,10 +102,12 @@ async def mark_retry(
     event_id = event.get("id")
     attempts = event.get("attempts")
     max_attempts = event.get("max_attempts")
+    lease_token = event.get("lease_token")
     if (
         not isinstance(event_id, str) or not event_id or len(event_id) > 255
         or type(attempts) is not int or attempts < 1
         or type(max_attempts) is not int or not 1 <= max_attempts <= 20
+        or not isinstance(lease_token, str) or not lease_token or len(lease_token) > 64
     ):
         raise ValueError("Invalid claimed outbox event.")
     instant = _utc(now)
@@ -114,6 +121,7 @@ async def mark_retry(
             _stamp(instant + timedelta(seconds=delay)),
             "delivery_failed",
             event_id,
+            lease_token,
         ),
     )
     return status
@@ -143,5 +151,8 @@ async def dispatch_one(
     except Exception:
         return await mark_retry(db, event, now=instant)
 
-    await mark_delivered(db, event_id, now=instant)
+    lease_token = event.get("lease_token")
+    if not isinstance(lease_token, str) or not lease_token:
+        raise OutboxError("Claimed outbox event has no valid lease token.")
+    await mark_delivered(db, event_id, lease_token, now=instant)
     return "delivered"
