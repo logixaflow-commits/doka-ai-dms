@@ -14,12 +14,12 @@ Render is not part of the active deployment. The free Render option was not sele
 
 ## Verified current state
 
-- Cloudflare Worker version 105 (`17b96d04-9dbe-4c47-b748-7f4673dda47a`) is receiving 100% traffic. It includes authenticated document lifecycle, preview, version history, folder listing, atomic bulk status/Trash and audit routes.
+- Cloudflare Worker `doka` latest deployment (2026-10-05 07:39 UTC) is receiving 100% traffic on version `2655ae42-b180-432e-b87f-542c97f9e8ce`; the Cloudflare API reports the deployment source as Wrangler.
 - Supabase has the Doka schema migrations through `20261005073729_doka_version_rpc_execute_hardening`.
 - Owner-scoped RLS and private Storage policies are installed. Version RPCs validate `auth.uid()` and the parent document owner; anonymous users cannot execute version/bulk RPCs.
-- Vercel production deployment `dpl_BoY7ur6K8751F77DsGPoRsPvtutS` (commit `7846669f`) is READY and owns the production alias. Its production bundle was checked for version history, preview, folder filtering, atomic bulk actions, Activity and batch upload/retry.
-- The current production JavaScript bundle was checked and includes Version history, safe preview, folder filtering, atomic bulk actions, Activity and the sequential batch-upload queue with retry.
-- Doka Quality Checks passed on commit `5ad3efa7`; Local Core Checks passed on `0807b5c3`. Follow-up documentation/migration changes have separate Local Core runs.
+- Vercel production is intentionally paused. The latest Git-connected production attempts are CANCELED by the configured Ignored Build Step; this is not a build/runtime failure. The old READY deployment reference is retained only as historical evidence.
+- The latest verified frontend build/smoke suite remains green in Doka Quality Checks; interactive authenticated production acceptance is still pending.
+- Doka Quality Checks run 485 on commit `34f961c987404e5b880fe5b37c9252434fe366ec` completed successfully across backend regression, frontend build/smoke, dependency audits, symlink security and CodeQL/SBOM.
 - Authenticated upload/restore/version and two-user isolation have not yet been proven with separate real user sessions.
 
 ## Vercel frontend configuration
