@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-MIGRATION = (REPO_ROOT / "supabase" / "migrations" / "20261005120000_doka_storage_provider_metadata.sql").read_text(encoding="utf-8")
+MIGRATION = (REPO_ROOT / "supabase" / "migrations" / "20261005113151_doka_storage_provider_metadata.sql").read_text(encoding="utf-8")
 ROLLBACK = (REPO_ROOT / "docs" / "DOKA_STORAGE_MIGRATION_ROLLBACK.md").read_text(encoding="utf-8")
 
 
