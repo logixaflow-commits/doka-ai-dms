@@ -24,6 +24,7 @@ from workers import asgi, env as worker_env
 from shared.storage_contracts import StorageArtifactType, UploadMetadata, owner_object_key
 from cloudflare_worker.storage_runtime import build_storage_router, sign_session, verify_session
 from cloudflare_worker.storage_b2 import B2PartReceipt, MultipartUpload
+from cloudflare_worker.b2_quota import evaluate_b2_quota
 from shared.storage_contracts import SignedUpload, StorageObjectRef
 
 
@@ -348,6 +349,77 @@ def _validate_upload_metadata(request: Request, user_id: str, payload: dict) -> 
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return metadata
 
+async def _check_b2_quota(request: Request, user_id: str, requested_bytes: int) -> dict:
+    quota_raw = _env(request, "B2_QUOTA_BYTES").strip()
+    if not quota_raw:
+        raise HTTPException(status_code=503, detail="B2 quota guard is not configured.")
+    try:
+        quota_bytes = int(quota_raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail="B2 quota guard is invalid.") from exc
+
+    query = (
+        f"select=size_bytes&owner_id=eq.{quote(user_id, safe='')}"
+        "&storage_provider=eq.b2&deleted_at=is.null&limit=10000"
+    )
+    status, rows = await _fetch(
+        request,
+        f"{_base(request)}/rest/v1/doka_documents?{query}",
+        headers={**_supabase_headers(request, _token_from_request(request)), "Accept": "application/json"},
+    )
+    if status >= 300 or not isinstance(rows, list):
+        raise HTTPException(status_code=503, detail="Unable to calculate B2 quota usage.")
+    if len(rows) >= 10000:
+        raise HTTPException(status_code=503, detail="B2 quota usage is too large to verify safely.")
+    used_bytes = sum(max(0, int(row.get("size_bytes") or 0)) for row in rows)
+    try:
+        decision = evaluate_b2_quota(
+            used_bytes=used_bytes,
+            requested_bytes=requested_bytes,
+            quota_bytes=quota_bytes,
+            alert_ratio=float(_env(request, "B2_QUOTA_ALERT_RATIO", "0.80")),
+            block_ratio=float(_env(request, "B2_QUOTA_BLOCK_RATIO", "0.95")),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    if decision.warning:
+        print(f"DOKA_B2_QUOTA {decision.warning} used={used_bytes} requested={requested_bytes} quota={quota_bytes} ratio={decision.usage_ratio:.4f}")
+        webhook = _env(request, "B2_QUOTA_ALERT_WEBHOOK").strip()
+        if webhook and decision.warning == "b2_quota_warning":
+            try:
+                await _fetch(
+                    request,
+                    webhook,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                    body=json.dumps({
+                        "event": decision.warning,
+                        "used_bytes": used_bytes,
+                        "requested_bytes": requested_bytes,
+                        "quota_bytes": quota_bytes,
+                        "usage_ratio": decision.usage_ratio,
+                    }),
+                )
+            except Exception:
+                pass
+    if decision.blocked:
+        # Google Drive fallback is deliberately not faked. It becomes active only
+        # after a real Google Drive OAuth/provider is configured.
+        raise HTTPException(
+            status_code=507,
+            detail="B2 quota is at the 95% safety threshold; new B2 uploads are blocked until capacity is available or Google Drive fallback is configured.",
+        )
+    return {
+        "quota_bytes": decision.quota_bytes,
+        "used_bytes": decision.used_bytes,
+        "requested_bytes": decision.requested_bytes,
+        "projected_bytes": decision.projected_bytes,
+        "usage_ratio": decision.usage_ratio,
+        "warning": decision.warning,
+    }
+
+
 async def _audit(request, user_id: str, action: str, document_id: str | None = None, filename: str | None = None, metadata: dict | None = None) -> None:
     """Best-effort owner-scoped audit event; never breaks the primary document action."""
     try:
@@ -572,6 +644,9 @@ async def create_storage_upload_session(
         # missing/50 MiB default therefore remains safely Supabase-only.
         if not _env(request, "B2_BUCKET").strip():
             raise HTTPException(status_code=503, detail="Large-object storage is not configured.")
+    if metadata.artifact_type is StorageArtifactType.SOURCE and metadata.size_bytes > 50 * 1024 * 1024:
+        await _check_b2_quota(request, user_id, metadata.size_bytes)
+
     router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
     try:
         session, decision = await router.create_upload_session(metadata)
