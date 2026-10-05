@@ -591,3 +591,12 @@ All Doka work is committed directly to main as requested. No feature branch is r
 - Latest Doka Quality Checks run 37262271881 for commit 701aed0bf377ca963a42a39d9a1fea722d9651ce completed successfully: frontend build/smoke, backend regression, backend dependency audit, root dependency audit, static analysis/SBOM and symlink security all passed.
 - No D1/Turso/Cloudinary/QStash resources were provisioned and no production data was migrated. The active Cloudflare Worker remains on the existing Supabase-backed architecture.
 - Remaining release gates are operational rather than source-only: real authenticated two-user isolation, non-production remote D1/Turso integration and replay tests, real QStash signed delivery/retry drill, real-office OCR benchmark, and restore/RTO/RPO rehearsal. These require the corresponding environments/data and are not claimed as passed by CI.
+
+
+### 2026-10-05 — Cloudinary storage target and CI verification
+
+- Storj DCS is no longer part of the Doka Cloud Edition target. Cloudinary is now the selected private document/object storage provider; D1 remains the metadata source of truth.
+- Added a server-side Cloudinary raw/private object-storage adapter with signed uploads, time-limited private downloads, Admin API metadata lookup, deletion, per-object quota enforcement, and SHA-256 integrity metadata/verification.
+- Added Cloudinary storage regression coverage. No Cloudinary credentials or production resources were provisioned; the adapter remains disabled until the operational cutover is explicitly configured.
+- Fixed the D1 migration manifest verifier to use the actual Git blob SHA framing. Latest Doka Quality Checks run **37267795164** for commit `afd8f0e92f8aa8a60c32cb81a729cae12542b805` completed successfully: backend regression **352 passed**, frontend build/smoke passed, backend/root dependency audits passed, symlink security passed, and CodeQL/Semgrep/SPDX SBOM passed.
+- The active Cloudflare Worker remains on the existing Supabase-backed architecture. Cloudinary cutover, non-production D1/Turso integration, QStash signed delivery drill, real-office OCR benchmark, and restore/RTO/RPO rehearsal remain operational gates and are not claimed as completed by source-level CI.
