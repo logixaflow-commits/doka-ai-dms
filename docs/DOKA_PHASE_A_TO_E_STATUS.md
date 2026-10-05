@@ -1,3 +1,12 @@
+## 2026-10-05 — CI verification and frontend dependency remediation
+
+- Doka Quality Checks run **37259266065** completed **successfully** on the current main line.
+- Verified jobs: backend regression tests, backend dependency audit, root project dependency audit, symlink security tests, frontend build/smoke tests, and static analysis/SBOM.
+- Frontend lint baseline for this run reports **0 errors / 0 warnings**. Frontend build and smoke tests passed after migrating from Tailwind CSS 3.4.x to **Tailwind CSS 4.3.3** with the official `@tailwindcss/postcss` adapter and regenerated `package-lock.json`.
+- The previous five-high Tailwind v3 dependency-chain audit blocker is therefore resolved in the current lockfile; do not carry the old five-finding status forward.
+- Backend D1 adapter/schema/outbox tests are now covered by the green consolidated CI run. The D1/Turso implementation remains **offline/source-level only**: no production D1/Turso resources, bindings or data migration were performed.
+- Still open and intentionally not claimed complete: authenticated cloud two-user isolation/lifecycle E2E, real-office Myanmar/English OCR benchmark, copied-real-data Phase D pilot with hash + backup/restore evidence, live Supabase Security Advisor/Dependabot/branch-protection review where connector permissions are insufficient, Sentry production integration, and proper Cloudflare Worker build/deploy + live smoke verification for any source not yet deployed.
+
 # Doka Phase A–E Delivery Gate
 
 > **Roadmap update (2026-10-03):** Execution phases and the complete remediation issue register are now consolidated in [DOKA_UNIFIED_REMEDIATION_ROADMAP.md](./DOKA_UNIFIED_REMEDIATION_ROADMAP.md). This file remains the historical A–E evidence/status record; use the unified roadmap for current prioritization and sequencing.
