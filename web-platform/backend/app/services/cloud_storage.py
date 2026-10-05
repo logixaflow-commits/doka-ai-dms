@@ -221,11 +221,13 @@ class CloudinaryObjectStorage:
         if response.status_code >= 300:
             raise StorageError(f"Cloudinary Storage metadata lookup failed ({response.status_code}).")
         payload = response.json()
+        context = payload.get("context") or {}
+        custom = context.get("custom") or {}
         return StoredObject(
             key=key,
             size=int(payload.get("bytes", 0) or 0),
-            sha256="",
-            content_type=str(payload.get("context", {}).get("content_type", "application/octet-stream")),
+            sha256=str(custom.get("sha256", "")).lower(),
+            content_type=str(custom.get("content_type", "application/octet-stream")),
         )
 
     def delete(self, key: str) -> None:
