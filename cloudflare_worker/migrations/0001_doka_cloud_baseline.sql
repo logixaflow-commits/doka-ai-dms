@@ -210,9 +210,11 @@ CREATE TABLE outbox_events (
     idempotency_key TEXT NOT NULL UNIQUE CHECK (length(idempotency_key) BETWEEN 1 AND 255),
     payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
     status TEXT NOT NULL DEFAULT 'pending'
-        CHECK (status IN ('pending', 'delivered', 'dead')),
+        CHECK (status IN ('pending', 'processing', 'delivered', 'dead')),
     attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+    max_attempts INTEGER NOT NULL DEFAULT 8 CHECK (max_attempts BETWEEN 1 AND 20),
     available_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    lease_until TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     delivered_at TEXT,
     last_error TEXT
