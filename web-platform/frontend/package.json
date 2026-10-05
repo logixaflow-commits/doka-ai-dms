@@ -2,7 +2,7 @@
   "name": "personal-local-dms",
   "private": true,
   "version": "0.0.0",
-  "description": "Doka secure document workspace frontend",
+  "description": "Doka secure document workspace frontend app",
   "type": "module",
   "scripts": {
     "dev": "vite",
