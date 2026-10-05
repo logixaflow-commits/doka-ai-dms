@@ -77,20 +77,24 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-width: 1px;
+    border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
   
   /* Modern typography */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    font-weight: 600;
+    letter-spacing: -0.025em;
   }
   
   /* Smooth transitions */
   button, a, input, select, textarea {
-    @apply transition-all duration-200;
+    transition-property: all;
+    transition-duration: 200ms;
   }
   
   /* Custom scrollbar */
@@ -100,15 +104,25 @@
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-slate-100 dark:bg-slate-800;
+    background-color: rgb(241 245 249);
+  }
+  .dark ::-webkit-scrollbar-track {
+    background-color: rgb(30 41 59);
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+    background-color: rgb(203 213 225);
+    border-radius: 9999px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: rgb(71 85 105);
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400 dark:bg-slate-500;
+    background-color: rgb(148 163 184);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(100 116 139);
   }
 }
 
@@ -145,8 +159,12 @@
   
   /* Hover lift effect */
   .hover-lift {
-    @apply transition-transform duration-200 hover:-translate-y-0.5;
+    transition-property: transform;
+    transition-duration: 200ms;
   }
+.hover-lift:hover {
+  transform: translateY(-0.125rem);
+}
 }
 
 /* Doka product surface */
