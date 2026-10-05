@@ -21,6 +21,9 @@ from js import Object, Uint8Array, fetch as js_fetch
 from pyodide.ffi import to_js
 from workers import asgi, env as worker_env
 
+from shared.storage_contracts import StorageArtifactType, UploadMetadata, owner_object_key
+from cloudflare_worker.storage_runtime import build_storage_router, sign_session, verify_session
+
 
 bearer = HTTPBearer(auto_error=False)
 app = FastAPI(title="Doka Cloud API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
@@ -60,11 +63,19 @@ def _js_bytes(data: bytes):
     return result
 
 
-async def _fetch(request, url: str, *, method: str = "GET", headers: dict | None = None, body=None):
+async def _fetch(request, url: str, *, method: str = "GET", headers: dict | None = None, body=None, return_headers: bool = False):
     options = {"method": method, "headers": to_js(headers or {}, dict_converter=Object.fromEntries)}
     if body is not None:
         options["body"] = body
     response = await js_fetch(url, to_js(options, dict_converter=Object.fromEntries))
+    if return_headers:
+        header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256")
+        result_headers = {}
+        for name in header_names:
+            value = response.headers.get(name)
+            if value is not None:
+                result_headers[name] = str(value)
+        return int(response.status), result_headers
     raw = str(await response.text())
     try:
         payload = json.loads(raw) if raw else None
@@ -268,6 +279,73 @@ def _token_from_request(request) -> str:
     value = request.headers.get("authorization", "")
     return value[7:].strip() if value.lower().startswith("bearer ") else ""
 
+
+def _storage_session_secret(request) -> str:
+    secret = _env(request, "DOKA_STORAGE_SESSION_SECRET").strip()
+    if not secret:
+        # SECRET_KEY is accepted as a deployment convenience; production should
+        # still provision a dedicated storage-session secret.
+        secret = _env(request, "SECRET_KEY").strip()
+    if len(secret) < 32:
+        raise HTTPException(status_code=503, detail="Direct storage session signing is not configured.")
+    return secret
+
+
+def _storage_fetcher(request):
+    async def fetcher(url: str, *, method: str = "GET", headers: dict | None = None, body=None, return_headers: bool = False):
+        status, payload = await _fetch(request, url, method=method, headers=headers, body=body, return_headers=return_headers)
+        return status, payload
+    return fetcher
+
+
+def _provider_for(router, provider: str):
+    if provider == "supabase":
+        return router.supabase
+    if provider == "b2":
+        if router.b2 is None:
+            raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+        return router.b2
+    if provider == "cloudinary":
+        if router.cloudinary is None:
+            raise HTTPException(status_code=503, detail="Cloudinary storage is not configured.")
+        return router.cloudinary
+    raise HTTPException(status_code=400, detail="Unsupported storage provider.")
+
+
+def _validate_upload_metadata(request: Request, user_id: str, payload: dict) -> UploadMetadata:
+    filename = str(payload.get("filename") or "").replace("\\", "/").rsplit("/", 1)[-1].strip()
+    content_type = str(payload.get("content_type") or "application/octet-stream").split(";", 1)[0].strip().lower()
+    size_bytes = int(payload.get("size_bytes") or 0)
+    sha256 = str(payload.get("sha256") or "").lower()
+    if (
+        not filename or filename in {".", ".."} or len(filename) > 255
+        or any(ord(character) < 32 or ord(character) == 127 for character in filename)
+        or any(character in '<>:"|?*' for character in filename)
+    ):
+        raise HTTPException(status_code=400, detail="Filename must be a plain file name up to 255 characters.")
+    max_bytes = int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024)))
+    if size_bytes < 1 or size_bytes > max_bytes and size_bytes <= 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Object size is outside the configured limit.")
+    if size_bytes > max_bytes:
+        # Large objects are permitted only when B2 is configured and the global
+        # application limit explicitly exceeds the Supabase 50 MiB boundary.
+        if not _env(request, "B2_BUCKET") or size_bytes > 5 * 1024 * 1024 * 1024 * 100:
+            raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
+    if len(content_type) > 255 or "/" not in content_type:
+        raise HTTPException(status_code=400, detail="Invalid content type.")
+    if not re.fullmatch(r"[0-9a-f]{64}", sha256):
+        raise HTTPException(status_code=400, detail="sha256 must be a 64-character hexadecimal digest.")
+    try:
+        artifact_type = StorageArtifactType(str(payload.get("artifact_type") or "source"))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Unsupported storage artifact type.") from exc
+    metadata = UploadMetadata(filename, content_type, size_bytes, sha256, user_id, artifact_type)
+    try:
+        metadata.validate()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return metadata
+
 async def _audit(request, user_id: str, action: str, document_id: str | None = None, filename: str | None = None, metadata: dict | None = None) -> None:
     """Best-effort owner-scoped audit event; never breaks the primary document action."""
     try:
@@ -293,46 +371,149 @@ async def _audit(request, user_id: str, action: str, document_id: str | None = N
 
 @app.post("/api/documents")
 async def create_document(request: Request, file: UploadFile = File(...), user_id: str = Depends(require_user)):
-    max_bytes = int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024)))
-    data = await file.read(max_bytes + 1)
-    if len(data) > max_bytes:
-        raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
-    filename = (file.filename or "document").replace("\\", "/").rsplit("/", 1)[-1].strip()
-    if (
-        not filename
-        or filename in {".", ".."}
-        or len(filename) > 255
-        or any(ord(character) < 32 or ord(character) == 127 for character in filename)
-        or any(character in '<>:"|?*' for character in filename)
-    ):
-        raise HTTPException(status_code=400, detail="Filename must be a plain file name up to 255 characters.")
-    content_type = (file.content_type or "application/octet-stream").split(";", 1)[0].strip().lower() or "application/octet-stream"
-    if len(content_type) > 255 or "/" not in content_type:
-        raise HTTPException(status_code=400, detail="Invalid content type.")
-    digest = hashlib.sha256(data).hexdigest()
-    key = _object_key(user_id, digest, filename)
-    base = _base(request)
-    bucket = quote(_bucket(request), safe="")
-    object_path = quote(key, safe="/")
-    token = _token_from_request(request)
-    storage_headers = _supabase_headers(request, token, content_type)
-    storage_headers["x-upsert"] = "false"
-    status, result = await _fetch(
-        request, f"{base}/storage/v1/object/{bucket}/{object_path}",
-        method="POST", headers=storage_headers, body=_js_bytes(data),
+    # Bytes must never be proxied through the Worker. Keep the route for clients
+    # that have not upgraded yet, but fail closed instead of buffering the file.
+    raise HTTPException(status_code=410, detail="Direct upload is required. Create an upload session first.")
+
+
+class UploadSessionRequest(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+    content_type: str = Field(min_length=3, max_length=255)
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(min_length=64, max_length=64)
+    artifact_type: Literal["source", "preview", "thumbnail", "cover"] = "source"
+
+
+class UploadCompletionRequest(BaseModel):
+    session_id: str = Field(min_length=20, max_length=4096)
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(min_length=64, max_length=64)
+    provider_result: dict = Field(default_factory=dict)
+
+
+@app.post("/api/storage/upload-session")
+async def create_storage_upload_session(
+    request: Request,
+    payload: UploadSessionRequest,
+    user_id: str = Depends(require_user),
+):
+    metadata = _validate_upload_metadata(request, user_id, payload.model_dump())
+    if metadata.artifact_type is StorageArtifactType.SOURCE and metadata.size_bytes > int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024))):
+        # The configured application limit is the source of truth for B2; a
+        # missing/50 MiB default therefore remains safely Supabase-only.
+        if not _env(request, "B2_BUCKET").strip():
+            raise HTTPException(status_code=503, detail="Large-object storage is not configured.")
+    router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
+    try:
+        session, decision = await router.create_upload_session(metadata)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc)
+        status_code = 503 if message not in {"cloudinary_credit_fallback"} else 200
+        raise HTTPException(status_code=status_code, detail=message) from exc
+
+    payload_to_sign = {
+        "owner_id": user_id,
+        "provider": session.provider,
+        "object_key": session.object_ref.object_key,
+        "sha256": metadata.sha256,
+        "filename": metadata.filename,
+        "content_type": metadata.content_type,
+        "size_bytes": metadata.size_bytes,
+        "artifact_type": metadata.artifact_type.value,
+        "expires_at": session.expires_at,
+    }
+    session_token = sign_session(_storage_session_secret(request), payload_to_sign)
+    return {
+        "session_id": session_token,
+        "provider": session.provider,
+        "object_key": session.object_ref.object_key,
+        "expires_at": session.expires_at,
+        "upload": {
+            "method": session.upload.method,
+            "url": session.upload.url,
+            "headers": session.upload.headers,
+            "fields": session.upload.fields,
+        },
+        "warnings": list(decision.warnings or session.warnings),
+    }
+
+
+@app.post("/api/storage/upload-complete")
+async def complete_storage_upload(
+    request: Request,
+    payload: UploadCompletionRequest,
+    user_id: str = Depends(require_user),
+):
+    try:
+        signed = verify_session(_storage_session_secret(request), payload.session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if signed.get("owner_id") != user_id:
+        raise HTTPException(status_code=403, detail="Upload session belongs to another user.")
+    if str(signed.get("sha256", "")).lower() != payload.sha256.lower() or int(signed.get("size_bytes", 0)) != payload.size_bytes:
+        raise HTTPException(status_code=400, detail="Upload completion does not match the issued session.")
+    metadata = UploadMetadata(
+        filename=str(signed["filename"]),
+        content_type=str(signed["content_type"]),
+        size_bytes=int(signed["size_bytes"]),
+        sha256=str(signed["sha256"]).lower(),
+        owner_id=user_id,
+        artifact_type=StorageArtifactType(str(signed.get("artifact_type", "source"))),
     )
-    if status >= 300:
-        raise HTTPException(status_code=503, detail=f"Supabase Storage upload failed ({status}).")
+    router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
+    provider = _provider_for(router, str(signed["provider"]))
+    session = type("CompletedSession", (), {
+        "provider": str(signed["provider"]),
+        "object_ref": type("ObjectRef", (), {
+            "provider": str(signed["provider"]),
+            "object_key": str(signed["object_key"]),
+            "owner_id": user_id,
+        })(),
+        "expires_at": int(signed["expires_at"]),
+        "upload": type("Signed", (), {"method": "", "url": "", "headers": {}, "fields": {}})(),
+        "session_id": payload.session_id,
+    })()
+    try:
+        stored = await provider.complete_upload(session, {
+            "size_bytes": payload.size_bytes,
+            "sha256": payload.sha256.lower(),
+            **payload.provider_result,
+        })
+    except (RuntimeError, ValueError, KeyError) as exc:
+        raise HTTPException(status_code=409, detail=f"Upload verification failed: {exc}") from exc
+
+    if metadata.artifact_type is not StorageArtifactType.SOURCE:
+        return {
+            "stored": {
+                "provider": stored.object_ref.provider,
+                "object_key": stored.object_ref.object_key,
+                "size_bytes": stored.size_bytes,
+                "sha256": stored.sha256,
+                "content_type": stored.content_type,
+            },
+            "warnings": [],
+        }
+
     record = {
         "owner_id": user_id,
-        "object_key": key,
-        "filename": filename,
-        "content_type": content_type,
-        "size_bytes": len(data),
-        "sha256": digest,
+        "object_key": stored.object_ref.object_key,
+        "filename": metadata.filename,
+        "content_type": metadata.content_type,
+        "size_bytes": stored.size_bytes,
+        "sha256": metadata.sha256,
         "status": "active",
         "metadata": {},
+        "storage_provider": stored.object_ref.provider,
+        "storage_status": "ready",
+        "storage_region": _env(request, "B2_REGION", "") if stored.object_ref.provider == "b2" else None,
     }
+    # Do not send nullable optional metadata columns if a deployment is still
+    # before the storage metadata migration.
+    record = {key: value for key, value in record.items() if value is not None}
+    base = _base(request)
+    token = _token_from_request(request)
     status, rows = await _fetch(
         request, f"{base}/rest/v1/doka_documents",
         method="POST",
@@ -340,16 +521,17 @@ async def create_document(request: Request, file: UploadFile = File(...), user_i
         body=json.dumps(record),
     )
     if status >= 300 or not isinstance(rows, list) or not rows:
-        # Best-effort cleanup of the newly uploaded object only.
-        await _fetch(
-            request, f"{base}/storage/v1/object/{bucket}",
-            method="DELETE",
-            headers=_supabase_headers(request, token, "application/json"),
-            body=json.dumps({"prefixes": [key]}),
-        )
+        try:
+            await provider.delete(stored.object_ref)
+        except Exception:
+            pass
         raise HTTPException(status_code=503, detail=f"Document metadata creation failed ({status}).")
-    await _audit(request, user_id, "upload", str(rows[0].get("id")), rows[0].get("filename"), {"size_bytes": len(data), "sha256": digest})
-    return {"document": rows[0]}
+    await _audit(request, user_id, "upload", str(rows[0].get("id")), rows[0].get("filename"), {
+        "size_bytes": stored.size_bytes,
+        "sha256": metadata.sha256,
+        "storage_provider": stored.object_ref.provider,
+    })
+    return {"document": rows[0], "warnings": []}
 
 
 @app.get("/api/documents/{document_id}/versions")
