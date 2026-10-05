@@ -155,8 +155,16 @@ def test_cloudinary_storage_get_downloads_private_asset(monkeypatch):
         status_code = 200
         content = b"doka"
 
-    def fake_get(url, *, timeout):
-        calls.append((url, timeout))
+    def fake_get(url, **kwargs):
+        calls.append((url, kwargs))
+        if "/resources/raw/private/" in url:
+            class MetadataResponse:
+                status_code = 200
+
+                def json(self):
+                    return {"bytes": 4, "context": {"custom": {"sha256": __import__("hashlib").sha256(b"doka").hexdigest()}}}
+
+            return MetadataResponse()
         return Response()
 
     monkeypatch.setattr(cloud_storage.httpx, "get", fake_get)
