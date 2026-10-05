@@ -8,6 +8,7 @@ const API_BASE_URL = configuredApiBase.endsWith('/')
   ? configuredApiBase.slice(0, -1)
   : configuredApiBase;
 const API_ROOT = `${API_BASE_URL}/api`;
+const MAX_UPLOAD_BYTES = Number(import.meta.env.VITE_DOKA_MAX_UPLOAD_BYTES || 5 * 1024 * 1024 * 1024);
 
 export interface CloudDocument {
   id: string;
@@ -98,13 +99,84 @@ export async function listCloudDocuments(filters: CloudDocumentFilters = {}) {
   return request<{ documents: CloudDocument[] }>(`/documents?${query.toString()}`);
 }
 
-export async function uploadCloudDocument(file: File) {
-  const body = new FormData();
-  body.append('file', file);
-  return request<{ document: CloudDocument }>('/documents', {
-    method: 'POST',
-    body,
+export interface StorageUploadSession {
+  session_id: string;
+  provider: 'supabase' | 'b2' | 'cloudinary' | 'mock';
+  object_key: string;
+  expires_at: number;
+  upload: {
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    fields: Record<string, string>;
+  };
+  warnings: string[];
+}
+
+async function sha256Hex(file: File): Promise<string> {
+  if (!globalThis.crypto?.subtle) throw new Error('Browser cryptography is unavailable; cannot verify the upload fingerprint.');
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+}
+
+async function directStorageUpload(session: StorageUploadSession, file: File): Promise<Record<string, unknown>> {
+  if (session.provider === 'cloudinary') {
+    const body = new FormData();
+    Object.entries(session.upload.fields).forEach(([key, value]) => body.append(key, value));
+    body.append('file', file);
+    const response = await fetch(session.upload.url, { method: session.upload.method || 'POST', body });
+    const raw = await response.text();
+    if (!response.ok) throw new Error(`Cloudinary upload failed (${response.status}).`);
+    try { return JSON.parse(raw) as Record<string, unknown>; } catch { return {}; }
+  }
+
+  const response = await fetch(session.upload.url, {
+    method: session.upload.method || 'PUT',
+    headers: session.upload.headers,
+    body: file,
   });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(detail || `Direct ${session.provider} upload failed (${response.status}).`);
+  }
+  return {};
+}
+
+async function createDirectStorageUpload(file: File, artifactType: 'source' | 'preview' | 'thumbnail' | 'cover' = 'source') {
+  if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`This file exceeds the configured upload limit of ${Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
+  }
+  const sha256 = await sha256Hex(file);
+  const session = await request<StorageUploadSession>('/storage/upload-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: file.name,
+      content_type: file.type || 'application/octet-stream',
+      size_bytes: file.size,
+      sha256,
+      artifact_type: artifactType,
+    }),
+  });
+  const providerResult = await directStorageUpload(session, file);
+  const completed = await request<{ document?: CloudDocument; stored?: Record<string, unknown>; warnings: string[] }>('/storage/upload-complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: session.session_id,
+      size_bytes: file.size,
+      sha256,
+      provider_result: providerResult,
+    }),
+  });
+  return {
+    ...completed,
+    warnings: [...(session.warnings || []), ...(completed.warnings || [])],
+  };
+}
+
+export async function uploadCloudDocument(file: File) {
+  return createDirectStorageUpload(file, 'source') as Promise<{ document: CloudDocument; warnings: string[] }>;
 }
 
 export async function getCloudDocumentDownloadUrl(documentId: string) {
