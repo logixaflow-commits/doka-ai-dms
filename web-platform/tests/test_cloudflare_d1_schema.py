@@ -257,3 +257,35 @@ def test_turso_receipt_migration_supports_idempotent_event_application():
     with pytest.raises(sqlite3.IntegrityError):
         connection.execute("INSERT INTO sync_receipts(event_id) VALUES ('event-1')")
     connection.close()
+
+
+def test_outbox_schema_supports_leases_retry_limits_and_dead_letters(db):
+    columns = {
+        row[1]: row
+        for row in db.execute("PRAGMA table_info(outbox_events)")
+    }
+    assert {"status", "attempts", "max_attempts", "lease_until"} <= set(columns)
+
+    db.execute(
+        """
+        INSERT INTO outbox_events(
+            id, event_type, aggregate_type, aggregate_id, idempotency_key, payload_json
+        ) VALUES ('lease-event', 'document.updated', 'document', 'doc-1',
+                  'document.updated:doc-1', '{}')
+        """
+    )
+    db.execute(
+        """
+        UPDATE outbox_events
+        SET status = 'processing', attempts = attempts + 1,
+            lease_until = '2026-10-05T12:01:00.000Z'
+        WHERE id = 'lease-event'
+        """
+    )
+    row = db.execute(
+        "SELECT status, attempts, max_attempts, lease_until FROM outbox_events WHERE id = 'lease-event'"
+    ).fetchone()
+    assert row == ("processing", 1, 8, "2026-10-05T12:01:00.000Z")
+
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute("UPDATE outbox_events SET status = 'invalid' WHERE id = 'lease-event'")
