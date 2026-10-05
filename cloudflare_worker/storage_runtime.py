@@ -12,6 +12,7 @@ from cloudflare_worker.storage_b2 import B2StorageConfig, B2StorageProvider
 from cloudflare_worker.storage_cloudinary import CloudinaryConfig, CloudinaryDerivativeProvider
 from cloudflare_worker.storage_router import CloudStorageRouter
 from cloudflare_worker.storage_supabase import SupabaseDirectStorageProvider, SupabaseStorageConfig
+from cloudflare_worker.storage_google_drive import GoogleDriveConfig, GoogleDriveExportProvider
 
 
 def build_storage_router(request, token: str, fetcher_factory):
@@ -106,3 +107,18 @@ def _b64url(value: bytes) -> str:
 def _b64url_decode(value: str) -> bytes:
     import base64
     return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def build_google_drive_provider(request, fetcher_factory):
+    required = ("GOOGLE_DRIVE_CLIENT_ID", "GOOGLE_DRIVE_CLIENT_SECRET", "GOOGLE_DRIVE_REFRESH_TOKEN")
+    if not all(_read_env(request, key).strip() for key in required):
+        return None
+    return GoogleDriveExportProvider(
+        GoogleDriveConfig(
+            client_id=_read_env(request, "GOOGLE_DRIVE_CLIENT_ID"),
+            client_secret=_read_env(request, "GOOGLE_DRIVE_CLIENT_SECRET"),
+            refresh_token=_read_env(request, "GOOGLE_DRIVE_REFRESH_TOKEN"),
+            folder_id=_read_env(request, "GOOGLE_DRIVE_FOLDER_ID"),
+        ),
+        fetcher_factory(request),
+    )
