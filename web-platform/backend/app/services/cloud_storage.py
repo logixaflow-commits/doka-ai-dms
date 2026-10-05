@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import mimetypes
 import os
 import re
 from dataclasses import dataclass
@@ -139,6 +140,7 @@ class CloudinaryObjectStorage:
             "timestamp": timestamp,
             "type": "private",
             "overwrite": "false",
+            "context": f"sha256={digest}",
         }
         response = httpx.post(
             f"{self.upload_base_url}/raw/upload",
@@ -207,7 +209,11 @@ class CloudinaryObjectStorage:
             raise StorageError("Stored object was not found.")
         if response.status_code >= 300:
             raise StorageError(f"Cloudinary Storage download failed ({response.status_code}).")
-        return response.content
+        data = response.content
+        metadata = self.head(key)
+        if metadata.sha256 and metadata.sha256 != hashlib.sha256(data).hexdigest():
+            raise StorageIntegrityError("Cloudinary stored object SHA-256 metadata does not match content.")
+        return data
 
     def head(self, key: str) -> StoredObject:
         key = normalize_key(key)
@@ -227,7 +233,7 @@ class CloudinaryObjectStorage:
             key=key,
             size=int(payload.get("bytes", 0) or 0),
             sha256=str(custom.get("sha256", "")).lower(),
-            content_type=str(custom.get("content_type", "application/octet-stream")),
+            content_type=str(custom.get("content_type") or mimetypes.guess_type(key)[0] or "application/octet-stream"),
         )
 
     def delete(self, key: str) -> None:
