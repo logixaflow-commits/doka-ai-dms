@@ -1,7 +1,7 @@
 import asyncio
 
 from cloudflare_worker.storage_google_drive import GoogleDriveConfig, GoogleDriveExportProvider
-from cloudflare_worker.storage_contracts_compat import UploadMetadata
+from storage_contracts_compat import UploadMetadata
 
 
 def run(coro):
