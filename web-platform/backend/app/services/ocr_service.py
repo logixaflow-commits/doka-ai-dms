@@ -153,8 +153,9 @@ class OCRService:
             raise OCRError("Unable to inspect OCR input size.") from exc
         if file_size < 1:
             raise OCRError("OCR input file is empty.")
-        if file_size > self.max_file_bytes:
-            raise OCRError(f"OCR input exceeds the configured limit of {self.max_file_bytes:,} bytes.")
+        max_file_bytes = getattr(self, "max_file_bytes", 50 * 1024 * 1024)
+        if file_size > max_file_bytes:
+            raise OCRError(f"OCR input exceeds the configured limit of {max_file_bytes:,} bytes.")
 
         logger.info(f"OCR processing: {path.name} (type: {mime_type}, bytes: {file_size})")
 
@@ -186,9 +187,10 @@ class OCRService:
         try:
             with Image.open(str(image_path)) as image_header:
                 width, height = image_header.size
-            if width <= 0 or height <= 0 or width * height > self.max_image_pixels:
+            max_image_pixels = getattr(self, "max_image_pixels", self.MAX_IMAGE_PIXELS)
+            if width <= 0 or height <= 0 or width * height > max_image_pixels:
                 raise OCRError(
-                    f"Image dimensions exceed the OCR limit of {self.max_image_pixels:,} pixels."
+                    f"Image dimensions exceed the OCR limit of {max_image_pixels:,} pixels."
                 )
         except OCRError:
             raise
@@ -279,9 +281,10 @@ class OCRService:
         try:
             with pdfplumber.open(str(pdf_path)) as pdf:
                 page_count = len(pdf.pages)
-            if page_count > self.max_pdf_pages:
+            max_pdf_pages = getattr(self, "max_pdf_pages", self.MAX_PDF_PAGES)
+            if page_count > max_pdf_pages:
                 raise OCRError(
-                    f"PDF has {page_count} pages; the OCR limit is {self.max_pdf_pages} pages."
+                    f"PDF has {page_count} pages; the OCR limit is {max_pdf_pages} pages."
                 )
 
             # Prefer direct text extraction for text-based PDFs.
