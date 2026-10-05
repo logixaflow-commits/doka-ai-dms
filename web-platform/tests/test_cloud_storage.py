@@ -194,7 +194,7 @@ def test_cloudinary_storage_head_uses_admin_api(monkeypatch):
     )
     result = storage.head("users/u1/report.pdf")
     assert result.size == 7
-    assert result.content_type == "application/octet-stream"
+    assert result.content_type == "application/pdf"
 
 
 def test_cloudinary_storage_delete_uses_signed_destroy(monkeypatch):
