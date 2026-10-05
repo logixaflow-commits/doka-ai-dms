@@ -142,7 +142,11 @@ async function directStorageUpload(session: StorageUploadSession, file: File): P
   return {};
 }
 
-async function createDirectStorageUpload(file: File, artifactType: 'source' | 'preview' | 'thumbnail' | 'cover' = 'source') {
+async function createDirectStorageUpload(
+  file: File,
+  artifactType: 'source' | 'preview' | 'thumbnail' | 'cover' = 'source',
+  documentId?: string,
+) {
   if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
     throw new Error(`This file exceeds the configured upload limit of ${Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
   }
@@ -156,6 +160,7 @@ async function createDirectStorageUpload(file: File, artifactType: 'source' | 'p
       size_bytes: file.size,
       sha256,
       artifact_type: artifactType,
+      ...(documentId ? { document_id: documentId } : {}),
     }),
   });
   const providerResult = await directStorageUpload(session, file);
@@ -298,12 +303,7 @@ export async function listCloudDocumentVersions(documentId: string) {
 
 export async function createCloudDocumentVersion(documentId: string, file: File) {
   if (!(file instanceof File)) throw new Error('A file is required.');
-  const body = new FormData();
-  body.append('file', file);
-  return request<{ document: CloudDocument }>(
-    `/documents/${encodeURIComponent(documentId)}/versions`,
-    { method: 'POST', body },
-  );
+  return createDirectStorageUpload(file, 'source', documentId) as Promise<{ document: CloudDocument; warnings: string[] }>;
 }
 
 export async function restoreCloudDocumentVersion(documentId: string, versionId: string) {
