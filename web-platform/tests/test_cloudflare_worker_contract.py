@@ -33,7 +33,8 @@ def test_worker_version_history_is_owner_scoped_and_uses_atomic_database_functio
     assert '@app.get("/api/documents/{document_id}/versions")' in WORKER_SOURCE
     assert '@app.post("/api/documents/{document_id}/versions")' in WORKER_SOURCE
     assert '@app.post("/api/documents/{document_id}/versions/{version_id}/restore")' in WORKER_SOURCE
-    assert 'rpc/doka_replace_document_version' in WORKER_SOURCE
+    assert 'rpc/doka_replace_document_version_storage' in WORKER_SOURCE
+    assert 'rpc/doka_restore_document_version' in WORKER_SOURCE
     assert 'rpc/doka_restore_document_version' in WORKER_SOURCE
     assert '_audit(request, user_id, "version_create"' in WORKER_SOURCE
     assert '_audit(request, user_id, "version_restore"' in WORKER_SOURCE
@@ -93,16 +94,14 @@ def test_version_rpc_does_not_grant_direct_storage_pointer_updates():
     assert "grant update (object_key" not in least_privilege.lower()
 
 
-def test_worker_version_upload_reuses_existing_objects_without_deleting_them_on_failure():
-    assert 'version_query = f"select=id&document_id=eq.' in WORKER_SOURCE
-    assert 'uploaded_new_object = False' in WORKER_SOURCE
-    assert 'uploaded_new_object = True' in WORKER_SOURCE
-    assert 'if uploaded_new_object:' in WORKER_SOURCE
+def test_worker_version_upload_is_direct_only_and_legacy_proxy_is_disabled():
+    assert 'Direct version upload is required. Create a storage upload session with document_id first.' in WORKER_SOURCE
+    assert 'await file.read()' not in WORKER_SOURCE
 
 
-def test_worker_version_upload_validates_filename_and_content_type():
+def test_worker_version_upload_validates_filename_and_content_type_via_shared_metadata_guard():
     assert 'Filename must be a plain file name up to 255 characters.' in WORKER_SOURCE
-    assert 'content_type = (file.content_type or "application/octet-stream")' in WORKER_SOURCE
+    assert 'Invalid content type.' in WORKER_SOURCE
     assert 'len(filename) > 255' in WORKER_SOURCE
     assert 'len(content_type) > 255' in WORKER_SOURCE
 
