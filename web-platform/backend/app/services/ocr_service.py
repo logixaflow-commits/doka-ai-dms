@@ -53,6 +53,9 @@ class OCRService:
         self.psm = self.config.psm
         self.fallback_enabled = getattr(self.config, 'fallback_enabled', True)
         self.timeout = getattr(self.config, 'timeout', 30)
+        self.max_file_bytes = self.config.max_file_bytes
+        self.max_pdf_pages = self.config.max_pdf_pages
+        self.max_image_pixels = self.config.max_image_pixels
 
         # Configure tesseract path if provided
         if self.tesseract_cmd != "tesseract":
@@ -139,21 +142,31 @@ class OCRService:
         """
         path = Path(file_path)
         if not path.exists():
-            raise OCRError(f"File not found: {file_path}")
+            raise OCRError("OCR input file does not exist.")
+        if path.is_symlink():
+            raise OCRError("OCR does not accept symbolic-link inputs.")
+        if not isinstance(mime_type, str) or mime_type not in (self.SUPPORTED_IMAGE_TYPES | self.SUPPORTED_PDF_TYPES):
+            raise OCRError(f"Unsupported file type for OCR: {mime_type}")
+        try:
+            file_size = path.stat().st_size
+        except OSError as exc:
+            raise OCRError("Unable to inspect OCR input size.") from exc
+        if file_size < 1:
+            raise OCRError("OCR input file is empty.")
+        if file_size > self.max_file_bytes:
+            raise OCRError(f"OCR input exceeds the configured limit of {self.max_file_bytes:,} bytes.")
 
-        logger.info(f"OCR processing: {path.name} (type: {mime_type})")
+        logger.info(f"OCR processing: {path.name} (type: {mime_type}, bytes: {file_size})")
 
         try:
             if mime_type in self.SUPPORTED_IMAGE_TYPES:
                 text = self._process_image(path)
-            elif mime_type in self.SUPPORTED_PDF_TYPES:
-                text = self._process_pdf(path)
             else:
-                # Try pdfplumber for documents that might be PDF-like
-                try:
-                    text = self._process_pdf(path)
-                except Exception:
-                    raise OCRError(f"Unsupported file type for OCR: {mime_type}")
+                with path.open("rb") as source:
+                    header = source.read(5)
+                if header != b"%PDF-":
+                    raise OCRError("PDF input does not have a valid PDF header.")
+                text = self._process_pdf(path)
 
             detected_lang = self._detect_language(text)
             logger.info(f"OCR complete: {len(text)} chars extracted, language: {detected_lang}")
@@ -173,9 +186,9 @@ class OCRService:
         try:
             with Image.open(str(image_path)) as image_header:
                 width, height = image_header.size
-            if width <= 0 or height <= 0 or width * height > self.MAX_IMAGE_PIXELS:
+            if width <= 0 or height <= 0 or width * height > self.max_image_pixels:
                 raise OCRError(
-                    f"Image dimensions exceed the OCR limit of {self.MAX_IMAGE_PIXELS:,} pixels."
+                    f"Image dimensions exceed the OCR limit of {self.max_image_pixels:,} pixels."
                 )
         except OCRError:
             raise
@@ -266,9 +279,9 @@ class OCRService:
         try:
             with pdfplumber.open(str(pdf_path)) as pdf:
                 page_count = len(pdf.pages)
-            if page_count > self.MAX_PDF_PAGES:
+            if page_count > self.max_pdf_pages:
                 raise OCRError(
-                    f"PDF has {page_count} pages; the OCR limit is {self.MAX_PDF_PAGES} pages."
+                    f"PDF has {page_count} pages; the OCR limit is {self.max_pdf_pages} pages."
                 )
 
             # Prefer direct text extraction for text-based PDFs.
