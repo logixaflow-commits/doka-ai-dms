@@ -19,6 +19,12 @@ No item is marked complete merely because a sample snippet or proposed architect
 
 ## 2. Non-negotiable boundaries
 
+### 2026-10-05 — Supabase version-RPC hardening made reproducible
+
+- Added repository migration `supabase/migrations/20261005090000_doka_version_rpc_execute_hardening.sql` so fresh environments also revoke `PUBLIC`, `anon`, and `authenticated` execution on the two `SECURITY DEFINER` version RPCs while retaining `service_role` execution.
+- Applied the equivalent hardening to the live project and verified the resulting PostgreSQL ACLs: only `postgres` (owner) and `service_role` retain EXECUTE.
+- Re-ran the Supabase security advisor after the DDL change. The RPC finding remains cleared; the only remaining security warning is the project-level leaked-password-protection setting.
+
 ### 2026-10-05 — Live Supabase security advisor remediation
 
 - **SEC-011:** live Supabase security advisor identified two exposed `SECURITY DEFINER` version RPCs executable by `authenticated`. The project was checked before change; both functions intentionally retain `SECURITY DEFINER` for trusted version operations, so the safer least-privilege fix was to revoke `EXECUTE` from `authenticated` while retaining execution for `service_role`/`postgres`.
