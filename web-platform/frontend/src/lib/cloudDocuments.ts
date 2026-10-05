@@ -211,7 +211,7 @@ export async function exportCloudDocumentToGoogleDrive(documentId: string) {
         'Content-Length': String(chunk.byteLength),
         'Content-Range': `bytes ${start}-${end}/${total}`,
       },
-      body: chunk,
+      body: new Uint8Array(chunk).buffer,
     });
     if (response.status !== 200 && response.status !== 201 && response.status !== 308) {
       throw new Error(`Google Drive upload failed (${response.status}).`);
