@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 
 from cloudflare_worker.storage_cloudinary import CloudinaryConfig, CloudinaryCreditGuard, CloudinaryDerivativeProvider
-from cloudflare_worker.storage_contracts_compat import CLOUDINARY_DERIVATIVE_MAX_BYTES, StorageArtifactType, UploadMetadata
+from storage_contracts_compat import CLOUDINARY_DERIVATIVE_MAX_BYTES, StorageArtifactType, UploadMetadata
 
 
 def run(coro):
