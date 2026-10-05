@@ -26,7 +26,7 @@ def migration_files(directory: Path) -> list[Path]:
 
 def git_blob_sha(path: Path) -> str:
     data = path.read_bytes()
-    header = f"blob {len(data)}\\0".encode("utf-8")
+    header = f"blob {len(data)}\0".encode("utf-8")
     return hashlib.sha1(header + data).hexdigest()
 
 
