@@ -43,7 +43,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   backend-dependency-audit:
@@ -259,16 +259,6 @@ jobs:
       - name: Install frontend dependencies
         working-directory: web-platform/frontend
         run: npm install --no-audit --no-fund
-      - name: Commit regenerated frontend lockfile once
-        working-directory: web-platform/frontend
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git diff --cached --quiet && exit 0
-          git commit -m "build: regenerate frontend lockfile for Tailwind v4"
-          git push origin HEAD:main
-
       - name: Audit frontend dependencies
         id: frontend_audit
         continue-on-error: true
