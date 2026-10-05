@@ -140,7 +140,7 @@ class CloudinaryObjectStorage:
             "timestamp": timestamp,
             "type": "private",
             "overwrite": "false",
-            "context": f"sha256={digest}",
+            "context": f"sha256={digest}|content_type={content_type or 'application/octet-stream'}",
         }
         response = httpx.post(
             f"{self.upload_base_url}/raw/upload",
