@@ -17,6 +17,14 @@ Replace the current Supabase-only binary storage path with a provider-routed Clo
 
 The existing 50 MiB Supabase object limit is not removed. It becomes a routing boundary.
 
+## Local and hybrid provider modes
+
+`STORAGE_PROVIDER=mock` is a supported local-test mode. Mock providers use in-memory metadata and local-filesystem bytes and require no cloud credentials or network access.
+
+`STORAGE_PROVIDER=hybrid` is the real-credential mode. It enables the provider router for configured Supabase, Cloudinary, B2, and Drive capabilities; a provider with incomplete credentials fails closed rather than pretending to be production-ready. The mode may still use mock providers for explicitly disabled/unconfigured local capabilities, but production readiness requires the real provider gates.
+
+The default for existing documents is `storage_provider=supabase` so the migration is backward-compatible.
+
 ## Routing rules
 
 1. Original/source document objects at or below 50 MiB route to Supabase Storage.
@@ -47,6 +55,14 @@ Required operations:
 The multipart operations are mandatory in the interface even when a provider does not require multipart for a particular object size. The B2 implementation must support multipart uploads for files above 5 GB.
 
 All completion paths verify the authoritative object size and SHA-256 before metadata is marked ready. A checksum mismatch rejects the object and leaves metadata non-ready/quarantined.
+
+## Backward-compatible migration and rollback
+
+The metadata migration is additive. The first migration phase is read-only with respect to existing object bytes: it adds provider metadata with `storage_provider=supabase` for existing rows and does not copy, delete, or rewrite their objects.
+
+Existing documents are lazy-migrated only when they are accessed or explicitly transitioned. A document remains Supabase-backed until the new provider object is verified by size and SHA-256 and the metadata transition is committed.
+
+Rollback is provider-routing rollback, not destructive data movement: switch the router to Supabase-only, pin new writes to Supabase, and continue reading existing Supabase objects. Previously migrated provider metadata remains recorded for later reconciliation; rollback must never require deleting the original Supabase object.
 
 ## Provider implementations
 
@@ -135,6 +151,18 @@ Configuration includes:
 
 The guard is fail-closed for Cloudinary derivative creation when usage cannot be safely determined, and falls back to Supabase for supported derivative artifacts. The UI receives only a stable warning state.
 
+## B2 quota guard
+
+The B2 provider exposes usage information to a server-side quota guard. Configuration defaults are:
+
+- `DOKA_B2_WARNING_PERCENT=80`
+- `DOKA_B2_BLOCK_PERCENT=95`
+- optional `DOKA_B2_QUOTA_FALLBACK=google_drive`
+
+At 80%, the system emits an operator/admin warning. At 95% or higher, new B2 source-upload sessions are blocked. Unknown or stale usage is fail-safe and must not authorize a new B2 upload when the system cannot establish that the quota is below the block threshold.
+
+When the optional Google Drive fallback is explicitly enabled and available, a blocked B2 upload may be routed through an emergency Drive path. The UI receives a stable warning code such as `b2_quota_fallback_google_drive`. Drive fallback is never silent and does not make Google Drive the normal source store.
+
 ## Free-tier and quota guards
 
 - No paid-only dependency is required.
@@ -144,6 +172,20 @@ The guard is fail-closed for Cloudinary derivative creation when usage cannot be
 - Upload sessions reject impossible/oversized requests before issuing signed credentials.
 - Provider usage checks and configurable thresholds prevent accidental Cloudinary overuse.
 - No new Redis/QStash dependency is introduced solely for storage routing.
+
+## Mock, migration, and quota testing requirements
+
+The implementation must also include tests for:
+
+1. `STORAGE_PROVIDER=mock` works without cloud credentials and uses deterministic in-memory/local-filesystem providers;
+2. `STORAGE_PROVIDER=hybrid` selects real providers when credentials are present and fails closed when required credentials are incomplete;
+3. existing documents receive `storage_provider=supabase` without object-byte migration;
+4. lazy migration preserves Supabase reads until a provider transition is verified;
+5. rollback to Supabase-only requires no object deletion or byte copy;
+6. B2 usage at 80% produces an operator warning;
+7. B2 usage at 95% blocks new B2 source uploads;
+8. unknown/stale B2 usage fails safe;
+9. explicit Google Drive quota fallback is visible, opt-in, and does not silently alter the normal source-of-truth policy.
 
 ## Testing requirements
 
@@ -164,6 +206,8 @@ The implementation must include tests for:
 13. Google Drive export/backup is idempotent and records remote references;
 14. single-user authorization remains enforced;
 15. existing Supabase RLS/security tests remain green.
+16. mock/hybrid mode and migration rollback tests remain green.
+17. B2 quota warning/block/fallback tests remain green.
 
 ## Deployment boundary
 
