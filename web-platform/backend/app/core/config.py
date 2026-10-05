@@ -74,6 +74,10 @@ class OCRConfig:
     dpi: int = 300
     oem: int = 3
     psm: int = 6
+    max_file_bytes: int = 50 * 1024 * 1024
+    max_pdf_pages: int = 200
+    max_image_pixels: int = 50_000_000
+    fallback_enabled: bool = True
 
 
 @dataclass
@@ -185,6 +189,10 @@ class Settings:
         self.MYANMAR_LANG = os.getenv("MYANMAR_LANG", "mya")
         self.OCR_DPI = int(os.getenv("OCR_DPI", "300"))
         self.OCR_PREPROCESSING = os.getenv("OCR_PREPROCESSING", "true").lower() == "true"
+        self.OCR_MAX_FILE_BYTES = int(os.getenv("OCR_MAX_FILE_BYTES", str(50 * 1024 * 1024)))
+        self.OCR_MAX_PDF_PAGES = int(os.getenv("OCR_MAX_PDF_PAGES", "200"))
+        self.OCR_MAX_IMAGE_PIXELS = int(os.getenv("OCR_MAX_IMAGE_PIXELS", "50000000"))
+        self.OCR_FALLBACK_ENABLED = os.getenv("OCR_FALLBACK_ENABLED", "true").lower() == "true"
 
         # Security
         self.ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
@@ -345,6 +353,10 @@ class Settings:
             dpi=o.get("dpi", 300),
             oem=o.get("oem", 3),
             psm=o.get("psm", 6),
+            max_file_bytes=o.get("max_file_bytes", self.OCR_MAX_FILE_BYTES),
+            max_pdf_pages=o.get("max_pdf_pages", self.OCR_MAX_PDF_PAGES),
+            max_image_pixels=o.get("max_image_pixels", self.OCR_MAX_IMAGE_PIXELS),
+            fallback_enabled=o.get("fallback_enabled", self.OCR_FALLBACK_ENABLED),
         )
 
         # Duplicate config
@@ -399,6 +411,12 @@ class Settings:
 
         if not 1000 <= self.AI_MAX_INPUT_CHARS <= 1_000_000:
             raise ValueError("AI_MAX_INPUT_CHARS must be between 1000 and 1000000.")
+        if not 1_000_000 <= self.ocr.max_file_bytes <= 500 * 1024 * 1024:
+            raise ValueError("OCR max_file_bytes must be between 1 MiB and 500 MiB.")
+        if not 1 <= self.ocr.max_pdf_pages <= 1000:
+            raise ValueError("OCR max_pdf_pages must be between 1 and 1000.")
+        if not 1_000_000 <= self.ocr.max_image_pixels <= 200_000_000:
+            raise ValueError("OCR max_image_pixels must be between 1M and 200M pixels.")
 
         # Validate storage configuration
         if self.STORAGE_TYPE == "local" and not self.MINIO_ENABLED:
