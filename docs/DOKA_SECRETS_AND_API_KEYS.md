@@ -45,10 +45,6 @@ Add only keys for providers that are actually selected and used:
 - GOOGLE_APPLICATION_CREDENTIALS_JSON (server-side JSON secret only; never a file committed to Git)
 - CLOUDFLARE_ACCOUNT_ID
 - CLOUDFLARE_API_TOKEN
-- R2_BUCKET
-- R2_ENDPOINT_URL
-- R2_ACCESS_KEY_ID
-- R2_SECRET_ACCESS_KEY
 
 Existing AI settings in backend .env.example:
 - AI_ENABLED=false (AI stays off until deliberately enabled)
@@ -64,6 +60,9 @@ Existing AI settings in backend .env.example:
 Existing optional Doka controls:
 - DOKA_STORAGE_PROVIDER=disabled|supabase|r2
 - SUPABASE_STORAGE_BUCKET=doka-documents
+- CLOUDINARY_CLOUD_NAME
+- CLOUDINARY_API_KEY
+- CLOUDINARY_API_SECRET
 - DOKA_STORAGE_MAX_OBJECT_BYTES=52428800
 - DOKA_STORAGE_MAX_TOTAL_BYTES=0
 
