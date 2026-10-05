@@ -149,3 +149,10 @@ def test_worker_document_upload_validates_filename_and_content_type():
     assert 'len(content_type) > 255 or "/" not in content_type' in WORKER_SOURCE
     assert '"filename": filename' in WORKER_SOURCE
     assert '"content_type": content_type' in WORKER_SOURCE
+
+
+def test_worker_supports_optional_single_user_allowlist_without_disabling_auth():
+    assert 'DOKA_SINGLE_USER_EMAIL' in WORKER_SOURCE
+    assert 'status_code=403' in WORKER_SOURCE
+    assert 'This Doka instance is restricted to its configured single user.' in WORKER_SOURCE
+    assert 'Depends(require_user)' in WORKER_SOURCE
