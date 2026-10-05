@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from urllib.parse import quote, urlencode, urlsplit
 
-from shared.storage_contracts import (
+from cloudflare_worker.storage_contracts_compat import (
     B2_MULTIPART_THRESHOLD_BYTES,
     SignedUpload,
     StorageObjectRef,
