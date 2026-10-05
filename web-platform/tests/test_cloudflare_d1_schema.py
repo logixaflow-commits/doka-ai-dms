@@ -264,7 +264,7 @@ def test_outbox_schema_supports_leases_retry_limits_and_dead_letters(db):
         row[1]: row
         for row in db.execute("PRAGMA table_info(outbox_events)")
     }
-    assert {"status", "attempts", "max_attempts", "lease_until"} <= set(columns)
+    assert {"status", "attempts", "max_attempts", "lease_until", "lease_token"} <= set(columns)
 
     db.execute(
         """
@@ -278,14 +278,14 @@ def test_outbox_schema_supports_leases_retry_limits_and_dead_letters(db):
         """
         UPDATE outbox_events
         SET status = 'processing', attempts = attempts + 1,
-            lease_until = '2026-10-05T12:01:00.000Z'
+            lease_until = '2026-10-05T12:01:00.000Z', lease_token = 'lease-token-1'
         WHERE id = 'lease-event'
         """
     )
     row = db.execute(
-        "SELECT status, attempts, max_attempts, lease_until FROM outbox_events WHERE id = 'lease-event'"
+        "SELECT status, attempts, max_attempts, lease_until, lease_token FROM outbox_events WHERE id = 'lease-event'"
     ).fetchone()
-    assert row == ("processing", 1, 8, "2026-10-05T12:01:00.000Z")
+    assert row == ("processing", 1, 8, "2026-10-05T12:01:00.000Z", "lease-token-1")
 
     with pytest.raises(sqlite3.IntegrityError):
         db.execute("UPDATE outbox_events SET status = 'invalid' WHERE id = 'lease-event'")
