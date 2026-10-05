@@ -55,23 +55,21 @@ class SupabaseDirectStorageProvider:
         if status >= 300 or not isinstance(payload, dict):
             raise RuntimeError("Supabase signed upload creation failed")
         token = str(payload.get("token") or "").strip()
+        signed_path = str(payload.get("url") or "").strip()
         if not token:
             raise RuntimeError("Supabase signed upload response did not contain a token")
-        resumable = f"{self._storage_base()}/upload/resumable"
+        signed_url = signed_path if signed_path.startswith("http") else f"{self.config.base_url.rstrip('/')}{signed_path}"
+        if "token=" not in signed_url:
+            separator = "&" if "?" in signed_url else "?"
+            signed_url = f"{signed_url}{separator}token={quote(token, safe='')}"
         upload = SignedUpload(
-            method="PATCH",
-            url=resumable,
+            method="PUT",
+            url=signed_url,
             headers={
-                "x-signature": token,
                 "x-upsert": "false",
-                "x-storage-bucket": self.config.bucket,
+                "content-type": metadata.content_type,
             },
-            fields={
-                "bucketName": self.config.bucket,
-                "objectName": key,
-                "contentType": metadata.content_type,
-                "metadata": f'{{"sha256":"{metadata.sha256.lower()}","expectedSize":{metadata.size_bytes}}}',
-            },
+            fields={},
         )
         # Supabase signed upload URLs are documented as valid for up to two hours.
         import time
