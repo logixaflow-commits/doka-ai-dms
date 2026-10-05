@@ -69,7 +69,9 @@ between the Turso commit and the D1 acknowledgement.
 The D1 outbox dispatcher is implemented in `cloudflare_worker/outbox.py`.
 It atomically leases one pending (or expired-lease) event using a conditional
 UPDATE/RETURNING statement, increments the attempt count, and recovers abandoned
-processing leases. A successful publish marks the event delivered; failures use
+processing leases. Each claim receives a unique fencing token; acknowledgements
+and retries must match that token so an expired worker cannot acknowledge a
+new worker's lease. A successful publish marks the event delivered; failures use
 bounded exponential backoff and transition to dead after the configured
 `max_attempts`. The stored error is a fixed safe code, not a provider exception.
 
