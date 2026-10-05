@@ -25,12 +25,12 @@ Supabase remains the authentication, cloud metadata, and initial private documen
 
 The current free plan includes 500 MB database, 1 GB file storage, and 5 GB egress, but free projects can be paused after one week of inactivity. Therefore Supabase is suitable for auth/metadata and can initially hold a small document set, but it should not be treated as unlimited document storage.
 
-### Cloudflare R2
-R2 is the preferred **optional document-object storage adapter** when the personal document set grows beyond the Supabase Storage allowance.
+### Cloudinary
+Cloudinary is the **target private document-object storage provider** for the Cloud Edition. Documents are uploaded as private raw assets and accessed through time-limited signed URLs.
 
-Current R2 Standard free allowance is 10 GB-month storage, 1 million Class A operations/month, 10 million Class B operations/month, and free egress. R2 is S3-compatible and supports Python boto3, so Doka can use a stable object-storage adapter without coupling the application to one provider.
+The Cloudinary adapter is server-side only and keeps the API secret out of browsers. Cloudinary raw/private assets are used for document bytes while D1 remains the metadata source of truth.
 
-Important: R2 is usage-billed after the free allowance. The baseline application must therefore include a storage-usage guard/visibility mechanism before real office data is migrated.
+Important: Cloudinary usage and plan limits must be checked before real office data is migrated; the application still enforces a logical per-object quota.
 
 ## Hosting decision for the Python/OCR backend
 
@@ -93,7 +93,7 @@ The safest free-first design is therefore:
               |
               +----> [Object Storage Adapter]
                          |
-                         +----> Cloudflare R2 (only if user later enables it)
+                         +----> Cloudinary private raw assets
               |
               v
        [Remote Doka API/Worker]
@@ -127,9 +127,9 @@ A local cache may exist for usability, but cache loss must never mean document l
 1. Keep the existing Phase A-D local safety implementation intact.
 2. Finish the real-machine Phase D pilot using a copied office dataset.
 3. Add a provider-neutral object-storage interface to the backend.
-4. Use Supabase Storage as the first cloud storage implementation for small personal datasets; the private bucket and RLS policies are provisioned.
+4. Use Cloudinary as the selected Cloud Edition object-storage implementation; Supabase Storage remains only as the current transition path until the Cloudinary cutover is completed.
 5. Complete the browser cloud-document lifecycle against Supabase Auth/PostgREST/Storage; code and UI are implemented, while authenticated real-user E2E remains open.
-6. Keep R2 optional and inactive unless the user can enable it without card/billing requirements; do not make it a baseline dependency.
+6. Use Cloudinary as the selected Cloud Edition object-storage target; do not add another object-storage provider.
 7. Refactor document processing so durable state is cloud-backed and temporary files are disposable.
 8. Choose the remote Python/OCR runtime only after measuring the real pilot workload.
 9. Build the downloadable thin client after the cloud API is stable.
@@ -160,7 +160,7 @@ The current committed direction is:
 - **Vercel** → UI
 - **Supabase Auth + Postgres** → identity and metadata
 - **Supabase Storage initially** → small personal document set
-- **Cloudflare R2 adapter** → larger document/backup storage when needed
+- **Cloudinary** → private document/backup object storage
 - **Remote Python/OCR runtime** → still deliberately undecided until Phase D measurements
 - **Local computer** → thin client/cache only
 - **Docker on the user's computer** → not required
@@ -175,10 +175,10 @@ The backend now contains a provider-neutral object-storage boundary at
 
 Implemented adapters:
 - Supabase Storage adapter using the authenticated user's Supabase access token.
-- Cloudflare R2 adapter using S3-compatible `boto3`.
+- Cloudinary private raw-asset adapter using signed REST API calls.
 - Safe object-key normalization and traversal rejection.
 - Per-object size guard and optional total logical quota guard.
-- SHA-256 verification on uploads; R2 metadata verification on downloads.
+- SHA-256 verification on uploads; Cloudinary Admin API metadata verification on downloads.
 - Temporary signed GET URL support with a maximum seven-day expiry.
 - Authenticated Doka API routes for upload, binary download, and signed download URL.
 - Cloud storage remains disabled by default in the backend configuration; the live Supabase private bucket and policies have now been provisioned. A deployment must still set the provider configuration and verify authenticated requests before cloud storage is considered operational.
