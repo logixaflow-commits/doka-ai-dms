@@ -10,10 +10,10 @@ from workers import env as worker_env
 
 from shared.storage_contracts import StorageObjectRef, UploadMetadata
 from storage_b2 import B2StorageConfig, B2StorageProvider
-from cloudflare_worker.storage_cloudinary import CloudinaryConfig, CloudinaryDerivativeProvider
-from cloudflare_worker.storage_router import CloudStorageRouter
-from cloudflare_worker.storage_supabase import SupabaseDirectStorageProvider, SupabaseStorageConfig
-from cloudflare_worker.storage_google_drive import GoogleDriveConfig, GoogleDriveExportProvider
+from storage_cloudinary import CloudinaryConfig, CloudinaryDerivativeProvider
+from storage_router import CloudStorageRouter
+from storage_supabase import SupabaseDirectStorageProvider, SupabaseStorageConfig
+from storage_google_drive import GoogleDriveConfig, GoogleDriveExportProvider
 
 
 def build_storage_router(request, token: str, fetcher_factory):
