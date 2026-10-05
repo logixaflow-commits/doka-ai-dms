@@ -521,6 +521,7 @@ async def complete_storage_multipart(
     return {"document": rows[0], "warnings": []}
 
 
+
 @app.post("/api/documents")
 async def create_document(request: Request, file: UploadFile = File(...), user_id: str = Depends(require_user)):
     # Bytes must never be proxied through the Worker. Keep the route for clients
