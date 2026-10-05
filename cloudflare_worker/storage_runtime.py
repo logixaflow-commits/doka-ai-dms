@@ -6,6 +6,7 @@ import hmac
 import json
 import time
 from urllib.parse import quote
+from workers import env as worker_env
 
 from shared.storage_contracts import StorageObjectRef, UploadMetadata
 from cloudflare_worker.storage_b2 import B2StorageConfig, B2StorageProvider
@@ -70,6 +71,16 @@ def _read_env(request, name: str, default: str = "") -> str:
         except Exception:
             try:
                 value = bindings[name]
+            except Exception:
+                value = None
+        if value is not None:
+            return str(value)
+    if worker_env is not None:
+        try:
+            value = getattr(worker_env, name)
+        except Exception:
+            try:
+                value = worker_env[name]
             except Exception:
                 value = None
         if value is not None:
