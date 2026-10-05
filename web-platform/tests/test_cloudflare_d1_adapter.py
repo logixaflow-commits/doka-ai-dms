@@ -140,6 +140,34 @@ def test_non_scalar_parameters_are_rejected_before_prepare():
     assert binding.statements == []
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_float_parameters_are_rejected_before_prepare(value):
+    binding = FakeBinding()
+    db = D1Database(binding)
+    with pytest.raises(TypeError, match="finite"):
+        pytest.importorskip("asyncio").run(db.all("SELECT ?", (value,)))
+    assert binding.statements == []
+
+
+def test_unsafe_integer_parameters_are_rejected_before_prepare():
+    binding = FakeBinding()
+    db = D1Database(binding)
+    with pytest.raises(TypeError, match="safe integer"):
+        pytest.importorskip("asyncio").run(
+            db.all("SELECT ?", (9_007_199_254_740_992,))
+        )
+    assert binding.statements == []
+
+
+def test_safe_integer_and_boolean_parameters_remain_supported():
+    binding = FakeBinding()
+    db = D1Database(binding)
+    asyncio = pytest.importorskip("asyncio")
+
+    asyncio.run(db.all("SELECT ?, ?", (9_007_199_254_740_991, True)))
+    assert binding.statements[0].parameters == (9_007_199_254_740_991, True)
+
+
 def test_query_failures_are_wrapped_without_leaking_driver_details():
     binding = FakeBinding()
     binding.run_error = True
