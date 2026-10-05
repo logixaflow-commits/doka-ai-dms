@@ -184,6 +184,83 @@ export async function uploadCloudDocument(file: File) {
   return createDirectStorageUpload(file, 'source') as Promise<{ document: CloudDocument; warnings: string[] }>;
 }
 
+export async function exportCloudDocumentToGoogleDrive(documentId: string) {
+  const session = await request<{
+    session_id: string;
+    provider: 'google_drive';
+    source_document: { id: string; size_bytes: number; sha256: string; download_url: string };
+    upload: { method: string; url: string; headers: Record<string, string>; fields: Record<string, string> };
+  }>(`/documents/${encodeURIComponent(documentId)}/export/google-drive/upload-session`);
+
+  const source = await fetch(session.source_document.download_url);
+  if (!source.ok || !source.body) throw new Error('Unable to read the source document for Google Drive export.');
+
+  const reader = source.body.getReader();
+  const chunkSize = 8 * 1024 * 1024;
+  let pending = new Uint8Array(0);
+  let offset = 0;
+  let driveFileId = '';
+  let finalPayload: Record<string, unknown> = {};
+
+  const sendChunk = async (chunk: Uint8Array, start: number, total: number) => {
+    const end = start + chunk.byteLength - 1;
+    const response = await fetch(session.upload.url, {
+      method: 'PUT',
+      headers: {
+        ...session.upload.headers,
+        'Content-Length': String(chunk.byteLength),
+        'Content-Range': `bytes ${start}-${end}/${total}`,
+      },
+      body: chunk,
+    });
+    if (response.status !== 200 && response.status !== 201 && response.status !== 308) {
+      throw new Error(`Google Drive upload failed (${response.status}).`);
+    }
+    if (response.status === 200 || response.status === 201) {
+      finalPayload = await response.json().catch(() => ({}));
+      driveFileId = typeof finalPayload.id === 'string' ? finalPayload.id : '';
+    }
+  };
+
+  const append = async (incoming: Uint8Array) => {
+    const merged = new Uint8Array(pending.byteLength + incoming.byteLength);
+    merged.set(pending);
+    merged.set(incoming, pending.byteLength);
+    pending = merged;
+    while (pending.byteLength >= chunkSize) {
+      const chunk = pending.slice(0, chunkSize);
+      pending = pending.slice(chunkSize);
+      await sendChunk(chunk, offset, session.source_document.size_bytes);
+      offset += chunk.byteLength;
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    await append(value);
+  }
+  if (pending.byteLength > 0) {
+    await sendChunk(pending, offset, session.source_document.size_bytes);
+    offset += pending.byteLength;
+  }
+  if (offset !== session.source_document.size_bytes || !driveFileId) {
+    throw new Error('Google Drive did not report a completed file.');
+  }
+
+  return request<{ document: CloudDocument }>(`/documents/${encodeURIComponent(documentId)}/export/google-drive/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: session.session_id,
+      file_id: driveFileId,
+      size_bytes: session.source_document.size_bytes,
+      sha256: session.source_document.sha256,
+    }),
+  });
+}
+
+
 export async function getCloudDocumentDownloadUrl(documentId: string) {
   return request<{ url: string; sha256: string; expires_seconds: number }>(
     `/documents/${encodeURIComponent(documentId)}/download`,
