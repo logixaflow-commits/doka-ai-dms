@@ -81,3 +81,137 @@ def test_supabase_total_bytes_recurses_through_user_folders(monkeypatch):
 
     monkeypatch.setattr(cloud_storage.httpx, "post", fake_post)
     assert storage.total_bytes() == 7
+
+
+def test_cloudinary_storage_builds_signed_private_upload(monkeypatch):
+    import app.services.cloud_storage as cloud_storage
+
+    storage = cloud_storage.CloudinaryObjectStorage(
+        cloud_name="demo",
+        api_key="api-key",
+        api_secret="api-secret",
+        quota=QuotaGuard(max_object_bytes=100),
+    )
+    calls = []
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {"public_id": "users/u1/report.pdf", "bytes": 4}
+
+    def fake_post(url, *, data, files, timeout):
+        calls.append((url, data, files, timeout))
+        return Response()
+
+    monkeypatch.setattr(cloud_storage.httpx, "post", fake_post)
+    stored = storage.put(
+        "users/u1/report.pdf",
+        io.BytesIO(b"doka"),
+        content_type="application/pdf",
+        expected_sha256=__import__("hashlib").sha256(b"doka").hexdigest(),
+    )
+
+    assert stored.key == "users/u1/report.pdf"
+    assert stored.size == 4
+    assert stored.content_type == "application/pdf"
+    assert calls[0][0] == "https://api.cloudinary.com/v1_1/demo/raw/upload"
+    assert calls[0][1]["api_key"] == "api-key"
+    assert calls[0][1]["type"] == "private"
+    assert calls[0][1]["overwrite"] == "false"
+    assert calls[0][1]["signature"]
+    assert calls[0][2]["file"][1] == b"doka"
+
+
+def test_cloudinary_signed_download_url_contains_expiry_and_signature(monkeypatch):
+    import app.services.cloud_storage as cloud_storage
+
+    storage = cloud_storage.CloudinaryObjectStorage(
+        cloud_name="demo",
+        api_key="api-key",
+        api_secret="api-secret",
+    )
+    url = storage.signed_get_url("users/u1/report.pdf", expires_seconds=900)
+
+    assert url.startswith("https://api.cloudinary.com/v1_1/demo/raw/download?")
+    assert "public_id=users%2Fu1%2Freport" in url
+    assert "format=pdf" in url
+    assert "expires_at=" in url
+    assert "api_key=api-key" in url
+    assert "signature=" in url
+
+
+def test_cloudinary_storage_get_downloads_private_asset(monkeypatch):
+    import app.services.cloud_storage as cloud_storage
+
+    storage = cloud_storage.CloudinaryObjectStorage(
+        cloud_name="demo",
+        api_key="api-key",
+        api_secret="api-secret",
+    )
+    calls = []
+
+    class Response:
+        status_code = 200
+        content = b"doka"
+
+    def fake_get(url, *, timeout):
+        calls.append((url, timeout))
+        return Response()
+
+    monkeypatch.setattr(cloud_storage.httpx, "get", fake_get)
+    assert storage.get("users/u1/report.pdf") == b"doka"
+    assert calls[0][0].startswith("https://api.cloudinary.com/v1_1/demo/raw/download?")
+
+
+def test_cloudinary_storage_head_uses_admin_api(monkeypatch):
+    import app.services.cloud_storage as cloud_storage
+
+    storage = cloud_storage.CloudinaryObjectStorage(
+        cloud_name="demo",
+        api_key="api-key",
+        api_secret="api-secret",
+    )
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {"bytes": 7, "context": {}}
+
+    monkeypatch.setattr(
+        cloud_storage.httpx,
+        "get",
+        lambda url, *, auth, timeout: Response(),
+    )
+    result = storage.head("users/u1/report.pdf")
+    assert result.size == 7
+    assert result.content_type == "application/octet-stream"
+
+
+def test_cloudinary_storage_delete_uses_signed_destroy(monkeypatch):
+    import app.services.cloud_storage as cloud_storage
+
+    storage = cloud_storage.CloudinaryObjectStorage(
+        cloud_name="demo",
+        api_key="api-key",
+        api_secret="api-secret",
+    )
+    calls = []
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {"result": "ok"}
+
+    def fake_post(url, *, data, timeout):
+        calls.append((url, data, timeout))
+        return Response()
+
+    monkeypatch.setattr(cloud_storage.httpx, "post", fake_post)
+    storage.delete("users/u1/report.pdf")
+    assert calls[0][0] == "https://api.cloudinary.com/v1_1/demo/raw/destroy"
+    assert calls[0][1]["type"] == "private"
+    assert calls[0][1]["invalidate"] == "true"
+    assert calls[0][1]["signature"]
