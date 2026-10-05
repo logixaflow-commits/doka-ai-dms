@@ -859,7 +859,7 @@ async def document_preview(request: Request, document_id: str, user_id: str = De
     """Create a short-lived inline URL for safe passive document formats only."""
     base = _base(request)
     token = _token_from_request(request)
-    query = f"select=id,object_key,sha256,content_type,filename&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+    query = f"select=id,object_key,sha256,content_type,filename,storage_provider&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
     status, rows = await _fetch(
         request, f"{base}/rest/v1/doka_documents?{query}",
         headers={**_supabase_headers(request, token), "Accept": "application/json"},
@@ -876,21 +876,15 @@ async def document_preview(request: Request, document_id: str, user_id: str = De
     }
     if content_type not in previewable:
         raise HTTPException(status_code=415, detail="Preview is not available for this file type.")
-    bucket = quote(_bucket(request), safe="")
-    key = quote(str(target["object_key"]), safe="/")
-    status, payload = await _fetch(
-        request, f"{base}/storage/v1/object/sign/{bucket}/{key}",
-        method="POST",
-        headers=_supabase_headers(request, token, "application/json"),
-        body=json.dumps({"expiresIn": 300}),
-    )
-    if status >= 300 or not isinstance(payload, dict):
-        raise HTTPException(status_code=503, detail=f"Signed preview URL failed ({status}).")
-    signed = payload.get("signedURL") or payload.get("signedUrl")
-    if not signed:
-        raise HTTPException(status_code=503, detail="Supabase Storage did not return a signed URL.")
-    if not str(signed).startswith("http"):
-        signed = f"{base}/storage/v1{signed}"
+    router = build_storage_router(request, token, _storage_fetcher)
+    provider = _provider_for(router, str(target.get("storage_provider") or "supabase"))
+    try:
+        signed = await provider.get_signed_download(
+            StorageObjectRef(str(target.get("storage_provider") or "supabase"), str(target["object_key"]), user_id),
+            expires_seconds=300,
+        )
+    except (RuntimeError, ValueError, NotImplementedError) as exc:
+        raise HTTPException(status_code=503, detail=f"Signed preview URL failed: {exc}") from exc
     await _audit(request, user_id, "preview", str(target.get("id")), target.get("filename"), {"content_type": content_type})
     return {"url": signed, "sha256": target.get("sha256", ""), "expires_seconds": 300}
 
@@ -899,7 +893,7 @@ async def document_preview(request: Request, document_id: str, user_id: str = De
 async def document_download(request: Request, document_id: str, user_id: str = Depends(require_user)):
     base = _base(request)
     token = _token_from_request(request)
-    query = f"select=id,owner_id,object_key,sha256&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+    query = f"select=id,owner_id,object_key,sha256,storage_provider&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
     status, rows = await _fetch(
         request, f"{base}/rest/v1/doka_documents?{query}",
         headers={**_supabase_headers(request, token), "Accept": "application/json"},
@@ -909,22 +903,17 @@ async def document_download(request: Request, document_id: str, user_id: str = D
     if not isinstance(rows, list) or not rows:
         raise HTTPException(status_code=404, detail="Document not found.")
     target = rows[0]
-    bucket = quote(_bucket(request), safe="")
-    key = quote(str(target["object_key"]), safe="/")
-    status, payload = await _fetch(
-        request, f"{base}/storage/v1/object/sign/{bucket}/{key}",
-        method="POST",
-        headers=_supabase_headers(request, token, "application/json"),
-        body=json.dumps({"expiresIn": 300}),
-    )
-    if status >= 300 or not isinstance(payload, dict):
-        raise HTTPException(status_code=503, detail=f"Signed download URL failed ({status}).")
-    signed = payload.get("signedURL") or payload.get("signedUrl")
-    if not signed:
-        raise HTTPException(status_code=503, detail="Supabase Storage did not return a signed URL.")
-    if not str(signed).startswith("http"):
-        signed = f"{base}/storage/v1{signed}"
-    await _audit(request, user_id, "download", str(target.get("id")), None, {"sha256": target.get("sha256", "")})
+    provider_name = str(target.get("storage_provider") or "supabase")
+    router = build_storage_router(request, token, _storage_fetcher)
+    provider = _provider_for(router, provider_name)
+    try:
+        signed = await provider.get_signed_download(
+            StorageObjectRef(provider_name, str(target["object_key"]), user_id),
+            expires_seconds=300,
+        )
+    except (RuntimeError, ValueError, NotImplementedError) as exc:
+        raise HTTPException(status_code=503, detail=f"Signed download URL failed: {exc}") from exc
+    await _audit(request, user_id, "download", str(target.get("id")), None, {"sha256": target.get("sha256", ""), "storage_provider": provider_name})
     return {"url": signed, "sha256": target.get("sha256", ""), "expires_seconds": 300}
 
 
