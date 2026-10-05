@@ -59,3 +59,24 @@ This repository has no Sentry account-management connector, so creating the actu
 ## Not currently required
 
 AI provider keys remain optional and disabled by default. R2 remains disabled unless billing/activation requirements are explicitly accepted. QStash/Redis credentials are not added to unrelated services until the production queue path is enabled and verified.
+
+## Cloud storage routing additions
+
+For the direct-upload Cloud Edition also configure:
+- `STORAGE_PROVIDER=hybrid` (or `mock` for local contract testing)
+- `DOKA_STORAGE_SESSION_SECRET` (32+ bytes)
+- `B2_ENDPOINT`, `B2_BUCKET`, `B2_KEY_ID`, `B2_APPLICATION_KEY`, `B2_REGION` when >50 MiB sources are enabled
+- `B2_QUOTA_BYTES`, `B2_QUOTA_ALERT_RATIO=0.80`, `B2_QUOTA_BLOCK_RATIO=0.95`
+- `B2_QUOTA_ALERT_WEBHOOK` optional for the 80% warning
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_LOW_CREDIT_THRESHOLD=5` for derivative routing
+- `VITE_DOKA_MAX_UPLOAD_BYTES` optional frontend hint; the Worker remains authoritative
+
+Google Drive export/backup remains configuration-gated until a real OAuth/provider integration is available. Do not mark Drive fallback as live from environment variables alone.
+
+For the implemented Google Drive export path (configuration-gated):
+- `GOOGLE_DRIVE_CLIENT_ID`
+- `GOOGLE_DRIVE_CLIENT_SECRET`
+- `GOOGLE_DRIVE_REFRESH_TOKEN`
+- `GOOGLE_DRIVE_FOLDER_ID` (optional)
+
+The browser receives only a short-lived/resumable upload URL; OAuth client credentials and refresh tokens remain server-side.

@@ -102,3 +102,94 @@ The local quality workflow runs automatically for relevant changes. A green loca
 
 ## Next milestone
 The code foundation is now in the **real-machine validation phase**. The next meaningful milestone is not another architectural rewrite; it is proving the safe workflow against representative office files and then tuning organization/search/OCR quality from those results.
+
+## Cloud Edition — current implementation
+
+The Cloud Edition is being brought online separately from Personal Local. The current implementation branch is
+`feature/cloud-storage-routing`; it is **not merged to `main` automatically**.
+
+### Cloud storage routing
+
+- Source documents **<= 50 MiB** → private Supabase Storage.
+- Source documents **> 50 MiB** → Backblaze B2.
+- B2 objects **> 5 GiB** use S3 multipart upload sessions; file bytes do not pass through the Worker.
+- Preview/thumbnail/cover derivatives **< 10 MB** prefer Cloudinary when configured and healthy.
+- Cloudinary low/unknown credits fail closed and fall back to Supabase for derivative storage.
+- `STORAGE_PROVIDER=mock` is reserved for local contract testing; `hybrid` is the production routing mode.
+- Existing Supabase objects remain untouched by the metadata migration. Rollback is `STORAGE_PROVIDER=supabase`.
+
+### Direct-upload security boundary
+
+The Cloudflare Worker does **not** proxy document bytes. The browser requests a short-lived, HMAC-bound upload session, uploads directly to Supabase/B2/Cloudinary, then calls a small completion endpoint that verifies the issued session, size and provider result before writing metadata.
+
+Legacy multipart document/version upload routes now fail closed with HTTP 410 rather than buffering large files through the Worker.
+
+### Cloud Worker environment
+
+Required/important server-side bindings for the direct-storage path:
+
+```env
+SUPABASE_URL=https://jkobgssaqifzrqfirdfu.supabase.co
+SUPABASE_STORAGE_BUCKET=doka-documents
+SUPABASE_PUBLISHABLE_KEY=<Cloudflare secret>
+DOKA_STORAGE_MAX_OBJECT_BYTES=52428800
+DOKA_SINGLE_USER_EMAIL=<the one approved account>
+DOKA_STORAGE_SESSION_SECRET=<32+ byte secret>
+STORAGE_PROVIDER=hybrid
+
+# B2 — required only when >50 MiB source storage is enabled
+B2_ENDPOINT=https://s3.<region>.backblazeb2.com
+B2_BUCKET=<bucket>
+B2_KEY_ID=<application key id>
+B2_APPLICATION_KEY=<application key secret>
+B2_REGION=<region>
+B2_QUOTA_BYTES=<configured safety ceiling>
+B2_QUOTA_ALERT_RATIO=0.80
+B2_QUOTA_BLOCK_RATIO=0.95
+
+# Cloudinary — server-side only
+CLOUDINARY_CLOUD_NAME=<cloud>
+CLOUDINARY_API_KEY=<key>
+CLOUDINARY_API_SECRET=<secret>
+CLOUDINARY_LOW_CREDIT_THRESHOLD=5
+```
+
+Never put B2, Cloudinary, storage-session, Supabase secret/service-role, QStash or Sentry auth credentials in browser `VITE_*` variables.
+
+### Frontend direct-upload settings
+
+`VITE_API_BASE_URL` points to the Cloudflare Worker. The frontend computes SHA-256 in the browser, requests a storage session, uploads directly to the selected provider, and completes the session. The UI default upload ceiling is 5 GiB; the Worker remains the final enforcement point.
+
+### B2 quota safety
+
+Doka uses its own B2-backed document metadata usage as the application quota ledger. At the configured 80% projected threshold it emits a quota warning (and can POST a configured `B2_QUOTA_ALERT_WEBHOOK`). At 95% it blocks new B2 uploads. Google Drive fallback is intentionally **not claimed as active** until a real Google OAuth/provider configuration exists.
+
+### Google Drive export / backup
+
+Google Drive is implemented as a configuration-gated user-owned export path. The Worker refreshes a Google OAuth token, creates a resumable Drive upload session, the browser streams the source directly to the Drive session, and the Worker verifies the Drive file size/SHA-256 before recording `export_reference`.
+
+Server-side bindings:
+```env
+GOOGLE_DRIVE_CLIENT_ID=<OAuth client id>
+GOOGLE_DRIVE_CLIENT_SECRET=<OAuth client secret>
+GOOGLE_DRIVE_REFRESH_TOKEN=<OAuth refresh token>
+GOOGLE_DRIVE_FOLDER_ID=<optional target folder>
+```
+
+These are never browser `VITE_*` secrets. Export/restore is still not considered production-proven until real OAuth credentials are configured and an authenticated export + recovery drill succeeds.
+
+### Vercel status
+
+Vercel remains **intentionally paused by the owner**. Do not reactivate or deploy it unless explicitly requested. Cloudflare Worker changes can be verified independently.
+
+### Verification
+
+Current feature-branch verification includes:
+
+- Python compile of `cloudflare_worker/` and `shared/`.
+- Cloud storage provider contract tests.
+- B2 multipart and quota policy tests.
+- Frontend `npm ci` and production `npm run build`.
+- Supabase Security Advisor recheck after the version-RPC security migration.
+
+Latest isolated verification: **381 backend tests passed** with 11 non-blocking deprecation warnings, the frontend production build passed, and the Supabase migration history was reconciled to the live schema. Full production readiness still requires real authenticated browser E2E, real B2/Cloudinary credentials, Google Drive OAuth/export-restore proof, backup restore drill, OCR pilot, and final main-branch CI/release approval.

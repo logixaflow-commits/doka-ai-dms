@@ -102,3 +102,16 @@ Use only the services currently needed:
 - Sentry: optional privacy-scrubbed error telemetry.
 
 Do not add another database, Redis, another frontend host, a separate vector database or email service until a concrete feature requires it. Do not enable paid plans or billing without explicit approval.
+
+## Cloud storage direct-upload gates
+
+- Configure `DOKA_STORAGE_SESSION_SECRET` with at least 32 random bytes.
+- Keep `STORAGE_PROVIDER=hybrid` for the production routing policy.
+- Configure B2 credentials only in Cloudflare secret bindings; never in `VITE_*` variables.
+- Set a real `B2_QUOTA_BYTES`; the Worker blocks new B2 uploads at the 95% projected threshold and warns at 80%.
+- Verify Supabase direct signed uploads, B2 direct PUT, and B2 multipart with authenticated browser sessions.
+- Verify Cloudinary low-credit fallback to Supabase without exposing the API secret.
+- Verify document/version completion creates the correct `storage_provider` metadata.
+- Configure `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET`, `GOOGLE_DRIVE_REFRESH_TOKEN`, and optional `GOOGLE_DRIVE_FOLDER_ID` for Drive export.
+- Google Drive export is not considered production-proven until OAuth, upload, SHA-256 verification and a recovery drill are recorded.
+- Do not deploy/reactivate Vercel unless explicitly requested by the owner.

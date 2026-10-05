@@ -8,6 +8,7 @@ const API_BASE_URL = configuredApiBase.endsWith('/')
   ? configuredApiBase.slice(0, -1)
   : configuredApiBase;
 const API_ROOT = `${API_BASE_URL}/api`;
+const MAX_UPLOAD_BYTES = Number(import.meta.env.VITE_DOKA_MAX_UPLOAD_BYTES || 5 * 1024 * 1024 * 1024);
 
 export interface CloudDocument {
   id: string;
@@ -98,14 +99,167 @@ export async function listCloudDocuments(filters: CloudDocumentFilters = {}) {
   return request<{ documents: CloudDocument[] }>(`/documents?${query.toString()}`);
 }
 
-export async function uploadCloudDocument(file: File) {
-  const body = new FormData();
-  body.append('file', file);
-  return request<{ document: CloudDocument }>('/documents', {
+export interface StorageUploadSession {
+  session_id: string;
+  provider: 'supabase' | 'b2' | 'cloudinary' | 'mock';
+  object_key: string;
+  expires_at: number;
+  upload: {
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    fields: Record<string, string>;
+  };
+  warnings: string[];
+}
+
+async function sha256Hex(file: File): Promise<string> {
+  if (!globalThis.crypto?.subtle) throw new Error('Browser cryptography is unavailable; cannot verify the upload fingerprint.');
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+}
+
+async function directStorageUpload(session: StorageUploadSession, file: File): Promise<Record<string, unknown>> {
+  if (session.provider === 'cloudinary') {
+    const body = new FormData();
+    Object.entries(session.upload.fields).forEach(([key, value]) => body.append(key, value));
+    body.append('file', file);
+    const response = await fetch(session.upload.url, { method: session.upload.method || 'POST', body });
+    const raw = await response.text();
+    if (!response.ok) throw new Error(`Cloudinary upload failed (${response.status}).`);
+    try { return JSON.parse(raw) as Record<string, unknown>; } catch { return {}; }
+  }
+
+  const response = await fetch(session.upload.url, {
+    method: session.upload.method || 'PUT',
+    headers: session.upload.headers,
+    body: file,
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(detail || `Direct ${session.provider} upload failed (${response.status}).`);
+  }
+  return {};
+}
+
+async function createDirectStorageUpload(
+  file: File,
+  artifactType: 'source' | 'preview' | 'thumbnail' | 'cover' = 'source',
+  documentId?: string,
+) {
+  if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`This file exceeds the configured upload limit of ${Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
+  }
+  const sha256 = await sha256Hex(file);
+  const session = await request<StorageUploadSession>('/storage/upload-session', {
     method: 'POST',
-    body,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: file.name,
+      content_type: file.type || 'application/octet-stream',
+      size_bytes: file.size,
+      sha256,
+      artifact_type: artifactType,
+      ...(documentId ? { document_id: documentId } : {}),
+    }),
+  });
+  const providerResult = await directStorageUpload(session, file);
+  const completed = await request<{ document?: CloudDocument; stored?: Record<string, unknown>; warnings: string[] }>('/storage/upload-complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: session.session_id,
+      size_bytes: file.size,
+      sha256,
+      provider_result: providerResult,
+    }),
+  });
+  return {
+    ...completed,
+    warnings: [...(session.warnings || []), ...(completed.warnings || [])],
+  };
+}
+
+export async function uploadCloudDocument(file: File) {
+  return createDirectStorageUpload(file, 'source') as Promise<{ document: CloudDocument; warnings: string[] }>;
+}
+
+export async function exportCloudDocumentToGoogleDrive(documentId: string) {
+  const session = await request<{
+    session_id: string;
+    provider: 'google_drive';
+    source_document: { id: string; size_bytes: number; sha256: string; download_url: string };
+    upload: { method: string; url: string; headers: Record<string, string>; fields: Record<string, string> };
+  }>(`/documents/${encodeURIComponent(documentId)}/export/google-drive/upload-session`);
+
+  const source = await fetch(session.source_document.download_url);
+  if (!source.ok || !source.body) throw new Error('Unable to read the source document for Google Drive export.');
+
+  const reader = source.body.getReader();
+  const chunkSize = 8 * 1024 * 1024;
+  let pending = new Uint8Array(0);
+  let offset = 0;
+  let driveFileId = '';
+  let finalPayload: Record<string, unknown> = {};
+
+  const sendChunk = async (chunk: Uint8Array, start: number, total: number) => {
+    const end = start + chunk.byteLength - 1;
+    const response = await fetch(session.upload.url, {
+      method: 'PUT',
+      headers: {
+        ...session.upload.headers,
+        'Content-Length': String(chunk.byteLength),
+        'Content-Range': `bytes ${start}-${end}/${total}`,
+      },
+      body: new Uint8Array(chunk).buffer,
+    });
+    if (response.status !== 200 && response.status !== 201 && response.status !== 308) {
+      throw new Error(`Google Drive upload failed (${response.status}).`);
+    }
+    if (response.status === 200 || response.status === 201) {
+      finalPayload = await response.json().catch(() => ({}));
+      driveFileId = typeof finalPayload.id === 'string' ? finalPayload.id : '';
+    }
+  };
+
+  const append = async (incoming: Uint8Array) => {
+    const merged = new Uint8Array(pending.byteLength + incoming.byteLength);
+    merged.set(pending);
+    merged.set(incoming, pending.byteLength);
+    pending = merged;
+    while (pending.byteLength >= chunkSize) {
+      const chunk = pending.slice(0, chunkSize);
+      pending = pending.slice(chunkSize);
+      await sendChunk(chunk, offset, session.source_document.size_bytes);
+      offset += chunk.byteLength;
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    await append(value);
+  }
+  if (pending.byteLength > 0) {
+    await sendChunk(pending, offset, session.source_document.size_bytes);
+    offset += pending.byteLength;
+  }
+  if (offset !== session.source_document.size_bytes || !driveFileId) {
+    throw new Error('Google Drive did not report a completed file.');
+  }
+
+  return request<{ document: CloudDocument }>(`/documents/${encodeURIComponent(documentId)}/export/google-drive/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: session.session_id,
+      file_id: driveFileId,
+      size_bytes: session.source_document.size_bytes,
+      sha256: session.source_document.sha256,
+    }),
   });
 }
+
 
 export async function getCloudDocumentDownloadUrl(documentId: string) {
   return request<{ url: string; sha256: string; expires_seconds: number }>(
@@ -161,7 +315,7 @@ export async function moveCloudDocument(documentId: string, folderPath: string) 
 export interface CloudAuditEvent {
   id: string;
   document_id: string | null;
-  action: 'upload' | 'download' | 'preview' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'version_create' | 'version_restore';
+  action: 'upload' | 'download' | 'preview' | 'update' | 'trash' | 'restore' | 'permanent_delete' | 'version_create' | 'version_restore' | 'export' | 'backup';
   filename: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -226,12 +380,7 @@ export async function listCloudDocumentVersions(documentId: string) {
 
 export async function createCloudDocumentVersion(documentId: string, file: File) {
   if (!(file instanceof File)) throw new Error('A file is required.');
-  const body = new FormData();
-  body.append('file', file);
-  return request<{ document: CloudDocument }>(
-    `/documents/${encodeURIComponent(documentId)}/versions`,
-    { method: 'POST', body },
-  );
+  return createDirectStorageUpload(file, 'source', documentId) as Promise<{ document: CloudDocument; warnings: string[] }>;
 }
 
 export async function restoreCloudDocumentVersion(documentId: string, versionId: string) {
