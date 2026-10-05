@@ -259,6 +259,17 @@ jobs:
       - name: Install frontend dependencies
         working-directory: web-platform/frontend
         run: npm install --no-audit --no-fund
+      - name: Export regenerated frontend lockfile
+        working-directory: web-platform/frontend
+        run: |
+          python - <<'PY'
+          import base64, gzip
+          from pathlib import Path
+          encoded = base64.b64encode(gzip.compress(Path("package-lock.json").read_bytes(), compresslevel=9)).decode()
+          print("LOCKFILE_GZIP_BASE64_BEGIN")
+          print(encoded)
+          print("LOCKFILE_GZIP_BASE64_END")
+          PY
       - name: Audit frontend dependencies
         id: frontend_audit
         continue-on-error: true
