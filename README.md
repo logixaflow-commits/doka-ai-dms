@@ -105,8 +105,7 @@ The code foundation is now in the **real-machine validation phase**. The next me
 
 ## Cloud Edition — current implementation
 
-The Cloud Edition is being brought online separately from Personal Local. The current implementation branch is
-`feature/cloud-storage-routing`; it is **not merged to `main` automatically**.
+The Cloud Edition is being brought online separately from Personal Local. The Cloud Edition implementation is now merged to `main` and is being verified independently of the intentionally paused Vercel deployment.
 
 ### Cloud storage routing
 
@@ -192,4 +191,4 @@ Current feature-branch verification includes:
 - Frontend `npm ci` and production `npm run build`.
 - Supabase Security Advisor recheck after the version-RPC security migration.
 
-Latest isolated verification: **381 backend tests passed** with 11 non-blocking deprecation warnings, the frontend production build passed, and the Supabase migration history was reconciled to the live schema. Full production readiness still requires real authenticated browser E2E, real B2/Cloudinary credentials, Google Drive OAuth/export-restore proof, backup restore drill, OCR pilot, and final main-branch CI/release approval.
+Latest isolated verification: **381 backend tests passed** with 11 non-blocking deprecation warnings, the frontend production build passed, and the Supabase migration history was reconciled to the live schema. Cloudflare Workers Builds is the active cloud deployment path; the latest build investigation identified a Python module-layout import failure (`storage_runtime` importing `cloudflare_worker.*`) and the fix is being verified in the cloud build. Vercel remains intentionally paused. Full production readiness still requires real authenticated browser E2E, real B2/Cloudinary credentials, Google Drive OAuth/export-restore proof, backup restore drill, OCR pilot, and final main-branch CI/release approval.
