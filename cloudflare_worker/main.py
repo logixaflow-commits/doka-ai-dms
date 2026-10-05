@@ -693,6 +693,7 @@ async def complete_google_drive_export(
     payload: DriveExportCompletionRequest,
     user_id: str = Depends(require_user),
 ):
+    token = _token_from_request(request)
     try:
         signed = verify_session(_storage_session_secret(request), payload.session_id)
     except ValueError as exc:
