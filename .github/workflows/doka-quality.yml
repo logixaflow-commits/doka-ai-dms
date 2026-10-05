@@ -247,7 +247,7 @@ jobs:
         run: python -m compileall -q cloudflare_worker shared
       - name: Run cloud storage provider contracts
         env:
-          PYTHONPATH: web-platform/backend
+          PYTHONPATH: .
         run: |
           python -m pytest -q             web-platform/tests/test_cloud_storage_routing.py             web-platform/tests/test_cloudflare_storage_direct_upload.py             web-platform/tests/test_cloudflare_b2_storage.py             web-platform/tests/test_cloudflare_b2_quota.py             web-platform/tests/test_cloudflare_cloudinary_guard.py             web-platform/tests/test_cloudflare_storage_router.py             web-platform/tests/test_doka_storage_metadata_migration.py
 
