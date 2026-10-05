@@ -1,6 +1,6 @@
 # Doka cloud setup and release checklist
 
-Last reviewed: 2026-10-02
+Last reviewed: 2026-10-05
 
 ## Active production architecture
 
@@ -15,7 +15,7 @@ Render is not part of the active deployment. The free Render option was not sele
 ## Verified current state
 
 - Cloudflare Worker version 105 (`17b96d04-9dbe-4c47-b748-7f4673dda47a`) is receiving 100% traffic. It includes authenticated document lifecycle, preview, version history, folder listing, atomic bulk status/Trash and audit routes.
-- Supabase has 21 applied Doka migrations through `20261002100658_doka_version_object_key_pattern`.
+- Supabase has the Doka schema migrations through `20261005073729_doka_version_rpc_execute_hardening`.
 - Owner-scoped RLS and private Storage policies are installed. Version RPCs validate `auth.uid()` and the parent document owner; anonymous users cannot execute version/bulk RPCs.
 - Vercel production deployment `dpl_BoY7ur6K8751F77DsGPoRsPvtutS` (commit `7846669f`) is READY and owns the production alias. Its production bundle was checked for version history, preview, folder filtering, atomic bulk actions, Activity and batch upload/retry.
 - The current production JavaScript bundle was checked and includes Version history, safe preview, folder filtering, atomic bulk actions, Activity and the sequential batch-upload queue with retry.
@@ -67,7 +67,7 @@ Verify after future Worker deployments:
 - Only trashed documents can be permanently deleted.
 - Version replacement/restore RPCs must retain explicit owner and object-path validation.
 - Bulk RPC remains SECURITY INVOKER and relies on existing column-level grants and RLS.
-- The Security Advisor still reports the authenticated SECURITY DEFINER version RPCs and leaked-password protection disabled. The version functions explicitly validate the signed-in owner; keep this warning under review and do not broaden execute grants.
+- Supabase Security Advisor now reports only leaked-password protection disabled. The version-RPC SECURITY DEFINER finding was cleared after revoking direct `authenticated` execution; the repository now carries the same hardening as a migration.
 - Recheck Security and Performance Advisors after schema changes. Do not remove unused indexes until representative workload evidence exists.
 
 ## Required acceptance before real use
