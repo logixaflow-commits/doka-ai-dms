@@ -72,3 +72,11 @@ For the direct-upload Cloud Edition also configure:
 - `VITE_DOKA_MAX_UPLOAD_BYTES` optional frontend hint; the Worker remains authoritative
 
 Google Drive export/backup remains configuration-gated until a real OAuth/provider integration is available. Do not mark Drive fallback as live from environment variables alone.
+
+For the implemented Google Drive export path (configuration-gated):
+- `GOOGLE_DRIVE_CLIENT_ID`
+- `GOOGLE_DRIVE_CLIENT_SECRET`
+- `GOOGLE_DRIVE_REFRESH_TOKEN`
+- `GOOGLE_DRIVE_FOLDER_ID` (optional)
+
+The browser receives only a short-lived/resumable upload URL; OAuth client credentials and refresh tokens remain server-side.
