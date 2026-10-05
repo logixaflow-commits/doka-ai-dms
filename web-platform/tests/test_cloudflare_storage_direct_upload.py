@@ -25,8 +25,10 @@ def test_supabase_signed_session_contains_no_service_secret():
     )
     metadata = UploadMetadata("doc.pdf", "application/pdf", 1024, hashlib.sha256(b"x").hexdigest(), "owner-1")
     session = run(provider.create_upload_session(metadata))
-    assert session.upload.url.endswith("/storage/v1/upload/resumable")
-    assert session.upload.headers["x-signature"] == "signed-upload-token"
+    assert "/storage/v1/object/upload/sign/doka-documents/users/owner-1/documents/" in session.upload.url
+    assert session.upload.method == "PUT"
+    assert session.upload.headers["content-type"] == "application/pdf"
+    assert "signed-upload-token" in session.upload.url
     assert "service" not in str(session).lower()
     assert "publishable" not in str(session).lower()
     assert "Authorization" not in str(session)
