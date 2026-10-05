@@ -86,7 +86,7 @@ The following services are in the planned integration inventory. Possessing an A
 | Groq | Hosted LLM inference | Existing adapter documented as supported | `GROQ_API_KEY` |
 | Canva | Design/export integration, not a general-purpose LLM provider | Not yet integrated; OAuth/app setup may be required rather than a simple API key | Do not add a secret until the Canva app/OAuth flow is designed |
 | Voyage AI | Embeddings and reranking | Not yet integrated | Candidate: `VOYAGE_API_KEY` |
-| Cloudflare | Object storage via R2; potential edge/AI services | R2 adapter is implemented; Workers AI and other Cloudflare services are not thereby enabled | R2: `R2_BUCKET`, `R2_ENDPOINT_URL`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; account/token variables only for a feature that needs them |
+| Cloudinary | Private document/object storage for the Cloud Edition target | Private raw-asset adapter is implemented; production use still requires credentials in the server-side secret manager | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 
 ### Integration and privacy rules
 
@@ -95,7 +95,7 @@ The following services are in the planned integration inventory. Possessing an A
 - Do not send document contents to a provider merely because its key is configured. Each document-processing feature must explicitly opt in, disclose the destination/provider, and use only the minimum required content.
 - Embedding and reranking providers (for example Voyage AI or Cohere) must be configured as separate capabilities; do not treat them as interchangeable chat-completion providers.
 - Canva must be handled as a separate OAuth/product integration, not inserted into the LLM provider fallback chain.
-- Cloudflare R2 object storage credentials are separate from Cloudflare Workers AI credentials. Implementing one does not enable the other.
+- Cloudinary object-storage credentials are separate from Cloudflare Workers AI credentials. Implementing one does not enable the other.
 - Before adding any new key to `.env.example`, implement and test the corresponding adapter and document its exact supported endpoint, model/task, timeout, and failure behavior.
 - The exact NVIDIA product meant by “NVIDIA Build” must be confirmed before implementation so Doka uses the correct API base URL and authentication scheme.
 
