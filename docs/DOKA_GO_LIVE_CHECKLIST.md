@@ -112,5 +112,6 @@ Do not add another database, Redis, another frontend host, a separate vector dat
 - Verify Supabase direct signed uploads, B2 direct PUT, and B2 multipart with authenticated browser sessions.
 - Verify Cloudinary low-credit fallback to Supabase without exposing the API secret.
 - Verify document/version completion creates the correct `storage_provider` metadata.
-- Google Drive export/backup is not considered live until OAuth, upload, download/restore and recovery evidence are recorded.
+- Configure `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET`, `GOOGLE_DRIVE_REFRESH_TOKEN`, and optional `GOOGLE_DRIVE_FOLDER_ID` for Drive export.
+- Google Drive export is not considered production-proven until OAuth, upload, SHA-256 verification and a recovery drill are recorded.
 - Do not deploy/reactivate Vercel unless explicitly requested by the owner.
