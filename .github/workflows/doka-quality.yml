@@ -260,7 +260,6 @@ jobs:
         working-directory: web-platform/frontend
         run: npm install --no-audit --no-fund
       - name: Commit regenerated frontend lockfile once
-        if: github.sha == 'abc41a9fa5b18ac369932ed8d4c6b2819caa1e94'
         working-directory: web-platform/frontend
         run: |
           git config user.name "github-actions[bot]"
