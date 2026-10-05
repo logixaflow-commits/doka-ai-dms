@@ -602,62 +602,7 @@ async def list_document_versions(request: Request, document_id: str, user_id: st
 
 @app.post("/api/documents/{document_id}/versions")
 async def create_document_version(request: Request, document_id: str, file: UploadFile = File(...), user_id: str = Depends(require_user)):
-    base = _base(request)
-    token = _token_from_request(request)
-    doc_query = f"select=id,object_key,filename,content_type,size_bytes,sha256&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
-    status, docs = await _fetch(request, f"{base}/rest/v1/doka_documents?{doc_query}", headers={**_supabase_headers(request, token), "Accept": "application/json"})
-    if status >= 300:
-        raise HTTPException(status_code=503, detail=f"Document lookup failed ({status}).")
-    if not isinstance(docs, list) or not docs:
-        raise HTTPException(status_code=404, detail="Document not found.")
-    current = docs[0]
-    max_bytes = int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024)))
-    data = await file.read(max_bytes + 1)
-    if len(data) > max_bytes:
-        raise HTTPException(status_code=413, detail="Object exceeds configured maximum size.")
-    digest = hashlib.sha256(data).hexdigest()
-    filename = (file.filename or current.get("filename") or "document").replace("\\", "/").rsplit("/", 1)[-1].strip()
-    if not filename or filename in {".", ".."} or "/" in filename or "\\" in filename or len(filename) > 255:
-        raise HTTPException(status_code=400, detail="Filename must be a plain file name up to 255 characters.")
-    content_type = (file.content_type or "application/octet-stream").split(";", 1)[0].strip().lower() or "application/octet-stream"
-    if len(content_type) > 255:
-        raise HTTPException(status_code=400, detail="Content type is too long.")
-    key = _object_key(user_id, digest, filename)
-    if key == current.get("object_key"):
-        raise HTTPException(status_code=409, detail="The uploaded content is identical to the current document.")
-    bucket = quote(_bucket(request), safe="")
-    encoded_key = quote(key, safe="/")
-    version_query = f"select=id&document_id=eq.{quote(document_id, safe='')}&object_key=eq.{quote(key, safe='')}&limit=1"
-    version_status, existing_versions = await _fetch(
-        request, f"{base}/rest/v1/doka_document_versions?{version_query}",
-        headers={**_supabase_headers(request, token), "Accept": "application/json"},
-    )
-    if version_status >= 300 or not isinstance(existing_versions, list):
-        raise HTTPException(status_code=503, detail=f"Existing version lookup failed ({version_status}).")
-    uploaded_new_object = False
-    if not existing_versions:
-        upload_headers = _supabase_headers(request, token, content_type)
-        upload_headers["x-upsert"] = "false"
-        status, _ = await _fetch(request, f"{base}/storage/v1/object/{bucket}/{encoded_key}", method="POST", headers=upload_headers, body=_js_bytes(data))
-        if status >= 300:
-            raise HTTPException(status_code=503, detail=f"Version object upload failed ({status}).")
-        uploaded_new_object = True
-    payload = {
-        "p_document_id": document_id,
-        "p_object_key": key,
-        "p_filename": filename,
-        "p_content_type": content_type,
-        "p_size_bytes": len(data),
-        "p_sha256": digest,
-    }
-    status, updated = await _fetch(request, f"{base}/rest/v1/rpc/doka_replace_document_version", method="POST", headers=_supabase_headers(request, token, "application/json"), body=json.dumps(payload))
-    if status >= 300:
-        if uploaded_new_object:
-            await _fetch(request, f"{base}/storage/v1/object/{bucket}", method="DELETE", headers=_supabase_headers(request, token, "application/json"), body=json.dumps({"prefixes": [key]}))
-        raise HTTPException(status_code=503, detail=f"Version metadata update failed ({status}).")
-    document = updated[0] if isinstance(updated, list) and updated else updated
-    await _audit(request, user_id, "version_create", document_id, filename, {"sha256": digest, "size_bytes": len(data)})
-    return {"document": document}
+    raise HTTPException(status_code=410, detail="Direct version upload is required. Create a storage upload session with document_id first.")
 
 
 @app.post("/api/documents/{document_id}/versions/{version_id}/restore")
