@@ -382,6 +382,7 @@ class UploadSessionRequest(BaseModel):
     size_bytes: int = Field(gt=0)
     sha256: str = Field(min_length=64, max_length=64)
     artifact_type: Literal["source", "preview", "thumbnail", "cover"] = "source"
+    document_id: str | None = None
 
 
 class UploadCompletionRequest(BaseModel):
@@ -398,6 +399,20 @@ async def create_storage_upload_session(
     user_id: str = Depends(require_user),
 ):
     metadata = _validate_upload_metadata(request, user_id, payload.model_dump())
+    document_id = payload.document_id
+    if document_id:
+        doc_query = f"select=id,object_key,sha256&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+        doc_status, docs = await _fetch(
+            request,
+            f"{_base(request)}/rest/v1/doka_documents?{doc_query}",
+            headers={**_supabase_headers(request, _token_from_request(request)), "Accept": "application/json"},
+        )
+        if doc_status >= 300:
+            raise HTTPException(status_code=503, detail="Unable to validate the target document.")
+        if not isinstance(docs, list) or not docs:
+            raise HTTPException(status_code=404, detail="Document not found.")
+        if str(docs[0].get("object_key") or "") == owner_object_key(metadata):
+            raise HTTPException(status_code=409, detail="The uploaded content is identical to the current document.")
     if metadata.artifact_type is StorageArtifactType.SOURCE and metadata.size_bytes > int(_env(request, "DOKA_STORAGE_MAX_OBJECT_BYTES", str(50 * 1024 * 1024))):
         # The configured application limit is the source of truth for B2; a
         # missing/50 MiB default therefore remains safely Supabase-only.
@@ -422,6 +437,8 @@ async def create_storage_upload_session(
         "content_type": metadata.content_type,
         "size_bytes": metadata.size_bytes,
         "artifact_type": metadata.artifact_type.value,
+        "document_id": document_id,
+        "storage_region": _env(request, "B2_REGION", "") if session.provider == "b2" else "",
         "expires_at": session.expires_at,
     }
     session_token = sign_session(_storage_session_secret(request), payload_to_sign)
@@ -495,6 +512,38 @@ async def complete_storage_upload(
             },
             "warnings": [],
         }
+
+    if signed.get("document_id"):
+        rpc_payload = {
+            "p_document_id": str(signed["document_id"]),
+            "p_object_key": stored.object_ref.object_key,
+            "p_filename": metadata.filename,
+            "p_content_type": metadata.content_type,
+            "p_size_bytes": stored.size_bytes,
+            "p_sha256": metadata.sha256,
+            "p_storage_provider": stored.object_ref.provider,
+            "p_storage_region": str(signed.get("storage_region") or "") or None,
+        }
+        status, rows = await _fetch(
+            request,
+            f"{_base(request)}/rest/v1/rpc/doka_replace_document_version_storage",
+            method="POST",
+            headers=_supabase_headers(request, _token_from_request(request), "application/json"),
+            body=json.dumps(rpc_payload),
+        )
+        if status >= 300 or not isinstance(rows, list) or not rows:
+            try:
+                await provider.delete(stored.object_ref)
+            except Exception:
+                pass
+            raise HTTPException(status_code=503, detail=f"Version metadata update failed ({status}).")
+        document = rows[0]
+        await _audit(request, user_id, "version_create", str(signed["document_id"]), metadata.filename, {
+            "sha256": metadata.sha256,
+            "size_bytes": stored.size_bytes,
+            "storage_provider": stored.object_ref.provider,
+        })
+        return {"document": document, "warnings": []}
 
     record = {
         "owner_id": user_id,
