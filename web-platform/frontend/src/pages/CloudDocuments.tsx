@@ -13,7 +13,7 @@ import {
   updateCloudDocument, uploadCloudDocument, type CloudDocument, type CloudDocumentVersion,
 } from '@/lib/cloudDocuments';
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_FILE_BYTES = Number(import.meta.env.VITE_DOKA_MAX_UPLOAD_BYTES || 5 * 1024 * 1024 * 1024);
 type BatchUploadItem = { id: string; file: File; status: 'queued' | 'uploading' | 'complete' | 'failed'; error?: string };
 
 function formatSize(bytes: number) {
@@ -87,7 +87,7 @@ export default function CloudDocuments() {
     setMessage('');
     if (next && next.size > MAX_FILE_BYTES) {
       setFile(null);
-      setError('This file is larger than the 50 MiB upload limit.');
+      setError('This file is larger than the configured upload limit.');
       return;
     }
     setFile(next);
@@ -116,6 +116,9 @@ export default function CloudDocuments() {
       const result = await uploadCloudDocument(file);
       setDocuments(current => [result.document, ...current.filter(item => item.id !== result.document.id)]);
       setFile(null);
+      if (result.warnings?.length) {
+        setMessage(`Uploaded “${result.document.filename}” with storage warning: ${result.warnings.join(', ')}.`);
+      }
       const input = document.getElementById('doka-cloud-file') as HTMLInputElement | null;
       if (input) input.value = '';
       setMessage(`Uploaded “${result.document.filename}”. SHA-256 integrity fingerprint saved.`);
@@ -128,7 +131,7 @@ export default function CloudDocuments() {
     if (!files?.length) return;
     const incoming = Array.from(files);
     const accepted = incoming.filter(item => item.size <= MAX_FILE_BYTES);
-    if (accepted.length !== incoming.length) setError('Files over 50 MiB were skipped from the batch queue.');
+    if (accepted.length !== incoming.length) setError('Files over the configured upload limit were skipped from the batch queue.');
     setBatchQueue(current => [
       ...current,
       ...accepted.map((item, index) => ({
@@ -150,6 +153,7 @@ export default function CloudDocuments() {
       try {
         const result = await uploadCloudDocument(item.file);
         setDocuments(current => [result.document, ...current.filter(row => row.id !== result.document.id)]);
+        if (result.warnings?.length) setMessage(`Storage warning for “${result.document.filename}”: ${result.warnings.join(', ')}`);
         setBatchQueue(current => current.map(row => row.id === item.id ? { ...row, status: 'complete', error: undefined } : row));
         uploaded += 1;
       } catch (err) {
@@ -210,7 +214,7 @@ export default function CloudDocuments() {
   async function saveVersion() {
     if (!versionsDocument || !versionFile) return;
     if (versionFile.size > MAX_FILE_BYTES) {
-      setError('This version exceeds the 50 MiB upload limit.');
+      setError('This version exceeds the configured upload limit.');
       return;
     }
     if (!window.confirm(`Upload a new version of “${versionsDocument.filename}”? The current version will be preserved in history.`)) return;
@@ -394,7 +398,7 @@ export default function CloudDocuments() {
       {!showTrash && <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
         <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-3"><span className="rounded-2xl bg-primary/10 p-3 text-primary"><UploadCloud className="h-5 w-5" /></span><div><h2 className="font-semibold">Add files to your library</h2><p className="mt-1 text-sm text-muted-foreground">Maximum 50 MiB per file · Private storage · SHA-256 fingerprint</p></div></div>
+            <div className="flex items-start gap-3"><span className="rounded-2xl bg-primary/10 p-3 text-primary"><UploadCloud className="h-5 w-5" /></span><div><h2 className="font-semibold">Add files to your library</h2><p className="mt-1 text-sm text-muted-foreground">Direct-to-cloud upload · Private storage · SHA-256 fingerprint</p></div></div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <label htmlFor="doka-cloud-file" className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"><File className="mr-2 h-4 w-4" /> Choose file</label>
               <input id="doka-cloud-file" type="file" className="sr-only" onChange={event => chooseFile(event.target.files?.[0] || null)} disabled={busy} />
