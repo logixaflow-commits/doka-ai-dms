@@ -301,9 +301,9 @@ def test_signed_url_rejects_missing_key_and_out_of_range_expiry(
                 "params": {"key": "reports/document.txt"},
                 "files": {"file": ("document.txt", b"contents", "text/plain")},
             },
-            StorageNotConfigured("storage provider is not configured"),
+            StorageNotConfigured("Service temporarily unavailable. Please try again later."),
             503,
-            "storage provider is not configured",
+            "Service temporarily unavailable. Please try again later.",
         ),
         (
             "post",
@@ -312,41 +312,41 @@ def test_signed_url_rejects_missing_key_and_out_of_range_expiry(
                 "params": {"key": "reports/document.txt"},
                 "files": {"file": ("document.txt", b"contents", "text/plain")},
             },
-            StorageError("storage upload failed (502)"),
+            StorageError("Invalid request."),
             400,
-            "storage upload failed (502)",
+            "Invalid request.",
         ),
         (
             "get",
             "/api/storage/objects/reports/document.txt",
             {},
-            StorageNotConfigured("storage provider is not configured"),
+            StorageNotConfigured("Service temporarily unavailable. Please try again later."),
             503,
-            "storage provider is not configured",
+            "Service temporarily unavailable. Please try again later.",
         ),
         (
             "get",
             "/api/storage/objects/reports/document.txt",
             {},
-            StorageError("stored object was not found"),
+            StorageError("Resource not found."),
             404,
-            "stored object was not found",
+            "Resource not found.",
         ),
         (
             "post",
             "/api/storage/signed-url",
             {"json": {"key": "reports/document.txt"}},
-            StorageNotConfigured("storage provider is not configured"),
+            StorageNotConfigured("Service temporarily unavailable. Please try again later."),
             503,
-            "storage provider is not configured",
+            "Service temporarily unavailable. Please try again later.",
         ),
         (
             "post",
             "/api/storage/signed-url",
             {"json": {"key": "reports/document.txt"}},
-            StorageError("signed URL provider failure"),
+            StorageError("Invalid request."),
             400,
-            "signed URL provider failure",
+            "Invalid request.",
         ),
     ],
 )
@@ -407,7 +407,7 @@ def test_storage_initialization_failure_returns_current_503(
 
     def fail_to_build_storage(**factory_kwargs):
         factory_calls.append(factory_kwargs)
-        raise StorageNotConfigured("storage provider is not configured")
+        raise StorageNotConfigured("Service temporarily unavailable. Please try again later.")
 
     monkeypatch.setattr(
         cloud_storage,
@@ -422,7 +422,7 @@ def test_storage_initialization_failure_returns_current_503(
     )
 
     assert response.status_code == 503
-    assert response.json()["detail"] == "storage provider is not configured"
+    assert response.json()["detail"] == "Service temporarily unavailable. Please try again later."
     assert len(factory_calls) == 1
 
 
@@ -443,7 +443,7 @@ def test_storage_head_error_uses_current_download_mapping(
 
     object_key = f"users/{TEST_USER_ID}/reports/document.txt"
     assert response.status_code == 404
-    assert response.json()["detail"] == "object metadata unavailable"
+    assert response.json()["detail"] == "Resource not found."
     assert storage.downloads == [object_key]
     assert storage.heads == [object_key]
 
