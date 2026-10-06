@@ -9,7 +9,7 @@ thresholds:
   approved: 0.85
 
 ocr:
-  tesseract_cmd: "tesseract"
+  tesseract_cmd: "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
   myanmar_lang: "mya"
   eng_lang: "eng"
   preprocessing: true

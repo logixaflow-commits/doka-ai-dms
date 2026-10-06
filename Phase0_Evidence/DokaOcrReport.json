@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "sample_count": 5,
+  "scored_count": 5,
+  "error_count": 0,
+  "summary_by_language": {
+    "mya+eng": {
+      "samples": 5,
+      "mean_cer": 0.16604922820559007,
+      "mean_wer": 0.308155002891845
+    }
+  },
+  "results": [
+    {
+      "sample_id": "sample-001",
+      "language": "mya+eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 170,
+      "reference_characters": 372,
+      "cer": 0.45698924731182794,
+      "word_errors": 54,
+      "reference_words": 57,
+      "wer": 0.9473684210526315
+    },
+    {
+      "sample_id": "sample-002",
+      "language": "mya+eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 66,
+      "reference_characters": 258,
+      "cer": 0.2558139534883721,
+      "word_errors": 9,
+      "reference_words": 42,
+      "wer": 0.21428571428571427
+    },
+    {
+      "sample_id": "sample-003",
+      "language": "mya+eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 3,
+      "reference_characters": 158,
+      "cer": 0.0189873417721519,
+      "word_errors": 2,
+      "reference_words": 28,
+      "wer": 0.07142857142857142
+    },
+    {
+      "sample_id": "sample-004",
+      "language": "mya+eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 2,
+      "reference_characters": 74,
+      "cer": 0.02702702702702703,
+      "word_errors": 2,
+      "reference_words": 13,
+      "wer": 0.15384615384615385
+    },
+    {
+      "sample_id": "sample-005",
+      "language": "mya+eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 10,
+      "reference_characters": 140,
+      "cer": 0.07142857142857142,
+      "word_errors": 4,
+      "reference_words": 26,
+      "wer": 0.15384615384615385
+    }
+  ],
+  "privacy": {
+    "recognized_text_included": false,
+    "reference_text_included": false,
+    "source_files_modified": false
+  }
+}

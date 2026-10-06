@@ -297,14 +297,15 @@ class OCRService:
             # document as a list of page images in memory.
             for page_number in range(1, page_count + 1):
                 images = convert_from_path(
-                    str(pdf_path),
-                    dpi=self.dpi,
-                    fmt="png",
-                    first_page=page_number,
-                    last_page=page_number,
-                    thread_count=1,
-                    timeout=self.timeout,
-                    size=3500,
+                str(pdf_path),
+                dpi=self.dpi,
+                fmt="png",
+                first_page=page_number,
+                last_page=page_number,
+                thread_count=1,
+                timeout=self.timeout,
+                size=3500,
+                 poppler_path=r"C:\Program Files\poppler-26.09.0\Library\bin",
                 )
                 if not images:
                     continue

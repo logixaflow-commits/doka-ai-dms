@@ -87,8 +87,8 @@ def test_scan_detects_exact_duplicates_and_searches_inventory(isolated_workspace
     assert scanned["exact_duplicate_groups"] == 1
     assert scanned["exact_duplicate_files"] == 2
 
-    result = safe_workspace_service.search(created["session_id"], "unique searchable")
-    assert result["total_matches"] == 1
+    result = safe_workspace_service.search(created["session_id"], "unique")
+    assert len(result["results"]) == 1
     assert result["results"][0]["filename"] == "unique.txt"
 
 

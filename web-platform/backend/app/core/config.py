@@ -67,7 +67,7 @@ class ThresholdConfig:
 
 @dataclass
 class OCRConfig:
-    tesseract_cmd: str = "tesseract"
+    tesseract_cmd: str = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     myanmar_lang: str = "mya"
     eng_lang: str = "eng"
     preprocessing: bool = True
