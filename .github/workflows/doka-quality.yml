@@ -16,7 +16,6 @@ on:
       - ".gitignore"
       - ".dockerignore"
       - ".github/workflows/**"
-      - "docs/SECURITY.md"
       - "infrastructure/env/**"
   pull_request:
     branches: [main]
