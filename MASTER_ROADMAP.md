@@ -11,6 +11,7 @@
 
 ## 📖 Table of Contents
 
+0. [Phase 0: Personal Local Foundation](#0-phase-0-personal-local-foundation)
 1. [Project Identity](#1-project-identity)
 2. [Safety Rules (Non-Negotiable)](#2-safety-rules-non-negotiable)
 3. [Architecture](#3-architecture)
@@ -26,6 +27,26 @@
 13. [Contributing Rules](#13-contributing-rules)
 14. [Change Log](#14-change-log)
 15. [Final Declaration](#15-final-declaration)
+
+---
+
+## 0. Phase 0: Personal Local Foundation
+
+**Status:** 🔄 Foundation validation required before Cloud go-live  
+**Purpose:** Preserve and validate the existing Personal Local safety foundation before the project proceeds through the Cloud Base → Desktop → Android → Sync execution order.
+
+### 0.1 Phase 0 Scope
+
+- Validate the existing Personal Local Edition on a real Windows machine.
+- Execute **PL-G1 through PL-G20 exactly as defined in Section 8.1**; do not duplicate or redefine the gate list here.
+- Preserve R1-R10 throughout validation.
+- Record evidence for every gate, including failures and remediation.
+- Phase 0 is a **foundation prerequisite**, not a competing product execution phase.
+- Phase 1 Cloud Base remains the first active product phase after the foundation is validated.
+
+### 0.2 Phase 0 Exit Criteria
+
+Phase 0 is complete only when PL-G1 through PL-G20 have passed or have an explicitly documented owner-approved exception, with evidence recorded and no unresolved safety-critical failure.
 
 ---
 
@@ -55,11 +76,22 @@ Build a **Multi-Platform Unified Document Management System** that:
 | Real-Machine Validation | ⏳ Pending owner-run acceptance tests |
 | Production Sign-off | ❌ Not Issued |
 
-### 1.3 Execution Order / Current Phase
-Phase: PERSONAL LOCAL
-Users: 1 (Owner only)
-Deployment: Local machine (Windows)
-Network: Localhost only
+### 1.3 Execution Order / Current State
+
+**Current active product phase: Phase 1 — Cloud Base FIRST**
+
+| Order | Phase | State |
+| :--- | :--- | :--- |
+| 0 | Personal Local Foundation + PL-G1 → PL-G20 | 🔄 Validation prerequisite |
+| 1 | Cloud Base | 🔄 Active execution / go-live validation |
+| 2 | Desktop | ⏳ Pending Phase 1 sign-off |
+| 3 | Android | ⏳ Pending Phase 2 sign-off |
+| 4 | Unified Sync Engine | ⏳ Pending Phase 3 sign-off |
+| 5 | Enterprise | 🔒 Dormant Until Funded |
+
+Personal Local remains the safety/reference foundation. It is **not** the first new product milestone; Cloud Base is.
+
+Users: 1 owner for the Personal Local foundation; Cloud supports authenticated user accounts.
 AI: Optional (Default OFF)
 
 text
@@ -662,6 +694,38 @@ items:
   code.
 - No desktop feature may bypass the core approval/safety workflow.
 
+### 7.10 Legal & Compliance
+
+The project must establish the following documents before broader external or commercial use:
+
+| Document | Purpose | Target |
+| :--- | :--- | :--- |
+| Privacy Policy | Explain collection, processing, storage, retention, and user rights | Before external Cloud users |
+| DPA | Define controller/processor responsibilities and data-processing terms | Before processing third-party/customer data |
+| NDA | Protect confidential business/customer information | As required for contractors, partners, and customers |
+| SLA | Define availability, support, recovery, and service commitments | Before paid/customer commitments |
+| Data Retention & Deletion Policy | Define retention, deletion, backup expiry, and legal-hold boundaries | Before external Cloud users |
+
+Legal text must be reviewed for the actual operating jurisdictions and business model. Do not claim GDPR, Myanmar privacy, SOC 2, ISO 27001, or other compliance certification merely because a policy document exists.
+
+### 7.11 Monitoring & Alerting
+
+**Cloud observability stack:**
+- **Sentry:** application errors, frontend/backend exceptions, release regressions.
+- **Prometheus:** infrastructure/application metrics where self-hosted metrics are appropriate.
+- **Grafana:** dashboards and operational visualization.
+- **Cloudflare observability/logs:** Worker requests, failures, latency, and deployment health.
+- **Backup/recovery alerts:** failed backups, restore failures, hash mismatches, and RTO/RPO breaches.
+- **Security alerts:** authentication anomalies, repeated authorization failures, rate-limit spikes, and storage/upload failures.
+
+Alert priorities:
+- P0: data-loss, authorization bypass, production-wide outage
+- P1: major feature outage, backup/recovery failure
+- P2: degraded performance or repeated non-critical errors
+- P3: informational/development issues
+
+Monitoring must not expose document contents, secrets, access tokens, or unnecessary personal data.
+
 ### 7.9 Compliance Roadmap
 Standard	Target	Status
 GDPR	Phase 5	❌
@@ -867,6 +931,33 @@ Vercel rate limit	User
 B2 verification	Both
 Cloudinary verification	Both
 Google Drive OAuth	User
+
+### 9.9 Local → Cloud Migration Path
+
+Migration is a controlled, reversible transition. **Local remains the safety source until Cloud verification and hash checks are complete.**
+
+1. **Export local data**
+   - Export approved documents, metadata, versions, audit records, and backup manifests from Personal Local.
+   - Preserve original source files and the local export as rollback copies.
+2. **Set up Cloud account**
+   - Create and verify the Cloud account/authentication boundary.
+   - Confirm private storage, RLS, upload-session controls, and backup configuration.
+3. **Upload to Cloud storage**
+   - Route small files to Supabase Storage and large files to B2 according to the Phase 1 storage policy.
+   - Upload copies only; never alter the original local source.
+4. **Sync metadata**
+   - Import document IDs, filenames, versions, tags, OCR/search metadata, approval state, and audit references.
+5. **Verify hashes**
+   - Recompute SHA-256 for every migrated document and compare with the local export manifest.
+   - Any mismatch blocks migration completion.
+6. **Switch primary**
+   - After migration evidence passes, Cloud becomes the primary shared working library.
+   - Local remains available as a retained rollback/reference copy until the owner approves retirement.
+7. **Rollback**
+   - If migration, integrity, permissions, or recovery validation fails, stop new Cloud writes, retain the Cloud copy for investigation, and restore working operations from the verified local dataset.
+   - Reconcile only after the failure is understood; never overwrite the verified local source blindly.
+
+**Migration exit criteria:** 100% required files accounted for, SHA-256 verification passed, metadata reconciled, permissions verified, backup/recovery evidence recorded, and owner sign-off obtained.
 
 ## 9.7 Current Go-Live Evidence
 
@@ -1123,6 +1214,33 @@ Pass CI
 
 Update CHANGELOG
 
+### 13.9 Phase-by-Phase Rollback Plan
+
+| Phase | Rollback trigger | Procedure |
+| :--- | :--- | :--- |
+| Phase 0 — Personal Local Foundation | Safety regression or failed PL gate | Stop release; restore last validated local code/config; keep source read-only; rerun failed PL gates before proceeding. |
+| Phase 1 — Cloud Base | Auth/isolation/storage/recovery failure | Stop go-live; disable affected Cloud write paths; retain verified local/export copies; restore from last verified backup; revert deployment/config to last known-good version. |
+| Phase 2 — Desktop | Installer/offline/security regression | Withdraw affected build; keep previous signed build available; preserve local database and source; restore last known-good app version and reconcile only after validation. |
+| Phase 3 — Android | Crash/data/sync regression | Halt rollout; keep previous Play Store version available; disable affected background-sync feature if necessary; preserve local queue and recover from last verified state. |
+| Phase 4 — Sync Engine | Conflict/data-loss risk | Stop sync writes/queue processing; preserve per-device queues and server state; return to last verified synchronization protocol/version; reconcile manually before resuming. |
+| Phase 5 — Enterprise | Any unsafe activation or failed gate | Do not activate; if already activated under an approved amendment, isolate Enterprise routes/data, disable new writes, restore previous supported configuration, and follow the approved migration/rollback plan. |
+
+**Universal rollback rules:** never delete original source files, never overwrite the only verified copy, preserve audit evidence, record the incident, and require validation before re-enabling the affected capability.
+
+### 13.10 Support Plan
+
+| Area | Plan |
+| :--- | :--- |
+| User documentation | Quickstart, installation, cloud setup, migration, backup/recovery, troubleshooting, and safety guides |
+| Training | Short operator training for import → review → approve → apply → backup/recovery workflow |
+| Support structure | Single-owner support initially; formal support queue/process when external users are introduced |
+| Incident handling | Severity-based P0–P3 response, evidence collection, containment, remediation, and post-incident review |
+| Release support | Changelog, known-issues list, rollback version, and migration notes for each release |
+| Recovery support | Documented backup/restore drills and recovery contact/procedure |
+| Feedback | Capture bugs, usability issues, feature requests, and safety concerns separately |
+
+Support documentation must reinforce the safety model: originals remain protected, AI is optional, and human approval is required for destructive/organizational actions.
+
 13.8 Legacy Enterprise Code
 Preserve in archive/legacy-enterprise/
 
@@ -1135,6 +1253,8 @@ Do not route legacy pages
 14. Change Log
 [Unreleased]
 Consolidated documentation into single Master Roadmap
+Added explicit Phase 0 foundation alignment without duplicating PL-G1 to PL-G20
+Added Local → Cloud migration, service cost planning, phase rollback, legal/compliance, monitoring/alerting, and support planning
 
 Added all 15 original files' content
 
