@@ -53,7 +53,7 @@ async def list_documents(
     try:
         return {"documents": build_cloud_document_service(credentials.credentials).list_documents(limit=limit, offset=offset)}
     except (CloudDocumentError, StorageNotConfigured) as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
 
 
 @router.post("")
@@ -97,7 +97,7 @@ async def create_document(
     except (StorageError, CloudDocumentError, StorageNotConfigured) as exc:
         if storage is not None:
             _cleanup_failed_upload(storage, object_key, upload_completed=upload_completed)
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
 
 
 @router.get("/{document_id}/download")
@@ -117,7 +117,7 @@ async def download_document(
     except HTTPException:
         raise
     except (StorageError, CloudDocumentError, StorageNotConfigured) as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
 
 
 @router.patch("/{document_id}")
@@ -155,4 +155,4 @@ async def update_document(
     except HTTPException:
         raise
     except CloudDocumentError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
