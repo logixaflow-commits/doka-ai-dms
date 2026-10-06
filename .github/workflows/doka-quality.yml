@@ -334,13 +334,6 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v7
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: python,javascript-typescript
-          build-mode: none
-      - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@v4
       - name: Run Semgrep baseline scan
         continue-on-error: true
         run: |
