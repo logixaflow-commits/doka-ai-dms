@@ -1,8 +1,8 @@
-# Contributing to Enterprise AI DMS
+# Contributing to Doka
 
 ## Current development target
 
-The active implementation target is the **Personal Local Edition** on the default `main` branch.
+The active implementation target is the **Personal Local Edition** on the default `main` branch, with the Cloud Edition maintained and verified separately behind its documented production gates.
 
 Keep the current safety boundary intact:
 
@@ -21,7 +21,7 @@ Keep the current safety boundary intact:
 
 ## Validation
 
-Before considering a Personal Local change complete:
+Before considering a change complete:
 
 1. Run Python syntax checks.
 2. Run the local safety regression tests.
@@ -29,9 +29,18 @@ Before considering a Personal Local change complete:
 4. Verify that the Personal Local FastAPI entry point starts.
 5. Verify that the frontend only calls endpoints exposed by the Personal Local runtime.
 6. For document workflow changes, test against copied sample data and confirm the source remains unchanged.
+7. For Cloud Edition changes, verify the Worker/storage boundary and provider-specific tests without exposing server-side secrets.
+8. Do not declare production readiness until the documented authenticated workflow, isolation, recovery, OCR, backup, Supabase security, and Vercel gates pass.
 
 `.github/workflows/doka-quality.yml` runs automatically for relevant changes.
 `.github/workflows/local-core-check.yml` is available for deliberate manual runs only.
+
+## Branch and merge policy
+
+- `main` is the consolidated production-development branch.
+- PR #17 is merged.
+- PR #19 was reconciled into `main` and closed after its required changes were preserved.
+- The remaining `fix/*` branches are historical and may be deleted by the repository owner once `main` is confirmed.
 
 ## Legacy enterprise code
 
