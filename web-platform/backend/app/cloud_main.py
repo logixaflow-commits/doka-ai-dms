@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import cloud_documents, cloud_storage
 from app.core.config import settings
+from app.core.rate_limiter import rate_limit_middleware
 
 
 def parse_cloud_cors_origins(raw_origins: str, environment: str) -> list[str]:
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
         expose_headers=["X-Request-ID", "X-Response-Time"],
     )
 
+    app.middleware("http")(rate_limit_middleware)
     app.include_router(cloud_documents.router)
     app.include_router(cloud_storage.router)
 
