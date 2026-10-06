@@ -694,6 +694,12 @@ items:
   code.
 - No desktop feature may bypass the core approval/safety workflow.
 
+### 7.9 Compliance Roadmap
+Standard	Target	Status
+GDPR	Phase 5	❌
+SOC 2	Phase 5	❌
+ISO 27001	Phase 5	❌
+Myanmar Data Privacy	Phase 5	❌
 ### 7.10 Legal & Compliance
 
 The project must establish the following documents before broader external or commercial use:
@@ -726,12 +732,6 @@ Alert priorities:
 
 Monitoring must not expose document contents, secrets, access tokens, or unnecessary personal data.
 
-### 7.9 Compliance Roadmap
-Standard	Target	Status
-GDPR	Phase 5	❌
-SOC 2	Phase 5	❌
-ISO 27001	Phase 5	❌
-Myanmar Data Privacy	Phase 5	❌
 ## 8. Validation Gates
 8.1 Personal Local Gates (Pre-Phase)
 Gate	Task	Status
@@ -932,6 +932,33 @@ B2 verification	Both
 Cloudinary verification	Both
 Google Drive OAuth	User
 
+## 9.7 Current Go-Live Evidence
+
+The implementation is in the branch-consolidated verification stage.
+
+- PR #17 is merged and PR #19 was reconciled into `main` and closed.
+- Remaining `fix/*` branches are historical working branches and may be deleted by the repository owner.
+- The repository has no `vercel.json` override file; Vercel remains owner-controlled and intentionally paused.
+- Cloudflare direct-upload routing is implemented without proxying document bytes through the Worker.
+- Quality CI uses concurrency cancellation and excludes documentation-only root Markdown changes from its path allow-list.
+- The Cloudflare production deploy workflow also cancels superseded runs on the same ref.
+- Supabase Leaked Password Protection remains an explicit acceptance gate until enabled and verified.
+
+## 9.8 Remaining Action List
+
+1. Authenticated upload/list/update/download/version/restore/trash E2E.
+2. Separate-session User A/User B isolation test.
+3. 50 MiB routing boundary test.
+4. Real B2 multipart and recovery drill.
+5. Real Cloudinary derivative and fallback drill.
+6. Google Drive OAuth export and recovery drill.
+7. Myanmar + English OCR benchmark with measured accuracy.
+8. Backup → restore → SHA-256 proof with RTO/RPO evidence.
+9. Enable and verify Supabase Leaked Password Protection.
+10. One clean Vercel build when the rate-limit window permits and only while Vercel remains owner-approved.
+11. Re-run all Cloud Edition gates and record evidence.
+12. Issue final sign-off only after all mandatory gates pass.
+
 ### 9.9 Local → Cloud Migration Path
 
 Migration is a controlled, reversible transition. **Local remains the safety source until Cloud verification and hash checks are complete.**
@@ -977,33 +1004,6 @@ Costs are planning estimates, not billing guarantees. Free tiers and pricing cha
 | AI providers | Free/limited tiers vary | ~$5–20+/month initial personal estimate | Tokens/requests/embeddings |
 
 **Budget rule:** Core DMS operation must remain usable without paid AI. Provider costs must not weaken safety controls or become a mandatory dependency.
-
-## 9.7 Current Go-Live Evidence
-
-The implementation is in the branch-consolidated verification stage.
-
-- PR #17 is merged and PR #19 was reconciled into `main` and closed.
-- Remaining `fix/*` branches are historical working branches and may be deleted by the repository owner.
-- The repository has no `vercel.json` override file; Vercel remains owner-controlled and intentionally paused.
-- Cloudflare direct-upload routing is implemented without proxying document bytes through the Worker.
-- Quality CI uses concurrency cancellation and excludes documentation-only root Markdown changes from its path allow-list.
-- The Cloudflare production deploy workflow also cancels superseded runs on the same ref.
-- Supabase Leaked Password Protection remains an explicit acceptance gate until enabled and verified.
-
-## 9.8 Remaining Action List
-
-1. Authenticated upload/list/update/download/version/restore/trash E2E.
-2. Separate-session User A/User B isolation test.
-3. 50 MiB routing boundary test.
-4. Real B2 multipart and recovery drill.
-5. Real Cloudinary derivative and fallback drill.
-6. Google Drive OAuth export and recovery drill.
-7. Myanmar + English OCR benchmark with measured accuracy.
-8. Backup → restore → SHA-256 proof with RTO/RPO evidence.
-9. Enable and verify Supabase Leaked Password Protection.
-10. One clean Vercel build when the rate-limit window permits and only while Vercel remains owner-approved.
-11. Re-run all Cloud Edition gates and record evidence.
-12. Issue final sign-off only after all mandatory gates pass.
 
 10. Phase 2: Desktop App
 Status: ⏳ Pending
