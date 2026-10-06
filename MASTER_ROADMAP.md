@@ -4,7 +4,7 @@
 **Last Updated:** 2026-10-06  
 **Status:** ACTIVE — Single Source of Truth  
 **Owner:** Single User (Logixa Flow)  
-**Repository:** logixaflow-commits/enterprise-ai-dms  
+**Repository:** logixaflow-commits/doka-ai-dms  
 **Purpose:** Consolidated roadmap for AI verification + human reference
 
 ---
@@ -50,9 +50,9 @@ Build a **Multi-Platform Unified Document Management System** that:
 | Branch Consolidation | ✅ Complete (main) |
 | CI (Automated) | ✅ Green |
 | Personal Local Edition | ✅ Code Ready |
-| Cloud Edition | ⚠️ Partial (gated) |
+| Cloud Edition | ⚠️ Implemented, verification-gated |
 | Vercel Deployment | ⏸️ Paused (owner-controlled) |
-| Real-Machine Validation | ❌ Not Started |
+| Real-Machine Validation | ⏳ Pending owner-run acceptance tests |
 | Production Sign-off | ❌ Not Issued |
 
 ### 1.3 Current Phase
@@ -390,7 +390,7 @@ text
 | HttpOnly Cookies | ❌ Missing | Phase 1 |
 | Server-side Token Revocation | ❌ Missing | Phase 1 |
 | OS-level Source ACL | ❌ Missing | Phase 2 |
-| Leaked Password Protection | ❌ Missing | Phase 1 |
+| Leaked Password Protection | 🚨 Not yet enabled/verified | Phase 1 |
 
 ### 4.6 Deployment & Infrastructure
 
@@ -399,8 +399,8 @@ text
 | Local Filesystem | ✅ Active | Pre |
 | Supabase Storage | ✅ Active | Phase 1 |
 | Backblaze B2 | ✅ Active | Phase 1 |
-| Cloudinary | ✅ Active | Phase 1 |
-| Google Drive | ✅ Active | Phase 1 |
+| Cloudinary | ⚠️ Config-gated; recovery proof pending | Phase 1 |
+| Google Drive | ⚠️ Config-gated; recovery proof pending | Phase 1 |
 | Cloudflare Worker | ✅ Active | Phase 1 |
 | FastAPI | ✅ Active | Pre |
 | React Frontend | ✅ Active | Pre |
@@ -708,7 +708,7 @@ Reviewed — owner signs off
 Logged — update records
 
 9. Phase 1: Cloud Base
-Status: 🔄 Ready to Start
+Status: 🔄 Verification / Go-Live Gates
 Duration: 2-4 weeks
 Goal: Web-based DMS accessible from any browser
 
@@ -740,35 +740,35 @@ Frontend	Vercel	⏸️ Paused
 9.3 Step-by-Step Plan
 Week 1: Verification
 
-Day 1: Enable Supabase leaked-password protection
+Day 1: Enable and verify Supabase leaked-password protection
 
 Day 2: Verify Cloudflare Worker live
 
 Day 3: Test authenticated user flow (CL-G1)
 
-Day 4: Test two-user isolation (CL-G2)
+Day 4: Test two-user isolation (CL-G2) with separate sessions
 
-Day 5: Test 50 MiB boundary (CL-G3)
+Day 5: Test 50 MiB boundary (CL-G3) including routing/rejection behavior
 
 Week 2: Storage Providers
 
-Day 1: Test B2 multipart >5 GiB (CL-G4)
+Day 1: Test B2 multipart >5 GiB (CL-G4) and recovery
 
-Day 2: Test Cloudinary derivative (CL-G5)
+Day 2: Test Cloudinary derivative (CL-G5) and fail-closed fallback
 
 Day 3: Setup Google Drive OAuth (CL-G6)
 
 Day 4: Test Google Drive export + recovery
 
-Day 5: OCR benchmark (CL-G7)
+Day 5: OCR benchmark (CL-G7) for Myanmar + English
 
 Week 3: Recovery & Deployment
 
-Day 1: Backup → restore → SHA-256 proof (CL-G8)
+Day 1: Backup → restore → SHA-256 proof (CL-G8) + record RTO/RPO
 
 Day 2: Legacy routes fail closed (CL-G11)
 
-Day 3: One clean Vercel build (CL-G10)
+Day 3: One clean Vercel build (CL-G10) only when the owner confirms the rate-limit window is available
 
 Day 4: Re-run all gates
 
