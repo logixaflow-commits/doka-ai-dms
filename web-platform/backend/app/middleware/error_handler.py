@@ -23,7 +23,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             # Keep the full exception and stack trace server-side only.
             logger.exception(
-                "Unhandled exception in %s %s",
+                "Unhandled exception in {} {}",
                 request.method,
                 request.url.path,
             )
