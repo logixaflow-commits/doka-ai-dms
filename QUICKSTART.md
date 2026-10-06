@@ -61,6 +61,24 @@ The frontend is **Vite, not Next.js**. Its production build is `npm run build`.
 10. Confirm files are copied into `Final` and the source folder is unchanged.
 11. Create and verify a backup.
 
+## Phase 0 acceptance run
+
+After the small-copy workflow is ready, run the deterministic Personal Local pilot against the **copy**, never the original source:
+
+```bat
+python scripts/doka_pilot_check.py --source D:\DokaPilotCopy --require-ocr
+```
+
+The pilot proves source immutability, safe import completion, SHA-256 verification, inventory/duplicate detection, organization-plan generation, backup verification, and Recovery integrity. It does not silently approve organization changes.
+
+For the OCR accuracy gate, use a privacy-safe copied sample set and the benchmark manifest:
+
+```bat
+python scripts/ocr_benchmark.py --root D:\DokaOcrSamples --manifest D:\DokaOcrSamples\manifest.json --output D:\DokaOcrReport.json
+```
+
+The Phase 0 sign-off still requires the real Windows/UI workflow, representative office dataset, measured OCR target (>=70%), search tuning, and owner approval. Do not mark PL-G20 passed from CI alone.
+
 ## Cloud Edition verification boundary
 
 The Cloud Edition is on `main` separately from the Personal Local runtime. The active cloud API is the Cloudflare Worker. Cloud uploads use direct provider sessions rather than proxying document bytes through the Worker.
