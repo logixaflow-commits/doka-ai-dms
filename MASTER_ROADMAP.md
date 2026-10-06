@@ -756,7 +756,7 @@ Day 1: Test B2 multipart >5 GiB (CL-G4) and recovery
 
 Day 2: Test Cloudinary derivative (CL-G5) and fail-closed fallback
 
-Day 3: Setup Google Drive OAuth (CL-G6)
+Day 3: Verify Google Drive OAuth (CL-G6)
 
 Day 4: Test Google Drive export + recovery
 
