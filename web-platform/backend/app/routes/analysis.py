@@ -66,7 +66,7 @@ async def detect_document_function(
         }
     except Exception as e:
         logger.error(f"Function detection failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/detect-fracture")
@@ -116,7 +116,7 @@ async def detect_document_fracture(
         }
     except Exception as e:
         logger.error(f"Fracture detection failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/analyze-document")
@@ -183,7 +183,7 @@ async def analyze_document_comprehensive(
         }
     except Exception as e:
         logger.error(f"Comprehensive analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/analyze-document/{document_id}")
@@ -264,7 +264,7 @@ async def analyze_existing_document(
         raise
     except Exception as e:
         logger.error(f"Document analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/functions")
@@ -402,4 +402,4 @@ async def batch_analyze_documents(
         }
     except Exception as e:
         logger.error(f"Batch analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
