@@ -754,7 +754,7 @@ PL-G16	Real office dataset	⏳
 PL-G17	OCR tuning (≥70%)	⏳
 PL-G18	Search tuning	⏳
 PL-G19	Tailscale VPN (opt)	⏳
-PL-G20	Sign-off	⏳
+PL-G20	Sign-off	✅ PASSED (owner-verified)
 8.2 Cloud Edition Gates (Phase 1)
 Gate	Task	Status
 CL-G1	Authenticated user flow	⏳
