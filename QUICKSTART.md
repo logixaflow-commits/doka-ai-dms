@@ -9,7 +9,7 @@ The current readiness target is the **Personal Local Edition**. It uses a React 
 - Tesseract OCR is optional for the first smoke test, but required for Myanmar/English OCR. On Windows, install Tesseract and make sure `tesseract --list-langs` includes `eng` and `mya`.
 - Git.
 
-You do **not** need PostgreSQL, Redis, MinIO, Supabase, Render, Vercel, or AI API keys for the Personal Local smoke test.
+You do **not** need PostgreSQL, Redis, MinIO, Supabase, Vercel, or AI API keys for the Personal Local smoke test.
 
 ## First run on Windows
 
@@ -60,6 +60,16 @@ The frontend is **Vite, not Next.js**. Its production build is `npm run build`.
 9. Approve only a small safe batch.
 10. Confirm files are copied into `Final` and the source folder is unchanged.
 11. Create and verify a backup.
+
+## Cloud Edition verification boundary
+
+The Cloud Edition is on `main` separately from the Personal Local runtime. The active cloud API is the Cloudflare Worker. Cloud uploads use direct provider sessions rather than proxying document bytes through the Worker.
+
+Do not treat the Cloud Edition as final production-ready yet. The remaining release gates are authenticated user-flow E2E, two-user isolation, the 50 MiB upload boundary, real B2/Cloudinary/Google Drive recovery drills, Myanmar/English OCR validation, backup/SHA-256 recovery proof, Supabase leaked-password protection, and one clean Vercel build after the rate-limit window clears.
+
+## Vercel safety
+
+Vercel is intentionally owner-controlled and currently paused. Do not reopen, reconnect, or trigger deployments unless the owner explicitly requests it. The repository does not contain a `vercel.json` override file.
 
 ## Important
 
