@@ -55,7 +55,7 @@ Build a **Multi-Platform Unified Document Management System** that:
 | Real-Machine Validation | ⏳ Pending owner-run acceptance tests |
 | Production Sign-off | ❌ Not Issued |
 
-### 1.3 Current Phase
+### 1.3 Execution Order / Current Phase
 Phase: PERSONAL LOCAL
 Users: 1 (Owner only)
 Deployment: Local machine (Windows)
@@ -662,13 +662,13 @@ items:
   code.
 - No desktop feature may bypass the core approval/safety workflow.
 
-7.9 Compliance Roadmap
+### 7.9 Compliance Roadmap
 Standard	Target	Status
 GDPR	Phase 5	❌
 SOC 2	Phase 5	❌
 ISO 27001	Phase 5	❌
 Myanmar Data Privacy	Phase 5	❌
-8. Validation Gates
+## 8. Validation Gates
 8.1 Personal Local Gates (Pre-Phase)
 Gate	Task	Status
 PL-G1	Windows startup	⏳
@@ -924,6 +924,27 @@ Local ↔ Cloud sync
 Auto-update
 
 Code signing
+
+### 10.2.1 Phase 2 Explicit Feature Deliverables
+
+**Document Management**
+- Continue Cloud document versioning on-device
+- Bulk Actions
+- Document Locking for concurrent offline edits
+- Advanced Filters
+- Saved Searches
+- **Document Watermark remains Phase 5 only**
+
+**AI (optional)**
+- Chat with Documents (RAG + LLM)
+- AI Summarization (multi-document)
+- Rule Engine (IF-THEN) as an optional, dormant-by-default capability
+- Semantic Search/embeddings available offline where practical
+
+**Security**
+- OS-level Source ACL
+- Desktop secure credential/session storage
+- Preserve read-only source and human-approval boundaries
 
 10.3 Step-by-Step Plan
 Week 1-2: Setup — Install Rust + Tauri, embed React + FastAPI + SQLite
