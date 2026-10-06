@@ -2,6 +2,8 @@ name: CodeQL
 # Security baseline: rerun on every security-sensitive workflow change.
 
 on:
+  schedule:
+    - cron: "31 2 * * 1"
   push:
     branches: [main]
     paths:
