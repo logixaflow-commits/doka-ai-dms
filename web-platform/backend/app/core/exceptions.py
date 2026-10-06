@@ -106,21 +106,21 @@ def handle_dms_exception(exc: DMSException) -> HTTPException:
     """Map domain exceptions to HTTP exceptions."""
     if isinstance(exc, OCRError):
         return HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=__SAFE__
         )
     elif isinstance(exc, StorageError):
         return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=__SAFE__
         )
     elif isinstance(exc, ClassificationError):
         return HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=__SAFE__
         )
     elif isinstance(exc, SecurityError):
         return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=__SAFE__
         )
     else:
         return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=__SAFE__
         )
