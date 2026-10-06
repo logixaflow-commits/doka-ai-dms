@@ -49,7 +49,7 @@ async def create_report_template(
         
     except Exception as e:
         logger.error(f"Failed to create report template: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/templates")
@@ -78,7 +78,7 @@ async def get_report_templates(
         
     except Exception as e:
         logger.error(f"Failed to get report templates: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/templates/{template_id}")
@@ -113,7 +113,7 @@ async def get_report_template(
         raise
     except Exception as e:
         logger.error(f"Failed to get report template: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/generate/{template_id}")
@@ -131,7 +131,7 @@ async def generate_report(
         
     except Exception as e:
         logger.error(f"Failed to generate report: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/export")
@@ -149,4 +149,4 @@ async def export_report(
         
     except Exception as e:
         logger.error(f"Failed to export report: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
