@@ -64,7 +64,7 @@ async def create_document_version(
         raise
     except Exception as e:
         logger.error(f"Failed to create version: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/document/{document_id}")
@@ -113,7 +113,7 @@ async def get_document_versions(
         raise
     except Exception as e:
         logger.error(f"Failed to get versions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/document/{document_id}/version/{version_id}")
@@ -163,7 +163,7 @@ async def get_version(
         raise
     except Exception as e:
         logger.error(f"Failed to get version: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/document/{document_id}/rollback/{version_id}")
@@ -207,7 +207,7 @@ async def rollback_to_version(
         raise
     except Exception as e:
         logger.error(f"Failed to rollback: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/document/{document_id}/compare/{version_id_1}/{version_id_2}")
@@ -243,7 +243,7 @@ async def compare_versions(
         raise
     except Exception as e:
         logger.error(f"Failed to compare versions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.delete("/document/{document_id}/version/{version_id}")
@@ -278,4 +278,4 @@ async def delete_version(
         raise
     except Exception as e:
         logger.error(f"Failed to delete version: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
