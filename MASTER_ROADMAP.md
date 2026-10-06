@@ -959,6 +959,25 @@ Migration is a controlled, reversible transition. **Local remains the safety sou
 
 **Migration exit criteria:** 100% required files accounted for, SHA-256 verification passed, metadata reconciled, permissions verified, backup/recovery evidence recorded, and owner sign-off obtained.
 
+### 9.10 Service Cost Matrix
+
+Costs are planning estimates, not billing guarantees. Free tiers and pricing change by provider, region, usage, and plan. Final budgeting must be rechecked before production commitments.
+
+| Service | Free / low-cost starting point | Expected paid planning range | Main cost driver |
+| :--- | :--- | :--- | :--- |
+| Supabase | Free tier | ~$25+/month | Database, storage, bandwidth, compute |
+| Cloudflare Workers | Free tier | ~$5+/month+ | Requests, compute, paid features |
+| Backblaze B2 | Usage-based | ~$5+/month+ for light storage; scales with data/egress | Stored GB, downloads, API operations |
+| Cloudinary | Free tier | ~$25+/month+ | Image/video transformations and storage |
+| Google Drive | Limited personal storage | ~$2–20+/month depending on account/storage plan | Storage capacity |
+| Vercel | Free/Hobby tier | ~$20+/month+ | Team features, build/runtime/bandwidth |
+| Sentry | Free developer tier | ~$26+/month+ | Events, retention, seats |
+| Prometheus | Open source | Infrastructure cost only | Compute/storage |
+| Grafana | Open source | Infrastructure cost only | Hosted/compute/storage if managed |
+| AI providers | Free/limited tiers vary | ~$5–20+/month initial personal estimate | Tokens/requests/embeddings |
+
+**Budget rule:** Core DMS operation must remain usable without paid AI. Provider costs must not weaken safety controls or become a mandatory dependency.
+
 ## 9.7 Current Go-Live Evidence
 
 The implementation is in the branch-consolidated verification stage.
