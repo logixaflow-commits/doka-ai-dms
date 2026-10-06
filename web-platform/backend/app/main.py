@@ -16,6 +16,7 @@ from app.api.routes import local_auth, workspace, workspace_files
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.observability import init_observability
+from app.core.rate_limiter import rate_limit_middleware
 
 logger = get_logger(__name__)
 
@@ -71,6 +72,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.middleware("http")(rate_limit_middleware)
     @app.middleware("http")
     async def request_context(request: Request, call_next):
         start = time.time()
