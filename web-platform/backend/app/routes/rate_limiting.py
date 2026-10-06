@@ -34,7 +34,7 @@ async def check_rate_limit(
         
     except Exception as e:
         logger.error(f"Failed to check rate limit: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/usage")
@@ -68,7 +68,7 @@ async def get_usage_stats(
         
     except Exception as e:
         logger.error(f"Failed to get usage stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/quota")
@@ -84,7 +84,7 @@ async def get_user_quota(
         
     except Exception as e:
         logger.error(f"Failed to get user quota: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/quota")
@@ -126,4 +126,4 @@ async def set_user_quota(
         raise
     except Exception as e:
         logger.error(f"Failed to set user quota: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
