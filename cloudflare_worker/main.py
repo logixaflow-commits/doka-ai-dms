@@ -591,7 +591,7 @@ async def complete_storage_multipart(
     try:
         stored = await router.b2.completeMultipartUpload(upload, receipts)
     except (RuntimeError, ValueError) as exc:
-        raise HTTPException(status_code=409, detail=f"B2 multipart completion failed: {exc}") from exc
+        raise HTTPException(status_code=409, detail="Multipart upload could not be completed.") from exc
     base = _base(request)
     record = {
         "owner_id": user_id,
@@ -666,7 +666,7 @@ async def create_google_drive_export_session(
             expires_seconds=300,
         )
     except (RuntimeError, ValueError, NotImplementedError) as exc:
-        raise HTTPException(status_code=503, detail=f"Source download session failed: {exc}") from exc
+        raise HTTPException(status_code=503, detail="Source download session could not be created.") from exc
     session_payload = {
         "owner_id": user_id,
         "document_id": document_id,
@@ -713,7 +713,7 @@ async def complete_google_drive_export(
             expected_sha256=payload.sha256.lower(),
         )
     except (RuntimeError, ValueError) as exc:
-        raise HTTPException(status_code=409, detail=f"Google Drive export verification failed: {exc}") from exc
+        raise HTTPException(status_code=409, detail="Google Drive export verification failed.") from exc
     status, rows = await _fetch(
         request,
         f"{_base(request)}/rest/v1/doka_documents?id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}",
@@ -839,7 +839,7 @@ async def complete_storage_upload(
             **payload.provider_result,
         })
     except (RuntimeError, ValueError, KeyError) as exc:
-        raise HTTPException(status_code=409, detail=f"Upload verification failed: {exc}") from exc
+        raise HTTPException(status_code=409, detail="Upload verification failed.") from exc
 
     if metadata.artifact_type is not StorageArtifactType.SOURCE:
         return {
@@ -994,7 +994,7 @@ async def document_preview(request: Request, document_id: str, user_id: str = De
             expires_seconds=300,
         )
     except (RuntimeError, ValueError, NotImplementedError) as exc:
-        raise HTTPException(status_code=503, detail=f"Signed preview URL failed: {exc}") from exc
+        raise HTTPException(status_code=503, detail="Signed preview URL could not be created.") from exc
     await _audit(request, user_id, "preview", str(target.get("id")), target.get("filename"), {"content_type": content_type})
     return {"url": signed, "sha256": target.get("sha256", ""), "expires_seconds": 300}
 
@@ -1022,7 +1022,7 @@ async def document_download(request: Request, document_id: str, user_id: str = D
             expires_seconds=300,
         )
     except (RuntimeError, ValueError, NotImplementedError) as exc:
-        raise HTTPException(status_code=503, detail=f"Signed download URL failed: {exc}") from exc
+        raise HTTPException(status_code=503, detail="Signed download URL could not be created.") from exc
     await _audit(request, user_id, "download", str(target.get("id")), None, {"sha256": target.get("sha256", ""), "storage_provider": provider_name})
     return {"url": signed, "sha256": target.get("sha256", ""), "expires_seconds": 300}
 
