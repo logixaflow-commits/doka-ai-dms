@@ -98,14 +98,11 @@ Do not re-enable deferred modules in the Personal Local runtime unless they are 
 ## Development checks
 `Doka Quality Checks` is the consolidated automatic CI workflow for relevant source changes. `Local Core Checks` is retained for deliberate manual runs only; the Vercel production smoke check is also manual-only while production is paused.
 
-The local quality workflow runs automatically for relevant changes. A green local check does not imply a GitHub Actions run or production readiness; see the roadmap for the remaining verification gates.
-
-## Next milestone
-The code foundation is now in the **real-machine validation phase**. The next meaningful milestone is not another architectural rewrite; it is proving the safe workflow against representative office files and then tuning organization/search/OCR quality from those results.
+The local quality workflow runs automatically for relevant changes. A green local check does not imply production readiness; see the roadmap and final verification gates below.
 
 ## Cloud Edition — current implementation
 
-The Cloud Edition is being brought online separately from Personal Local. The Cloud Edition implementation is now merged to `main` and is being verified independently of the intentionally paused Vercel deployment.
+The Cloud Edition implementation is merged to `main` and is being verified independently of the intentionally paused Vercel deployment.
 
 ### Cloud storage routing
 
@@ -121,74 +118,39 @@ The Cloud Edition is being brought online separately from Personal Local. The Cl
 
 The Cloudflare Worker does **not** proxy document bytes. The browser requests a short-lived, HMAC-bound upload session, uploads directly to Supabase/B2/Cloudinary, then calls a small completion endpoint that verifies the issued session, size and provider result before writing metadata.
 
-Legacy multipart document/version upload routes now fail closed with HTTP 410 rather than buffering large files through the Worker.
-
-### Cloud Worker environment
-
-Required/important server-side bindings for the direct-storage path:
-
-```env
-SUPABASE_URL=https://jkobgssaqifzrqfirdfu.supabase.co
-SUPABASE_STORAGE_BUCKET=doka-documents
-SUPABASE_PUBLISHABLE_KEY=<Cloudflare secret>
-DOKA_STORAGE_MAX_OBJECT_BYTES=52428800
-DOKA_SINGLE_USER_EMAIL=<the one approved account>
-DOKA_STORAGE_SESSION_SECRET=<32+ byte secret>
-STORAGE_PROVIDER=hybrid
-
-# B2 — required only when >50 MiB source storage is enabled
-B2_ENDPOINT=https://s3.<region>.backblazeb2.com
-B2_BUCKET=<bucket>
-B2_KEY_ID=<application key id>
-B2_APPLICATION_KEY=<application key secret>
-B2_REGION=<region>
-B2_QUOTA_BYTES=<configured safety ceiling>
-B2_QUOTA_ALERT_RATIO=0.80
-B2_QUOTA_BLOCK_RATIO=0.95
-
-# Cloudinary — server-side only
-CLOUDINARY_CLOUD_NAME=<cloud>
-CLOUDINARY_API_KEY=<key>
-CLOUDINARY_API_SECRET=<secret>
-CLOUDINARY_LOW_CREDIT_THRESHOLD=5
-```
-
-Never put B2, Cloudinary, storage-session, Supabase secret/service-role, QStash or Sentry auth credentials in browser `VITE_*` variables.
-
-### Frontend direct-upload settings
-
-`VITE_API_BASE_URL` points to the Cloudflare Worker. The frontend computes SHA-256 in the browser, requests a storage session, uploads directly to the selected provider, and completes the session. The UI default upload ceiling is 5 GiB; the Worker remains the final enforcement point.
-
-### B2 quota safety
-
-Doka uses its own B2-backed document metadata usage as the application quota ledger. At the configured 80% projected threshold it emits a quota warning (and can POST a configured `B2_QUOTA_ALERT_WEBHOOK`). At 95% it blocks new B2 uploads. Google Drive fallback is intentionally **not claimed as active** until a real Google OAuth/provider configuration exists.
+Legacy multipart document/version upload routes fail closed with HTTP 410 rather than buffering large files through the Worker.
 
 ### Google Drive export / backup
 
-Google Drive is implemented as a configuration-gated user-owned export path. The Worker refreshes a Google OAuth token, creates a resumable Drive upload session, the browser streams the source directly to the Drive session, and the Worker verifies the Drive file size/SHA-256 before recording `export_reference`.
-
-Server-side bindings:
-```env
-GOOGLE_DRIVE_CLIENT_ID=<OAuth client id>
-GOOGLE_DRIVE_CLIENT_SECRET=<OAuth client secret>
-GOOGLE_DRIVE_REFRESH_TOKEN=<OAuth refresh token>
-GOOGLE_DRIVE_FOLDER_ID=<optional target folder>
-```
-
-These are never browser `VITE_*` secrets. Export/restore is still not considered production-proven until real OAuth credentials are configured and an authenticated export + recovery drill succeeds.
+Google Drive is implemented as a configuration-gated user-owned export path. Production readiness is **not** claimed until real OAuth credentials are configured and an authenticated export + recovery drill succeeds.
 
 ### Vercel status
 
-Vercel remains **intentionally paused by the owner**. Do not reactivate or deploy it unless explicitly requested. Cloudflare Worker changes can be verified independently.
+Vercel remains **intentionally paused by the owner**. Do not reactivate, reconnect, trigger a deployment, or change deployment settings unless explicitly requested. The repository has **no `vercel.json` override file**; build/install/output command overrides are not committed to the repository.
 
-### Verification
+### Merge / branch status
 
-Current feature-branch verification includes:
+The final Cloudflare/Vercel reconciliation changes and the previously approved PR changes are on `main`. PR #17 was merged and PR #19 was reconciled into `main` and closed. The remaining `fix/*` branches are historical working branches and may be deleted by the repository owner after confirming this `main` state:
+- `fix/cloudflare-build-import-topology`
+- `fix/cloudflare-build-import-topology-v2`
+- `fix/cloudflare-final-bundle`
+- `fix/cloudflare-production-origin`
+- `fix/quality-checks-after-cloudflare-build`
 
-- Python compile of `cloudflare_worker/` and `shared/`.
-- Cloud storage provider contract tests.
-- B2 multipart and quota policy tests.
-- Frontend `npm ci` and production `npm run build`.
-- Supabase Security Advisor recheck after the version-RPC security migration.
+### Final go-live gates
 
-Latest verification: **Cloudflare Workers production deployment is green** via Workers Builds using `uv run pywrangler deploy`; the active Worker is `doka-ai-dms` and the latest verified production version is `641d2f64-ae8d-4eba-ac6f-05f78d4ca3d0` at 100% traffic. GitHub Doka Quality Checks run 569 is green on the preceding main commit, and the current Cloudflare reconciliation build also completed successfully. Vercel remains intentionally paused; its legacy root `vercel.json` override has been removed. Remaining go-live proofs are authenticated user-flow E2E, real provider upload/recovery drills (B2/Cloudinary/Google Drive), OCR pilot, and measurable backup RTO/RPO.
+The project is **not yet signed off as production-ready**. Remaining proof gates are:
+1. authenticated signed-in user workflow: upload/list/update/download/version/restore/trash;
+2. two-user isolation test with separate sessions;
+3. 50 MiB upload boundary test;
+4. real B2, Cloudinary, and Google Drive export/recovery drills;
+5. Myanmar + English OCR representative benchmark;
+6. backup → restore → SHA-256 recovery proof and measurable RTO/RPO;
+7. Supabase leaked-password protection enabled and verified;
+8. one clean Vercel build after the current rate-limit window clears, without repeatedly retrying builds.
+
+These are verification gates, not reasons to weaken the existing safety boundaries.
+
+## Next milestone
+
+The code foundation and branch consolidation are complete. The next milestone is evidence-based release validation: run the remaining authenticated, isolation, provider recovery, OCR, backup, Supabase security, and Vercel checks, then issue final go-live sign-off only when all required gates pass.
