@@ -58,9 +58,9 @@ async def upload_object(
         )
         return {"key": key, "size": stored.size, "sha256": stored.sha256, "content_type": stored.content_type}
     except StorageNotConfigured as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
     except StorageError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.get("/objects/{key:path}")
@@ -72,9 +72,9 @@ async def download_object(key: str, user_id: str = Depends(require_authenticated
         stored = storage.head(object_key)
         return Response(content=data, media_type=stored.content_type, headers={"Content-Disposition": f'inline; filename="{key.rsplit("/", 1)[-1]}"', "X-Doka-SHA256": hashlib.sha256(data).hexdigest()})
     except StorageNotConfigured as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
     except StorageError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail="Resource not found.") from exc
 
 
 @router.post("/signed-url")
@@ -83,6 +83,6 @@ async def signed_url(request: SignedUrlRequest, user_id: str = Depends(require_a
         storage = build_object_storage(access_token=credentials.credentials)
         return {"key": request.key, "url": storage.signed_get_url(_user_key(user_id, request.key), expires_seconds=request.expires_seconds)}
     except StorageNotConfigured as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
     except StorageError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
