@@ -28,23 +28,16 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             )
             logger.debug(traceback.format_exc())
 
-            # Return safe error response
-            if settings.DEBUG:
-                detail = str(exc)
-                stack = traceback.format_exc()
-            else:
-                detail = "An internal server error occurred. Please try again later."
-                stack = None
-
+            # Never expose exception messages or stack traces to API clients.
+            # Debug details belong in server logs only.
             from datetime import datetime
 
             return JSONResponse(
                 status_code=500,
                 content={
                     "error": "Internal Server Error",
-                    "detail": detail,
+                    "detail": "An internal server error occurred. Please try again later.",
                     "timestamp": datetime.utcnow().isoformat(),
                     "request_id": getattr(request.state, "request_id", "unknown"),
-                    "stack_trace": stack if settings.DEBUG else None,
                 },
             )
