@@ -56,7 +56,7 @@ async def create_integration(
         raise
     except Exception as e:
         logger.error(f"Failed to create integration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/")
@@ -85,7 +85,7 @@ async def get_integrations(
         
     except Exception as e:
         logger.error(f"Failed to get integrations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/{integration_id}")
@@ -119,7 +119,7 @@ async def get_integration(
         raise
     except Exception as e:
         logger.error(f"Failed to get integration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/{integration_id}/activate")
@@ -141,7 +141,7 @@ async def activate_integration(
         raise
     except Exception as e:
         logger.error(f"Failed to activate integration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/{integration_id}/deactivate")
@@ -163,7 +163,7 @@ async def deactivate_integration(
         raise
     except Exception as e:
         logger.error(f"Failed to deactivate integration: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/{integration_id}/sync/erp")
@@ -184,7 +184,7 @@ async def sync_to_erp(
         
     except Exception as e:
         logger.error(f"Failed to sync to ERP: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/{integration_id}/sync/crm")
@@ -205,7 +205,7 @@ async def sync_to_crm(
         
     except Exception as e:
         logger.error(f"Failed to sync to CRM: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/{integration_id}/sync/accounting")
@@ -226,7 +226,7 @@ async def sync_to_accounting(
         
     except Exception as e:
         logger.error(f"Failed to sync to accounting: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/{integration_id}/webhook")
@@ -249,4 +249,4 @@ async def trigger_webhook(
         
     except Exception as e:
         logger.error(f"Failed to trigger webhook: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
