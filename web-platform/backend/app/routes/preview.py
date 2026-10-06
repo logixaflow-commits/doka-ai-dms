@@ -63,7 +63,7 @@ async def generate_preview(
         raise
     except Exception as e:
         logger.error(f"Preview generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/{document_id}/page/{page_number}")
@@ -102,7 +102,7 @@ async def get_preview_page(
         raise
     except Exception as e:
         logger.error(f"Failed to get preview page: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.post("/annotation")
@@ -161,7 +161,7 @@ async def add_annotation(
         raise
     except Exception as e:
         logger.error(f"Failed to add annotation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/annotations/{document_id}")
@@ -199,7 +199,7 @@ async def get_annotations(
         raise
     except Exception as e:
         logger.error(f"Failed to get annotations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.delete("/annotation/{document_id}/{annotation_id}")
@@ -234,7 +234,7 @@ async def delete_annotation(
         raise
     except Exception as e:
         logger.error(f"Failed to delete annotation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
 
 
 @router.get("/print/{document_id}")
@@ -268,4 +268,4 @@ async def get_print_view(
         raise
     except Exception as e:
         logger.error(f"Failed to get print view: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal server error occurred. Please try again later.")
