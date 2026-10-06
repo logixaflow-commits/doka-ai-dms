@@ -349,7 +349,7 @@ text
 | Semantic Search | ❌ Missing | Phase 1 |
 | Chat with Documents | ❌ Missing | Phase 1 |
 | AI Summarization | ❌ Missing | Phase 1 |
-| Rule Engine (IF-THEN) | 💤 Dormant | Phase 5 |
+| Rule Engine (IF-THEN) | 💤 Dormant | Phase 2 (optional) |
 | Predictive Analytics | ❌ Missing | Phase 5 |
 
 ### 4.4 Enterprise Features (All Archived)
@@ -372,7 +372,20 @@ text
 | Mobile (native) | 💤 Dormant | mobile/ |
 | Cloud Deployment | 💤 Dormant | infrastructure/ |
 
-**Activation:** Requires funding + Amendment.
+**🔒 ENTERPRISE — DORMANT UNTIL FUNDED**
+
+All Enterprise features are preserved in `archive/legacy-enterprise/` (and
+related legacy infrastructure locations) and are **not deleted**.
+
+They are:
+- ❌ NOT active in Personal Local
+- ❌ NOT active in Cloud
+- ❌ NOT automatically imported, routed, or exposed
+- ❌ NOT part of the current product execution phases
+- 🔒 Activation requires **funding + formal amendment + a new dedicated phase +
+  full validation gates + owner sign-off**
+
+No Enterprise feature may be activated merely because its legacy code exists.
 
 ### 4.5 Security Features
 
@@ -391,6 +404,7 @@ text
 | Server-side Token Revocation | ❌ Missing | Phase 1 |
 | OS-level Source ACL | ❌ Missing | Phase 2 |
 | Leaked Password Protection | 🚨 Not yet enabled/verified | Phase 1 |
+| Manifest-only Download Enforcement | ❌ Missing | Phase 1 |
 
 ### 4.6 Deployment & Infrastructure
 
@@ -462,15 +476,18 @@ Graceful degradation (no AI)
 
 text
 
-### 5.3 Phase 1 AI Features
+### 5.3 Phase 1–2 AI Feature Delivery
 
-| Feature | Purpose | Boundary |
-| :--- | :--- | :--- |
-| Classification | Auto-categorize | Suggest only |
-| Auto-Tagging | Extract entities | Advisory tags |
-| Semantic Search | Meaning-based search | Suggestions |
-| Chat with Docs | Q&A over collection | Read-only |
-| Summarization | Summarize long docs | Advisory |
+| Feature | Phase | Purpose | Boundary |
+| :--- | :--- | :--- | :--- |
+| AI Classification | Phase 1 (optional; currently dormant) | Auto-categorize | Suggest only |
+| AI Auto-Tagging | Phase 1 | Extract entities | Advisory tags |
+| Semantic Search | Phase 1 | Meaning-based search | Suggestions |
+| Chat with Documents | Phase 2 | Q&A over collection | Read-only |
+| AI Summarization | Phase 2 | Multi-document summaries | Advisory |
+| Rule Engine (IF-THEN) | Phase 2 (optional; dormant until enabled) | Workflow automation | Never auto-approve/delete |
+
+**AI remains optional and is never a mandatory dependency for core DMS use.**
 
 ### 5.4 AI Safety Rules
 
@@ -622,7 +639,30 @@ Document
 
 Improve
 
-7.6 Compliance Roadmap
+### 7.7 Phase 1 Cloud Security Deliverables
+
+The following are explicit Phase 1 security deliverables, not indefinite backlog
+items:
+
+1. Rate limiting target: **100 requests/minute** per appropriate authenticated
+   identity/IP boundary.
+2. HttpOnly, secure cookie-based session/token handling; do not rely on
+   `localStorage` for Cloud authentication tokens.
+3. Server-side token/session revocation on logout.
+4. Manifest-only download enforcement: a document may be served only when the
+   authorized metadata/manifest record permits it.
+5. Supabase Leaked Password Protection enabled and verified.
+6. Preserve RLS, private storage, HMAC upload sessions, no-byte-proxy, and
+   secret-boundary rules.
+
+### 7.8 Phase 2 Desktop Security Deliverables
+
+- OS-level Source ACL on supported desktop platforms.
+- Preserve the source read-only contract at the OS boundary as well as in app
+  code.
+- No desktop feature may bypass the core approval/safety workflow.
+
+7.9 Compliance Roadmap
 Standard	Target	Status
 GDPR	Phase 5	❌
 SOC 2	Phase 5	❌
@@ -737,6 +777,29 @@ Large Storage	Backblaze B2	⚠️ Verify
 Images	Cloudinary	⚠️ Verify
 Backup	Google Drive	⚠️ OAuth
 Frontend	Vercel	⏸️ Paused
+
+### 9.2.1 Phase 1 Explicit Feature Deliverables
+
+**Document Management**
+- Document Versioning (V1, V2, V3)
+- Bulk Actions (multi-select approve/reject)
+- Document Locking (prevent concurrent edits)
+- Advanced Filters (date, type, size)
+- Saved Searches (query history)
+
+**AI (optional, never mandatory)**
+- AI Auto-Tagging
+- Semantic Search
+- AI Classification (currently dormant; activation requires explicit enablement)
+- Core AI advisory boundary remains human-approval-first
+
+**Security**
+- Rate Limiting (100 req/min target)
+- HttpOnly Cookies
+- Server-side Token Revocation
+- Manifest-only Download Enforcement
+- Supabase Leaked Password Protection
+- Existing RLS/HMAC/private-storage/no-byte-proxy controls remain mandatory
 9.3 Step-by-Step Plan
 Week 1: Verification
 
@@ -933,6 +996,16 @@ File chunking
 
 Bandwidth optimization
 
+### 12.1.1 North-Star Sync Deliverables
+
+- One user account works across **Cloud + Desktop + Android**.
+- The same document/data state is available across all three platforms.
+- Desktop and Android support offline work with a durable local queue.
+- Cloud is the authoritative shared source of truth; clients reconcile safely.
+- Conflict resolution never silently destroys data.
+- Document versions, approvals, metadata, and audit history remain consistent
+  across platforms.
+
 12.2 Sync Protocol
 text
 Device A changes file
@@ -965,11 +1038,14 @@ Data loss	0%
 Offline→Online	<30s
 13. Contributing Rules
 13.1 Current Development Target
-Active: Personal Local Edition (main)
+Active milestone: **Cloud Base (Phase 1)**
 
-Deferred: Cloud Edition (verified separately)
+Foundation: Personal Local Edition (safety/reference foundation; must remain
+validated)
 
-Archived: Enterprise (preserved)
+Next: Desktop App (Phase 2) → Android App (Phase 3) → Sync Engine (Phase 4)
+
+Locked: Enterprise (Phase 5, Dormant Until Funded)
 
 13.2 Safety Boundary (Keep Intact)
 □ Original source read-only
@@ -1089,12 +1165,19 @@ The next milestone is evidence-based release validation:
 Run remaining authenticated, isolation, provider recovery, OCR, backup, Supabase security, and Vercel checks. Issue final go-live sign-off only when ALL required gates pass.
 
 15.3 Core Policy
-Safety First · Local First · Human Approval First · AI Second · Cloud Later
+Safety First · Cloud Base First · Human Approval First · AI Optional ·
+Legacy Preserved · Validation Gates Always
 
-15.4 Long-Term Vision
+15.4 North Star — Multi-Platform Unified System
+The final target is one unified DMS where the **same user account** works on
+Cloud + Desktop + Android, the **same data synchronizes across all three**,
+Desktop and Android support **offline mode**, and there is **one source of
+truth** with safe conflict resolution and no silent data loss.
+
+15.5 Long-Term Vision
 A professional AI-assisted DMS that can take a messy office document environment and safely transform it into a structured, searchable, understandable document library without risking the original files.
 
-15.5 What NOT to Do
+15.6 What NOT to Do
 ❌ Migrate to Next.js without concrete requirement
 
 ❌ Replace FastAPI without concrete requirement
@@ -1119,7 +1202,7 @@ A professional AI-assisted DMS that can take a messy office document environment
 
 ❌ Claim production-ready before real-machine testing
 
-15.6 Immediate Next Steps
+15.7 Immediate Next Steps
 #	Action	Owner	Time
 1	Run start_application.bat on Windows	User	15 min
 2	Small test folder (5-20 files)	User	30 min
@@ -1129,6 +1212,12 @@ A professional AI-assisted DMS that can take a messy office document environment
 6	One clean Vercel build	User	1 hour
 7	Real office dataset test	User	1 day
 8	Phase 1 Cloud Gates (CL-G1 to CL-G12)	Both	2-4 weeks
+**Roadmap phase order:** Cloud Base → Desktop → Android → Sync Engine → Enterprise (locked/dormant until funded).
+
+**Non-negotiable constraints:** Do not activate Enterprise; do not delete legacy
+code; do not skip validation gates; do not weaken R1-R10; do not auto-delete or
+auto-approve; do not expose the backend publicly; do not make AI mandatory.
+
 Signed: ________________________
 Date: 2026-10-06
 Version: 1.0 (Locked)
