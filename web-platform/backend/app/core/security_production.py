@@ -43,10 +43,11 @@ class SecurityConfig:
     # Token settings
     ACCESS_TOKEN_EXPIRE_MINUTES = 60
     REFRESH_TOKEN_EXPIRE_DAYS = 7
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
-    if os.getenv("ENVIRONMENT", "development") == "production":
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+    SECRET_KEY = os.getenv("SECRET_KEY") or (secrets.token_urlsafe(32) if ENVIRONMENT != "production" else "")
+    if ENVIRONMENT == "production":
         if len(SECRET_KEY.encode("utf-8")) < 32:
-            raise ValueError("SECRET_KEY must contain at least 32 bytes for HS256 signing.")
+            raise ValueError("SECRET_KEY must be explicitly configured with at least 32 bytes in production.")
     
     # Allowed hosts
     ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
