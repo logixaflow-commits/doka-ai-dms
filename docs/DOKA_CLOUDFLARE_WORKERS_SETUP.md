@@ -9,8 +9,8 @@ features remain on the user's own computer.
 
 The Cloudflare Worker is deployed as:
 
-- Worker: `doka`
-- URL: `https://doka.logixaflow.workers.dev`
+- Worker: `doka-ai-dms`
+- URL: `https://doka-ai-dms.logixaflow.workers.dev`
 - `GET /health`: verified HTTP 200 with `status: healthy`.
 - `GET /api/config`: verified HTTP 200 with `edition: cloud-api`,
   `auth: supabase`, `local_workspace_available: false`,
@@ -67,7 +67,7 @@ CORS is restricted in the Worker code to
 ## Vercel frontend
 
 The production frontend defaults to
-`https://doka.logixaflow.workers.dev`. Local Vite development continues to
+`https://doka-ai-dms.logixaflow.workers.dev`. Local Vite development continues to
 use the local API proxy. `VITE_API_BASE_URL` is optional and can override the
 production API origin (no trailing slash and no `/api` suffix). Vercel production is intentionally paused by the owner; do not reactivate or deploy it without explicit authorization.
 

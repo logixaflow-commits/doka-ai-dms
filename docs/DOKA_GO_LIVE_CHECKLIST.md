@@ -5,7 +5,7 @@ Last reviewed: 2026-10-05
 ## Active production architecture
 
 - Frontend: Vercel — intentionally paused by the owner; the previously verified alias is retained as historical evidence only
-- Cloud API: Cloudflare Python Worker — `https://doka.logixaflow.workers.dev`
+- Cloud API: Cloudflare Python Worker — `https://doka-ai-dms.logixaflow.workers.dev`
 - Auth, metadata and object storage: Supabase project `jkobgssaqifzrqfirdfu`
 - Private Storage bucket: `doka-documents`, 50 MiB per-object limit
 - Local Personal edition: FastAPI/local filesystem/OCR runtime; it is not hosted in the cloud Worker.
@@ -14,7 +14,7 @@ Render is not part of the active deployment. The free Render option was not sele
 
 ## Verified current state
 
-- Cloudflare Worker `doka` latest deployment (2026-10-05 07:39 UTC) is receiving 100% traffic on version `2655ae42-b180-432e-b87f-542c97f9e8ce`; the Cloudflare API reports the deployment source as Wrangler.
+- Cloudflare Worker `doka-ai-dms` latest deployment (2026-10-05 07:39 UTC) is receiving 100% traffic on version `2655ae42-b180-432e-b87f-542c97f9e8ce`; the Cloudflare API reports the deployment source as Wrangler.
 - Supabase has the Doka schema migrations through `20261005073729_doka_version_rpc_execute_hardening`.
 - Owner-scoped RLS and private Storage policies are installed. Version RPCs validate `auth.uid()` and the parent document owner; anonymous users cannot execute version/bulk RPCs.
 - Vercel production is intentionally paused by the owner; do not reactivate or deploy it without explicit authorization. The previously verified deployment `dpl_vyP8LeS8eNNJcLHKMMqLk8mEPGdr` is historical evidence only. It is not current production state while Vercel is intentionally paused.

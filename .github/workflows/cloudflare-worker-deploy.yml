@@ -57,13 +57,13 @@ jobs:
           import json
           from urllib.request import urlopen
 
-          with urlopen("https://doka.logixaflow.workers.dev/health", timeout=20) as response:
+          with urlopen("https://doka-ai-dms.logixaflow.workers.dev/health", timeout=20) as response:
               if response.status != 200:
                   raise SystemExit(f"Worker health returned HTTP {response.status}")
               payload = json.load(response)
           if payload.get("status") != "healthy":
               raise SystemExit(f"Unexpected Worker health payload: {payload!r}")
-          with urlopen("https://doka.logixaflow.workers.dev/api/config", timeout=20) as response:
+          with urlopen("https://doka-ai-dms.logixaflow.workers.dev/api/config", timeout=20) as response:
               if response.status != 200:
                   raise SystemExit(f"Worker config returned HTTP {response.status}")
               config = json.load(response)
