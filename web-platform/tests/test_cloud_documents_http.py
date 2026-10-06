@@ -251,7 +251,7 @@ def test_metadata_creation_failure_returns_503_and_attempts_object_cleanup(
 
     uploaded_key = storage.uploads[0][0]
     assert response.status_code == 503
-    assert response.json()["detail"] == "metadata creation failed"
+    assert response.json()["detail"] == "Service temporarily unavailable. Please try again later."
     assert events[-1] == ("delete", uploaded_key)
     assert storage.deletions == [uploaded_key]
 
