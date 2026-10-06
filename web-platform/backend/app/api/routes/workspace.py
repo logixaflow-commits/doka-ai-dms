@@ -46,7 +46,7 @@ def create_backup():
     try:
         return workspace_backup_service.create()
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Backup failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Backup could not be completed.") from exc
 
 
 @router.get("/backups")
