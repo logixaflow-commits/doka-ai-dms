@@ -1214,6 +1214,15 @@ Pass CI
 
 Update CHANGELOG
 
+13.8 Legacy Enterprise Code
+Preserve in archive/legacy-enterprise/
+
+Do not delete
+
+Do not import into Personal Local
+
+Do not route legacy pages
+
 ### 13.9 Phase-by-Phase Rollback Plan
 
 | Phase | Rollback trigger | Procedure |
@@ -1240,15 +1249,6 @@ Update CHANGELOG
 | Feedback | Capture bugs, usability issues, feature requests, and safety concerns separately |
 
 Support documentation must reinforce the safety model: originals remain protected, AI is optional, and human approval is required for destructive/organizational actions.
-
-13.8 Legacy Enterprise Code
-Preserve in archive/legacy-enterprise/
-
-Do not delete
-
-Do not import into Personal Local
-
-Do not route legacy pages
 
 14. Change Log
 [Unreleased]
