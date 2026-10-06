@@ -347,7 +347,7 @@ def _validate_upload_metadata(request: Request, user_id: str, payload: dict) -> 
     try:
         metadata.validate()
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
     return metadata
 
 async def _check_b2_quota(request: Request, user_id: str, requested_bytes: int) -> dict:
@@ -382,7 +382,7 @@ async def _check_b2_quota(request: Request, user_id: str, requested_bytes: int) 
             block_ratio=float(_env(request, "B2_QUOTA_BLOCK_RATIO", "0.95")),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
 
     if decision.warning:
         print(f"DOKA_B2_QUOTA {decision.warning} used={used_bytes} requested={requested_bytes} quota={quota_bytes} ratio={decision.usage_ratio:.4f}")
@@ -526,7 +526,7 @@ async def sign_storage_multipart_part(
     try:
         signed = verify_session(_storage_session_secret(request), payload.session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
     if signed.get("owner_id") != user_id or signed.get("provider") != "b2":
         raise HTTPException(status_code=403, detail="Multipart session is not valid for this user.")
     router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
@@ -573,7 +573,7 @@ async def complete_storage_multipart(
     try:
         signed = verify_session(_storage_session_secret(request), payload.session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
     if signed.get("owner_id") != user_id or signed.get("provider") != "b2":
         raise HTTPException(status_code=403, detail="Multipart session is not valid for this user.")
     if int(signed.get("size_bytes", 0)) != payload.size_bytes or str(signed.get("sha256", "")).lower() != payload.sha256.lower():
@@ -656,7 +656,7 @@ async def create_google_drive_export_session(
     try:
         _, upload, expires_at = await provider.create_upload_session(metadata)
     except (RuntimeError, ValueError) as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.") from exc
     source_provider_name = str(document.get("storage_provider") or "supabase")
     source_router = build_storage_router(request, token, _storage_fetcher)
     source_provider = _provider_for(source_router, source_provider_name)
@@ -697,7 +697,7 @@ async def complete_google_drive_export(
     try:
         signed = verify_session(_storage_session_secret(request), payload.session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
     if signed.get("owner_id") != user_id or signed.get("document_id") != document_id or signed.get("provider") != "google_drive":
         raise HTTPException(status_code=403, detail="Google Drive export session is not valid for this user/document.")
     if int(signed.get("size_bytes", 0)) != payload.size_bytes or str(signed.get("sha256", "")).lower() != payload.sha256.lower():
@@ -762,7 +762,7 @@ async def create_storage_upload_session(
     try:
         session, decision = await router.create_upload_session(metadata)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
     except RuntimeError as exc:
         message = str(exc)
         status_code = 503 if message not in {"cloudinary_credit_fallback"} else 200
@@ -806,7 +806,7 @@ async def complete_storage_upload(
     try:
         signed = verify_session(_storage_session_secret(request), payload.session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
     if signed.get("owner_id") != user_id:
         raise HTTPException(status_code=403, detail="Upload session belongs to another user.")
     if str(signed.get("sha256", "")).lower() != payload.sha256.lower() or int(signed.get("size_bytes", 0)) != payload.size_bytes:
