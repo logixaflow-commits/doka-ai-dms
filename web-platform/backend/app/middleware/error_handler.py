@@ -3,7 +3,6 @@ Office DMS - Global Error Handler Middleware
 Catches and formats all exceptions. Never exposes stack traces in production.
 """
 
-import traceback
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -22,11 +21,12 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         except Exception as exc:
-            # Log full error with stack trace
-            logger.error(
-                f"Unhandled exception in {request.method} {request.url.path}: {exc}"
+            # Keep the full exception and stack trace server-side only.
+            logger.exception(
+                "Unhandled exception in %s %s",
+                request.method,
+                request.url.path,
             )
-            logger.debug(traceback.format_exc())
 
             # Never expose exception messages or stack traces to API clients.
             # Debug details belong in server logs only.
