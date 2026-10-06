@@ -21,10 +21,10 @@ class ProductionSettings(BaseSettings):
     # Core Application
     ENVIRONMENT: str = "production"
     DEBUG: bool = False
-    SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION"
+    SECRET_KEY: str = ""
     
     # Database
-    DATABASE_URL: str = "postgresql://dms_user:password@localhost:5432/dms_db"
+    DATABASE_URL: str = ""
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 10
     DATABASE_POOL_TIMEOUT: int = 30
@@ -46,7 +46,7 @@ class ProductionSettings(BaseSettings):
     PASSWORD_REQUIRE_SPECIAL: bool = True
     
     # CORS
-    CORS_ORIGINS: List[str] = ["https://yourdomain.com"]
+    CORS_ORIGINS: List[str] = []
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     CORS_ALLOW_HEADERS: List[str] = ["*"]
@@ -69,8 +69,8 @@ class ProductionSettings(BaseSettings):
     
     # Storage
     MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
     MINIO_SECURE: bool = True
     MINIO_BUCKET_NAME: str = "logistics-documents"
     
@@ -121,12 +121,12 @@ class ProductionSettings(BaseSettings):
     def validate_settings(self) -> None:
         """Validate critical settings"""
         if self.is_production:
-            if self.SECRET_KEY == "CHANGE_THIS_IN_PRODUCTION":
-                raise ValueError("SECRET_KEY must be changed in production")
+            if len(self.SECRET_KEY.encode("utf-8")) < 32:
+                raise ValueError("SECRET_KEY must contain at least 32 bytes in production")
             if self.DEBUG:
                 raise ValueError("DEBUG must be False in production")
-            if self.MINIO_SECRET_KEY == "minioadmin":
-                raise ValueError("MINIO_SECRET_KEY must be changed in production")
+            if not self.MINIO_ACCESS_KEY or not self.MINIO_SECRET_KEY:
+                raise ValueError("MINIO credentials must be explicitly configured in production")
 
 
 @lru_cache()
