@@ -33,7 +33,7 @@ def create_import(request: ImportRequest, background_tasks: BackgroundTasks):
         background_tasks.add_task(safe_workspace_service.run_import, status["session_id"])
         return {"message": "Import started. Source is read-only; work happens on a verified copy.", **status}
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.get("/ocr/validate")
@@ -59,7 +59,7 @@ def verify_backup(archive_name: str):
     try:
         return workspace_backup_service.verify(archive_name)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.post("/backups/restore")
@@ -69,7 +69,7 @@ def restore_backup(archive_name: str, confirm: bool = False):
             archive_name, confirm=confirm
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.post("/backups/prune")
@@ -77,7 +77,7 @@ def prune_backups(confirm: bool = False, dry_run: bool = False):
     try:
         return workspace_backup_service.prune(confirm=confirm, dry_run=dry_run)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.post("/imports/{session_id}/resume")
@@ -87,7 +87,7 @@ def resume_import(session_id: str, background_tasks: BackgroundTasks):
         background_tasks.add_task(safe_workspace_service.run_import, session_id)
         return {"message": "Import resumed.", **status}
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail="Resource not found.") from exc
 
 
 @router.post("/imports/{session_id}/understand")
@@ -96,7 +96,7 @@ def understand_import(session_id: str):
         from app.services.document_understanding_service import document_understanding_service
         return document_understanding_service.analyze(session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.post("/imports/{session_id}/plan")
@@ -105,7 +105,7 @@ def organization_plan(session_id: str):
         from app.services.organization_planner import organization_planner
         return organization_planner.plan(session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.post("/imports/{session_id}/apply")
@@ -116,7 +116,7 @@ def apply_organization(session_id: str, request: OrganizationApplyRequest):
         from app.services.organization_planner import organization_planner
         return organization_planner.apply(session_id, request.approved_paths)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 class OCRCorrectionRequest(BaseModel):
@@ -128,7 +128,7 @@ def get_understanding(session_id: str):
     try:
         return safe_workspace_service.get_understanding(session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail="Resource not found.") from exc
 
 
 @router.put("/imports/{session_id}/understanding/{relative_path:path}")
@@ -164,7 +164,7 @@ def save_ocr_correction(session_id: str, relative_path: str, request: OCRCorrect
                 "message": "OCR correction saved as metadata; source and working document are unchanged.",
             }
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.post("/imports/{session_id}/undo")
@@ -173,7 +173,7 @@ def undo_organization(session_id: str):
         from app.services.organization_planner import organization_planner
         return organization_planner.undo(session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.post("/imports/{session_id}/scan")
@@ -181,7 +181,7 @@ def scan_import(session_id: str):
     try:
         return safe_workspace_service.scan(session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
 
 
 @router.get("/imports/{session_id}")
@@ -189,7 +189,7 @@ def import_status(session_id: str):
     try:
         return safe_workspace_service.status(session_id)
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail="Resource not found.") from exc
 
 
 @router.get("/imports/{session_id}/search")
@@ -213,7 +213,7 @@ def search_import(
             review_only=review_only,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail="Resource not found.") from exc
 
 
 @router.get("/imports/{session_id}/inventory")
@@ -223,4 +223,4 @@ def import_inventory(session_id: str, limit: int = 500, offset: int = 0):
     try:
         return safe_workspace_service.inventory(session_id, limit, offset)
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail="Resource not found.") from exc
