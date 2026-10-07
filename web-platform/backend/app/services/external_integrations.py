@@ -132,7 +132,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to activate integration: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     def deactivate_integration(self, integration_id: str) -> Dict[str, Any]:
         """Deactivate integration"""
@@ -148,7 +148,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to deactivate integration: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def sync_document_to_erp(
         self,
@@ -184,7 +184,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync document to ERP: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def sync_document_to_crm(
         self,
@@ -220,7 +220,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync document to CRM: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def sync_document_to_accounting(
         self,
@@ -256,7 +256,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync document to accounting: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def trigger_webhook(
         self,
@@ -304,11 +304,11 @@ class ExternalIntegrationService:
                 return {"success": True, "status_code": response.status_code}
             else:
                 logger.error(f"Webhook failed: {response.status_code}")
-                return {"success": False, "status_code": response.status_code, "error": response.text}
+                return {"success": False, "status_code": response.status_code, "error": "Webhook delivery failed."}
             
         except Exception as e:
             logger.error(f"Failed to trigger webhook: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_sap(
         self,
@@ -348,7 +348,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to SAP: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_oracle(
         self,
@@ -387,7 +387,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to Oracle: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_dynamics(
         self,
@@ -426,7 +426,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to Dynamics: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_generic_erp(
         self,
@@ -466,7 +466,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to generic ERP: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_salesforce(
         self,
@@ -506,7 +506,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to Salesforce: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_hubspot(
         self,
@@ -547,7 +547,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to HubSpot: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_dynamics_365(
         self,
@@ -586,7 +586,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to Dynamics 365: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_generic_crm(
         self,
@@ -626,7 +626,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to generic CRM: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_quickbooks(
         self,
@@ -670,7 +670,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to QuickBooks: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_xero(
         self,
@@ -717,7 +717,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to Xero: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_sage(
         self,
@@ -757,7 +757,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to Sage: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     async def _sync_to_generic_accounting(
         self,
@@ -797,7 +797,7 @@ class ExternalIntegrationService:
             
         except Exception as e:
             logger.error(f"Failed to sync to generic accounting: {e}")
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "External integration operation failed."}
     
     def get_integrations(self) -> List[IntegrationConfig]:
         """Get all integrations"""
