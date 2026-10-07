@@ -43,6 +43,12 @@ class UnifiedAIService:
             "openrouter": (settings.OPENROUTER_API_KEY, settings.OPENROUTER_MODEL),
             "groq": (settings.GROQ_API_KEY, settings.GROQ_MODEL),
             "openai": (settings.OPENAI_API_KEY, settings.OPENAI_MODEL),
+            "mistral": (getattr(settings, "MISTRAL_API_KEY", ""), getattr(settings, "MISTRAL_MODEL", "")),
+            "cerebras": (getattr(settings, "CEREBRAS_API_KEY", ""), getattr(settings, "CEREBRAS_MODEL", "")),
+            "nvidia": (getattr(settings, "NVIDIA_API_KEY", ""), getattr(settings, "NVIDIA_MODEL", "")),
+            "cohere": (getattr(settings, "COHERE_API_KEY", ""), getattr(settings, "COHERE_MODEL", "")),
+            "voyage": (getattr(settings, "VOYAGE_API_KEY", ""), getattr(settings, "VOYAGE_MODEL", "")),
+            "cloudflare": (getattr(settings, "CLOUDFLARE_AI_API_TOKEN", ""), getattr(settings, "CLOUDFLARE_AI_MODEL", "")),
         }
         for name, (api_key, model) in configured.items():
             if api_key and not api_key.startswith("your_"):
@@ -99,6 +105,30 @@ class UnifiedAIService:
                 logger.warning("AI provider '%s' failed for '%s'; trying next provider", provider, operation)
 
         raise RuntimeError(f"All configured AI providers failed for '{operation}': " + " | ".join(errors))
+
+    async def _call_openai_compatible(self, provider_name: str, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """Call an explicitly configured OpenAI-compatible endpoint; fail closed if absent."""
+        provider = self.providers.get(provider_name)
+        if not provider:
+            raise ValueError(f"{provider_name} provider not available")
+        endpoints = {
+            "mistral": getattr(settings, "MISTRAL_API_BASE_URL", ""),
+            "cerebras": getattr(settings, "CEREBRAS_API_BASE_URL", ""),
+            "nvidia": getattr(settings, "NVIDIA_API_BASE_URL", ""),
+        }
+        endpoint = endpoints.get(provider_name, "")
+        if not endpoint:
+            raise ValueError(f"{provider_name} endpoint is not configured")
+        messages = ([{"role": "system", "content": system_prompt}] if system_prompt else [])
+        messages.append({"role": "user", "content": prompt})
+        async with httpx.AsyncClient(timeout=settings.AI_PROVIDER_TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                endpoint.rstrip("/") + "/chat/completions",
+                headers={"Authorization": f"Bearer {provider['api_key']}", "Content-Type": "application/json"},
+                json={"model": provider["model"], "messages": messages, "temperature": 0.2, "max_tokens": 1200},
+            )
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
 
     async def call_openai(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         self._ensure_external_ai_allowed()
@@ -203,8 +233,10 @@ class UnifiedAIService:
                 raw = await self.call_groq(user_payload, system_prompt)
             elif prov == "openai":
                 raw = await self.call_openai(user_payload, system_prompt)
+            elif prov in {"mistral", "cerebras", "nvidia"}:
+                raw = await self._call_openai_compatible(prov, user_payload, system_prompt)
             else:
-                raise ValueError(f"Unsupported AI provider: {prov}")
+                raise ValueError(f"Provider '{prov}' is registered but has no safe document-analysis adapter yet")
             return json.loads(raw)
 
         providers = [provider] if provider else None
