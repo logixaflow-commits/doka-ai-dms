@@ -1,5 +1,10 @@
 # Doka Deployment
 
+> **Owner:** Where does Doka run and what deployment evidence is required?
+> **Update when:** Runtime topology, Worker deployment, hosting provider state, migration evidence or release prerequisites change.
+> **Last Updated:** 2026-10-08
+> **Do NOT put here:** Application architecture detail, secrets, or detailed incident procedures.
+
 ## Active topology
 - Personal Local: FastAPI + React/Vite on the user's machine.
 - Personal Cloud API: Cloudflare Worker `doka-ai-dms`.
@@ -20,7 +25,7 @@ Required before production sign-off: authenticated user lifecycle, two-user isol
 
 ## Database migration distinction
 Repository migration head: `20261007120000_doka_trigger_function_least_privilege.sql`.
-Previously audited live Supabase head: `20261005113241_doka_audit_export_backup_actions`.
+Last audited live Supabase head: `20261005113241_doka_audit_export_backup_actions`.
 These are separate facts; live state requires fresh verification before release.
 
 ## Deferred deployment references
