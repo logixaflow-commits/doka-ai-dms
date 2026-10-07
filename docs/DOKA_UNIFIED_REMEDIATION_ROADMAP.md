@@ -464,3 +464,58 @@ Evidence boundary:
 - Verification: `.venv\Scripts\python.exe -m pytest ..\tests -q` from `web-platform\backend` — **154 passed, 8 skipped**, exit code 0. Ten warnings were deprecations (FastAPI `on_event` and legacy `datetime.utcnow`); no test failures.
 - The active Personal Local real-browser/login acceptance gate remains pending; the API-level workflow passed after a test-only dependency override. Frontend checks and mobile utility tests passed earlier in this local session; `npm audit` still reports five high findings and no dependency upgrade was made.
 - Source was unchanged by the smoke test; the fixture and temporary workspace were isolated under the OS temp directory. No commit, push, deployment, or manual GitHub Actions run was made.
+
+
+### 2026-10-07 — Phase 5 coding-side verification
+
+- Maintained Personal Local backend regression set: **46 passed** on the current main HEAD.
+- Cloud storage contract unit set: **13 passed** on the current main HEAD.
+- Frontend lint, production build, and smoke suite: **all passed** on the current main HEAD.
+- Workflow YAML for Doka Quality, CodeQL and Dependency Review parsed successfully; all six backend dependency profiles referenced by the quality audit exist.
+- The Doka Quality workflow now installs the correct runtime profile for cloud-storage and symlink contract tests instead of relying on the incomplete test-only profile.
+- The backend quality job now explicitly targets maintained Personal Local boundary tests and no longer collects stale legacy enterprise tests whose ORM/routes are intentionally not part of the active runtime.
+- Backup restore validation was hardened so a rejected archive cannot create the Recovery directory before all archive safety checks pass.
+- This evidence came from an isolated runner and **does not** constitute a green GitHub Actions run. GitHub-hosted CodeQL/secret-scan/dependency-review/pip-audit evidence and live release gates remain pending.
+
+### Phase 7 pre-stage — Post-release hardening
+
+Entry condition: Phase 6 final acceptance and release sign-off.
+
+Execution bundle:
+1. production error-rate and latency dashboards;
+2. structured incident/error classification with correlation/request IDs;
+3. backup freshness and checksum monitoring;
+4. dependency-update cadence with lockfile review;
+5. scheduled security regression suite;
+6. release rollback rehearsal and rollback evidence;
+7. capacity/load baseline for local and cloud paths;
+8. operational runbook revision from real incidents and drills.
+
+Exit evidence:
+- alert thresholds documented and tested;
+- one rollback rehearsal recorded;
+- one backup monitoring drill recorded;
+- performance baseline stored as a release artifact;
+- no unresolved high-severity security regression.
+
+### Phase 8 pre-stage — Advanced Doka
+
+Entry condition: Phase 7 operational baseline is stable and product demand justifies expansion.
+
+Execution bundle:
+1. AI provider circuit breakers, budgets, timeout/retry policy and privacy routing;
+2. dedicated Cohere, Voyage and Cloudflare adapters only after contract tests and benchmark evidence;
+3. RAG/embedding evaluation with multilingual quality gates;
+4. distributed workflow coordination and retry/lease semantics;
+5. advanced search and document similarity;
+6. expanded compliance/audit export controls;
+7. team/multi-user governance beyond the Personal Cloud two-user baseline;
+8. mobile API alignment and native E2E;
+9. multi-region readiness only after measured scale requirements.
+
+Exit evidence:
+- every provider has health/fallback/quality/cost evidence;
+- no advanced AI feature can bypass Reader → Planner → Human Approval → Executor;
+- distributed workflows have idempotency and recovery evidence;
+- multilingual retrieval has measured benchmark results;
+- mobile/multi-region are separate release tracks, not hidden dependencies of the core edition.
