@@ -190,6 +190,20 @@ if (!adminLayout.includes('signOutLocal()')) {
 }
 console.log('Personal Local logout boundary smoke test passed.');
 
+const cloudAuth = fs.readFileSync(path.resolve('src/lib/supabaseAuth.ts'), 'utf8');
+if (!localAuth.includes("doka_local_access_token") || !localAuth.includes("doka_local_refresh_token") || !localAuth.includes("doka_local_user")) {
+  throw new Error('Personal Local auth state must use an edition-specific storage namespace.');
+}
+if (!cloudAuth.includes("doka_cloud_access_token") || !cloudAuth.includes("doka_cloud_refresh_token") || !cloudAuth.includes("doka_cloud_user")) {
+  throw new Error('Personal Cloud auth state must use an edition-specific storage namespace.');
+}
+if (localAuth.includes("const ACCESS_TOKEN_KEY = 'access_token'") || cloudAuth.includes("const ACCESS_TOKEN_KEY = 'access_token'")) {
+  throw new Error('Local and Cloud auth must not share generic browser token keys.');
+}
+console.log('Local/Cloud browser session storage isolation smoke test passed.');
+
+
+
 const serviceWorker = fs.readFileSync(path.resolve('public/sw.js'), 'utf8');
 for (const required of [
   "request.method !== 'GET'",
