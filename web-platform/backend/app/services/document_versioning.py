@@ -56,6 +56,30 @@ class DocumentVersioningService:
             raise ValueError("Version path escaped its safe root.") from exc
         return candidate
         
+    def _safe_processing_file(self, file_path: str) -> Path:
+        """Resolve a processing-workspace file and reject traversal/symlinks."""
+        root = Path(settings.PROCESSING_WORKSPACE).resolve()
+        candidate = Path(file_path).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("File path is outside the processing workspace.") from exc
+        if not candidate.is_file() or candidate.is_symlink():
+            raise ValueError("File path is not a regular file.")
+        return candidate
+
+    def _safe_version_file(self, file_path: str, document_id: int) -> Path:
+        """Resolve a version file strictly beneath its document version root."""
+        root = self._safe_version_dir(document_id)
+        candidate = Path(file_path).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("Version file is outside the version root.") from exc
+        if candidate.is_symlink():
+            raise ValueError("Symlinked version files are not allowed.")
+        return candidate
+
     def create_version(
         self,
         document_id: int,
@@ -73,11 +97,7 @@ class DocumentVersioningService:
             versions = self.get_document_versions(document_id)
             next_version = len(versions) + 1
             version_id = str(uuid.uuid4())
-            source_root = Path(settings.PROCESSING_WORKSPACE).resolve()
-            source_path = Path(file_path).resolve()
-            source_path.relative_to(source_root)
-            if not source_path.is_file() or source_path.is_symlink():
-                raise ValueError("Version source is not a regular file.")
+            source_path = self._safe_processing_file(file_path)
             suffix = source_path.suffix.lower()
             if not re.fullmatch(r"\.[A-Za-z0-9]{1,10}", suffix):
                 suffix = ""
@@ -110,7 +130,7 @@ class DocumentVersioningService:
     def get_document_versions(self, document_id: int) -> List[DocumentVersion]:
         """Get all versions of a document"""
         try:
-            metadata_file = self.versions_storage_path / str(document_id) / "versions.json"
+            metadata_file = self._safe_version_dir(document_id) / "versions.json"
             
             if not metadata_file.exists():
                 return []
@@ -133,6 +153,7 @@ class DocumentVersioningService:
                     metadata=version_data.get("metadata", {}),
                     changes=version_data.get("changes")
                 )
+                self._safe_version_file(version.file_path, document_id)
                 versions.append(version)
             
             return sorted(versions, key=lambda v: v.version_number)
@@ -171,23 +192,25 @@ class DocumentVersioningService:
                     "error": "Version not found"
                 }
             
-            # Check if version file exists
-            if not Path(version.file_path).exists():
+            # Check and constrain both source and destination paths.
+            version_path = self._safe_version_file(version.file_path, document_id)
+            if not version_path.exists():
                 return {
                     "success": False,
                     "error": "Version file not found"
                 }
+            current_path = self._safe_processing_file(current_file_path)
             
             # Create backup of current version
             self.create_version(
                 document_id,
-                current_file_path,
+                str(current_path),
                 user_id,
                 comment="Auto-backup before rollback"
             )
             
             # Copy version file to current location
-            shutil.copy2(version.file_path, current_file_path)
+            shutil.copy2(version_path, current_path)
             
             logger.info(f"Rolled back document {document_id} to version {version.version_number}")
             
@@ -254,7 +277,7 @@ class DocumentVersioningService:
     
     def delete_version(self, document_id: int, version_id: str) -> Dict[str, Any]:
         """Delete a version while serializing metadata and file updates."""
-        version_dir = self.versions_storage_path / str(document_id)
+        version_dir = self._safe_version_dir(document_id)
         version_dir.mkdir(parents=True, exist_ok=True)
         lock = FileLock(str(version_dir / ".versions.lock"), timeout=30)
         try:
@@ -270,9 +293,7 @@ class DocumentVersioningService:
                 # Persist the new history before deleting the now-unreferenced file.
                 self._save_all_versions_metadata(document_id, remaining)
                 try:
-                    version_root = self.versions_storage_path.resolve()
-                    target_path = Path(target.file_path).resolve()
-                    target_path.relative_to(version_root)
+                    target_path = self._safe_version_file(target.file_path, document_id)
                     target_path.unlink(missing_ok=True)
                 except OSError as cleanup_error:
                     logger.warning(
