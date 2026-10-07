@@ -9,9 +9,10 @@ on:
       - "web-platform/frontend/**"
       - "cloudflare_worker/**"
       - "scripts/**"
+      - "shared/**"
+      - "supabase/**"
       - "pyproject.toml"
       - "web-platform/backend/requirements*.txt"
-      - "supabase/migrations/**"
       - ".github/dependabot.yml"
       - ".gitignore"
       - ".dockerignore"
@@ -331,7 +332,6 @@ jobs:
     timeout-minutes: 25
     permissions:
       contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v7
       - name: Run Semgrep baseline scan
