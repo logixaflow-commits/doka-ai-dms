@@ -47,7 +47,7 @@ def test_prune_route_requires_confirmation_and_supports_preview(
         )
 
     assert missing_confirmation.status_code == 400
-    assert "confirmation" in missing_confirmation.json()["detail"]
+    assert missing_confirmation.json()["detail"] == "Invalid request."
     assert false_confirmation.status_code == 400
     assert preview.status_code == 200
     assert preview.json()["dry_run"] is True
@@ -76,7 +76,7 @@ def test_restore_route_confirmation_preserves_integrity_validation(
     assert missing_confirmation.status_code == 400
     assert "confirmation" in missing_confirmation.json()["detail"]
     assert confirmed.status_code == 400
-    assert "integrity verification failed" in confirmed.json()["detail"]
+    assert confirmed.json()["detail"] == "Invalid request."
     assert not list((tmp_path / "workspace" / "Recovery").glob("restore_*"))
 
 
