@@ -223,3 +223,26 @@ def test_cloudinary_storage_delete_uses_signed_destroy(monkeypatch):
     assert calls[0][1]["type"] == "private"
     assert calls[0][1]["invalidate"] == "true"
     assert calls[0][1]["signature"]
+
+
+def test_supabase_object_storage_rejects_oversized_source_before_network(monkeypatch):
+    import app.services.cloud_storage as cloud_storage
+
+    storage = cloud_storage.SupabaseObjectStorage(
+        project_url="https://example.supabase.co",
+        bucket="doka-documents",
+        access_token="user-token",
+        api_key="publishable-key",
+        quota=QuotaGuard(max_object_bytes=4),
+    )
+    called = False
+
+    def fake_post(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("provider must not be called for oversized input")
+
+    monkeypatch.setattr(cloud_storage.httpx, "post", fake_post)
+    with pytest.raises(StorageQuotaError):
+        storage.put("users/u1/large.pdf", io.BytesIO(b"12345"), content_type="application/pdf")
+    assert called is False
