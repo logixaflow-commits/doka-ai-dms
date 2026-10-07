@@ -650,3 +650,10 @@ These phases are **post-core expansion tracks**. They cannot change Personal Loc
 
 **Cross-phase rule**
 Phase 9–12 work is not allowed to become a hidden dependency of the core release. Each phase gets its own feature flag/activation decision, migration/rollback plan, test evidence and explicit go/no-go review.
+
+
+### 2026-10-07 — Phase 10 reliability pre-hardening
+
+- Redis is currently used for optional cache/monitoring paths, not as a hidden correctness dependency for Personal Local organization/apply. A reliability audit confirmed those current call sites already tolerate Redis absence.
+- Hardened the shared Redis client so connection URLs (which may contain credentials) are never logged; failures log only the exception class.
+- Phase 10 will require an explicit mandatory distributed-lock/queue dependency contract before any workflow is allowed to rely on Redis for correctness. Silent fallback is prohibited for such workflows.
