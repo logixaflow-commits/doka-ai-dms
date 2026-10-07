@@ -38,6 +38,10 @@ Not active in the current release: enterprise organizations/tenant RBAC, distrib
 
 These are later roadmap items and must not leak into the Personal Local startup path.
 
-## 8. Architecture change rule
+## 8. AI agent boundary
+
+When AI is enabled, keep a strict Reader → Planner → Executor separation. Reader and Planner are read/propose-only; Executor accepts only validated human-approved plans. This boundary is described in `docs/AI_PROVIDER_MATRIX.md` and must remain compatible with the Local source-read-only invariant.
+
+## 9. Architecture change rule
 
 Any material architecture change must document problem/scope, affected edition, data flow, security boundary, migration/rollback, cost/resource implications, and verification evidence. For execution order, docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md is canonical.
