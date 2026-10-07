@@ -8,6 +8,8 @@ const USER_KEY = 'doka_local_user';
 type LocalSession = { access_token: string; refresh_token: string; token_type: 'bearer' };
 type LocalIdentity = { username: string; role: string };
 
+let refreshPromise: Promise<boolean> | null = null;
+
 export function isLocalAuthEnabled() {
   if (import.meta.env.VITE_DOKA_EDITION === 'personal-local') return true;
   return import.meta.env.DEV && !isSupabaseConfigured();
@@ -37,21 +39,27 @@ export async function signInLocal(username: string, password: string) {
 }
 
 async function refreshLocalSession() {
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-  if (!refreshToken) return false;
-  const response = await fetch(`${API_BASE}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refreshToken) return false;
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!response.ok) {
+      clearLocalSession();
+      return false;
+    }
+    const session = await response.json() as LocalSession;
+    localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, session.refresh_token);
+    return true;
+  })().finally(() => {
+    refreshPromise = null;
   });
-  if (!response.ok) {
-    clearLocalSession();
-    return false;
-  }
-  const session = await response.json() as LocalSession;
-  localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
-  localStorage.setItem(REFRESH_TOKEN_KEY, session.refresh_token);
-  return true;
+  return refreshPromise;
 }
 
 function clearLocalSession() {
