@@ -39,7 +39,7 @@ enterprise-ai-dms/
 ├── start_frontend.bat           # frontend-only Windows launcher
 ├── run.sh                       # current Linux/macOS local launcher
 ├── run.bat                      # Windows compatibility alias for start_application.bat
-└── vercel.json                 # retained deployment configuration
+└── MASTER-ROADMAP.md            # live status/release dashboard
 ```
 
 ## Runtime boundary
