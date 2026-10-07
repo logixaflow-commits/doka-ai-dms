@@ -35,7 +35,7 @@ Doka is complete only when the required **real evidence** passes—not merely be
 | 4 | Real browser Personal Local E2E | Pending verification |
 | 5 | Copied-office pilot + source before/after hashes | Pending verification |
 | 6 | Backup/restore proof + measurable local RTO/RPO | Pending verification |
-| 7 | Dependabot/secret-scan/lockfile/lint reconciliation | Pending verification |
+| 7 | Dependabot/secret-scan/lockfile/lint reconciliation | Pending verification (CI evidence required; frontend lint is now enforced) |
 | 8 | Personal Local final freeze + release evidence/runbook | Blocked by 1–7 |
 | 9 | Cloud authenticated lifecycle E2E | Pending verification |
 | 10 | Two-user isolation + Supabase RLS/Storage/RPC proof | Pending verification |
