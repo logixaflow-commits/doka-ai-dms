@@ -16,9 +16,9 @@ def init_redis():
         redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
         redis_client = redis.from_url(redis_url, decode_responses=True)
         redis_client.ping()
-        logger.info(f"✓ Redis connected: {redis_url}")
+        logger.info("Redis connected")
     except Exception as e:
-        logger.warning(f"Redis connection failed: {e}. Running without Redis.")
+        logger.warning("Redis connection failed: %s. Running without Redis.", type(e).__name__)
         redis_client = None
 
 # Initialize Redis on module import
