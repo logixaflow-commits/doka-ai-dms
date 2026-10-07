@@ -29,13 +29,13 @@ Doka is complete only when the required **real evidence** passes—not merely be
 
 | # | Gate | Status |
 |---|---|---|
-| 1 | Local auth/session/restart/replay + auth-state permissions | Pending verification |
-| 2 | Organization Apply / locking / limits / Undo | Pending verification |
+| 1 | Local auth/session/restart/replay + auth-state permissions | **Implemented / automated verified; live browser pending** |
+| 2 | Organization Apply / locking / limits / Undo | **Implemented / automated verified; live browser pending** |
 | 3 | OCR resource limits + Myanmar/English benchmark | Pending verification |
 | 4 | Real browser Personal Local E2E | Pending verification |
 | 5 | Copied-office pilot + source before/after hashes | Pending verification |
-| 6 | Backup/restore proof + measurable local RTO/RPO | Pending verification |
-| 7 | Dependabot/secret-scan/lockfile/lint reconciliation | Pending verification (CI evidence required; frontend lint is now enforced) |
+| 6 | Backup/restore proof + measurable local RTO/RPO | **Synthetic verified; measured RTO/RPO pending** |
+| 7 | Dependabot/secret-scan/lockfile/lint reconciliation | **Verified** — GitHub Quality + CodeQL green |
 | 8 | Personal Local final freeze + release evidence/runbook | Blocked by 1–7 |
 | 9 | Cloud authenticated lifecycle E2E | Pending verification |
 | 10 | Two-user isolation + Supabase RLS/Storage/RPC proof | Pending verification |
@@ -82,6 +82,14 @@ Doka is complete only when the required **real evidence** passes—not merely be
 9. **Phase 11 — Advanced Intelligence:** multilingual RAG, embedding/reranking benchmarks, provider cost/quality routing, regression corpus, human feedback and semantic search; Reader → Planner → Human Approval → Executor remains mandatory.
 10. **Phase 12 — Enterprise / Mobile / Multi-region:** team governance, advanced compliance/audit, production mobile, resumable upload, data residency and multi-region failover; each has independent device/region/recovery acceptance.
 11. **Cross-phase rule:** Phase 9–12 features remain separate activation tracks and must not become hidden dependencies of Personal Local or Personal Cloud core release.
+
+### Phase 15+ pre-stage
+
+- **Phase 15 — Ecosystem & API Platform:** public API versioning, SDKs, connector marketplace, compatibility testing, migration tooling, policy distribution.
+- **Phase 16 — Intelligent Operations:** anomaly detection, capacity forecasting, AI quality/cost observability, backup-risk scoring, bounded auto-remediation with deterministic authorization.
+- **Phase 17 — Data Intelligence:** document knowledge graph, lineage/provenance, advanced analytics and explainable semantic search, all behind separate tenant/privacy gates.
+- **Phase 18 — Global Platform:** regional control plane, data residency, multi-region disaster recovery, edge/mobile expansion and independent regional release trains.
+- These remain pre-staged only. No Phase 15+ feature may become a hidden dependency of the core release.
 
 **Credential rule:** no live provider/storage keys are needed for the current coding-side work. If a later acceptance gate truly requires a live credential, request the exact key(s) and purpose immediately before that gate rather than adding secrets early.
 
