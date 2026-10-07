@@ -1,3 +1,5 @@
+> **Historical plan notice (2026-10-07):** This document preserves the original Personal Local feature decomposition and product intent. For current execution order, release gates, evidence status and the final path to sign-off, use `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`.
+
 # Doka — Personal Local Master Plan
 
 ## Product direction
