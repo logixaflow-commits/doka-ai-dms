@@ -111,9 +111,9 @@ class UnifiedAIService:
         if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
             raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
 
-    def _provider_limit(self) -> int:
+    def _provider_limit(self, candidate_count: int) -> int:
         configured = settings.AI_PROVIDER_MAX_ATTEMPTS
-        return configured if configured > 0 else len(self.get_available_providers())
+        return configured if configured > 0 else candidate_count
 
     def _provider_is_available(self, provider: str) -> bool:
         opened_at = self._provider_opened_at.get(provider)
@@ -144,7 +144,7 @@ class UnifiedAIService:
         self._ensure_external_ai_allowed()
 
         candidates = providers or self.get_available_providers()
-        candidates = candidates[: self._provider_limit()]
+        candidates = candidates[: self._provider_limit(len(candidates))]
         if not candidates:
             raise RuntimeError("No AI providers are configured")
 
