@@ -54,12 +54,13 @@ def sha256_file(path: Path) -> str:
     if raw_path.is_symlink():
         raise ValueError("Hash target cannot be a symlink.")
     candidate = raw_path.resolve(strict=True)
-    allowed_roots = (
-        settings.SOURCE_ROOT.expanduser().resolve(),
-        settings.WORKING_ROOT.expanduser().resolve(),
-    )
-    if not any(
-        candidate.is_relative_to(root) for root in allowed_roots
+    configured_roots = [
+        root.expanduser().resolve()
+        for root in (settings.SOURCE_ROOT, settings.WORKING_ROOT)
+        if root is not None
+    ]
+    if configured_roots and not any(
+        candidate.is_relative_to(root) for root in configured_roots
     ):
         raise ValueError("Hash target is outside Doka-managed storage.")
     digest = hashlib.sha256()
