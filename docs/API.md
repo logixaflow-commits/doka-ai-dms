@@ -19,5 +19,3 @@ Implemented contract areas include list/search/filter, folders, direct-upload se
 - Version switching is owner-checked and atomic.
 - New endpoints require an API contract, auth/RLS tests, frontend states, regression tests and documentation.
 
-## Historical URL
-The obsolete `https://doka.logixaflow.workers.dev` URL must not be used.
