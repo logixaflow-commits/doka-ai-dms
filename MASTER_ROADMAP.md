@@ -1313,7 +1313,7 @@ Cloud Edition code (verified separately)
 15.1 Project Current State
 Aspect	Status
 Code Foundation	✅ Complete
-CI	✅ Green
+CI	🟡 Latest hardening changes awaiting final evidence
 Architecture	✅ Stable
 Safety Model	✅ In Place
 Documentation	✅ In Place
