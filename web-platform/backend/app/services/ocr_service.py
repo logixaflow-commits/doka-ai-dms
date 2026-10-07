@@ -295,17 +295,18 @@ class OCRService:
 
             # Scanned PDFs are rendered one page at a time; never retain the full
             # document as a list of page images in memory.
+            poppler_path = getattr(getattr(self, "config", settings.ocr), "poppler_path", "")
             for page_number in range(1, page_count + 1):
                 images = convert_from_path(
-                str(pdf_path),
-                dpi=self.dpi,
-                fmt="png",
-                first_page=page_number,
-                last_page=page_number,
-                thread_count=1,
-                timeout=self.timeout,
-                size=3500,
-                **({"poppler_path": self.config.poppler_path} if self.config.poppler_path else {}),
+                    str(pdf_path),
+                    dpi=self.dpi,
+                    fmt="png",
+                    first_page=page_number,
+                    last_page=page_number,
+                    thread_count=1,
+                    timeout=self.timeout,
+                    size=3500,
+                    **({"poppler_path": poppler_path} if poppler_path else {}),
                 )
                 if not images:
                     continue
