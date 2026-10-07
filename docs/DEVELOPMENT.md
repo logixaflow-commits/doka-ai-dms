@@ -1,5 +1,10 @@
 # Doka Development
 
+> **Owner:** How do contributors develop and validate Doka without violating its runtime boundaries?
+> **Update when:** Supported toolchains, local startup, branch policy, CI validation or repository development conventions change.
+> **Last Updated:** 2026-10-08
+> **Do NOT put here:** Release-gate status, architecture authority, secrets or detailed test procedures.
+
 ## Prerequisites
 - Python 3.12
 - Node.js 24.x
