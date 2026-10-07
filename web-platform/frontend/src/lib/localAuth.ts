@@ -43,19 +43,23 @@ async function refreshLocalSession() {
   refreshPromise = (async () => {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
     if (!refreshToken) return false;
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (!response.ok) {
-      clearLocalSession();
+    try {
+      const response = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!response.ok) {
+        clearLocalSession();
+        return false;
+      }
+      const session = await response.json() as LocalSession;
+      localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, session.refresh_token);
+      return true;
+    } catch {
       return false;
     }
-    const session = await response.json() as LocalSession;
-    localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
-    localStorage.setItem(REFRESH_TOKEN_KEY, session.refresh_token);
-    return true;
   })().finally(() => {
     refreshPromise = null;
   });
