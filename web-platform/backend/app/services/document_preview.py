@@ -44,6 +44,18 @@ class DocumentPreviewService:
         self.annotation_storage_path = Path("storage/annotations")
         self.annotation_storage_path.mkdir(parents=True, exist_ok=True)
         
+    def _safe_document_dir(self, document_id: int) -> Path:
+        """Resolve a document preview directory strictly beneath the preview root."""
+        if not isinstance(document_id, int) or document_id < 1:
+            raise ValueError("Invalid document id.")
+        root = self.annotation_storage_path.resolve()
+        candidate = (root / str(document_id)).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("Document preview path escaped its safe root.") from exc
+        return candidate
+
     def generate_preview(
         self, 
         document_path: str, 
@@ -128,7 +140,7 @@ class DocumentPreviewService:
             }
             
             # Create preview storage directory
-            preview_dir = self.annotation_storage_path / f"previews/{document_id}"
+            preview_dir = self._safe_document_dir(document_id) / "previews"
             preview_dir.mkdir(parents=True, exist_ok=True)
             
             for i, image in enumerate(images):
@@ -267,7 +279,7 @@ class DocumentPreviewService:
     ) -> List[Dict[str, Any]]:
         """Get annotations for document"""
         try:
-            annotations_file = self.annotation_storage_path / f"{document_id}.json"
+            annotations_file = self._safe_document_dir(document_id).with_suffix(".json")
             
             if not annotations_file.exists():
                 return []
