@@ -20,8 +20,8 @@ Doka is complete only when the required **real evidence** passes—not merely be
 - **Vercel:** project exists but remains **owner-paused**; do not reactivate or deploy unless explicitly authorized.
 - **Cloudflare:** active Worker `doka-ai-dms` exists and was modified 2026-10-07.
 - **Supabase:** project `Enterprise AI DMS` is healthy; the remaining Security Advisor warning is leaked-password protection.
-- **Render:** account has one workspace, but service inspection is intentionally waiting for explicit workspace confirmation before selecting it.
-- **AI:** capability-based provider routing is now wired for the existing providers; planned providers are registered fail-closed and remain disabled until adapter/health/quality checks pass. Live Cloudflare Worker has no AI-provider secrets configured. Local real `.env` values are not committed and therefore cannot be verified from GitHub.
+- **Render:** inspected current workspace; no Render services are currently exposed, so there is no active Render runtime to audit.
+- **AI:** capability-based routing is wired for implemented providers; Mistral/Cerebras/NVIDIA require complete model+endpoint configuration, while Cohere/Voyage/Cloudflare remain roadmap-only until dedicated adapters exist. Unimplemented providers stay fail-closed even when a key is present. OCR now uses runtime-configurable Poppler settings. Live Cloudflare Worker has no AI-provider secrets configured. Local real `.env` values are not committed and therefore cannot be verified from GitHub.
 
 ## The 12 remaining release gates
 
