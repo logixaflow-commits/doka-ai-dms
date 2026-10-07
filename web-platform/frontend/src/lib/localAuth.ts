@@ -1,9 +1,9 @@
 import { isSupabaseConfigured, type SupabaseUser } from '@/lib/supabaseAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_KEY = 'supabase_user';
+const ACCESS_TOKEN_KEY = 'doka_local_access_token';
+const REFRESH_TOKEN_KEY = 'doka_local_refresh_token';
+const USER_KEY = 'doka_local_user';
 
 type LocalSession = { access_token: string; refresh_token: string; token_type: 'bearer' };
 type LocalIdentity = { username: string; role: string };
