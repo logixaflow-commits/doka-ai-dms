@@ -1150,7 +1150,7 @@ async def permanently_delete_document(request: Request, document_id: str, user_i
         raise HTTPException(status_code=404, detail="Trashed document not found.")
     document = rows[0]
 
-    version_query = f"select=object_key&document_id=eq.{encoded_id}"
+    version_query = f"select=object_key,storage_provider&document_id=eq.{encoded_id}"
     version_status, versions = await _fetch(
         request, f"{base}/rest/v1/doka_document_versions?{version_query}",
         headers={**_supabase_headers(request, token), "Accept": "application/json"},
@@ -1158,17 +1158,26 @@ async def permanently_delete_document(request: Request, document_id: str, user_i
     if version_status >= 300:
         raise HTTPException(status_code=503, detail=f"Document version lookup failed ({version_status}).")
 
-    keys = {str(document["object_key"])}
+    storage_router = build_storage_router(request, token, _storage_fetcher)
+    objects: set[tuple[str, str]] = {
+        (str(document["object_key"]), str(document.get("storage_provider") or "supabase"))
+    }
     if isinstance(versions, list):
-        keys.update(str(row["object_key"]) for row in versions if row.get("object_key"))
-    bucket = quote(_bucket(request), safe="")
-    delete_status, _ = await _fetch(
-        request, f"{base}/storage/v1/object/{bucket}", method="DELETE",
-        headers=_supabase_headers(request, token, "application/json"),
-        body=json.dumps({"prefixes": sorted(keys)}),
-    )
-    if delete_status >= 300:
-        raise HTTPException(status_code=503, detail=f"Stored file cleanup failed ({delete_status}); metadata was retained.")
+        objects.update(
+            (str(row["object_key"]), str(row.get("storage_provider") or document.get("storage_provider") or "supabase"))
+            for row in versions
+            if row.get("object_key")
+        )
+
+    try:
+        for object_key, provider_name in sorted(objects):
+            provider = _provider_for(storage_router, provider_name)
+            await provider.delete(StorageObjectRef(provider_name, object_key, user_id))
+    except (RuntimeError, ValueError, NotImplementedError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Stored file cleanup failed; metadata was retained.",
+        ) from exc
 
     delete_query = f"id=eq.{encoded_id}&owner_id=eq.{owner}&deleted_at=not.is.null"
     metadata_status, deleted = await _fetch(
