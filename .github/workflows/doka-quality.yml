@@ -36,6 +36,8 @@ on:
       - ".github/workflows/**"
       - "infrastructure/env/**"
   workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * 1"
 
 # Cancel superseded runs of this workflow on the same ref to conserve monthly runner minutes.
 concurrency:
