@@ -50,12 +50,15 @@ def utc_now() -> str:
 
 def sha256_file(path: Path) -> str:
     """Hash only files that live inside Doka's managed source/workspace roots."""
-    candidate = Path(path).expanduser().resolve(strict=True)
+    raw_path = Path(path).expanduser()
+    if raw_path.is_symlink():
+        raise ValueError("Hash target cannot be a symlink.")
+    candidate = raw_path.resolve(strict=True)
     allowed_roots = (
-        settings.SOURCE_ROOT.expanduser().resolve(strict=True),
+        settings.SOURCE_ROOT.expanduser().resolve(),
         settings.WORKING_ROOT.expanduser().resolve(),
     )
-    if candidate.is_symlink() or not any(
+    if not any(
         candidate.is_relative_to(root) for root in allowed_roots
     ):
         raise ValueError("Hash target is outside Doka-managed storage.")
