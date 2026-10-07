@@ -25,7 +25,9 @@ def normalize_stem(name: str) -> str:
     """Normalize a filename stem without backtracking-heavy regexes."""
     stem = Path(name).stem.casefold()[:512]
     removable = {"copy", "final", "latest", "new", "old", "updated", "version", "ver"}
-    parts = [part for part in re.split(r"[ _.-]+", stem) if part]
+    for separator in (" ", "_", ".", "-"):
+        stem = stem.replace(separator, " ")
+    parts = [part for part in stem.split() if part]
     while parts:
         tail = parts[-1]
         if tail in removable:
@@ -251,7 +253,7 @@ class OrganizationPlanner:
             try:
                 source.relative_to(root)
                 expected_hash = str(manifest_entry.get("sha256", "")).lower()
-                if len(expected_hash) != 64 or sha256_file(source).lower() != expected_hash:
+                if len(expected_hash) != 64 or sha256_file(source, allowed_roots=(root,)).lower() != expected_hash:
                     raise ValueError("Working-copy integrity check failed; rescan and review before applying.")
                 target_folder = proposal.get("target_folder")
                 suggested_filename = proposal.get("suggested_filename") or Path(rel).name
@@ -285,9 +287,9 @@ class OrganizationPlanner:
                 except ValueError as exc:
                     raise ValueError("Planned target is outside FINAL_ROOT.") from exc
                 target.parent.mkdir(parents=True, exist_ok=True)
-                source_hash = sha256_file(source)
+                source_hash = sha256_file(source, allowed_roots=(root,))
                 if target.exists():
-                    target_hash = sha256_file(target)
+                    target_hash = sha256_file(target, allowed_roots=(final_root,))
                     if target_hash == source_hash:
                         result = {"relative_path": rel, "status": "already_present", "target": str(target), "sha256": source_hash}
                     else:
@@ -296,13 +298,13 @@ class OrganizationPlanner:
                     import shutil
                     shutil.copy2(source, target)
                     # Hash incrementally; large office files must not be loaded into RAM.
-                    target_hash = sha256_file(target)
+                    target_hash = sha256_file(target, allowed_roots=(final_root,))
                     if target_hash != source_hash:
                         target.unlink(missing_ok=True)
                         raise IOError("Final copy SHA-256 verification failed")
                     result = {"relative_path": rel, "status": "copied", "target": str(target), "sha256": source_hash}
             except Exception as exc:
-                result = {"relative_path": rel, "status": "failed", "reason": str(exc)}
+                result = {"relative_path": rel, "status": "failed", "reason": "Organization apply failed; see server logs."}
 
             with audit_path.open("a", encoding="utf-8") as audit:
                 audit.write(json.dumps({
@@ -348,13 +350,13 @@ class OrganizationPlanner:
                 results.append({"target": str(target), "status": "already_missing"})
                 continue
             try:
-                if sha256_file(target) != entry.get("sha256"):
+                if sha256_file(target, allowed_roots=(final_root,)) != entry.get("sha256"):
                     results.append({"target": str(target), "status": "skipped_changed_since_apply"})
                     continue
                 target.unlink()
                 results.append({"target": str(target), "status": "removed"})
             except Exception as exc:
-                results.append({"target": str(target), "status": "failed", "reason": str(exc)})
+                results.append({"target": str(target), "status": "failed", "reason": "Undo operation failed; see server logs."})
         return {
             "session_id": session_id,
             "results": results,
