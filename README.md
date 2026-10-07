@@ -44,7 +44,7 @@ The original source is treated as **read-only**. The application must never use 
 
 ## Delivery roadmap
 
-The consolidated phase plan and full remediation issue register are maintained in [Doka Unified Remediation Roadmap](docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md). The documentation map is maintained in [Doka Documentation Index](docs/DOKA_DOCUMENTATION_INDEX.md), including the active [UI map](docs/UI.md), [architecture](docs/ARCHITECTURE.md), and [tools/services boundary](docs/TOOLS.md). It supersedes the old split phase ordering for execution while preserving the original remediation issue IDs and the Personal Local safety gates.
+Start with [`MASTER-ROADMAP.md`](MASTER-ROADMAP.md) for the live status, 12 release gates and update reminders. The detailed execution plan and issue register remain in [`docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`](docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md). The documentation map is maintained in [Doka Documentation Index](docs/DOKA_DOCUMENTATION_INDEX.md), including the active [UI map](docs/UI.md), [architecture](docs/ARCHITECTURE.md), and [tools/services boundary](docs/TOOLS.md). It supersedes the old split phase ordering for execution while preserving the original remediation issue IDs and the Personal Local safety gates.
 
 ## First run
 See `QUICKSTART.md` and `docs/PERSONAL_LOCAL_RUNBOOK.md`.
@@ -85,9 +85,9 @@ Automated repository checks cover Python compilation, frontend build/smoke tests
 - browser workflow works end-to-end.
 
 ## Deferred enterprise edition
-The repository still contains the earlier enterprise/cloud implementation, mobile code, integrations, reporting, realtime features, infrastructure, and advanced AI.
+The repository still contains earlier enterprise/cloud implementation, mobile code, integrations, reporting, realtime features, infrastructure, and advanced AI.
 
-They are **preserved, not part of the current runtime**.
+They are **preserved, not part of the current runtime**. Superseded planning documents are kept under `docs/legacy/` rather than mixed with active execution docs.
 - `archive/legacy-enterprise/` — preserved legacy/enterprise material.
 - `infrastructure/` — deferred deployment/infrastructure reference material.
 - `mobile/` — preserved mobile application.
@@ -150,6 +150,10 @@ The project is **not yet signed off as production-ready**. Remaining proof gates
 8. one clean Vercel build after the current rate-limit window clears, without repeatedly retrying builds.
 
 These are verification gates, not reasons to weaken the existing safety boundaries.
+
+## Documentation rule
+
+Do not create a new `finished.md` or phase-status file for each completed batch. Update `MASTER-ROADMAP.md` after each phase and at minimum after every three release gates, record evidence, and keep historical plans under `docs/legacy/`.
 
 ## Next milestone
 
