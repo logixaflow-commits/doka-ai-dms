@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 from pathlib import Path
 import json
+import uuid
 from loguru import logger
 
 
@@ -395,7 +396,13 @@ class AdvancedReportingService:
     def get_report_template(self, template_id: str) -> Optional[ReportTemplate]:
         """Get report template by ID"""
         try:
-            template_file = self.templates_storage_path / f"{template_id}.json"
+            template_uuid = uuid.UUID(str(template_id))
+            template_root = self.templates_storage_path.resolve()
+            template_file = (template_root / f"{template_uuid}.json").resolve()
+            try:
+                template_file.relative_to(template_root)
+            except ValueError as exc:
+                raise ValueError("Report template path escaped its safe root.") from exc
             
             if not template_file.exists():
                 return None
