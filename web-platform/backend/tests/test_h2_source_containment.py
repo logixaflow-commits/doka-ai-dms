@@ -7,6 +7,7 @@ from app.core.config import Settings, settings
 from app.core.local_security import create_local_access_token
 from app.main import create_app
 from app.services.safe_workspace_service import safe_workspace_service
+from app.services.organization_planner import organization_planner
 
 
 def _configure_roots(monkeypatch, tmp_path):
@@ -175,3 +176,12 @@ def test_import_api_rejects_client_supplied_source_paths(monkeypatch, tmp_path):
     )
 
     assert response.status_code == 422
+
+
+def test_organization_apply_rejects_duplicate_or_oversized_approval_lists():
+    with pytest.raises(ValueError, match="No approved files"):
+        organization_planner.apply("synthetic-session", [])
+    with pytest.raises(ValueError, match="At most 500"):
+        organization_planner.apply("synthetic-session", [f"file-{i}" for i in range(501)])
+    with pytest.raises(ValueError, match="Duplicate approved paths"):
+        organization_planner.apply("synthetic-session", ["same.txt", "same.txt"])
