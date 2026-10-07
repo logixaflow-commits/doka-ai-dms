@@ -213,6 +213,16 @@ class UnifiedAIService:
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
 
+    def _providers_for_task(self, task: str) -> List[str]:
+        """Return a capability-specific provider order, filtered to configured providers."""
+        orders = {
+            "classification": getattr(settings, "AI_CLASSIFICATION_PROVIDER_ORDER", settings.AI_PROVIDER_ORDER),
+            "planning": getattr(settings, "AI_PLANNING_PROVIDER_ORDER", settings.AI_PROVIDER_ORDER),
+            "fast": getattr(settings, "AI_FAST_PROVIDER_ORDER", settings.AI_PROVIDER_ORDER),
+        }
+        order = orders.get(task, settings.AI_PROVIDER_ORDER)
+        return [name for name in order if name in self.providers]
+
     async def analyze_document(self, text: str, provider: Optional[str] = None) -> Dict[str, Any]:
         """Analyze a document with an explicit provider or free-first fallback chain."""
         if not isinstance(text, str) or not text.strip():
@@ -239,7 +249,7 @@ class UnifiedAIService:
                 raise ValueError(f"Provider '{prov}' is registered but has no safe document-analysis adapter yet")
             return json.loads(raw)
 
-        providers = [provider] if provider else None
+        providers = [provider] if provider else self._providers_for_task("classification")
         return await self._with_fallback("document_analysis", call, providers)
 
     async def get_embedding(self, text: str, provider: str = "huggingface") -> List[float]:
