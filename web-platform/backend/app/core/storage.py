@@ -95,7 +95,10 @@ class LocalStorageManager:
         if not storage_uri.startswith("file://"):
             raise StorageError("Unknown storage URI scheme.")
         raw_path = storage_uri[len("file://"):]
-        candidate = Path(raw_path).resolve()
+        raw_candidate = Path(raw_path)
+        if raw_candidate.is_symlink():
+            raise StorageError("Symlinked storage paths are not allowed.")
+        candidate = raw_candidate.resolve()
         root = self.base_path.resolve()
         try:
             candidate.relative_to(root)
