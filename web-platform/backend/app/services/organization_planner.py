@@ -31,7 +31,7 @@ def normalize_stem(name: str) -> str:
         if tail in removable:
             parts.pop()
             continue
-        if re.fullmatch(r"v\\d{1,4}", tail):
+        if re.fullmatch(r"v\d{1,4}", tail):
             parts.pop()
             continue
         removed_marker = False
