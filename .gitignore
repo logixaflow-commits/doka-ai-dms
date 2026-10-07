@@ -1,3 +1,6 @@
+# Cloudflare Wrangler local state/cache
+.wrangler/
+
 # Python
 __pycache__/
 *.py[cod]
