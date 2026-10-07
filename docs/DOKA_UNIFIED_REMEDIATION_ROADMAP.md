@@ -1,5 +1,42 @@
 # Doka Unified Remediation & Delivery Roadmap
 
+Last reconciled: 2026-10-07
+
+> **Canonical execution plan.** This document supersedes the older split A-E execution ordering and the older Personal Local 0-10 feature sequence for day-to-day prioritization. The older plans remain useful as historical feature context.
+>
+> **Final goal:** reach evidence-backed release sign-off for Personal Local first, then close the explicitly approved Cloud gates, without weakening source safety or reactivating paused infrastructure.
+
+## Final goal and completion model
+
+### Personal Local release sign-off
+Personal Local is final only when the running target-machine browser workflow passes from login through import, scan/OCR, review, approval, copy-to-Final, backup, isolated restore and undo; the copied representative office-data pilot passes; source before/after hashes are unchanged; Myanmar/English OCR results are acceptable by an agreed measured benchmark; and recovery evidence is recorded.
+
+### Cloud release sign-off
+Cloud is final only after authenticated lifecycle E2E, two-user isolation, 50 MiB boundary testing, real provider recovery drills, backup/SHA-256 recovery proof, Supabase security settings verification and the remaining deployment/runtime checks pass. Vercel remains owner-paused unless explicitly reopened.
+
+### Enterprise/mobile/advanced AI
+These are not part of the Personal Local release gate. They remain deferred until their dependencies, ownership, cost, rollback and verification requirements are explicitly approved.
+
+## Canonical execution order from now to final
+
+1. **Close Phase 1 Local proof gaps:** execute local auth/session, organization/apply/undo, OCR-limit, pilot-schema and frontend session-state tests; inspect local auth state-file permissions; fix only confirmed failures.
+2. **Run the real browser Local acceptance:** use a running target-machine instance and a small copied dataset. Prove the complete Safe Workspace workflow and source immutability.
+3. **Run the Phase 2 copied-office pilot:** use the pilot harness on a representative copy, record OCR/duplicate/version/search outcomes, backup checksum and isolated restore manifest, then add sanitized regression fixtures for observed defects.
+4. **Set measurable recovery targets:** record backup/restore duration and data-loss window, then approve practical local RTO/RPO rather than guessing values.
+5. **Reconcile dependency/security debt:** itemize Dependabot/secret-scan findings where permissions allow, reconcile npm/Python lockfiles, and remediate only compatible findings with regression evidence.
+6. **Close the Personal Local release gate:** freeze the local safety boundary, publish final runbook/evidence, and treat the Local Edition as the stable baseline.
+7. **Run Cloud authenticated acceptance:** test sign-in, upload/list/update/download/Trash/Restore/permanent-delete/version operations and audit behavior with a real account.
+8. **Run two-user isolation:** prove user A cannot read, modify, download, restore or version user B's data or objects; verify RLS/Storage and RPC boundaries.
+9. **Verify provider/recovery gates:** 50 MiB boundary, real B2/Cloudinary/Google Drive paths where still in scope, backup/restore/SHA-256 evidence, OCR benchmark and Supabase leaked-password protection.
+10. **Reconcile deployment evidence:** Vercel only if explicitly reopened; otherwise keep it paused. Confirm Cloudflare live version and production frontend bundle only when the owner authorizes that check.
+11. **Only after the above:** decide which Phase 3/4 cloud scale, AI, enterprise, mobile and compliance items are actually justified by measured workload and approved scope.
+
+## Documentation contract
+
+Current source-of-truth docs are indexed by docs/DOKA_DOCUMENTATION_INDEX.md. UI behavior belongs in docs/UI.md, architecture boundaries in docs/ARCHITECTURE.md, tools/services in docs/TOOLS.md, and execution/release gates here.
+
+---
+
 Last reconciled: 2026-10-05  
 Inputs: the existing Phase A–E delivery gate, Personal Local Master Plan, Master Product Plan, Phase A audit, and the newly added Executive Summary of Remediation Plan.  
 Product priority: **Personal Local Edition first**. Cloud/enterprise/mobile work remains gated and must not destabilize the local product.
