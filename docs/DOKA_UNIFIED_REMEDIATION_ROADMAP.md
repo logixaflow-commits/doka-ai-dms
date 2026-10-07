@@ -666,3 +666,25 @@ Entry: Phase 12 stable. Scope: versioned public API, connector/marketplace contr
 ### Phase 14 pre-stage — Intelligent Operations
 
 Entry: Phase 13 API/connector contracts stable. Scope: workflow anomaly detection, capacity forecasting, AI quality/cost observability, backup/recovery risk scoring, operator-assisted incident triage and bounded operational automation. Safety: no automation may bypass approval, ownership or backup invariants; AI-generated operational decisions require deterministic validation and audit. Evidence: benchmark corpus, incident replay, authorization tests, audit completeness and rollback drill.
+
+
+### Release train rule — Core → Live gates → expansion
+
+1. Core code and automated evidence must remain green.
+2. Synthetic pilot proves safety invariants without claiming office readiness.
+3. Live acceptance gates are executed only with owner-provided test accounts/data/credentials when genuinely required.
+4. Final release sign-off freezes the core boundary before post-release Phase 7/8 work.
+5. Phase 9–14 and the pre-staged Phase 15–18 tracks are independent feature trains with their own migration, rollback, security, performance and acceptance evidence.
+6. No later phase may silently add a runtime dependency to Personal Local or Personal Cloud core.
+
+### Phase 15–18 pre-stage
+
+**Phase 15 — Ecosystem & API Platform:** versioned public API, SDKs, connector marketplace, compatibility matrix, migration tooling, policy distribution.
+
+**Phase 16 — Intelligent Operations:** anomaly detection, capacity forecasting, AI quality/cost observability, backup-risk scoring and bounded auto-remediation with deterministic authorization.
+
+**Phase 17 — Data Intelligence:** document knowledge graph, lineage/provenance, explainable semantic search and advanced analytics under explicit privacy/tenant gates.
+
+**Phase 18 — Global Platform:** regional control plane, data residency, multi-region disaster recovery, edge/mobile expansion and independent regional release trains.
+
+Every Phase 15–18 track requires a separate feature flag/activation decision, migration and rollback plan, security review, performance baseline and acceptance evidence.
