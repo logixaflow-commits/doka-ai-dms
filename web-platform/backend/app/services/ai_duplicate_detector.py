@@ -1,8 +1,7 @@
 """
 AI-Powered Duplicate Detection Service
-Supports multiple AI providers: OpenAI, Gemini, Hugging Face, OpenRouter, Groq
+Uses the shared capability-based provider router for AI classification and local-first embeddings
 """
-import os
 from typing import List, Dict, Any, Optional
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -88,110 +87,14 @@ class AIDuplicateDetector:
             return {}
 
         try:
-            provider = ai_service.get_available_providers()[0] if ai_service.get_available_providers() else None
-            result = await ai_service.analyze_document(text, provider=provider)
-            logger.info(f"AI classified document using {provider}")
+            result = await ai_service.analyze_document(text)
+            logger.info("AI classified document using the configured classification chain")
             return result
 
         except Exception as e:
             logger.error(f"AI classification failed: {e}")
             return {}
 
-    def _calculate_similarity(self, doc1: Dict[str, Any], doc2: Dict[str, Any]) -> float:
-        """
-        Calculate similarity between two documents using AI
-
-        Args:
-            doc1: First document
-            doc2: Second document
-
-        Returns:
-            Similarity score (0-1)
-        """
-        try:
-            text1 = doc1.get("ocr_text", "")[:2000]  # Limit text length
-            text2 = doc2.get("ocr_text", "")[:2000]
-            
-            if not text1 or not text2:
-                return 0.0
-            
-            # Use OpenAI to compare documents
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a document similarity analyzer. Compare two documents and return a similarity score between 0 and 1. Return ONLY the number, no other text."
-                    },
-                    {
-                        "role": "user", 
-                        "content": f"Document 1:\n{text1}\n\nDocument 2:\n{text2}\n\nSimilarity score (0-1):"
-                    }
-                ],
-                temperature=0,
-                max_tokens=10
-            )
-            
-            score_text = response.choices[0].message.content.strip()
-            similarity = float(score_text)
-            
-            return min(max(similarity, 0.0), 1.0)  # Ensure between 0 and 1
-            
-        except Exception as e:
-            logger.error(f"AI similarity calculation failed: {e}")
-            return 0.0
-    
-    def classify_document(self, text: str) -> Dict[str, Any]:
-        """
-        Classify document using AI
-        
-        Args:
-            text: Document text content
-            
-        Returns:
-            Classification result with category and confidence
-        """
-        if not self.enabled or not self.api_key:
-            return {"category": "unknown", "confidence": 0.0, "method": "local"}
-        
-        try:
-            text = text[:3000]  # Limit text length
-            
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a document classifier. Classify documents into these categories:
-                        - Invoice
-                        - Bill of Lading (BL)
-                        - NRC (National Registration Card)
-                        - FDA (Food and Drug Administration)
-                        - License
-                        - Contract
-                        - Receipt
-                        - Other
-                        
-                        Return JSON format: {"category": "category_name", "confidence": 0.95}"""
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Classify this document:\n{text}"
-                    }
-                ],
-                temperature=0,
-                response_format={"type": "json_object"}
-            )
-            
-            import json
-            result = json.loads(response.choices[0].message.content)
-            result["method"] = "ai_openai"
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"AI classification failed: {e}")
-            return {"category": "unknown", "confidence": 0.0, "method": "local"}
 
 # Global instance
 ai_detector = AIDuplicateDetector()
