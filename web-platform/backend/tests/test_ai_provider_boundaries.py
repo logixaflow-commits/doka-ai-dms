@@ -34,3 +34,16 @@ async def test_document_analysis_rejects_oversized_input(monkeypatch):
     service = UnifiedAIService()
     with pytest.raises(ValueError, match="configured AI input limit"):
         await service.analyze_document("x" * 11)
+
+
+def test_ai_analysis_schema_rejects_invalid_provider_output(monkeypatch):
+    service = UnifiedAIService()
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    with pytest.raises(ValueError, match="missing required fields"):
+        service._parse_analysis_result('{"category":"invoice"}')
+
+
+def test_local_similarity_is_available_without_external_provider():
+    score = UnifiedAIService._local_similarity("invoice payment amount", "invoice payment amount")
+    assert score == 1.0
