@@ -97,6 +97,32 @@ def _supabase_headers(request, token: str, content_type: str | None = None) -> d
     return headers
 
 
+def _binding(request: Request, name: str):
+    """Read a Cloudflare binding without coercing it to text."""
+    bindings = request.scope.get("env")
+    if bindings is not None:
+        try:
+            value = getattr(bindings, name)
+        except Exception:
+            try:
+                value = bindings[name]
+            except Exception:
+                value = None
+        if value is not None:
+            return value
+    if worker_env is not None:
+        try:
+            value = getattr(worker_env, name)
+        except Exception:
+            try:
+                value = worker_env[name]
+            except Exception:
+                value = None
+        if value is not None:
+            return value
+    return None
+
+
 async def require_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
@@ -119,6 +145,23 @@ async def require_user(
         user_email = str(user.get("email") or "").strip().casefold()
         if not user_email or user_email != allowed_email:
             raise HTTPException(status_code=403, detail="This Doka instance is restricted to its configured single user.")
+
+    limiter = _binding(request, "DOKA_RATE_LIMITER")
+    if limiter is not None:
+        try:
+            decision = await limiter.limit({"key": str(user["id"])})
+            allowed = bool(
+                getattr(
+                    decision,
+                    "success",
+                    decision.get("success") if isinstance(decision, dict) else False,
+                )
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Rate limiting is temporarily unavailable.") from exc
+        if not allowed:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again shortly.")
+
     return str(user["id"])
 
 
@@ -969,7 +1012,7 @@ async def document_preview(request: Request, document_id: str, user_id: str = De
     """Create a short-lived inline URL for safe passive document formats only."""
     base = _base(request)
     token = _token_from_request(request)
-    query = f"select=id,object_key,sha256,content_type,filename,storage_provider&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+    query = f"select=id,object_key,sha256,content_type,filename,storage_provider,storage_status&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&storage_status=eq.ready&limit=1"
     status, rows = await _fetch(
         request, f"{base}/rest/v1/doka_documents?{query}",
         headers={**_supabase_headers(request, token), "Accept": "application/json"},
@@ -1003,7 +1046,7 @@ async def document_preview(request: Request, document_id: str, user_id: str = De
 async def document_download(request: Request, document_id: str, user_id: str = Depends(require_user)):
     base = _base(request)
     token = _token_from_request(request)
-    query = f"select=id,owner_id,object_key,sha256,storage_provider&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&limit=1"
+    query = f"select=id,owner_id,object_key,sha256,storage_provider,storage_status&id=eq.{quote(document_id, safe='')}&owner_id=eq.{quote(user_id, safe='')}&deleted_at=is.null&storage_status=eq.ready&limit=1"
     status, rows = await _fetch(
         request, f"{base}/rest/v1/doka_documents?{query}",
         headers={**_supabase_headers(request, token), "Accept": "application/json"},
@@ -1142,7 +1185,14 @@ async def permanently_delete_document(request: Request, document_id: str, user_i
     return {"deleted": True, "document_id": document_id, "objects_deleted": len(keys)}
 
 
-origins = ["https://enterprise-ai-dms.vercel.app"]
+origins = [
+    value.strip()
+    for value in os.getenv(
+        "DOKA_CORS_ORIGINS",
+        "https://enterprise-ai-dms-logixaflow-9859.vercel.app",
+    ).split(",")
+    if value.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
