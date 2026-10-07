@@ -105,21 +105,6 @@ class LocalStorageManager:
             raise StorageError("Symlinked storage paths are not allowed.")
         return candidate
 
-    def _resolve_local_path(self, storage_uri: str) -> Path:
-        """Resolve a file URI strictly beneath this storage manager's root."""
-        if not storage_uri.startswith("file://"):
-            raise StorageError("Unknown storage URI scheme.")
-        raw_path = storage_uri[len("file://"):]
-        candidate = Path(raw_path).resolve()
-        root = self.base_path.resolve()
-        try:
-            candidate.relative_to(root)
-        except ValueError as exc:
-            raise StorageError("Storage path is outside the configured storage root.") from exc
-        if candidate.is_symlink():
-            raise StorageError("Symlinked storage paths are not allowed.")
-        return candidate
-
     def download_file(self, storage_uri: str) -> bytes:
         """Download file from local filesystem."""
         path = self._resolve_local_path(storage_uri)
@@ -153,27 +138,6 @@ class LocalStorageManager:
                 "content_type": "application/octet-stream",
                 "last_modified": stat.st_mtime,
             }
-        return {}
-
-tem: {path}")
-                return True
-            except Exception as e:
-                logger.error(f"Failed to delete file: {e}")
-                return False
-        return False
-
-    def get_file_info(self, storage_uri: str) -> dict:
-        """Get metadata about a stored file."""
-        if storage_uri.startswith("file://"):
-            path = Path(storage_uri.replace("file://", ""))
-            if path.exists():
-                stat = path.stat()
-                return {
-                    "size": stat.st_size,
-                    "content_type": "application/octet-stream",
-                    "last_modified": stat.st_mtime,
-                }
-            return {}
         return {}
 
     def get_stats(self) -> dict:
