@@ -136,8 +136,15 @@ async def download_report(
     Download a generated report file (admin only).
     """
     try:
-        reports_dir = Path(settings.ORGANIZED_ROOT).parent / "reports"
-        file_path = reports_dir / filename
+        reports_dir = (Path(settings.ORGANIZED_ROOT).parent / "reports").resolve()
+        file_path = (reports_dir / filename).resolve()
+        try:
+            file_path.relative_to(reports_dir)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Report file not found"
+            ) from exc
         
         if not file_path.exists():
             raise HTTPException(
