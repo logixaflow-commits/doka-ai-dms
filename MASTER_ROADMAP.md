@@ -1294,7 +1294,7 @@ Supabase Auth leaked-password protection remains a manual dashboard acceptance g
 
 Frontend cloud workflow remains FastAPI/Cloudflare-bound; browser code does not use Supabase service-role credentials or direct data/storage REST endpoints.
 
-CI acceptance remains evidence-gated: do not mark green until the current main-branch Doka Quality and CodeQL runs complete successfully; Vercel remains untouched.
+CI acceptance evidence: Doka Quality run #664 and CodeQL run #77 completed successfully on main commit 20eac17106c29d428cbfe2d531e503e5a7ff6c63. Cloudflare production deployment was attempted by the protected workflow but is blocked at the credential gate because CLOUDFLARE_API_TOKEN is not configured; no bypass or secret weakening was introduced. Vercel remains untouched.
 
 [0.1.0] - 2026-10-01
 Personal Local Edition (code complete)
