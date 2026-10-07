@@ -33,7 +33,6 @@ class LocalStorageManager:
         if base_path:
             self.base_path = Path(base_path)
         else:
-            # Default to uploads directory in app root
             self.base_path = Path(__file__).resolve().parent.parent.parent / "uploads"
         self.base_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"LocalStorageManager initialized with base path: {self.base_path}")
@@ -177,7 +176,6 @@ class StorageManager:
         self._connected = False
         self.local_storage: Optional[LocalStorageManager] = None
 
-        # Use local storage if MinIO is disabled
         if not settings.MINIO_ENABLED or settings.STORAGE_TYPE == "local":
             self.local_storage = LocalStorageManager()
             logger.info("Using LocalStorageManager (MinIO disabled)")
@@ -193,14 +191,10 @@ class StorageManager:
                 secret_key=settings.MINIO_SECRET_KEY,
                 secure=settings.MINIO_SECURE,
             )
-            # Verify connectivity
             self.client.list_buckets()
             self._connected = True
             logger.info(f"Connected to MinIO at {settings.MINIO_ENDPOINT}")
-
-            # Ensure bucket exists
             self._ensure_bucket()
-
         except Exception as e:
             self._connected = False
             logger.warning(
@@ -211,26 +205,10 @@ class StorageManager:
         """Create bucket if it doesn't exist."""
         if not self._connected:
             return
-
         try:
             if not self.client.bucket_exists(self.bucket_name):
                 self.client.make_bucket(self.bucket_name)
                 logger.info(f"Created MinIO bucket: {self.bucket_name}")
-
-            # Set bucket policy to private (deny all public access)
-            policy = {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Deny",
-                        "Principal": {"AWS": ["*"]},
-                        "Action": ["s3:GetObject", "s3:PutObject"],
-                        "Resource": [f"arn:aws:s3:::{self.bucket_name}/*"],
-                        "Condition": {"Bool": {"aws:SecureTransport": "false"}},
-                    }
-                ],
-            }
-            # Note: In production, apply stricter policies
         except S3Error as e:
             logger.error(f"Failed to ensure bucket: {e}")
 
@@ -267,17 +245,12 @@ class StorageManager:
         doc_id: Optional[int] = None,
         content_type: str = "application/octet-stream",
     ) -> str:
-        """
-        Upload file to storage. Returns the storage URI.
-        Uses LocalStorageManager if MinIO is disabled, otherwise MinIO.
-        """
-        # Use local storage if MinIO is disabled
+        """Upload file to storage. Returns the storage URI."""
         if self.local_storage:
             return self.local_storage.upload_file(
                 file_data, original_filename, category, doc_id, content_type
             )
 
-        # Use MinIO if enabled
         key = self._generate_key(category, original_filename, doc_id)
 
         if self._connected:
@@ -297,7 +270,6 @@ class StorageManager:
             except S3Error as e:
                 logger.error(f"MinIO upload failed, falling back to filesystem: {e}")
 
-        # Fallback: filesystem storage
         return self._filesystem_store(file_data, key)
 
     def upload_file_obj(
@@ -309,7 +281,6 @@ class StorageManager:
         content_type: str = "application/octet-stream",
     ) -> str:
         """Upload from file object."""
-        # Use local storage if MinIO is disabled
         if self.local_storage:
             return self.local_storage.upload_file_obj(
                 file_obj, original_filename, category, doc_id, content_type
@@ -322,7 +293,13 @@ class StorageManager:
 
     def _filesystem_store(self, file_data: bytes, key: str) -> str:
         """Store file on local filesystem as fallback."""
-        storage_path = settings.ORGANIZED_ROOT / key
+        root = Path(settings.ORGANIZED_ROOT).resolve()
+        storage_path = (root / key).resolve()
+        try:
+            storage_path.relative_to(root)
+        except ValueError as exc:
+            raise StorageError("Storage path is outside the configured root.") from exc
+
         storage_path.parent.mkdir(parents=True, exist_ok=True)
         storage_path.write_bytes(file_data)
         logger.info(f"Stored on filesystem: {storage_path} ({len(file_data)} bytes)")
@@ -346,11 +323,7 @@ class StorageManager:
         return candidate
 
     def download_file(self, storage_uri: str) -> bytes:
-        """
-        Download file from storage. Handles both minio:// and file:// URIs.
-        Uses LocalStorageManager if MinIO is disabled.
-        """
-        # Use local storage if MinIO is disabled
+        """Download file from storage. Handles both minio:// and file:// URIs."""
         if self.local_storage:
             return self.local_storage.download_file(storage_uri)
 
@@ -383,10 +356,7 @@ class StorageManager:
         expiry: timedelta = timedelta(minutes=15),
         for_upload: bool = False,
     ) -> str:
-        """
-        Generate a presigned URL for temporary access.
-        Returns direct file URL for filesystem storage.
-        """
+        """Generate a presigned URL for temporary access."""
         if storage_uri.startswith("minio://"):
             if not self._connected:
                 raise StorageError("MinIO not connected")
@@ -414,7 +384,6 @@ class StorageManager:
 
     def delete_file(self, storage_uri: str) -> bool:
         """Delete file from storage."""
-        # Use local storage if MinIO is disabled
         if self.local_storage:
             return self.local_storage.delete_file(storage_uri)
 
@@ -494,7 +463,6 @@ class StorageManager:
 
     def get_stats(self) -> dict:
         """Get storage statistics."""
-        # Use local storage if MinIO is disabled
         if self.local_storage:
             return self.local_storage.get_stats()
 
@@ -514,12 +482,6 @@ class StorageManager:
             }
         except Exception as e:
             return {"status": "error", "error": str(e)}
-
-
-class StorageError(Exception):
-    """Raised when storage operations fail."""
-
-    pass
 
 
 # Singleton
