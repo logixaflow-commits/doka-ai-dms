@@ -1,5 +1,10 @@
 # Doka Operations
 
+> **Owner:** How is Doka operated, monitored and kept within its security/recovery boundaries?
+> **Update when:** Runtime services, provider readiness, secrets handling, monitoring, incident response or operational runbooks change.
+> **Last Updated:** 2026-10-08
+> **Do NOT put here:** Canonical architecture, detailed API contracts, or release roadmap ownership.
+
 ## Evidence vocabulary
 Use DONE, VERIFIED, PENDING, BLOCKED, DEFERRED, NEXT and VERIFY. Never treat configuration as live proof.
 
