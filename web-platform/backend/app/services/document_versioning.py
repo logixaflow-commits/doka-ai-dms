@@ -14,6 +14,7 @@ import re
 import tempfile
 from filelock import FileLock
 from loguru import logger
+from app.core.config import settings
 
 
 @dataclass
@@ -72,14 +73,18 @@ class DocumentVersioningService:
             versions = self.get_document_versions(document_id)
             next_version = len(versions) + 1
             version_id = str(uuid.uuid4())
+            source_root = Path(settings.PROCESSING_WORKSPACE).resolve()
             source_path = Path(file_path).resolve()
+            source_path.relative_to(source_root)
+            if not source_path.is_file() or source_path.is_symlink():
+                raise ValueError("Version source is not a regular file.")
             suffix = source_path.suffix.lower()
             if not re.fullmatch(r"\.[A-Za-z0-9]{1,10}", suffix):
                 suffix = ""
             version_file_path = version_dir / f"v{next_version}_{uuid.uuid4().hex}{suffix}"
 
             try:
-                shutil.copy2(file_path, version_file_path)
+                shutil.copy2(source_path, version_file_path)
                 file_hash = self._calculate_file_hash(version_file_path)
                 version = DocumentVersion(
                     id=version_id,
