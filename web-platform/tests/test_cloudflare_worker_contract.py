@@ -11,7 +11,7 @@ WORKER_SOURCE = (
 def test_worker_preview_route_is_authenticated_and_owner_scoped():
     assert '@app.get("/api/documents/{document_id}/preview")' in WORKER_SOURCE
     assert 'user_id: str = Depends(require_user)' in WORKER_SOURCE
-    assert '&owner_id=eq.{quote(user_id, safe=\'\')}&deleted_at=is.null&limit=1' in WORKER_SOURCE
+    assert '&owner_id=eq.{quote(user_id, safe=\'\')}&deleted_at=is.null&storage_status=eq.ready&limit=1' in WORKER_SOURCE
 
 
 def test_worker_preview_allows_only_passive_formats_and_audits():
@@ -159,3 +159,24 @@ def test_worker_supports_optional_single_user_allowlist_without_disabling_auth()
 def test_worker_config_exposes_single_user_readiness_without_exposing_identity():
     assert '"single_user_configured": bool(_env(request, "DOKA_SINGLE_USER_EMAIL").strip())' in WORKER_SOURCE
 
+
+
+WRANGLER = (Path(__file__).resolve().parents[2] / "wrangler.jsonc").read_text(encoding="utf-8")
+
+def test_worker_rate_limit_binding_is_declared_and_user_scoped():
+    assert '"ratelimits"' in WRANGLER
+    assert '"name": "DOKA_RATE_LIMITER"' in WRANGLER
+    assert '"namespace_id": "7101001"' in WRANGLER
+    assert '"limit": 100' in WRANGLER
+    assert '"period": 60' in WRANGLER
+    assert 'DOKA_RATE_LIMITER' in WORKER_SOURCE
+    assert 'limiter.limit({"key": str(user["id"])})' in WORKER_SOURCE
+
+
+def test_worker_permanent_delete_is_provider_aware_and_retains_metadata_on_cleanup_failure():
+    assert 'select=id,object_key,filename,storage_provider' in WORKER_SOURCE
+    assert 'select=object_key,storage_provider' in WORKER_SOURCE
+    assert 'build_storage_router(request, token, _storage_fetcher)' in WORKER_SOURCE
+    assert 'provider.delete(StorageObjectRef(provider_name, object_key, user_id))' in WORKER_SOURCE
+    assert 'Stored file cleanup failed; document metadata was retained.' in WORKER_SOURCE
+    assert 'deleted_version_objects": len(objects) - 1' in WORKER_SOURCE
