@@ -4,6 +4,7 @@ Free-first multi-provider AI orchestration with automatic fallback.
 AI is optional: local/rule-based processing remains the default.
 """
 import json
+import re
 from typing import Optional, Dict, Any, List, Callable, Awaitable
 import httpx
 
@@ -254,6 +255,35 @@ class UnifiedAIService:
         order = orders.get(task, settings.AI_PROVIDER_ORDER)
         return [name for name in order if name in self.providers]
 
+    def _parse_analysis_result(self, raw: str) -> Dict[str, Any]:
+        """Validate provider output before it crosses the AI boundary into Doka."""
+        if not isinstance(raw, str) or not raw.strip():
+            raise ValueError("AI provider returned an empty analysis result.")
+        candidate = raw.strip()
+        if candidate.startswith("```"):
+            candidate = candidate.strip(chr(96))
+            if candidate.startswith("json"):
+                candidate = candidate[4:].lstrip()
+        try:
+            result = json.loads(candidate)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("AI provider returned invalid JSON.") from exc
+        if not isinstance(result, dict):
+            raise ValueError("AI provider analysis must be a JSON object.")
+        required = {"category", "confidence", "key_entities", "suspicious", "suspicious_reason"}
+        if not required.issubset(result):
+            raise ValueError("AI provider analysis is missing required fields.")
+        confidence = result["confidence"]
+        if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
+            raise ValueError("AI provider confidence must be between 0 and 1.")
+        if not isinstance(result["key_entities"], list) or not isinstance(result["suspicious"], bool):
+            raise ValueError("AI provider analysis has invalid field types.")
+        if result["category"] is not None and not isinstance(result["category"], str):
+            raise ValueError("AI provider category must be a string or null.")
+        if result["suspicious_reason"] is not None and not isinstance(result["suspicious_reason"], str):
+            raise ValueError("AI provider suspicious_reason must be a string or null.")
+        return result
+
     async def analyze_document(self, text: str, provider: Optional[str] = None) -> Dict[str, Any]:
         """Analyze a document with an explicit provider or free-first fallback chain."""
         if not isinstance(text, str) or not text.strip():
@@ -278,12 +308,16 @@ class UnifiedAIService:
                 raw = await self._call_openai_compatible(prov, user_payload, system_prompt)
             else:
                 raise ValueError(f"Provider '{prov}' is registered but has no safe document-analysis adapter yet")
-            return json.loads(raw)
+            return self._parse_analysis_result(raw)
 
         providers = [provider] if provider else self._providers_for_task("classification")
         return await self._with_fallback("document_analysis", call, providers)
 
-    async def get_embedding(self, text: str, provider: str = "huggingface") -> List[float]:
+    def _embedding_provider_order(self) -> List[str]:
+        configured = getattr(settings, "AI_EMBEDDING_PROVIDER_ORDER", ["huggingface", "voyage", "cohere"])
+        return list(dict.fromkeys(configured))
+
+    async def get_embedding(self, text: str, provider: Optional[str] = None) -> List[float]:
         """Embeddings are optional; semantic search must have a local fallback."""
         self._ensure_external_ai_allowed()
         if not isinstance(text, str) or not text.strip():
@@ -292,31 +326,61 @@ class UnifiedAIService:
             raise ValueError(
                 f"Text exceeds the configured AI input limit ({settings.AI_MAX_INPUT_CHARS} characters)."
             )
-        if provider != "huggingface" or not settings.HUGGINGFACE_API_KEY:
-            raise ValueError("Hugging Face embeddings are not configured")
-        cfg = {"api_key": settings.HUGGINGFACE_API_KEY, "model": settings.HUGGINGFACE_MODEL}
-        async with httpx.AsyncClient(timeout=settings.AI_PROVIDER_TIMEOUT_SECONDS) as client:
-            response = await client.post(
-                f"https://api-inference.huggingface.co/models/{cfg['model']}",
-                headers={"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"},
-                json={"inputs": text},
-            )
-            response.raise_for_status()
-            data = response.json()
-            if isinstance(data, list) and data and isinstance(data[0], list):
-                return data[0]
-            return data
+        providers = [provider] if provider else self._embedding_provider_order()
+        errors = []
+        for candidate in providers:
+            if candidate != "huggingface":
+                errors.append(f"{candidate}: no dedicated embedding adapter")
+                continue
+            if not settings.HUGGINGFACE_API_KEY or not settings.HUGGINGFACE_MODEL:
+                errors.append("huggingface: credentials/model not configured")
+                continue
+            try:
+                cfg = {"api_key": settings.HUGGINGFACE_API_KEY, "model": settings.HUGGINGFACE_MODEL}
+                async with httpx.AsyncClient(timeout=settings.AI_PROVIDER_TIMEOUT_SECONDS) as client:
+                    response = await client.post(
+                        f"https://api-inference.huggingface.co/models/{cfg['model']}",
+                        headers={"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"},
+                        json={"inputs": text},
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                vector = data[0] if isinstance(data, list) and data and isinstance(data[0], list) else data
+                if not isinstance(vector, list) or not vector or not all(isinstance(v, (int, float)) for v in vector):
+                    raise ValueError("Hugging Face returned an invalid embedding vector.")
+                return [float(v) for v in vector]
+            except Exception as exc:
+                errors.append(f"{candidate}: {exc}")
+                logger.warning("Embedding provider '%s' failed; trying next provider", candidate)
+        raise RuntimeError("All configured embedding providers failed: " + " | ".join(errors))
+
+    @staticmethod
+    def _local_similarity(text1: str, text2: str) -> float:
+        """Deterministic local cosine fallback; document text never leaves the machine."""
+        import math
+        from collections import Counter
+        tokens1 = re.findall(r"\w+", text1.casefold(), flags=re.UNICODE)
+        tokens2 = re.findall(r"\w+", text2.casefold(), flags=re.UNICODE)
+        if not tokens1 or not tokens2:
+            return 0.0
+        left, right = Counter(tokens1), Counter(tokens2)
+        terms = set(left) | set(right)
+        dot = sum(left[t] * right[t] for t in terms)
+        denom = math.sqrt(sum(v * v for v in left.values())) * math.sqrt(sum(v * v for v in right.values()))
+        return dot / denom if denom else 0.0
 
     async def compare_similarity(self, text1: str, text2: str) -> float:
-        """Compare embeddings; callers should fall back to local TF-IDF if this fails."""
+        """Compare embeddings and fall back to deterministic local similarity."""
         try:
-            emb1, emb2 = await self.get_embedding(text1), await self.get_embedding(text2)
+            emb1 = await self.get_embedding(text1)
+            emb2 = await self.get_embedding(text2)
             import numpy as np
             denom = np.linalg.norm(emb1) * np.linalg.norm(emb2)
             return float(np.dot(emb1, emb2) / denom) if denom else 0.0
         except Exception as exc:
-            logger.warning("Embedding similarity failed: %s", exc)
-            return 0.0
+            logger.warning("Embedding similarity failed; using local fallback: %s", exc)
+            return self._local_similarity(text1, text2)
+
 
 
 ai_service = UnifiedAIService()
