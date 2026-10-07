@@ -49,6 +49,8 @@ Doka is complete only when the required **real evidence** passes—not merely be
 - Frontend: **lint, production build, and smoke suite passed** on the current main HEAD.
 - Quality workflow YAML (doka-quality.yml, CodeQL, Dependency Review) parsed successfully in the same isolated runner; all six backend dependency profile files are present.
 - A real backup restore bug was fixed: invalid ZIP archives are now fully validated before Recovery/ is created, preserving failure atomicity.
+- Live Supabase project audit: all three exposed Doka tables have RLS enabled with owner-bound policies; current Doka public RPCs do not grant EXECUTE to anon, and the inspected document/version RPCs are SECURITY INVOKER.
+- Supabase Security Advisor still reports **Leaked Password Protection Disabled**; this requires the Supabase Auth project setting and remains an explicit Phase 6 acceptance gate.
 - Release workflow was narrowed to maintained Personal Local tests instead of collecting stale legacy enterprise tests that reference removed ORM/routes. Those legacy tests remain evidence debt, not release-gate blockers.
 - **Important:** this is local runner evidence, not yet a GitHub Actions green-run claim. Dependabot itemization, secret-scan output, CodeQL output, live browser acceptance, copied-office pilot, RTO/RPO, cloud two-user E2E, and leaked-password protection remain open.
 
