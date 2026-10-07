@@ -1,5 +1,10 @@
 # Doka Testing
 
+> **Owner:** How is Doka tested from code-level checks through release acceptance?
+> **Update when:** Test suites, acceptance criteria, benchmark methodology, CI evidence or release-test requirements change.
+> **Last Updated:** 2026-10-08
+> **Do NOT put here:** Product roadmap ownership, secrets, or deployment topology.
+
 ## Required layers
 1. Syntax/static checks.
 2. Maintained unit/regression suites.
