@@ -335,7 +335,7 @@ class DocumentVersioningService:
     
     def _save_version_metadata(self, version: DocumentVersion):
         """Atomically replace metadata; caller holds the per-document lock."""
-        metadata_file = self.versions_storage_path / str(version.document_id) / "versions.json"
+        metadata_file = self._safe_version_dir(version.document_id) / "versions.json"
         metadata_file.parent.mkdir(parents=True, exist_ok=True)
 
         versions_data = []
