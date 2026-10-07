@@ -657,3 +657,12 @@ Phase 9–12 work is not allowed to become a hidden dependency of the core relea
 - Redis is currently used for optional cache/monitoring paths, not as a hidden correctness dependency for Personal Local organization/apply. A reliability audit confirmed those current call sites already tolerate Redis absence.
 - Hardened the shared Redis client so connection URLs (which may contain credentials) are never logged; failures log only the exception class.
 - Phase 10 will require an explicit mandatory distributed-lock/queue dependency contract before any workflow is allowed to rely on Redis for correctness. Silent fallback is prohibited for such workflows.
+
+
+### Phase 13 pre-stage — Ecosystem & Productization
+
+Entry: Phase 12 stable. Scope: versioned public API, connector/marketplace contracts, enterprise packaging, policy distribution, audit/export tooling, and migration adapters. Gates: least-privilege connector scopes, API compatibility matrix, connector-failure isolation, source-hash preservation, versioned/rollbackable policy changes. Evidence: SDK contract suite, compatibility report, security review, migration drill and signed release artifact.
+
+### Phase 14 pre-stage — Intelligent Operations
+
+Entry: Phase 13 API/connector contracts stable. Scope: workflow anomaly detection, capacity forecasting, AI quality/cost observability, backup/recovery risk scoring, operator-assisted incident triage and bounded operational automation. Safety: no automation may bypass approval, ownership or backup invariants; AI-generated operational decisions require deterministic validation and audit. Evidence: benchmark corpus, incident replay, authorization tests, audit completeness and rollback drill.
