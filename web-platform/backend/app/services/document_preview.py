@@ -2,6 +2,7 @@
 Document Preview & Annotation Service
 Provides document preview, annotation, and comparison features
 """
+from app.core.config import settings
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -244,7 +245,8 @@ class DocumentPreviewService:
         """Add annotation to document"""
         try:
             # Load existing annotations
-            annotations_file = self.annotation_storage_path / f"{annotation.document_id}.json"
+            safe_dir = self._safe_document_dir(annotation.document_id)
+            annotations_file = safe_dir.with_suffix(".json")
             
             if annotations_file.exists():
                 with open(annotations_file, 'r') as f:
@@ -319,7 +321,7 @@ class DocumentPreviewService:
     ) -> Dict[str, Any]:
         """Delete annotation"""
         try:
-            annotations_file = self.annotation_storage_path / f"{document_id}.json"
+            annotations_file = self._safe_document_dir(document_id).with_suffix(".json")
             
             if not annotations_file.exists():
                 return {
@@ -396,7 +398,7 @@ class DocumentPreviewService:
     ) -> Dict[str, Any]:
         """Get print-friendly view of document"""
         try:
-            preview_dir = self.annotation_storage_path / f"previews/{document_id}"
+            preview_dir = self._safe_document_dir(document_id) / "previews"
             
             if not preview_dir.exists():
                 return {
