@@ -1,3 +1,5 @@
+> **Historical plan notice (2026-10-07):** This document preserves the broader product/cloud implementation inventory. Current execution order and release decisions are governed by `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`. Reconcile this document before treating older deployment/status statements as current.
+
 # Doka — Master Product, Architecture & Delivery Plan
 
 Last reviewed: 2026-10-02  
