@@ -44,7 +44,7 @@ The original source is treated as **read-only**. The application must never use 
 
 ## Delivery roadmap
 
-The consolidated phase plan and full remediation issue register are maintained in [Doka Unified Remediation Roadmap](docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md). It supersedes the old split phase ordering for execution while preserving the original remediation issue IDs and the Personal Local safety gates.
+The consolidated phase plan and full remediation issue register are maintained in [Doka Unified Remediation Roadmap](docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md). The documentation map is maintained in [Doka Documentation Index](docs/DOKA_DOCUMENTATION_INDEX.md), including the active [UI map](docs/UI.md), [architecture](docs/ARCHITECTURE.md), and [tools/services boundary](docs/TOOLS.md). It supersedes the old split phase ordering for execution while preserving the original remediation issue IDs and the Personal Local safety gates.
 
 ## First run
 See `QUICKSTART.md` and `docs/PERSONAL_LOCAL_RUNBOOK.md`.
