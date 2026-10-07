@@ -79,7 +79,7 @@ class CloudinaryDerivativeProvider:
     @staticmethod
     def _signature(params: dict[str, str], secret: str) -> str:
         payload = "&".join(f"{key}={params[key]}" for key in sorted(params) if params[key] is not None)
-        return hashlib.sha1((payload + secret).encode()).hexdigest()
+        return hashlib.sha256((payload + secret).encode()).hexdigest()
 
     async def create_upload_session(self, metadata: UploadMetadata) -> UploadSession:
         metadata.validate()
