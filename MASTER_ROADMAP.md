@@ -363,8 +363,8 @@ text
 | Recovery | ✅ Active | Pre |
 | Search (basic) | ✅ Active | Pre |
 | Audit Log | ✅ Active | Pre |
-| Document Versioning (V1,V2,V3) | ❌ Missing | Phase 1 |
-| Bulk Actions | ❌ Missing | Phase 1 |
+| Document Versioning (V1,V2,V3) | ✅ Active | Phase 1 |
+| Bulk Actions | ✅ Active | Phase 1 |
 | Document Locking | ❌ Missing | Phase 1 |
 | Advanced Filters | ❌ Missing | Phase 1 |
 | Saved Searches | ❌ Missing | Phase 1 |
@@ -431,12 +431,12 @@ No Enterprise feature may be activated merely because its legacy code exists.
 | Fernet Encryption | ✅ Active | Pre |
 | HMAC-bound Upload Sessions | ✅ Active | Phase 1 |
 | Supabase RLS | ✅ Active | Phase 1 |
-| Rate Limiting | ❌ Missing | Phase 1 |
+| Rate Limiting | ✅ Active | Phase 1 |
 | HttpOnly Cookies | ❌ Missing | Phase 1 |
 | Server-side Token Revocation | ❌ Missing | Phase 1 |
 | OS-level Source ACL | ❌ Missing | Phase 2 |
 | Leaked Password Protection | 🚨 Not yet enabled/verified | Phase 1 |
-| Manifest-only Download Enforcement | ❌ Missing | Phase 1 |
+| Manifest-only Download Enforcement | ✅ Active | Phase 1 |
 
 ### 4.6 Deployment & Infrastructure
 
