@@ -232,7 +232,7 @@ async def sync_to_accounting(
 @router.post("/{integration_id}/webhook")
 async def trigger_webhook(
     integration_id: str,
-    webhook_url: str,
+    webhook_index: int,
     data: dict,
     current_user: User = Depends(get_current_user)
 ):
@@ -241,7 +241,7 @@ async def trigger_webhook(
         integration_service = get_integration_service()
         result = await integration_service.trigger_webhook(
             integration_id,
-            webhook_url,
+            webhook_index,
             data
         )
         
