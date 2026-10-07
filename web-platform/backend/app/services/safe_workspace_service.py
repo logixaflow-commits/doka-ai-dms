@@ -49,8 +49,18 @@ def utc_now() -> str:
 
 
 def sha256_file(path: Path) -> str:
+    """Hash only files that live inside Doka's managed source/workspace roots."""
+    candidate = Path(path).expanduser().resolve(strict=True)
+    allowed_roots = (
+        settings.SOURCE_ROOT.expanduser().resolve(strict=True),
+        settings.WORKING_ROOT.expanduser().resolve(),
+    )
+    if candidate.is_symlink() or not any(
+        candidate.is_relative_to(root) for root in allowed_roots
+    ):
+        raise ValueError("Hash target is outside Doka-managed storage.")
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with candidate.open("rb") as handle:
         for chunk in iter(lambda: handle.read(CHUNK_SIZE), b""):
             digest.update(chunk)
     return digest.hexdigest()
