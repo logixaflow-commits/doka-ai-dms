@@ -52,3 +52,51 @@ def test_local_similarity_is_available_without_external_provider():
 def test_embedding_provider_order_is_deduplicated(monkeypatch):
     monkeypatch.setattr(settings, "AI_EMBEDDING_PROVIDER_ORDER", ["voyage", "huggingface", "voyage"])
     assert UnifiedAIService()._embedding_provider_order() == ["voyage", "huggingface"]
+
+
+@pytest.mark.asyncio
+async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkeypatch):
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 2)
+    monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 60)
+    service = UnifiedAIService()
+
+    calls = []
+
+    async def failing(provider):
+        calls.append(provider)
+        raise RuntimeError("provider unavailable")
+
+    with pytest.raises(RuntimeError, match="All configured AI providers failed"):
+        await service._with_fallback("circuit-test", failing, ["openai", "gemini"])
+    assert calls == ["openai", "gemini"]
+
+    calls.clear()
+    with pytest.raises(RuntimeError, match="All configured AI providers failed"):
+        await service._with_fallback("circuit-test", failing, ["openai", "gemini"])
+    assert calls == []
+    assert service._provider_failures["openai"] == 2
+    assert service._provider_failures["gemini"] == 2
+
+
+@pytest.mark.asyncio
+async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
+    monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 0)
+    service = UnifiedAIService()
+
+    async def failing(_provider):
+        raise RuntimeError("temporary")
+
+    with pytest.raises(RuntimeError):
+        await service._with_fallback("circuit-test", failing, ["openai"])
+
+    async def success(_provider):
+        return {"ok": True}
+
+    assert await service._with_fallback("circuit-test", success, ["openai"]) == {"ok": True}
+    assert "openai" not in service._provider_failures
+    assert "openai" not in service._provider_opened_at
