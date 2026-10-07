@@ -112,7 +112,7 @@ class CloudinaryObjectStorage:
             for key in sorted(params)
             if params[key] is not None and str(params[key]) != ""
         )
-        return hashlib.sha1((payload + self.api_secret).encode("utf-8")).hexdigest()
+        return hashlib.sha256((payload + self.api_secret).encode("utf-8")).hexdigest()
 
     def _signed_params(self, params: dict[str, object]) -> dict[str, str]:
         values = {key: str(value) for key, value in params.items() if value is not None}
