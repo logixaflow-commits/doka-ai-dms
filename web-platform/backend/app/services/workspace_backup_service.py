@@ -300,11 +300,75 @@ class WorkspaceBackupService:
         recovery_root = workspace_root / "Recovery"
         if recovery_root.is_symlink():
             raise ValueError("Recovery directory cannot be a symlink.")
-        recovery_root.mkdir(parents=True, exist_ok=True)
         try:
             recovery_root.resolve().relative_to(workspace_root)
         except ValueError as exc:
             raise ValueError("Recovery directory is outside WORKING_ROOT.") from exc
+
+        # Validate the complete archive before mutating the workspace. This keeps
+        # rejected restores atomic: a malicious/invalid archive must not even
+        # create the Recovery directory.
+        with zipfile.ZipFile(archive) as zf:
+            members = zf.infolist()
+            if len(members) > _MAX_RESTORE_ENTRIES:
+                raise ValueError("Backup contains too many entries to restore safely.")
+            total_uncompressed = 0
+            seen_paths: set[str] = set()
+            for member in members:
+                name = member.filename
+                posix_path = PurePosixPath(name)
+                windows_path = PureWindowsPath(name)
+                raw_parts = name.rstrip("/").split("/") if name else []
+                windows_reserved = {"CON", "PRN", "AUX", "NUL"} | {
+                    f"{prefix}{number}"
+                    for prefix in ("COM", "LPT")
+                    for number in range(1, 10)
+                }
+                if (
+                    not name
+                    or "\\" in name
+                    or any(ord(char) < 32 for char in name)
+                    or posix_path.is_absolute()
+                    or windows_path.is_absolute()
+                    or windows_path.drive
+                    or any(part in {"", ".", ".."} for part in raw_parts)
+                    or any(
+                        ":" in part
+                        or part.endswith((" ", "."))
+                        or part.split(".", 1)[0].upper() in windows_reserved
+                        for part in raw_parts
+                    )
+                ):
+                    raise ValueError("Backup contains an unsafe path.")
+                normalized_name = "/".join(raw_parts)
+                collision_key = normalized_name.casefold()
+                if collision_key in seen_paths:
+                    raise ValueError("Backup contains duplicate or case-colliding paths.")
+                seen_paths.add(collision_key)
+
+                member_mode = (member.external_attr >> 16) & 0o170000
+                if member_mode == stat.S_IFLNK or member_mode not in (0, stat.S_IFREG, stat.S_IFDIR):
+                    raise ValueError("Backup contains an unsupported filesystem entry.")
+                if member.flag_bits & 0x1:
+                    raise ValueError("Encrypted backup entries are not supported.")
+                if member.file_size > _MAX_RESTORE_MEMBER_BYTES:
+                    raise ValueError("Backup contains a file that exceeds the restore size limit.")
+                total_uncompressed += member.file_size
+                if total_uncompressed > _MAX_RESTORE_TOTAL_BYTES:
+                    raise ValueError("Backup exceeds the total restore size limit.")
+                if member.file_size and (
+                    member.compress_size == 0
+                    or member.file_size / member.compress_size > _MAX_RESTORE_COMPRESSION_RATIO
+                ):
+                    raise ValueError("Backup contains an unsafe compression ratio.")
+
+                member_path = (workspace_root / "Recovery" / "validation" / Path(*posix_path.parts)).resolve()
+                try:
+                    member_path.relative_to(workspace_root)
+                except ValueError as exc:
+                    raise ValueError("Backup contains an unsafe path.") from exc
+
+        recovery_root.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         target = recovery_root / f"restore_{stamp}"
         target.mkdir(parents=True, exist_ok=False)
