@@ -9,7 +9,6 @@
 
 ## Cloudflare Worker
 Current URL: `https://doka-ai-dms.logixaflow.workers.dev`.
-Do not use the historical `doka.logixaflow.workers.dev` URL.
 
 The Worker must authenticate cloud requests and must not proxy large document bytes unnecessarily. Direct upload sessions are used for provider-backed document bytes.
 
