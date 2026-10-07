@@ -167,7 +167,7 @@ class DocumentVersioningService:
                     metadata=version_data.get("metadata", {}),
                     changes=version_data.get("changes")
                 )
-                 version.file_path = str(self._safe_version_file(version.file_path, document_id))
+                version.file_path = str(self._safe_version_file(version.file_path, document_id))
                 versions.append(version)
             
             return sorted(versions, key=lambda v: v.version_number)
