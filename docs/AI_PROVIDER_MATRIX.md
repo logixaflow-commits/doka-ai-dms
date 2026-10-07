@@ -35,6 +35,18 @@ No AI agent may directly mutate the original source. Executor operations remain 
 
 ## Recommended routing
 
+Provider selection is **task-based**, not one global key:
+
+| Task | Primary chain | Fallback policy |
+|---|---|---|
+| Multimodal reading | Gemini | local OCR → one configured text fallback → human review |
+| Fast classification | Groq | Cerebras when configured → Gemini → local rules |
+| High-quality planning | OpenAI | Gemini → Groq → OpenRouter |
+| Embeddings/similarity | Hugging Face | Voyage/Cohere only after their adapters are implemented and benchmarked → local TF-IDF |
+| Cloudflare-native inference | Cloudflare Workers AI | opt-in cloud route only; never required by Personal Local |
+
+A provider being listed here does **not** mean its key is enabled. Each provider must pass adapter, health, quality, privacy and cost checks before entering a production chain.
+
 ### 1. Read / OCR
 Use local Tesseract + deterministic extractors first.
 
