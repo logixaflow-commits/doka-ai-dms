@@ -727,14 +727,20 @@ async function handleFiles(files) {
     invalidFiles.forEach(({ file, errors }) => {
         const item = document.createElement('div');
         item.className = 'flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200';
-        item.innerHTML = `
-            <i class="fas fa-exclamation-triangle text-red-500"></i>
-            <div class="flex-1">
-                <div class="text-sm font-medium text-red-700">${file.name}</div>
-                <div class="text-xs text-red-600">${errors.join(', ')}</div>
-            </div>
-            <i class="fas fa-times-circle text-red-500"></i>
-        `;
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-exclamation-triangle text-red-500';
+        const details = document.createElement('div');
+        details.className = 'flex-1';
+        const filename = document.createElement('div');
+        filename.className = 'text-sm font-medium text-red-700';
+        filename.textContent = file.name;
+        const messages = document.createElement('div');
+        messages.className = 'text-xs text-red-600';
+        messages.textContent = errors.join(', ');
+        const closeIcon = document.createElement('i');
+        closeIcon.className = 'fas fa-times-circle text-red-500';
+        details.append(filename, messages);
+        item.append(icon, details, closeIcon);
         list.appendChild(item);
     });
 
@@ -742,7 +748,17 @@ async function handleFiles(files) {
     for (const file of validFiles) {
         const item = document.createElement('div');
         item.className = 'flex items-center gap-3 p-3 bg-slate-50 rounded-lg';
-        item.innerHTML = `<i class="fas fa-file text-blue-500"></i><span class="text-sm flex-1">${file.name}</span><span class="text-xs text-slate-400">${formatFileSize(file.size)}</span><i class="fas fa-circle-notch fa-spin text-blue-500 upload-status"></i>`;
+        const fileIcon = document.createElement('i');
+        fileIcon.className = 'fas fa-file text-blue-500';
+        const fileName = document.createElement('span');
+        fileName.className = 'text-sm flex-1';
+        fileName.textContent = file.name;
+        const fileSize = document.createElement('span');
+        fileSize.className = 'text-xs text-slate-400';
+        fileSize.textContent = formatFileSize(file.size);
+        const uploadStatus = document.createElement('i');
+        uploadStatus.className = 'fas fa-circle-notch fa-spin text-blue-500 upload-status';
+        item.append(fileIcon, fileName, fileSize, uploadStatus);
         list.appendChild(item);
 
         const formData = new FormData();
