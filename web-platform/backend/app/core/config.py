@@ -68,6 +68,7 @@ class ThresholdConfig:
 @dataclass
 class OCRConfig:
     tesseract_cmd: str = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    poppler_path: str = ""
     myanmar_lang: str = "mya"
     eng_lang: str = "eng"
     preprocessing: bool = True
@@ -193,6 +194,7 @@ class Settings:
         self.OCR_MAX_PDF_PAGES = int(os.getenv("OCR_MAX_PDF_PAGES", "200"))
         self.OCR_MAX_IMAGE_PIXELS = int(os.getenv("OCR_MAX_IMAGE_PIXELS", "50000000"))
         self.OCR_FALLBACK_ENABLED = os.getenv("OCR_FALLBACK_ENABLED", "true").lower() == "true"
+        self.OCR_POPPLER_PATH = os.getenv("OCR_POPPLER_PATH", "")
 
         # Security
         self.ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
@@ -376,6 +378,7 @@ class Settings:
             max_pdf_pages=o.get("max_pdf_pages", self.OCR_MAX_PDF_PAGES),
             max_image_pixels=o.get("max_image_pixels", self.OCR_MAX_IMAGE_PIXELS),
             fallback_enabled=o.get("fallback_enabled", self.OCR_FALLBACK_ENABLED),
+            poppler_path=o.get("poppler_path", self.OCR_POPPLER_PATH),
         )
 
         # Duplicate config
