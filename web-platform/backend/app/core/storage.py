@@ -347,6 +347,20 @@ class StorageManager:
         logger.info(f"Stored on filesystem: {storage_path} ({len(file_data)} bytes)")
         return f"file://{storage_path}"
 
+    @staticmethod
+    def _resolve_filesystem_uri(storage_uri: str) -> Path:
+        if not storage_uri.startswith("file://"):
+            raise StorageError("Unknown storage URI scheme.")
+        candidate = Path(storage_uri[len("file://"):]).resolve()
+        root = Path(settings.ORGANIZED_ROOT).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise StorageError("Storage path is outside the configured root.") from exc
+        if candidate.is_symlink():
+            raise StorageError("Symlinked storage paths are not allowed.")
+        return candidate
+
     def download_file(self, storage_uri: str) -> bytes:
         """
         Download file from storage. Handles both minio:// and file:// URIs.
@@ -371,13 +385,13 @@ class StorageManager:
                 raise StorageError(f"Failed to download from MinIO: {e}") from e
 
         elif storage_uri.startswith("file://"):
-            path = Path(storage_uri.replace("file://", ""))
+            path = self._resolve_filesystem_uri(storage_uri)
             if not path.exists():
-                raise StorageError(f"File not found: {path}")
+                raise StorageError("File not found.")
             return path.read_bytes()
 
         else:
-            raise StorageError(f"Unknown storage URI scheme: {storage_uri}")
+            raise StorageError("Unknown storage URI scheme.")
 
     def get_presigned_url(
         self,
@@ -408,8 +422,8 @@ class StorageManager:
                 raise StorageError(f"Failed to generate presigned URL: {e}") from e
 
         elif storage_uri.startswith("file://"):
-            # For filesystem, return a direct path (will be served via API)
-            return f"/api/files/local/{storage_uri.replace('file://', '')}"
+            path = self._resolve_filesystem_uri(storage_uri)
+            return f"/api/files/local/{path}"
 
         else:
             raise StorageError(f"Unknown storage URI: {storage_uri}")
@@ -434,12 +448,12 @@ class StorageManager:
                 return False
 
         elif storage_uri.startswith("file://"):
-            path = Path(storage_uri.replace("file://", ""))
             try:
+                path = self._resolve_filesystem_uri(storage_uri)
                 path.unlink(missing_ok=True)
-                logger.info(f"Deleted from filesystem: {path}")
+                logger.info("Deleted from filesystem.")
                 return True
-            except Exception as e:
+            except (StorageError, OSError) as e:
                 logger.error(f"Failed to delete file: {e}")
                 return False
 
@@ -465,7 +479,10 @@ class StorageManager:
                 return {}
 
         elif storage_uri.startswith("file://"):
-            path = Path(storage_uri.replace("file://", ""))
+            try:
+                path = self._resolve_filesystem_uri(storage_uri)
+            except StorageError:
+                return {}
             if path.exists():
                 stat = path.stat()
                 return {
