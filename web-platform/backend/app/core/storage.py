@@ -4,6 +4,7 @@ MinIO/S3 abstraction with presigned URLs, bucket management, and secure access.
 Includes LocalStorageManager for Railway/cloud deployments without MinIO.
 """
 
+import re
 import uuid
 from datetime import timedelta
 from pathlib import Path
@@ -33,16 +34,31 @@ class LocalStorageManager:
         self.base_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"LocalStorageManager initialized with base path: {self.base_path}")
 
+    @staticmethod
+    def _safe_storage_component(value: str, *, fallback: str) -> str:
+        """Allow a single, non-traversing storage path component."""
+        candidate = str(value or "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", candidate):
+            return fallback
+        return candidate
+
     def _generate_key(
         self, category: str, original_filename: str, doc_id: Optional[int] = None
     ) -> str:
-        """Generate a unique storage key (path in filesystem)."""
-        ext = Path(original_filename).suffix
-        unique_id = str(uuid.uuid4())
-        name_part = Path(original_filename).stem[:30]  # Limit name length
+        """Generate a unique storage key using only safe path components."""
+        original = Path(original_filename)
+        ext = original.suffix.lower()
+        if not re.fullmatch(r"\.[A-Za-z0-9]{1,10}", ext):
+            ext = ""
+        name_part = self._safe_storage_component(
+            original.stem[:30].replace(" ", "_"),
+            fallback="document",
+        )
+        category_part = self._safe_storage_component(category, fallback="uncategorized")
+        unique_id = uuid.uuid4().hex
         if doc_id:
-            return f"{category}/{doc_id}_{name_part}_{unique_id}{ext}"
-        return f"{category}/{name_part}_{unique_id}{ext}"
+            return f"{category_part}/{doc_id}_{name_part}_{unique_id}{ext}"
+        return f"{category_part}/{name_part}_{unique_id}{ext}"
 
     def upload_file(
         self,
