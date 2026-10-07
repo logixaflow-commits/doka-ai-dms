@@ -42,6 +42,16 @@ Doka is complete only when the required **real evidence** passes—not merely be
 | 11 | B2/Cloudinary/Google Drive + 50 MiB + recovery proof | Pending verification |
 | 12 | Deployment/runtime evidence + final go-live sign-off | Blocked by 9–11 |
 
+## Latest coding-side verification — 2026-10-07
+
+- Personal Local maintained regression suite: **46 passed** on the current main HEAD; this covers AI boundaries, local auth/session, source containment, Unicode passwords, OCR limits, backup restore/route boundaries, and symlink safety.
+- Cloud storage contract unit suite: **13 passed** on the current main HEAD.
+- Frontend: **lint, production build, and smoke suite passed** on the current main HEAD.
+- Quality workflow YAML (doka-quality.yml, CodeQL, Dependency Review) parsed successfully in the same isolated runner; all six backend dependency profile files are present.
+- A real backup restore bug was fixed: invalid ZIP archives are now fully validated before Recovery/ is created, preserving failure atomicity.
+- Release workflow was narrowed to maintained Personal Local tests instead of collecting stale legacy enterprise tests that reference removed ORM/routes. Those legacy tests remain evidence debt, not release-gate blockers.
+- **Important:** this is local runner evidence, not yet a GitHub Actions green-run claim. Dependabot itemization, secret-scan output, CodeQL output, live browser acceptance, copied-office pilot, RTO/RPO, cloud two-user E2E, and leaked-password protection remain open.
+
 ## Next phase bundles already prepared
 
 1. **Phase 5A — Quality/Supply-chain closeout:** run the existing Doka Quality Checks, Dependency Review, CodeQL, frontend audit/lint/build/smoke, backend regression/coverage, secret scan and SBOM; reconcile only confirmed findings and keep lockfiles authoritative.
