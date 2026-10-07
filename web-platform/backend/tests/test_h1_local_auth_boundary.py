@@ -118,6 +118,16 @@ def test_local_login_and_protected_workspace_require_valid_local_session(
         assert bad_token not in rejected.text
 
 
+
+def test_local_auth_state_is_owner_only_on_posix(monkeypatch, tmp_path):
+    if __import__("os").name != "posix":
+        pytest.skip("POSIX permission semantics are not portable to this platform.")
+    monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", tmp_path / "auth.sqlite3")
+    token = create_local_access_token("permission-test-user")
+    assert token
+    mode = (tmp_path / "auth.sqlite3").stat().st_mode & 0o777
+    assert mode == 0o600
+
 def test_cloud_and_personal_local_apps_mount_separate_auth_routes(monkeypatch):
     monkeypatch.setattr(settings, "ENVIRONMENT", "test")
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000")
