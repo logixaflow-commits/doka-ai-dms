@@ -1,7 +1,7 @@
 # Doka — Master Roadmap (Complete Single-File Documentation)
 
 **Version:** 1.0  
-**Last Updated:** 2026-10-06  
+**Last Updated:** 2026-10-07  
 **Status:** ACTIVE — Single Source of Truth  
 **Owner:** Single User (Logixa Flow)  
 **Repository:** logixaflow-commits/doka-ai-dms  
@@ -1278,6 +1278,23 @@ Added Local → Cloud migration, service cost planning, phase rollback, legal/co
 Added all 15 original files' content
 
 Structured for AI verification
+
+[0.1.1] - 2026-10-07
+Cloud Base remaining hardening
+
+Cloudflare authenticated API now applies an optional native per-user rate-limit binding (100 requests / 60 seconds), and download/preview require storage_status=ready.
+
+Permanent deletion is provider-aware (Supabase/B2) and retains document metadata when object cleanup fails; legacy automatic deletion is not introduced.
+
+Cloudflare Worker bundle dry-run validated with Wrangler 4.36.0 and the rate-limit binding is declared in wrangler.jsonc.
+
+Supabase security verification: doka_documents, doka_document_versions and doka_audit_events have RLS enabled with owner-scoped authenticated policies; storage.objects is owner-scoped for the doka-documents bucket.
+
+Supabase Auth leaked-password protection remains a manual dashboard acceptance gate because no connected management action is available in this environment.
+
+Frontend cloud workflow remains FastAPI/Cloudflare-bound; browser code does not use Supabase service-role credentials or direct data/storage REST endpoints.
+
+CI acceptance remains evidence-gated: do not mark green until the current main-branch Doka Quality and CodeQL runs complete successfully; Vercel remains untouched.
 
 [0.1.0] - 2026-10-01
 Personal Local Edition (code complete)
