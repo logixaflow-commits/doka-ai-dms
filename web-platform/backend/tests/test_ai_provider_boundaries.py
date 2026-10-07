@@ -47,3 +47,8 @@ def test_ai_analysis_schema_rejects_invalid_provider_output(monkeypatch):
 def test_local_similarity_is_available_without_external_provider():
     score = UnifiedAIService._local_similarity("invoice payment amount", "invoice payment amount")
     assert score == 1.0
+
+
+def test_embedding_provider_order_is_deduplicated(monkeypatch):
+    monkeypatch.setattr(settings, "AI_EMBEDDING_PROVIDER_ORDER", ["voyage", "huggingface", "voyage"])
+    assert UnifiedAIService()._embedding_provider_order() == ["voyage", "huggingface"]
