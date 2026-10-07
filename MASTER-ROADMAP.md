@@ -58,7 +58,9 @@ Doka is complete only when the required **real evidence** passes—not merely be
 2. **Phase 5B — Local release evidence:** real browser acceptance → copied-office pilot → source hash comparison → OCR Myanmar/English benchmark → backup checksum → isolated restore → measured RTO/RPO → final local runbook/evidence.
 3. **Phase 6A — Cloud acceptance:** authenticated lifecycle → two-user isolation → RLS/Storage/RPC proof → 50 MiB/recovery/provider boundary checks → Supabase leaked-password protection verification.
 4. **Phase 6B — Deployment gate:** verify Cloudflare runtime and production frontend only when authorized; Vercel remains paused unless explicitly reopened; then assemble final release evidence and sign-off.
-5. **Advanced Phase 3/4 only after release:** worker scaling, distributed locks/retries, cloud AI budgets/circuit breakers, RAG/embeddings, compliance, multi-region and mobile work remain deferred until measured demand and approved scope.
+5. **Phase 7 — Post-release hardening bundle:** production observability, incident/error workflow, performance baseline, backup monitoring, dependency update automation, security regression scheduling, rollback rehearsal, and operational runbook refinement.
+6. **Phase 8 — Advanced Doka intelligence/scale bundle:** provider circuit breakers and budgets, dedicated Cohere/Voyage/Cloudflare adapters, stronger RAG/embedding evaluation, distributed workflow scaling, advanced search, compliance/audit expansion, team features, mobile alignment, and multi-region readiness.
+7. **Phase 9+ — Controlled expansion:** only after Phase 7/8 evidence, define separate product tracks for enterprise governance, high-volume ingestion, regulated workloads, marketplace/integration ecosystem, and regional deployment. Each track gets its own acceptance gates; no feature is promoted directly into the release core without an evidence-backed boundary.
 
 **Credential rule:** no live provider/storage keys are needed for the current coding-side work. If a later acceptance gate truly requires a live credential, request the exact key(s) and purpose immediately before that gate rather than adding secrets early.
 
