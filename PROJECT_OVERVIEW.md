@@ -1,7 +1,10 @@
 # Doka Project Overview
 
 ## Product
-Doka is a document-management product with three editions: Personal Local, Personal Cloud, and Enterprise. The current release priority is Personal Local first; Cloud verification follows; Enterprise is deferred.
+Doka has three editions:
+- **Personal Local:** active first-release path.
+- **Personal Cloud:** authenticated cloud path.
+- **Enterprise:** deferred until tenant, RBAC, isolation, audit and rollback gates are activated.
 
 ## Personal Local architecture
 ```
@@ -16,9 +19,18 @@ Original source (read-only)
   -> isolated recovery / undo
 ```
 
-Runtime: React 19 + TypeScript + Vite 7 frontend; FastAPI/Python 3.12 backend; local filesystem workspace; local authentication/state; Tesseract OCR. Personal Local must work without Supabase, Cloudflare, Vercel, Redis, MinIO, or AI credentials.
+Runtime: React 19 + TypeScript + Vite 7 frontend; FastAPI/Python 3.12 backend; local filesystem workspace; local authentication/state; Tesseract OCR.
 
-Safety boundaries: SOURCE_ROOT and WORKING_ROOT are separate; ORIGINAL_READ_ONLY=true; ALLOW_SOURCE_WRITE=false; FINAL_ROOT and QUARANTINE_ROOT stay within WORKING_ROOT; BACKUP_ROOT is separate; restore is isolated; organization is copy-only.
+Personal Local must work without Supabase, Cloudflare, Vercel, Redis, MinIO, or AI credentials.
+
+Safety boundaries:
+- SOURCE_ROOT and WORKING_ROOT are separate.
+- ORIGINAL_READ_ONLY=true.
+- ALLOW_SOURCE_WRITE=false.
+- FINAL_ROOT and QUARANTINE_ROOT stay within WORKING_ROOT.
+- BACKUP_ROOT is separate.
+- Restore is isolated.
+- Organization is copy-only.
 
 ## Personal Cloud architecture
 ```
@@ -29,7 +41,7 @@ Browser -> Supabase Auth -> React/Vite -> Cloudflare Worker
 
 Supabase Auth supplies identity. The Worker derives ownership from the verified token. RLS and private Storage remain independent ownership boundaries. Service-role credentials never belong in browser configuration.
 
-Current storage routing: source objects <=50 MiB use Supabase; >50 MiB use B2 when configured; derivatives prefer Cloudinary when configured and healthy. Google Drive is a configuration-gated export/archive path. Real provider recovery is not claimed until live evidence exists.
+Storage routing is defined in `docs/STORAGE.md`: source objects <=50 MiB use Supabase, >50 MiB use B2 when configured, derivatives prefer Cloudinary when configured and healthy, and Google Drive is a configuration-gated export/archive path.
 
 ## Repository boundaries
 - `web-platform/backend/`: FastAPI Personal Local runtime and supporting services.
@@ -48,11 +60,16 @@ Personal Local is a local data-plane application. Personal Cloud is authenticate
 ## Workflow and agent boundary
 The canonical workflow engine remains `workflow.py`; PostgreSQL is the durable workflow/run source of truth where that cloud workflow is enabled. Do not introduce a second workflow engine.
 
-When AI is enabled, keep Reader -> Planner -> Human Approval -> Executor separation. Reader and Planner have no destructive write authority. Executor accepts validated approved plans only.
+When AI is enabled, keep **Reader -> Planner -> Human Approval -> Executor** separation. Reader and Planner have no destructive write authority. Executor accepts validated approved plans only.
 
-## Deployment topology
-- Personal Local: user's machine, FastAPI + React/Vite + local filesystem/OCR.
-- Personal Cloud API: active Cloudflare Worker `doka-ai-dms`.
-- Supabase: Auth, Postgres/RLS and private Storage.
-- Vercel: owner-paused frontend target; do not reactivate without explicit authorization.
-- Render: no active runtime is established.
+## Authority map
+- Architecture details: `docs/ARCHITECTURE.md`
+- Release/status: `CURRENT_STATE.md`
+- Deployment/runtime: `docs/DEPLOYMENT.md`
+- Database: `docs/DATABASE.md`
+- API: `docs/API.md`
+- AI/RAG: `docs/AI_RAG.md`
+- Storage: `docs/STORAGE.md`
+- Operations: `docs/OPERATIONS.md`
+- Testing: `docs/TESTING.md`
+- Troubleshooting: `docs/TROUBLESHOOTING.md`
