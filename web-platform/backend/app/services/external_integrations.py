@@ -222,10 +222,10 @@ class ExternalIntegrationService:
     async def trigger_webhook(
         self,
         integration_id: str,
-        webhook_url: str,
+        webhook_index: int,
         data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Trigger webhook integration"""
+        """Trigger an admin-configured webhook destination."""
         try:
             integration = self.integrations.get(integration_id)
             
@@ -235,7 +235,14 @@ class ExternalIntegrationService:
             if integration.status != IntegrationStatus.ACTIVE:
                 return {"success": False, "error": "Integration not active"}
             
-            # Send webhook
+            if not isinstance(webhook_index, int) or webhook_index < 0 or webhook_index >= len(integration.webhooks):
+                return {"success": False, "error": "Invalid webhook destination"}
+            webhook_url = integration.webhooks[webhook_index]
+            parsed = httpx.URL(webhook_url)
+            if parsed.scheme not in {"http", "https"} or not parsed.host or parsed.userinfo:
+                return {"success": False, "error": "Invalid webhook destination"}
+            
+            # Send only to the destination previously stored in the admin integration config.
             headers = {
                 "Content-Type": "application/json",
                 "X-Integration-ID": integration_id,
@@ -249,7 +256,8 @@ class ExternalIntegrationService:
             response = await self.http_client.post(
                 webhook_url,
                 json=data,
-                headers=headers
+                headers=headers,
+                follow_redirects=False,
             )
             
             if response.status_code == 200:
