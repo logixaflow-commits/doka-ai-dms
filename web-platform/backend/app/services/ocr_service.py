@@ -305,7 +305,7 @@ class OCRService:
                 thread_count=1,
                 timeout=self.timeout,
                 size=3500,
-                 poppler_path=r"C:\Program Files\poppler-26.09.0\Library\bin",
+                **({"poppler_path": self.config.poppler_path} if self.config.poppler_path else {}),
                 )
                 if not images:
                     continue
