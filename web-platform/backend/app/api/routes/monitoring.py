@@ -26,7 +26,10 @@ async def health_check():
 
 
 @router.get("/health/detailed")
-async def detailed_health_check(db: Session = Depends(get_db)):
+async def detailed_health_check(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     """Detailed health check for all services."""
     try:
         monitoring_service = get_monitoring_service(db)
@@ -42,7 +45,10 @@ async def detailed_health_check(db: Session = Depends(get_db)):
 
 
 @router.get("/metrics")
-async def prometheus_metrics(db: Session = Depends(get_db)):
+async def prometheus_metrics(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     """
     Prometheus metrics endpoint.
     Returns metrics in Prometheus format.
