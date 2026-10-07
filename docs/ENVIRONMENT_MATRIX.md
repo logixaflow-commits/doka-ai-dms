@@ -9,9 +9,9 @@ This file records **which environment owns which configuration**. It intentional
 | Service | Live state | Role | Current finding |
 |---|---|---|---|
 | Personal Local | Local-only | FastAPI + React/Vite + filesystem + SQLite + Tesseract | Real-machine evidence still pending |
-| Cloudflare Worker | Active | Cloud API | Worker `doka-ai-dms` exists; secret bindings present |
+| Cloudflare Worker | Active | Cloud API | Worker `doka-ai-dms` exists; latest deployment version is 100% traffic; secret bindings present |
 | Supabase | Active/healthy | Auth + Postgres/RLS + Storage transition | Leaked-password protection still disabled |
-| Vercel | Paused | Frontend hosting target | Project exists; owner pause must remain |
+| Vercel | Paused | Frontend hosting target | Project exists; live=false; latest production deployment is CANCELED; owner pause must remain |
 | Render | Workspace exists; inspection pending | Deferred/optional cloud FastAPI | Workspace selection requires owner confirmation |
 | Cloudinary | Configured as a target, not proven | Private object/derivative storage | Real provider + recovery drill pending |
 | Backblaze B2 | Worker secret bindings present | >50 MiB cloud object path | Real upload/recovery drill pending |
