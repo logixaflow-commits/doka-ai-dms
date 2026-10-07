@@ -76,7 +76,14 @@ class DocumentPreviewService:
             Dictionary with preview data
         """
         try:
-            file_path = Path(document_path)
+            source_root = settings.PROCESSING_WORKSPACE.resolve()
+            file_path = Path(document_path).resolve()
+            try:
+                file_path.relative_to(source_root)
+            except ValueError as exc:
+                raise ValueError("Preview source is outside the processing workspace.") from exc
+            if file_path.is_symlink() or not file_path.is_file():
+                raise ValueError("Preview source is not a regular file.")
             
             if not file_path.exists():
                 return {
@@ -198,7 +205,7 @@ class DocumentPreviewService:
             image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
             
             # Save preview
-            preview_dir = self.annotation_storage_path / f"previews/{document_id}"
+            preview_dir = self._safe_document_dir(document_id) / "previews"
             preview_dir.mkdir(parents=True, exist_ok=True)
             
             preview_path = preview_dir / "preview.jpg"
