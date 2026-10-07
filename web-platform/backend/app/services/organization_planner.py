@@ -22,9 +22,27 @@ BUILTIN_KEYWORDS = {
 
 
 def normalize_stem(name: str) -> str:
-    stem = Path(name).stem.casefold()
-    stem = re.sub(r"([ _.-]?(copy|final|latest|new|old|updated|version|ver|v)\s*[._-]?\d*)+$", "", stem)
-    stem = re.sub(r"([ _.-]\d{1,4})+$", "", stem)
+    """Normalize a filename stem without backtracking-heavy regexes."""
+    stem = Path(name).stem.casefold()[:512]
+    removable = {"copy", "final", "latest", "new", "old", "updated", "version", "ver"}
+    parts = [part for part in re.split(r"[ _.-]+", stem) if part]
+    while parts:
+        tail = parts[-1]
+        if tail in removable:
+            parts.pop()
+            continue
+        if len(tail) <= 4 and tail.isdigit():
+            parts.pop()
+            continue
+        removed_marker = False
+        for marker in removable:
+            if tail.startswith(marker) and tail[len(marker):].isdigit():
+                parts.pop()
+                removed_marker = True
+                break
+        if not removed_marker:
+            break
+    stem = " ".join(parts)
     return re.sub(r"[^\w\u1000-\u109f]+", " ", stem).strip()
 
 
@@ -241,11 +259,29 @@ class OrganizationPlanner:
                     raise ValueError("Organization proposal is missing a safe target.")
                 folder = Path(target_folder)
                 folder_parts = folder.parts
-                if not folder_parts or folder_parts[0] != final_root.name or any(part in ("", ".", "..") for part in folder_parts):
+                if (
+                    folder.is_absolute()
+                    or not folder_parts
+                    or folder_parts[0] != final_root.name
+                    or any(part in ("", ".", "..") for part in folder_parts)
+                ):
                     raise ValueError("Planned target folder is invalid.")
-                target = (final_root / Path(*folder_parts[1:]) / Path(suggested_filename).name).resolve()
+                safe_parts = []
+                for part in folder_parts[1:]:
+                    if len(part) > 100 or not re.fullmatch(r"[A-Za-z0-9 _.-]+", part):
+                        raise ValueError("Planned target folder contains an unsafe path component.")
+                    safe_parts.append(part)
+
+                if (
+                    not suggested_filename
+                    or suggested_filename in {".", ".."}
+                    or "/" in str(suggested_filename)
+                    or "\\" in str(suggested_filename)
+                ):
+                    raise ValueError("Planned target filename is invalid.")
+                target = (final_root / Path(*safe_parts) / str(suggested_filename)).resolve()
                 try:
-                    target.relative_to(final_root)
+                    target.relative_to(final_root.resolve())
                 except ValueError as exc:
                     raise ValueError("Planned target is outside FINAL_ROOT.") from exc
                 target.parent.mkdir(parents=True, exist_ok=True)
