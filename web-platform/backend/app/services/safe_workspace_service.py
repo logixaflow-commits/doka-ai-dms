@@ -48,21 +48,29 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def sha256_file(path: Path) -> str:
-    """Hash only files that live inside Doka's managed source/workspace roots."""
+def sha256_file(
+    path: Path,
+    *,
+    allowed_roots: Iterable[Path] | None = None,
+) -> str:
+    """Hash a file, optionally binding it to caller-approved roots.
+
+    Callers that operate on untrusted or request-derived paths must provide
+    allowed_roots so the hash target cannot escape the managed boundary.
+    Generic callers such as backup/recovery verification may hash their own
+    already-isolated temporary roots without coupling to Doka's source root.
+    """
     raw_path = Path(path).expanduser()
     if raw_path.is_symlink():
         raise ValueError("Hash target cannot be a symlink.")
     candidate = raw_path.resolve(strict=True)
-    configured_roots = [
-        root.expanduser().resolve()
-        for root in (settings.SOURCE_ROOT, settings.WORKING_ROOT)
-        if root is not None
-    ]
-    if configured_roots and not any(
-        candidate.is_relative_to(root) for root in configured_roots
-    ):
-        raise ValueError("Hash target is outside Doka-managed storage.")
+    if allowed_roots is not None:
+        roots = [
+            Path(root).expanduser().resolve(strict=True)
+            for root in allowed_roots
+        ]
+        if not roots or not any(candidate.is_relative_to(root) for root in roots):
+            raise ValueError("Hash target is outside the approved storage roots.")
     digest = hashlib.sha256()
     with candidate.open("rb") as handle:
         for chunk in iter(lambda: handle.read(CHUNK_SIZE), b""):
@@ -1193,7 +1201,7 @@ class SafeWorkspaceService:
                     rel = path.relative_to(root).as_posix()
                     try:
                         st = path.stat()
-                        digest = sha256_file(path)
+                        digest = sha256_file(path, allowed_roots=(root,))
                         item = {
                             "relative_path": rel, "filename": path.name,
                             "extension": path.suffix.lower(), "size": st.st_size,
