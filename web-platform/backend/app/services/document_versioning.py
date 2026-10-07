@@ -167,7 +167,7 @@ class DocumentVersioningService:
                     metadata=version_data.get("metadata", {}),
                     changes=version_data.get("changes")
                 )
-                self._safe_version_file(version.file_path, document_id)
+                 version.file_path = str(self._safe_version_file(version.file_path, document_id))
                 versions.append(version)
             
             return sorted(versions, key=lambda v: v.version_number)
@@ -378,7 +378,7 @@ class DocumentVersioningService:
 
     def _save_all_versions_metadata(self, document_id: int, versions: List[DocumentVersion]):
         """Atomically replace all version metadata; caller holds the document lock."""
-        metadata_file = self.versions_storage_path / str(document_id) / "versions.json"
+        metadata_file = self._safe_version_dir(document_id) / "versions.json"
         metadata_file.parent.mkdir(parents=True, exist_ok=True)
         versions_data = [
             {
