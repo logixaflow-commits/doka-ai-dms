@@ -52,7 +52,13 @@ Doka is complete only when the required **real evidence** passes—not merely be
 - Live Supabase project audit: all three exposed Doka tables have RLS enabled with owner-bound policies; current Doka public RPCs do not grant EXECUTE to anon, and the inspected document/version RPCs are SECURITY INVOKER.
 - Supabase Security Advisor still reports **Leaked Password Protection Disabled**; this requires the Supabase Auth project setting and remains an explicit Phase 6 acceptance gate.
 - Release workflow was narrowed to maintained Personal Local tests instead of collecting stale legacy enterprise tests that reference removed ORM/routes. Those legacy tests remain evidence debt, not release-gate blockers.
-- **Important:** this is local runner evidence, not yet a GitHub Actions green-run claim. Dependabot itemization, secret-scan output, CodeQL output, live browser acceptance, copied-office pilot, RTO/RPO, cloud two-user E2E, and leaked-password protection remain open.
+- GitHub Actions verification: Doka Quality Checks SUCCESS on commit 4bc041935b596433a580257f35125483d87db044; maintained backend regression, cloud storage contracts, symlink security, frontend lint/build/smoke, workflow sanity, root dependency audit, secret scan, Semgrep baseline and SBOM all succeeded. CodeQL SUCCESS on the same commit.
+
+## Phase 8 implementation status
+
+- AI provider circuit breaker is implemented for configured providers: consecutive-failure threshold, cooldown window, half-open retry, success reset, and fallback-aware skipping.
+- Provider resilience configuration is documented in `.env.example` and `docs/AI_PROVIDER_MATRIX.md`.
+- Dedicated Cohere/Voyage/Cloudflare adapters remain gated until adapter contracts, privacy/cost benchmarks and credentials are explicitly approved.
 
 ## Next phase bundles already prepared
 
