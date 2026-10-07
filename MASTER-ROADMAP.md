@@ -15,7 +15,7 @@ Doka is complete only when the required **real evidence** passes—not merely be
 ## Current truth
 
 - **Code foundation:** substantially implemented.
-- **Personal Local:** **not release-signed-off**; real browser + copied-office pilot + OCR benchmark + backup/restore/RTO/RPO evidence are still required.
+- **Personal Local:** **not release-signed-off**; automated core workflow is green and a synthetic pilot passed import/scan/plan/backup/recovery/source-hash invariants, but real browser acceptance, copied-office pilot, Myanmar/English OCR benchmark, and measured RTO/RPO remain required.
 - **Cloud:** foundation is implemented, but authenticated E2E, two-user isolation and provider recovery evidence are still required.
 - **Vercel:** project exists but remains **owner-paused**; do not reactivate or deploy unless explicitly authorized.
 - **Cloudflare:** active Worker `doka-ai-dms` exists and was modified 2026-10-07.
@@ -23,7 +23,7 @@ Doka is complete only when the required **real evidence** passes—not merely be
 - **Render:** inspected current workspace; no Render services are currently exposed, so there is no active Render runtime to audit.
 - **AI:** capability-based routing is wired for implemented providers; Mistral/Cerebras/NVIDIA require complete model+endpoint configuration, while Cohere/Voyage/Cloudflare remain roadmap-only until dedicated adapters exist. Unimplemented providers stay fail-closed even when a key is present. OCR now uses runtime-configurable Poppler settings. Live Cloudflare Worker has no AI-provider secrets configured. Local real `.env` values are not committed and therefore cannot be verified from GitHub.
 - **Phase 1→4 coding-side reconciliation (current batch):** backend session-operation locking and source/Final/backup containment remain enforced; backup restore is isolated and archive-hash verified. AI document output is now schema-validated before entering Doka, embedding routing honors configured provider order and has a deterministic local similarity fallback, and unsupported providers remain fail-closed. Personal Local and Cloud browser sessions now use separate storage namespaces, and refresh-token rotation is serialized to avoid concurrent refresh invalidation. Regression coverage was added for AI boundaries, backup restore/ZIP safety, and frontend session isolation.
-- **Phase 5 coding/CI preparation:** Dependabot configuration, npm/uv lockfiles, backend/frontend/security workflow coverage, SBOM generation and dependency-review gates are present. A workflow-configuration sanity job and cloud-storage 50 MiB boundary regression were added. Current GitHub workflow evidence is still required before marking Phase 5 verified.
+- **Phase 5:** supply-chain and quality evidence is verified by successful GitHub Actions Quality + CodeQL runs; lockfiles, secret scan, dependency audit, SBOM, lint/build/smoke and maintained regression suites are green.
 
 ## The 12 remaining release gates
 
@@ -44,15 +44,24 @@ Doka is complete only when the required **real evidence** passes—not merely be
 
 ## Latest coding-side verification — 2026-10-07
 
-- Personal Local maintained regression suite: **46 passed** on the current main HEAD; this covers AI boundaries, local auth/session, source containment, Unicode passwords, OCR limits, backup restore/route boundaries, and symlink safety.
+- Personal Local maintained regression suite: **386 passed** in the current full local run; this covers AI boundaries, local auth/session, source containment, Unicode passwords, OCR limits, backup restore/route boundaries, and symlink safety.
 - Cloud storage contract unit suite: **13 passed** on the current main HEAD.
 - Frontend: **lint, production build, and smoke suite passed** on the current main HEAD.
 - Quality workflow YAML (doka-quality.yml, CodeQL, Dependency Review) parsed successfully in the same isolated runner; all six backend dependency profile files are present.
 - A real backup restore bug was fixed: invalid ZIP archives are now fully validated before Recovery/ is created, preserving failure atomicity.
+- Synthetic Personal Local pilot evidence: **PASSED** for 2 copied files — source hashes unchanged, import SHA-256 verification 2/2, scan 2/2 readable, organization plan generated, backup checksum verified, isolated Recovery verified, and active workspace unchanged. This is a coding-side rehearsal, not the required copied-office acceptance.
+- Real-machine OCR prerequisite was exercised: the current runner has no Tesseract executable/language data, so the pilot correctly reports OCR unavailable rather than falsely passing the Myanmar/English gate.
 - Live Supabase project audit: all three exposed Doka tables have RLS enabled with owner-bound policies; current Doka public RPCs do not grant EXECUTE to anon, and the inspected document/version RPCs are SECURITY INVOKER.
 - Supabase Security Advisor still reports **Leaked Password Protection Disabled**; this requires the Supabase Auth project setting and remains an explicit Phase 6 acceptance gate.
 - Release workflow was narrowed to maintained Personal Local tests instead of collecting stale legacy enterprise tests that reference removed ORM/routes. Those legacy tests remain evidence debt, not release-gate blockers.
 - GitHub Actions verification: Doka Quality Checks SUCCESS on commit 4bc041935b596433a580257f35125483d87db044; maintained backend regression, cloud storage contracts, symlink security, frontend lint/build/smoke, workflow sanity, root dependency audit, secret scan, Semgrep baseline and SBOM all succeeded. CodeQL SUCCESS on the same commit.
+
+## Core release evidence checkpoint
+
+- Automated core: **verified** — 386 maintained tests passed; frontend lint/build/smoke passed; Quality + CodeQL passed.
+- Synthetic pilot: **verified** — source immutability, import verification, scan, plan generation, backup checksum and isolated recovery passed.
+- Live/core acceptance: **pending** — real browser, copied-office data, OCR Myanmar/English benchmark and measured RTO/RPO.
+- Cloud acceptance: **pending** — authenticated lifecycle, two-user isolation, provider recovery and Supabase leaked-password protection.
 
 ## Phase 8 implementation status
 
