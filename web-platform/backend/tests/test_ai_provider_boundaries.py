@@ -75,6 +75,11 @@ async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkey
     calls.clear()
     with pytest.raises(RuntimeError, match="All configured AI providers failed"):
         await service._with_fallback("circuit-test", failing, ["openai", "gemini"])
+    assert calls == ["openai", "gemini"]
+
+    calls.clear()
+    with pytest.raises(RuntimeError, match="All configured AI providers failed"):
+        await service._with_fallback("circuit-test", failing, ["openai", "gemini"])
     assert calls == []
     assert service._provider_failures["openai"] == 2
     assert service._provider_failures["gemini"] == 2
