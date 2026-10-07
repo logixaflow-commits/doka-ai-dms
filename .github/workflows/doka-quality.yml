@@ -195,6 +195,28 @@ jobs:
               raise SystemExit(f"pip-audit exited with status {sys.argv[2]} without reportable findings.")
           PY
 
+  workflow-configuration-sanity:
+    name: Workflow configuration sanity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate required quality configuration
+        run: |
+          set -euo pipefail
+          test -s .github/dependabot.yml
+          test -s .github/workflows/dependency-review.yml
+          test -s .github/workflows/codeql.yml
+          test -s web-platform/frontend/package-lock.json
+          python - <<'PY'
+          import tomllib
+          from pathlib import Path
+          pyproject = Path("pyproject.toml")
+          if pyproject.exists():
+              tomllib.loads(pyproject.read_text(encoding="utf-8"))
+          print("Doka release-quality configuration is structurally present.")
+          PY
+
   backend-tests:
     name: Backend regression tests
     runs-on: ubuntu-latest
