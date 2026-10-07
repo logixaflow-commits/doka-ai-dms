@@ -59,6 +59,32 @@ def _env(request, name: str, default: str = "") -> str:
     return os.getenv(name, default)
 
 
+
+def _binding(request: Request, name: str):
+    """Read a Cloudflare binding without coercing it to text."""
+    bindings = request.scope.get("env")
+    if bindings is not None:
+        try:
+            value = getattr(bindings, name)
+        except Exception:
+            try:
+                value = bindings[name]
+            except Exception:
+                value = None
+        if value is not None:
+            return value
+    if worker_env is not None:
+        try:
+            value = getattr(worker_env, name)
+        except Exception:
+            try:
+                value = worker_env[name]
+            except Exception:
+                value = None
+        if value is not None:
+            return value
+    return None
+
 def _js_bytes(data: bytes):
     result = Uint8Array.new(len(data))
     for index, value in enumerate(data):
@@ -119,6 +145,22 @@ async def require_user(
         user_email = str(user.get("email") or "").strip().casefold()
         if not user_email or user_email != allowed_email:
             raise HTTPException(status_code=403, detail="This Doka instance is restricted to its configured single user.")
+    limiter = _binding(request, "DOKA_RATE_LIMITER")
+    if limiter is not None:
+        try:
+            decision = await limiter.limit({"key": str(user["id"])})
+            allowed = bool(
+                getattr(
+                    decision,
+                    "success",
+                    decision.get("success") if isinstance(decision, dict) else False,
+                )
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Rate limiting is temporarily unavailable.") from exc
+        if not allowed:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Please try again shortly.")
+
     return str(user["id"])
 
 
