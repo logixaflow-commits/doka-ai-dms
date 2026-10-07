@@ -38,30 +38,61 @@ class UnifiedAIService:
         self._init_providers()
 
     def _init_providers(self):
-        configured = {
+        """Register only providers that have a complete, implemented adapter."""
+        base = {
             "gemini": (settings.GEMINI_API_KEY, settings.GEMINI_MODEL),
             "openrouter": (settings.OPENROUTER_API_KEY, settings.OPENROUTER_MODEL),
             "groq": (settings.GROQ_API_KEY, settings.GROQ_MODEL),
             "openai": (settings.OPENAI_API_KEY, settings.OPENAI_MODEL),
-            "mistral": (getattr(settings, "MISTRAL_API_KEY", ""), getattr(settings, "MISTRAL_MODEL", "")),
-            "cerebras": (getattr(settings, "CEREBRAS_API_KEY", ""), getattr(settings, "CEREBRAS_MODEL", "")),
-            "nvidia": (getattr(settings, "NVIDIA_API_KEY", ""), getattr(settings, "NVIDIA_MODEL", "")),
-            "cohere": (getattr(settings, "COHERE_API_KEY", ""), getattr(settings, "COHERE_MODEL", "")),
-            "voyage": (getattr(settings, "VOYAGE_API_KEY", ""), getattr(settings, "VOYAGE_MODEL", "")),
-            "cloudflare": (getattr(settings, "CLOUDFLARE_AI_API_TOKEN", ""), getattr(settings, "CLOUDFLARE_AI_MODEL", "")),
         }
-        for name, (api_key, model) in configured.items():
-            if api_key and not api_key.startswith("your_"):
+        for name, (api_key, model) in base.items():
+            if api_key and not api_key.startswith("your_") and model:
                 self.providers[name] = {
                     "api_key": api_key,
                     "model": model,
                     "enabled": True,
                 }
 
+        # These adapters use explicit OpenAI-compatible endpoints. A key without
+        # a model and endpoint must never make the provider appear available.
+        compatible = {
+            "mistral": (
+                getattr(settings, "MISTRAL_API_KEY", ""),
+                getattr(settings, "MISTRAL_MODEL", ""),
+                getattr(settings, "MISTRAL_API_BASE_URL", ""),
+            ),
+            "cerebras": (
+                getattr(settings, "CEREBRAS_API_KEY", ""),
+                getattr(settings, "CEREBRAS_MODEL", ""),
+                getattr(settings, "CEREBRAS_API_BASE_URL", ""),
+            ),
+            "nvidia": (
+                getattr(settings, "NVIDIA_API_KEY", ""),
+                getattr(settings, "NVIDIA_MODEL", ""),
+                getattr(settings, "NVIDIA_API_BASE_URL", ""),
+            ),
+        }
+        for name, (api_key, model, endpoint) in compatible.items():
+            if (
+                api_key
+                and not api_key.startswith("your_")
+                and model
+                and endpoint
+            ):
+                self.providers[name] = {
+                    "api_key": api_key,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "enabled": True,
+                }
+
+        # Cohere, Voyage, Cloudflare AI, and other planned providers remain
+        # explicit roadmap capabilities until a dedicated adapter exists.
+        # Merely supplying a secret must not activate an unimplemented route.
         if self.providers:
             logger.info("AI providers configured: %s", self.get_available_providers())
         else:
-            logger.info("No AI providers configured; local processing remains active")
+            logger.info("No implemented AI providers configured; local processing remains active")
 
     def get_available_providers(self) -> List[str]:
         """Return configured providers in the user's preferred order."""
