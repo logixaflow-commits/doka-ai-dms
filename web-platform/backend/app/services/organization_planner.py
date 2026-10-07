@@ -281,12 +281,30 @@ class OrganizationPlanner:
                     or "\\" in str(suggested_filename)
                 ):
                     raise ValueError("Planned target filename is invalid.")
-                target = (final_root / Path(*safe_parts) / str(suggested_filename)).resolve()
+                target_candidate = final_root / Path(*safe_parts) / str(suggested_filename)
+                # Never follow an existing symlink while creating the final copy.
+                # Validate every existing directory component before and after mkdir
+                # so a malicious replacement cannot redirect the destination outside
+                # the approved final root.
+                final_root_resolved = final_root.resolve()
+                target_candidate.parent.mkdir(parents=True, exist_ok=True)
+                current = final_root_resolved
+                for part in Path(*safe_parts).parts:
+                    current = current / part
+                    if current.is_symlink() or (current.exists() and not current.is_dir()):
+                        raise ValueError("Planned target directory contains an unsafe entry.")
+                    if current.resolve() != current:
+                        raise ValueError("Planned target directory resolves outside FINAL_ROOT.")
+                target = target_candidate
+                if target.is_symlink():
+                    raise ValueError("Planned target cannot be a symlink.")
+                resolved_parent = target.parent.resolve()
                 try:
-                    target.relative_to(final_root.resolve())
+                    resolved_parent.relative_to(final_root_resolved)
                 except ValueError as exc:
-                    raise ValueError("Planned target is outside FINAL_ROOT.") from exc
-                target.parent.mkdir(parents=True, exist_ok=True)
+                    raise ValueError("Planned target parent is outside FINAL_ROOT.") from exc
+                if resolved_parent != target.parent:
+                    raise ValueError("Planned target parent contains a symlink.")
                 source_hash = sha256_file(source, allowed_roots=(root,))
                 if target.exists():
                     target_hash = sha256_file(target, allowed_roots=(final_root,))
