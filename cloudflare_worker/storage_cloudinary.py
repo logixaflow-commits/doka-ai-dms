@@ -76,6 +76,7 @@ class CloudinaryDerivativeProvider:
         self.fetcher = fetcher
         self.guard = CloudinaryCreditGuard(config, fetcher)
 
+    # codeql[py/weak-sensitive-data-hashing]: Cloudinary's documented API signature is a SHA-256 digest of canonical parameters plus the API secret; this is protocol authentication, not password storage.
     @staticmethod
     def _signature(params: dict[str, str], secret: str) -> str:
         payload = "&".join(f"{key}={params[key]}" for key in sorted(params) if params[key] is not None)
