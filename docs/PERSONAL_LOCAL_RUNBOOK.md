@@ -169,3 +169,41 @@ Set these in the local `.env` before starting the backend:
 - `BOOTSTRAP_ADMIN_PASSWORD=<strong password>` (12+ characters)
 
 The React login screen uses `/api/auth/login`. Workspace APIs require the resulting bearer token. The password is never embedded in the frontend or repository.
+
+
+## Phase 7 operational gate
+
+Before production-like office use, record operational evidence rather than relying on configuration alone.
+
+### Release rollback
+- Keep the previous known-good application build and configuration snapshot.
+- For a failed release, stop new writes, preserve the latest backup, revert the application artifact, and verify health before reopening organization/apply operations.
+- Do not roll back database migrations destructively; use an additive compatibility migration or the documented storage rollback procedure.
+
+### Monitoring baseline
+Record at least:
+- request/error rate;
+- import/scan/OCR duration;
+- organization/apply duration and failure count;
+- backup duration, archive bytes and verification result;
+- restore duration and verified-file count;
+- disk/memory pressure for the local host.
+
+Alert thresholds must be treated as operational starting points and adjusted from measured office workload.
+
+### Backup monitoring
+A backup is considered healthy only when:
+1. the archive exists at the configured backup destination;
+2. its SHA-256 digest and manifest verify;
+3. the latest backup age is within the owner-approved RPO;
+4. a recovery drill has produced an isolated readable restore.
+
+### Incident rule
+Never use a production incident as the first restore test. Preserve the source drive and latest known-good backup, isolate the recovery tree, record hashes before/after recovery, and only switch the active workspace after review.
+
+### Phase 7 exit evidence
+- one rollback rehearsal;
+- one backup/recovery monitoring drill;
+- one measured performance baseline;
+- documented alert thresholds;
+- no unresolved high-severity security regression.
