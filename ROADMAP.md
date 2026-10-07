@@ -26,10 +26,10 @@ Cloud: authenticated lifecycle -> two-user isolation -> storage/recovery -> secu
 Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require real evidence. Gate 8 remains blocked until 1–7 are evidenced.
 
 ## Cloud release phase
-9. Authenticated Cloud lifecycle E2E.
-10. Two-user isolation + RLS/Storage/RPC proof.
-11. B2/Cloudinary/Google Drive + 50 MiB + recovery proof.
-12. Deployment/runtime evidence and final go-live sign-off.
+9. Gate 9 — Authenticated Cloud lifecycle E2E.
+10. Gate 10 — Two-user isolation + RLS/Storage/RPC proof.
+11. Gate 11 — B2/Cloudinary/Google Drive + 50 MiB + recovery proof.
+12. Gate 12 — Deployment/runtime evidence and final go-live sign-off.
 
 ## Future phases
 ### Phase 7/8 — Workflow + AI hardening
