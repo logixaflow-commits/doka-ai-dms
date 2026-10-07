@@ -118,3 +118,8 @@ If the current code already follows these boundaries, document the exact module 
 - Document-analysis provider output is schema-validated before it enters Doka workflow state; malformed JSON or invalid field types trigger provider fallback instead of being accepted.
 - Embedding routing follows `AI_EMBEDDING_PROVIDER_ORDER`. Only providers with a dedicated adapter are eligible; unsupported configured names remain fail-closed.
 - Similarity has a deterministic local fallback so Personal Local does not require external embedding availability.
+
+
+### Provider resilience
+
+Implemented providers use a per-process circuit breaker: after the configured consecutive-failure threshold, a provider is skipped during the cooldown window and retried in half-open mode afterward. A successful probe closes the circuit. Fallback order remains capability-specific, and Personal Local still has a local/rule-based path when external AI is unavailable.
