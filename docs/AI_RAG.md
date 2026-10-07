@@ -1,5 +1,10 @@
 # Doka AI and RAG
 
+> **Owner:** How are AI providers, agents, RAG, privacy and publication safety governed?
+> **Update when:** AI provider adapters, routing, agent boundaries, RAG behavior, consent or AI security controls change.
+> **Last Updated:** 2026-10-08
+> **Do NOT put here:** Current release-gate status, provider secrets, deployment credentials, or generic operational runbooks.
+
 ## Default posture
 AI is disabled by default. External document processing requires explicit consent in addition to the global AI enable flag. Provider credentials remain server-side.
 
