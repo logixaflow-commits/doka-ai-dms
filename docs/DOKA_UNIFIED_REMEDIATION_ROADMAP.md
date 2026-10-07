@@ -519,3 +519,12 @@ Exit evidence:
 - distributed workflows have idempotency and recovery evidence;
 - multilingual retrieval has measured benchmark results;
 - mobile/multi-region are separate release tracks, not hidden dependencies of the core edition.
+
+
+### 2026-10-07 — Phase 5 supply-chain evidence run
+
+- GitHub Actions now provides real step-level evidence rather than the earlier log-unavailable state.
+- Latest completed quality run before the bcrypt fix: frontend build/smoke, cloud storage contracts, Semgrep baseline, SBOM generation, symlink security, workflow sanity, root dependency audit and secret scan all succeeded.
+- The only backend regression failure was a missing `bcrypt` test/runtime dependency in `requirements-local.txt`; the failure was directly identified from the job log and fixed in main.
+- A follow-up backend test exposed an explicit-provider fallback limit bug introduced by the circuit-breaker implementation. `_provider_limit()` now respects the candidate list supplied by the caller, including tests and explicit provider requests.
+- Phase 8 implementation started with per-provider AI circuit breakers: configurable consecutive-failure threshold, cooldown, half-open retry, and automatic close after a successful probe. Provider fallback remains fail-closed and local processing remains available.
