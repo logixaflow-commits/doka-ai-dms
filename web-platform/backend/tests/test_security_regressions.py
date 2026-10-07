@@ -9,6 +9,23 @@ import pytest
 from app.core.storage import LocalStorageManager, StorageError
 from app.services.document_versioning import DocumentVersioningService
 from app.services.external_integrations import _validate_webhook_destination
+from app.services.safe_workspace_service import sha256_file
+
+
+def test_sha256_file_can_be_bound_to_an_approved_root(tmp_path):
+    managed = tmp_path / "managed"
+    outside = tmp_path / "outside"
+    managed.mkdir()
+    outside.mkdir()
+    managed_file = managed / "managed.txt"
+    outside_file = outside / "outside.txt"
+    managed_file.write_text("managed", encoding="utf-8")
+    outside_file.write_text("outside", encoding="utf-8")
+
+    assert sha256_file(managed_file, allowed_roots=(managed,))
+
+    with pytest.raises(ValueError, match="approved storage roots"):
+        sha256_file(outside_file, allowed_roots=(managed,))
 
 
 def test_local_storage_rejects_path_escape(tmp_path):
