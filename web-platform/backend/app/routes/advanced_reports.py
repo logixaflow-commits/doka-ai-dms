@@ -7,7 +7,7 @@ from typing import Optional
 from loguru import logger
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import require_admin
 from app.models.database import User
 from app.services.advanced_reporting import get_reporting_service
 
@@ -22,7 +22,7 @@ async def create_report_template(
     columns: list,
     filters: list = [],
     parameters: dict = {},
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Create new report template"""
     try:
