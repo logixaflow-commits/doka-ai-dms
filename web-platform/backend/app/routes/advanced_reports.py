@@ -54,7 +54,7 @@ async def create_report_template(
 
 @router.get("/templates")
 async def get_report_templates(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Get all report templates"""
     try:
@@ -84,7 +84,7 @@ async def get_report_templates(
 @router.get("/templates/{template_id}")
 async def get_report_template(
     template_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Get specific report template"""
     try:
@@ -120,7 +120,7 @@ async def get_report_template(
 async def generate_report(
     template_id: str,
     parameters: Optional[dict] = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Generate report from template"""
     try:
@@ -138,7 +138,7 @@ async def generate_report(
 async def export_report(
     report_data: list,
     format: str = "csv",
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Export report to different formats"""
     try:
