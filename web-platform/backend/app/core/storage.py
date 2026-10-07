@@ -19,6 +19,10 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
+class StorageError(RuntimeError):
+    """Raised when a local storage operation cannot be completed safely."""
+
+
 class LocalStorageManager:
     """
     Local filesystem storage for Railway/cloud deployments without MinIO.
