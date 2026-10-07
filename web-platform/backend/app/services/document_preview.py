@@ -48,8 +48,13 @@ class DocumentPreviewService:
         """Resolve a document preview directory strictly beneath the preview root."""
         if not isinstance(document_id, int) or document_id < 1:
             raise ValueError("Invalid document id.")
+        if self.annotation_storage_path.is_symlink():
+            raise ValueError("Preview storage root cannot be a symlink.")
         root = self.annotation_storage_path.resolve()
-        candidate = (root / str(document_id)).resolve()
+        raw_candidate = root / str(document_id)
+        if raw_candidate.is_symlink():
+            raise ValueError("Document preview directory cannot be a symlink.")
+        candidate = raw_candidate.resolve()
         try:
             candidate.relative_to(root)
         except ValueError as exc:
@@ -106,7 +111,7 @@ class DocumentPreviewService:
             logger.error(f"Preview generation failed: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Preview operation failed."
             }
     
     def _generate_pdf_preview(
@@ -182,7 +187,7 @@ class DocumentPreviewService:
             logger.error(f"PDF preview generation failed: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Preview operation failed."
             }
     
     def _generate_image_preview(
@@ -229,7 +234,7 @@ class DocumentPreviewService:
             logger.error(f"Image preview generation failed: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Preview operation failed."
             }
     
     def add_annotation(
@@ -276,7 +281,7 @@ class DocumentPreviewService:
             logger.error(f"Failed to add annotation: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Preview operation failed."
             }
     
     def get_annotations(
@@ -355,7 +360,7 @@ class DocumentPreviewService:
             logger.error(f"Failed to delete annotation: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Preview operation failed."
             }
     
     def compare_documents(
@@ -382,7 +387,7 @@ class DocumentPreviewService:
             logger.error(f"Document comparison failed: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Preview operation failed."
             }
     
     def get_print_view(
@@ -419,7 +424,7 @@ class DocumentPreviewService:
             logger.error(f"Print view generation failed: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Preview operation failed."
             }
 
 
