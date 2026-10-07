@@ -423,47 +423,114 @@ async function loadPendingDocuments() {
 // Render pending documents table
 function renderPendingTable(documents) {
     const tbody = document.getElementById('pendingTable');
-    
+    tbody.replaceChildren();
+
+    const appendEmptyState = (message, className) => {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 7;
+        cell.className = className;
+        cell.textContent = message;
+        row.appendChild(cell);
+        tbody.appendChild(row);
+    };
+
     if (!documents || documents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-500">No pending documents</td></tr>';
+        appendEmptyState('No pending documents', 'py-8 text-center text-slate-500');
         return;
     }
-    
-    tbody.innerHTML = documents.map(doc => `
-        <tr class="border-b border-slate-100 hover:bg-slate-50">
-            <td class="py-3 px-4">
-                <input type="checkbox" class="doc-checkbox" data-id="${doc.id}" onchange="toggleDocumentSelection(${doc.id})">
-            </td>
-            <td class="py-3 px-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded bg-blue-100 flex items-center justify-center">
-                        <i class="fas fa-file-pdf text-blue-600"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-slate-800 truncate max-w-xs">${doc.original_filename}</p>
-                        <p class="text-xs text-slate-500">${formatFileSize(doc.file_size)}</p>
-                    </div>
-                </div>
-            </td>
-            <td class="py-3 px-4 text-sm text-slate-600">${doc.category || 'Unknown'}</td>
-            <td class="py-3 px-4">
-                <div class="flex items-center gap-2">
-                    <div class="progress-bar w-24">
-                        <div class="progress-fill ${doc.confidence >= 0.85 ? 'bg-emerald-500' : doc.confidence >= 0.7 ? 'bg-amber-500' : 'bg-red-500'}" 
-                             style="width: ${(doc.confidence || 0) * 100}%"></div>
-                    </div>
-                    <span class="text-xs text-slate-500">${((doc.confidence || 0) * 100).toFixed(0)}%</span>
-                </div>
-            </td>
-            <td class="py-3 px-4">${statusBadge(doc.status)}</td>
-            <td class="py-3 px-4 text-sm text-slate-600">${formatDate(doc.created_at)}</td>
-            <td class="py-3 px-4">
-                <a href="/documents/${doc.id}" class="text-blue-600 hover:text-blue-800 text-sm">
-                    <i class="fas fa-eye mr-1"></i>View
-                </a>
-            </td>
-        </tr>
-    `).join('');
+
+    documents.forEach(doc => {
+        const row = document.createElement('tr');
+        row.className = 'border-b border-slate-100 hover:bg-slate-50';
+
+        const selectCell = document.createElement('td');
+        selectCell.className = 'py-3 px-4';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'doc-checkbox';
+        const docId = Number.parseInt(doc.id, 10);
+        if (!Number.isSafeInteger(docId) || docId < 1) {
+            return;
+        }
+        checkbox.dataset.id = String(docId);
+        checkbox.addEventListener('change', () => toggleDocumentSelection(docId));
+        selectCell.appendChild(checkbox);
+
+        const fileCell = document.createElement('td');
+        fileCell.className = 'py-3 px-4';
+        const fileWrapper = document.createElement('div');
+        fileWrapper.className = 'flex items-center gap-3';
+        const fileIconWrapper = document.createElement('div');
+        fileIconWrapper.className = 'w-8 h-8 rounded bg-blue-100 flex items-center justify-center';
+        const fileIcon = document.createElement('i');
+        fileIcon.className = 'fas fa-file-pdf text-blue-600';
+        fileIconWrapper.appendChild(fileIcon);
+        const fileMeta = document.createElement('div');
+        const fileName = document.createElement('p');
+        fileName.className = 'text-sm font-medium text-slate-800 truncate max-w-xs';
+        fileName.textContent = String(doc.original_filename || 'Unnamed document');
+        const fileSize = document.createElement('p');
+        fileSize.className = 'text-xs text-slate-500';
+        fileSize.textContent = formatFileSize(doc.file_size);
+        fileMeta.append(fileName, fileSize);
+        fileWrapper.append(fileIconWrapper, fileMeta);
+        fileCell.appendChild(fileWrapper);
+
+        const categoryCell = document.createElement('td');
+        categoryCell.className = 'py-3 px-4 text-sm text-slate-600';
+        categoryCell.textContent = String(doc.category || 'Unknown');
+
+        const confidenceCell = document.createElement('td');
+        confidenceCell.className = 'py-3 px-4';
+        const confidenceWrapper = document.createElement('div');
+        confidenceWrapper.className = 'flex items-center gap-2';
+        const progress = document.createElement('div');
+        progress.className = 'progress-bar w-24';
+        const fill = document.createElement('div');
+        const confidence = Math.max(0, Math.min(1, Number(doc.confidence) || 0));
+        fill.className = 'progress-fill ' + (
+            confidence >= 0.85 ? 'bg-emerald-500' :
+            confidence >= 0.7 ? 'bg-amber-500' : 'bg-red-500'
+        );
+        fill.style.width = String(confidence * 100) + '%';
+        progress.appendChild(fill);
+        const confidenceText = document.createElement('span');
+        confidenceText.className = 'text-xs text-slate-500';
+        confidenceText.textContent = String(Math.round(confidence * 100)) + '%';
+        confidenceWrapper.append(progress, confidenceText);
+        confidenceCell.appendChild(confidenceWrapper);
+
+        const statusCell = document.createElement('td');
+        statusCell.className = 'py-3 px-4';
+        const statusBadgeElement = document.createElement('span');
+        const status = String(doc.status || 'unknown');
+        statusBadgeElement.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium';
+        statusBadgeElement.classList.add(
+            status === 'approved' ? 'bg-emerald-100' :
+            status === 'rejected' ? 'bg-red-100' :
+            'bg-slate-100'
+        );
+        statusBadgeElement.textContent = status;
+        statusCell.appendChild(statusBadgeElement);
+
+        const dateCell = document.createElement('td');
+        dateCell.className = 'py-3 px-4 text-sm text-slate-600';
+        dateCell.textContent = formatDate(doc.created_at);
+
+        const actionCell = document.createElement('td');
+        actionCell.className = 'py-3 px-4';
+        const link = document.createElement('a');
+        link.className = 'text-blue-600 hover:text-blue-800 text-sm';
+        link.href = '/documents/' + encodeURIComponent(String(docId));
+        const linkIcon = document.createElement('i');
+        linkIcon.className = 'fas fa-eye mr-1';
+        link.append(linkIcon, document.createTextNode('View'));
+        actionCell.appendChild(link);
+
+        row.append(selectCell, fileCell, categoryCell, confidenceCell, statusCell, dateCell, actionCell);
+        tbody.appendChild(row);
+    });
 }
 
 // Toggle document selection
