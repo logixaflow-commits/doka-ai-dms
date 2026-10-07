@@ -207,3 +207,31 @@ Never use a production incident as the first restore test. Preserve the source d
 - one measured performance baseline;
 - documented alert thresholds;
 - no unresolved high-severity security regression.
+
+
+## Core release acceptance packet
+
+Use this packet for the final owner-run acceptance. Do not mark a live gate passed from CI alone.
+
+### Local
+- [ ] Real browser login/logout/restart/replay
+- [ ] Import copied office source; record before/after source hashes
+- [ ] Scan/read/OCR representative Myanmar + English files
+- [ ] Review and human approval of organization plan
+- [ ] Apply/copy and verify Final hashes
+- [ ] Backup checksum + manifest verification
+- [ ] Isolated restore; compare counts/paths/hashes
+- [ ] Measure backup/restore duration and derive RTO/RPO
+- [ ] Undo verification
+
+### Cloud
+- [ ] Test User A authenticated lifecycle
+- [ ] Test User B authenticated lifecycle
+- [ ] Prove A cannot enumerate/read/mutate B data
+- [ ] Upload/download/trash/restore/version lifecycle
+- [ ] 50 MiB and provider recovery boundary
+- [ ] Supabase Auth security settings reviewed
+- [ ] Cloudflare runtime evidence captured
+
+### Sign-off rule
+A gate is **Passed** only when the corresponding evidence is recorded. If a gate is not executable because a credential, office fixture or owner-controlled setting is missing, mark it **Blocked — owner input required**, not Passed.
