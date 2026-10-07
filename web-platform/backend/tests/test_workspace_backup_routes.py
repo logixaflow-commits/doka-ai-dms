@@ -74,7 +74,7 @@ def test_restore_route_confirmation_preserves_integrity_validation(
         )
 
     assert missing_confirmation.status_code == 400
-    assert "confirmation" in missing_confirmation.json()["detail"]
+    assert missing_confirmation.json()["detail"] == "Invalid request."
     assert confirmed.status_code == 400
     assert confirmed.json()["detail"] == "Invalid request."
     assert not list((tmp_path / "workspace" / "Recovery").glob("restore_*"))
