@@ -10,6 +10,7 @@ from pathlib import Path
 import json
 import shutil
 import os
+import re
 import tempfile
 from filelock import FileLock
 from loguru import logger
@@ -41,6 +42,18 @@ class DocumentVersioningService:
     def __init__(self):
         self.versions_storage_path = Path("storage/versions")
         self.versions_storage_path.mkdir(parents=True, exist_ok=True)
+
+    def _safe_version_dir(self, document_id: int) -> Path:
+        """Resolve a document version directory strictly below the version root."""
+        if not isinstance(document_id, int) or document_id < 1:
+            raise ValueError("Invalid document id.")
+        root = self.versions_storage_path.resolve()
+        candidate = (root / str(document_id)).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("Version path escaped its safe root.") from exc
+        return candidate
         
     def create_version(
         self,
@@ -51,7 +64,7 @@ class DocumentVersioningService:
         metadata: Optional[Dict[str, Any]] = None
     ) -> DocumentVersion:
         """Create a version under a per-document process-safe lock."""
-        version_dir = self.versions_storage_path / str(document_id)
+        version_dir = self._safe_version_dir(document_id)
         version_dir.mkdir(parents=True, exist_ok=True)
         lock = FileLock(str(version_dir / ".versions.lock"), timeout=30)
 
@@ -59,7 +72,11 @@ class DocumentVersioningService:
             versions = self.get_document_versions(document_id)
             next_version = len(versions) + 1
             version_id = str(uuid.uuid4())
-            version_file_path = version_dir / f"v{next_version}_{Path(file_path).name}"
+            source_path = Path(file_path).resolve()
+            suffix = source_path.suffix.lower()
+            if not re.fullmatch(r"\.[A-Za-z0-9]{1,10}", suffix):
+                suffix = ""
+            version_file_path = version_dir / f"v{next_version}_{uuid.uuid4().hex}{suffix}"
 
             try:
                 shutil.copy2(file_path, version_file_path)
@@ -248,7 +265,10 @@ class DocumentVersioningService:
                 # Persist the new history before deleting the now-unreferenced file.
                 self._save_all_versions_metadata(document_id, remaining)
                 try:
-                    Path(target.file_path).unlink(missing_ok=True)
+                    version_root = self.versions_storage_path.resolve()
+                    target_path = Path(target.file_path).resolve()
+                    target_path.relative_to(version_root)
+                    target_path.unlink(missing_ok=True)
                 except OSError as cleanup_error:
                     logger.warning(
                         f"Version metadata was updated but old file cleanup failed for "
