@@ -2,6 +2,8 @@
 
 ## Active application boundary
 
+The repository root uses `MASTER-ROADMAP.md` as the documentation/status front door. Detailed active docs live under `docs/`; superseded plans live under `docs/legacy/`.
+
 The supported product target is **Doka Personal Local Edition**. Keep active runtime code, tests, and their documentation grouped under `web-platform/`.
 
 ```text
@@ -12,7 +14,7 @@ enterprise-ai-dms/
 ├── archive/                    # preserved legacy code and retired deployment assets
 ├── cloudflare_worker/           # active Cloudflare Worker API for cloud documents
 ├── docs/                        # current product, setup, security and phase docs
-│   └── legacy/                 # historical enterprise documentation
+│   └── legacy/                 # historical/superseded documentation
 ├── infrastructure/             # deferred deployment and operations assets
 ├── mobile/                      # preserved, deferred mobile application
 ├── shared/                      # shared contracts/utilities; verify consumers before moving
@@ -60,6 +62,6 @@ enterprise-ai-dms/
 
 ## Documentation map
 
-Current documentation source-of-truth files are indexed by `docs/DOKA_DOCUMENTATION_INDEX.md`. Active UI, architecture and tool/service boundaries are maintained in `docs/UI.md`, `docs/ARCHITECTURE.md`, and `docs/TOOLS.md`. Execution order is canonical in `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`.
+Current documentation source-of-truth files are indexed by `docs/DOKA_DOCUMENTATION_INDEX.md`. Start from root `MASTER-ROADMAP.md`; active UI, architecture, tools, environment and AI boundaries are maintained in their focused docs. Detailed execution remains in `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`.
 
 The repository currently has no root `vercel.json`; Vercel configuration is intentionally kept out of the repository unless explicitly required and reviewed.
