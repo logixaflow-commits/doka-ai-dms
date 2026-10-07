@@ -36,6 +36,7 @@ Personal Local development requires a strong `BOOTSTRAP_ADMIN_PASSWORD`; no usab
 | `UI_DESIGN_SYSTEM.md` | implemented UI/design/accessibility contract |
 | `TOOL.md` | working, evidence and documentation protocol |
 | `SECURITY.md` | security boundaries and verification rules |
+| `docs/ARCHITECTURE.md` | detailed architecture reference |
 | `docs/DEVELOPMENT.md` | development setup and contribution workflow |
 | `docs/TESTING.md` | automated and release acceptance testing |
 | `docs/DEPLOYMENT.md` | deployment topology and release evidence |
@@ -44,6 +45,7 @@ Personal Local development requires a strong `BOOTSTRAP_ADMIN_PASSWORD`; no usab
 | `docs/API.md` | Cloud API contract |
 | `docs/AI_RAG.md` | AI/RAG and agent boundaries |
 | `docs/STORAGE.md` | storage routing and recovery |
+| `docs/TROUBLESHOOTING.md` | recurring diagnostic and recovery guidance |
 
 Historical material is preserved under `archive/legacy/` and existing legacy areas.
 
