@@ -36,7 +36,7 @@ Local runs on the user's machine and does not require public Internet exposure. 
 
 Not active in the current release: enterprise organizations/tenant RBAC, distributed worker/Redis architecture, multi-region failover, formal compliance programs, production remote OCR runtime, downloadable thin client, mobile offline/resumable upload, and broad AI/RAG infrastructure.
 
-These are later roadmap items and must not leak into the Personal Local startup path.
+These are later roadmap items and must not leak into the Personal Local startup path. The detailed Phase 9–12 expansion gates are maintained in `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md` and require independent activation, migration/rollback and acceptance evidence.
 
 ## 8. AI agent boundary
 
