@@ -1,9 +1,9 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_KEY = 'supabase_user';
+const ACCESS_TOKEN_KEY = 'doka_cloud_access_token';
+const REFRESH_TOKEN_KEY = 'doka_cloud_refresh_token';
+const USER_KEY = 'doka_cloud_user';
 
 export interface SupabaseUser {
   id: string;
