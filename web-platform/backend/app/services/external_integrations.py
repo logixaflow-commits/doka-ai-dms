@@ -3,12 +3,51 @@ External System Integrations Service
 Provides integration with ERP, CRM, and other external systems
 """
 import json
+import ipaddress
+import socket
 import httpx
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from dataclasses import dataclass
 from enum import Enum
 from loguru import logger
+
+
+def _validate_webhook_destination(url: str) -> str | None:
+    """Reject webhook destinations that resolve to local/private networks."""
+    try:
+        parsed = httpx.URL(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.host or parsed.userinfo:
+            return "Invalid webhook destination"
+        host = parsed.host
+        try:
+            literal = ipaddress.ip_address(host)
+            addresses = [literal]
+        except ValueError:
+            addresses = [
+                ipaddress.ip_address(info[4][0])
+                for info in socket.getaddrinfo(
+                    host,
+                    parsed.port or (443 if parsed.scheme == "https" else 80),
+                    type=socket.SOCK_STREAM,
+                )
+            ]
+        if not addresses:
+            return "Webhook destination could not be resolved"
+        for address in addresses:
+            if (
+                address.is_private
+                or address.is_loopback
+                or address.is_link_local
+                or address.is_reserved
+                or address.is_multicast
+                or address.is_unspecified
+            ):
+                return "Webhook destination resolves to a blocked network"
+        return None
+    except (ValueError, OSError):
+        return "Invalid webhook destination"
+
 
 
 class IntegrationType(Enum):
@@ -238,11 +277,11 @@ class ExternalIntegrationService:
             if not isinstance(webhook_index, int) or webhook_index < 0 or webhook_index >= len(integration.webhooks):
                 return {"success": False, "error": "Invalid webhook destination"}
             webhook_url = integration.webhooks[webhook_index]
-            parsed = httpx.URL(webhook_url)
-            if parsed.scheme not in {"http", "https"} or not parsed.host or parsed.userinfo:
-                return {"success": False, "error": "Invalid webhook destination"}
+            validation_error = _validate_webhook_destination(webhook_url)
+            if validation_error:
+                return {"success": False, "error": validation_error}
             
-            # Send only to the destination previously stored in the admin integration config.
+            # Send only to a validated public destination stored in the admin integration config.
             headers = {
                 "Content-Type": "application/json",
                 "X-Integration-ID": integration_id,
