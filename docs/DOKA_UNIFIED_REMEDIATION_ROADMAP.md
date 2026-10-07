@@ -528,3 +528,125 @@ Exit evidence:
 - The only backend regression failure was a missing `bcrypt` test/runtime dependency in `requirements-local.txt`; the failure was directly identified from the job log and fixed in main.
 - A follow-up backend test exposed an explicit-provider fallback limit bug introduced by the circuit-breaker implementation. `_provider_limit()` now respects the candidate list supplied by the caller, including tests and explicit provider requests.
 - Phase 8 implementation started with per-provider AI circuit breakers: configurable consecutive-failure threshold, cooldown, half-open retry, and automatic close after a successful probe. Provider fallback remains fail-closed and local processing remains available.
+
+
+## Phase 9–12 expansion bundles — pre-staged
+
+These phases are **post-core expansion tracks**. They cannot change Personal Local or Personal Cloud release invariants without a separate architecture review.
+
+### Phase 9 — Controlled Product Expansion
+
+**Scope**
+1. Enterprise organizations and membership lifecycle.
+2. Server-side invitation acceptance/revocation.
+3. Role matrix: Owner / Admin / Editor / Reviewer / Viewer.
+4. Organization-scoped document sharing.
+5. Marketplace/integration contracts with least-privilege scopes.
+6. Regulated-workload profile and policy registry.
+
+**Implementation boundary**
+- Keep personal document rows owner-scoped until membership/share schema and RLS are proven.
+- Never trust frontend role claims or user-editable metadata.
+- Every membership/share mutation emits an append-only audit event.
+- Enterprise UI remains hidden until activation gates pass.
+
+**Acceptance gates**
+- two independent organizations cannot enumerate or infer one another's documents;
+- role matrix automated tests pass;
+- forged metadata cannot elevate privileges;
+- revoked membership blocks protected requests;
+- invitations are hashed, expiring and single-use;
+- signed URLs and exports preserve tenant scope.
+
+**Exit evidence**
+- reviewed migrations/RLS;
+- API authorization matrix;
+- two-tenant isolation report;
+- audit coverage report;
+- rollback/recovery drill.
+
+### Phase 10 — Scale & Reliability
+
+**Scope**
+1. Distributed job/lease coordination.
+2. Queue-backed OCR/import/AI workloads.
+3. Idempotent workflow execution.
+4. Retry/dead-letter policy.
+5. Capacity and load baselines.
+6. Automated disaster-recovery orchestration.
+
+**Implementation boundary**
+- Redis/queue becomes an explicit reliability dependency only for workflows that declare it.
+- A missing Redis connection must never silently downgrade a workflow that requires distributed locking.
+- Every job has an idempotency key, lease owner, attempt count and terminal state.
+- Retries are bounded and classified; poison jobs go to a dead-letter path.
+
+**Acceptance gates**
+- duplicate execution under concurrent workers produces one committed result;
+- lease expiry permits safe takeover;
+- crash during execution can resume or safely retry;
+- queue backlog and worker saturation are observable;
+- failover/recovery meets approved RTO/RPO.
+
+**Exit evidence**
+- concurrency/load report;
+- failure-injection results;
+- queue/lease recovery drill;
+- measured RTO/RPO;
+- rollback procedure.
+
+### Phase 11 — Advanced Intelligence
+
+**Scope**
+1. Multilingual RAG and retrieval evaluation.
+2. Embedding/reranking benchmark.
+3. Provider cost/quality routing.
+4. AI quality evaluation and regression corpus.
+5. Human-feedback loop.
+6. Advanced semantic search.
+
+**Implementation boundary**
+- Reader → Planner → Human Approval → Executor remains mandatory.
+- External AI requires explicit consent and privacy policy.
+- Every provider adapter must have timeout, circuit breaker, schema validation, health, fallback and cost metadata.
+- Retrieval quality must be benchmarked for Myanmar/English before semantic search is promoted.
+
+**Acceptance gates**
+- multilingual benchmark meets approved precision/recall targets;
+- provider failure does not block deterministic/local workflow;
+- prompt/output schema regressions are detected automatically;
+- no sensitive document content is written to ordinary telemetry.
+
+**Exit evidence**
+- benchmark corpus/results;
+- provider scorecard;
+- regression suite;
+- privacy review;
+- cost envelope.
+
+### Phase 12 — Enterprise / Mobile / Multi-region
+
+**Scope**
+1. Team governance and advanced audit/compliance.
+2. Mobile production track.
+3. Offline/resumable upload only after an authenticated upload-session API exists.
+4. Data residency and regional routing.
+5. Multi-region failover.
+6. Store-release and device acceptance.
+
+**Implementation boundary**
+- Mobile must use a versioned API adapter, not the legacy Personal Local/Cloud assumptions.
+- Private image caching requires signed-URL expiry, encryption/eviction and logout purge design first.
+- Multi-region requires an explicit consistency model and backup/restore strategy.
+- Regional routing must not bypass tenant ownership/RLS.
+
+**Acceptance gates**
+- iOS and Android real-device E2E;
+- resumable upload crash/retry recovery;
+- device logout purges private cached state;
+- regional failover meets approved RTO/RPO;
+- data residency rules are demonstrably enforced;
+- store/release security review passes.
+
+**Cross-phase rule**
+Phase 9–12 work is not allowed to become a hidden dependency of the core release. Each phase gets its own feature flag/activation decision, migration/rollback plan, test evidence and explicit go/no-go review.
