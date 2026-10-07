@@ -1,5 +1,10 @@
 # Doka Storage
 
+> **Owner:** How is document storage routed, isolated, verified and recovered?
+> **Update when:** Storage provider routing, object limits, integrity checks, migration/rollback rules or recovery behavior changes.
+> **Last Updated:** 2026-10-08
+> **Do NOT put here:** General deployment topology, database schema, or release status.
+
 ## Personal Local
 Local filesystem is the document data plane. Original source is read-only. Working, Final, Quarantine and Backup roots are explicitly separated according to the local safety invariants.
 
