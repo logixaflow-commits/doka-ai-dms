@@ -263,6 +263,7 @@ class Settings:
         self.AI_CLASSIFICATION_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_CLASSIFICATION_PROVIDER_ORDER", "gemini,groq,openrouter,openai").split(",") if p.strip()]
         self.AI_PLANNING_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_PLANNING_PROVIDER_ORDER", "openai,gemini,groq,openrouter").split(",") if p.strip()]
         self.AI_FAST_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_FAST_PROVIDER_ORDER", "groq,cerebras,gemini").split(",") if p.strip()]
+        self.AI_EMBEDDING_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_EMBEDDING_PROVIDER_ORDER", "huggingface,voyage,cohere").split(",") if p.strip()]
         self.AI_PROVIDER_MAX_ATTEMPTS = int(os.getenv("AI_PROVIDER_MAX_ATTEMPTS", "0"))
         self.AI_PROVIDER_TIMEOUT_SECONDS = float(os.getenv("AI_PROVIDER_TIMEOUT_SECONDS", "30"))
         self.AI_MAX_INPUT_CHARS = int(os.getenv("AI_MAX_INPUT_CHARS", "100000"))
