@@ -61,7 +61,7 @@ async def create_integration(
 
 @router.get("/")
 async def get_integrations(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Get all integrations"""
     try:
@@ -91,7 +91,7 @@ async def get_integrations(
 @router.get("/{integration_id}")
 async def get_integration(
     integration_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Get specific integration"""
     try:
@@ -125,7 +125,7 @@ async def get_integration(
 @router.post("/{integration_id}/activate")
 async def activate_integration(
     integration_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Activate integration"""
     try:
@@ -147,7 +147,7 @@ async def activate_integration(
 @router.post("/{integration_id}/deactivate")
 async def deactivate_integration(
     integration_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Deactivate integration"""
     try:
@@ -170,7 +170,7 @@ async def deactivate_integration(
 async def sync_to_erp(
     integration_id: str,
     document_data: dict,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Sync document to ERP system"""
     try:
@@ -191,7 +191,7 @@ async def sync_to_erp(
 async def sync_to_crm(
     integration_id: str,
     document_data: dict,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Sync document to CRM system"""
     try:
@@ -212,7 +212,7 @@ async def sync_to_crm(
 async def sync_to_accounting(
     integration_id: str,
     document_data: dict,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Sync document to accounting system"""
     try:
@@ -234,7 +234,7 @@ async def trigger_webhook(
     integration_id: str,
     webhook_index: int,
     data: dict,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Trigger webhook integration"""
     try:
