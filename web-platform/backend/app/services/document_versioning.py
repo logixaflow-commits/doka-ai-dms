@@ -48,6 +48,8 @@ class DocumentVersioningService:
         """Resolve a document version directory strictly below the version root."""
         if not isinstance(document_id, int) or document_id < 1:
             raise ValueError("Invalid document id.")
+        if self.versions_storage_path.is_symlink():
+            raise ValueError("Version storage root cannot be a symlink.")
         root = self.versions_storage_path.resolve()
         raw_candidate = root / str(document_id)
         if raw_candidate.is_symlink():
@@ -61,7 +63,10 @@ class DocumentVersioningService:
         
     def _safe_processing_file(self, file_path: str) -> Path:
         """Resolve a processing-workspace file and reject traversal/symlinks."""
-        root = Path(settings.PROCESSING_WORKSPACE).resolve()
+        configured_root = Path(settings.PROCESSING_WORKSPACE)
+        if configured_root.is_symlink():
+            raise ValueError("Processing workspace cannot be a symlink.")
+        root = configured_root.resolve()
         raw_candidate = Path(file_path)
         if raw_candidate.is_symlink():
             raise ValueError("Version source cannot be a symlink.")
@@ -233,7 +238,7 @@ class DocumentVersioningService:
             logger.error(f"Failed to rollback: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Version operation failed."
             }
     
     def compare_versions(
@@ -314,7 +319,7 @@ class DocumentVersioningService:
             return {"success": True, "message": "Version deleted successfully"}
         except Exception as exc:
             logger.error(f"Failed to delete version {version_id} for document {document_id}: {exc}")
-            return {"success": False, "error": str(exc)}
+            return {"success": False, "error": "Version operation failed."}
 
     def _calculate_file_hash(self, file_path: str) -> str:
         """Calculate SHA256 hash of file"""
