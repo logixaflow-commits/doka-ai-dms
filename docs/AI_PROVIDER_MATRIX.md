@@ -111,3 +111,10 @@ Before claiming the existing “source-reading agent / work agent” split is pr
 7. Provider selection is task-aware rather than one global key for everything.
 
 If the current code already follows these boundaries, document the exact module paths in this matrix; otherwise refactor toward them before enabling external AI.
+
+
+## Current safety contract
+
+- Document-analysis provider output is schema-validated before it enters Doka workflow state; malformed JSON or invalid field types trigger provider fallback instead of being accepted.
+- Embedding routing follows `AI_EMBEDDING_PROVIDER_ORDER`. Only providers with a dedicated adapter are eligible; unsupported configured names remain fail-closed.
+- Similarity has a deterministic local fallback so Personal Local does not require external embedding availability.
