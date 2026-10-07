@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
+from app.core.config import settings
+
 from app.services.document_versioning import (
     DocumentVersioningService,
     VersionMetadataError,
@@ -16,8 +18,11 @@ def _service(tmp_path):
     return service
 
 
-def test_concurrent_version_creation_serializes_and_preserves_all_versions(tmp_path):
-    source = tmp_path / "source.txt"
+def test_concurrent_version_creation_serializes_and_preserves_all_versions(tmp_path, monkeypatch):
+    processing_workspace = tmp_path / "processing"
+    processing_workspace.mkdir()
+    monkeypatch.setattr(settings, "PROCESSING_WORKSPACE", processing_workspace)
+    source = processing_workspace / "source.txt"
     source.write_text("representative test data", encoding="utf-8")
     service = _service(tmp_path)
 
