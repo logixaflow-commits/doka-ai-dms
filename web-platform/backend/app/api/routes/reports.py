@@ -97,10 +97,11 @@ async def get_report_status(
         # In production, you'd store task results in a database or Redis
         # For now, we'll implement a simple file-based status check
         
-        reports_dir = Path(settings.ORGANIZED_ROOT).parent / "reports"
+        reports_dir = (Path(settings.ORGANIZED_ROOT).parent / "reports").resolve()
         
-        # Look for the report file
-        matching_files = list(reports_dir.glob(f"*{report_id}*"))
+        # Match the task id against existing report filenames; never interpolate
+        # request data into a filesystem glob expression.
+        matching_files = [path for path in reports_dir.iterdir() if report_id in path.name]
         
         if matching_files:
             # Report completed
@@ -137,16 +138,12 @@ async def download_report(
     """
     try:
         reports_dir = (Path(settings.ORGANIZED_ROOT).parent / "reports").resolve()
-        file_path = (reports_dir / filename).resolve()
-        try:
-            file_path.relative_to(reports_dir)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Report file not found"
-            ) from exc
+        file_path = next(
+            (path for path in reports_dir.iterdir() if path.name == filename),
+            None,
+        )
         
-        if not file_path.exists():
+        if file_path is None or not file_path.is_file():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Report file not found"
