@@ -19,6 +19,8 @@ def _password_bytes(password: str) -> bytes:
         raise ValueError("Password must be valid Unicode text.") from exc
 
 
+# codeql[py/weak-sensitive-data-hashing]: legacy bcrypt-sha256 compatibility only;
+# new password hashes are Argon2id and this path is retained solely for migration.
 def _prehash(password: str) -> bytes:
     """Prehash only legacy bcrypt-sha256 passwords during migration."""
     return hashlib.sha256(_password_bytes(password)).digest()
