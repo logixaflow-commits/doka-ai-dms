@@ -26,7 +26,7 @@
 - Gate 1: local auth/session/restart/replay code and automated safety verification; browser acceptance remains separate.
 - Gate 2: organization apply/locking/limits/undo automated verification; browser acceptance remains separate.
 - Gate 7: quality/dependency/security workflow evidence is green.
-- Live Supabase migration head: **20261005113241_doka_audit_export_backup_actions** (audit evidence; re-verify before release).
+- Live Supabase migration head: **20261005113241_doka_audit_export_backup_actions** — VERIFIED against the live Supabase migration list during this migration.
 - Repository migration head: **20261007120000_doka_trigger_function_least_privilege.sql**. This is newer than the live head and must never be represented as live production state.
 
 ## 6. IN PROGRESS
@@ -72,8 +72,8 @@
 - Maintained backend regression suite: 386 passed in the latest recorded full run.
 - Frontend lint/build/smoke: latest recorded run passed.
 - Quality + CodeQL evidence: latest recorded workflow run passed.
-- Live Supabase head: 20261005113241_doka_audit_export_backup_actions, per prior audit evidence.
-- Cloudflare Worker: active Worker name is doka-ai-dms; exact latest production version must be re-verified for final release.
+- Live Supabase head: 20261005113241_doka_audit_export_backup_actions, freshly verified during this migration.
+- Cloudflare Worker: active Worker `doka-ai-dms`; latest inspected deployment is 2026-10-07 18:31:19 UTC with version `eb2987d2-e3f6-4cfc-89f2-ed2a240adea0` at 100% traffic.
 - Vercel: owner-paused; no release action authorized.
 
 ## 12. NEXT ACTION
