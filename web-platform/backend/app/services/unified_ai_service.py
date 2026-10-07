@@ -5,6 +5,7 @@ AI is optional: local/rule-based processing remains the default.
 """
 import json
 import re
+import time
 from typing import Optional, Dict, Any, List, Callable, Awaitable
 import httpx
 
@@ -36,6 +37,8 @@ class UnifiedAIService:
 
     def __init__(self):
         self.providers: Dict[str, Dict[str, Any]] = {}
+        self._provider_failures: Dict[str, int] = {}
+        self._provider_opened_at: Dict[str, float] = {}
         self._init_providers()
 
     def _init_providers(self):
@@ -112,6 +115,25 @@ class UnifiedAIService:
         configured = settings.AI_PROVIDER_MAX_ATTEMPTS
         return configured if configured > 0 else len(self.get_available_providers())
 
+    def _provider_is_available(self, provider: str) -> bool:
+        opened_at = self._provider_opened_at.get(provider)
+        if opened_at is None:
+            return True
+        if time.monotonic() - opened_at >= settings.AI_PROVIDER_COOLDOWN_SECONDS:
+            return True
+        return False
+
+    def _record_provider_success(self, provider: str) -> None:
+        self._provider_failures.pop(provider, None)
+        self._provider_opened_at.pop(provider, None)
+
+    def _record_provider_failure(self, provider: str) -> None:
+        failures = self._provider_failures.get(provider, 0) + 1
+        self._provider_failures[provider] = failures
+        if failures >= settings.AI_PROVIDER_FAILURE_THRESHOLD:
+            self._provider_opened_at[provider] = time.monotonic()
+            logger.warning("AI provider '%s' circuit opened after %s consecutive failures", provider, failures)
+
     async def _with_fallback(
         self,
         operation: str,
@@ -128,11 +150,16 @@ class UnifiedAIService:
 
         errors = []
         for provider in candidates:
+            if not self._provider_is_available(provider):
+                errors.append(f"{provider}: circuit open")
+                continue
             try:
                 result = await call(provider)
+                self._record_provider_success(provider)
                 logger.info("AI operation '%s' completed with provider '%s'", operation, provider)
                 return result
             except Exception as exc:
+                self._record_provider_failure(provider)
                 errors.append(f"{provider}: {exc}")
                 logger.warning("AI provider '%s' failed for '%s'; trying next provider", provider, operation)
 
