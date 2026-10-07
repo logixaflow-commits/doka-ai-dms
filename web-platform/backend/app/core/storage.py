@@ -332,7 +332,10 @@ class StorageManager:
     def _resolve_filesystem_uri(storage_uri: str) -> Path:
         if not storage_uri.startswith("file://"):
             raise StorageError("Unknown storage URI scheme.")
-        candidate = Path(storage_uri[len("file://"):]).resolve()
+        raw_candidate = Path(storage_uri[len("file://"):])
+        if raw_candidate.is_symlink():
+            raise StorageError("Symlinked storage paths are not allowed.")
+        candidate = raw_candidate.resolve()
         root = Path(settings.ORGANIZED_ROOT).resolve()
         try:
             candidate.relative_to(root)
