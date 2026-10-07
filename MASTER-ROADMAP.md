@@ -42,6 +42,16 @@ Doka is complete only when the required **real evidence** passes—not merely be
 | 11 | B2/Cloudinary/Google Drive + 50 MiB + recovery proof | Pending verification |
 | 12 | Deployment/runtime evidence + final go-live sign-off | Blocked by 9–11 |
 
+## Next phase bundles already prepared
+
+1. **Phase 5A — Quality/Supply-chain closeout:** run the existing Doka Quality Checks, Dependency Review, CodeQL, frontend audit/lint/build/smoke, backend regression/coverage, secret scan and SBOM; reconcile only confirmed findings and keep lockfiles authoritative.
+2. **Phase 5B — Local release evidence:** real browser acceptance → copied-office pilot → source hash comparison → OCR Myanmar/English benchmark → backup checksum → isolated restore → measured RTO/RPO → final local runbook/evidence.
+3. **Phase 6A — Cloud acceptance:** authenticated lifecycle → two-user isolation → RLS/Storage/RPC proof → 50 MiB/recovery/provider boundary checks → Supabase leaked-password protection verification.
+4. **Phase 6B — Deployment gate:** verify Cloudflare runtime and production frontend only when authorized; Vercel remains paused unless explicitly reopened; then assemble final release evidence and sign-off.
+5. **Advanced Phase 3/4 only after release:** worker scaling, distributed locks/retries, cloud AI budgets/circuit breakers, RAG/embeddings, compliance, multi-region and mobile work remain deferred until measured demand and approved scope.
+
+**Credential rule:** no live provider/storage keys are needed for the current coding-side work. If a later acceptance gate truly requires a live credential, request the exact key(s) and purpose immediately before that gate rather than adding secrets early.
+
 ### What is already finished
 
 - Phase A–E planning was consolidated into the unified remediation roadmap.
