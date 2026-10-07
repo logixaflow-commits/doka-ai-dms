@@ -182,7 +182,7 @@ async def test_integration(
 async def get_integration_logs(
     integration_id: int,
     limit: int = 100,
-    current_user: User = Depends(require_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     """Get API call logs for an integration."""
