@@ -69,3 +69,64 @@ Ecosystem and API platform, intelligent operations, data intelligence, regional/
 
 ## Release rule
 Every phase closes only after implementation, automated tests, required E2E/live verification, acceptance criteria, evidence recording, and documentation updates. Status vocabulary: DONE / VERIFIED / PENDING / BLOCKED / DEFERRED / NEXT / VERIFY.
+
+## Verification and future backlog — preserved from Phase 0 ledger
+
+### Release/live verification backlog
+- Real Cloudinary E2E.
+- Real Supabase Storage E2E.
+- Real B2 E2E.
+- Real Google Drive E2E.
+- Signed QStash delivery verification.
+- QStash -> workflow completion verification.
+- Workflow retry/recovery verification.
+- Duplicate-delivery protection verification.
+- Production authentication/API smoke tests.
+- Production monitoring/failure-mode checks.
+- End-to-end RAG ingest -> embed -> search.
+- Agent -> Brain -> publish E2E.
+- Workflow approval -> resume -> completion.
+- Scheduled workflow across a real time boundary.
+- Newsletter delivery E2E.
+- External-provider failover test.
+
+### Future quality/product backlog
+- Universal source -> publish E2E.
+- Preserve source provenance to file/page/sheet/row/URL.
+- SEO/news quality validation.
+- Real production storage/provider validation before any universal publishing claim.
+- Paginated chat restore.
+- Transcript export.
+- Explicit retention controls.
+- Administrator lookup.
+- Transfer confirmation.
+- Role-based transfer permissions.
+- Reviewable retention policy.
+- Approved purge workflow.
+- Session activity search.
+- Operational audit reporting for sessions.
+- Persist RAG metrics and alert history.
+- Real notification adapter.
+- Rate/window alert policies.
+- Durable alert retention/pagination/export.
+- Read-only/configuration role separation for RAG dashboard.
+- Durable quality feedback.
+- Experiment assignment and statistical analysis.
+- Cancellable async search.
+- Database index telemetry.
+- Isolated backend test database/fixtures.
+- Supported notification provider/threat-model decision.
+- Durable metrics retention and deduplication.
+- Correlation-ID investigation runbook.
+- Threshold-tuning runbook.
+- Future complex AI workflows.
+- More external integrations.
+- Stronger durable job execution.
+- Expanded RAG capabilities.
+- Advanced analytics/business intelligence.
+- Broader observability and operational controls.
+- Broader supply-chain intelligence coverage.
+
+### Deferred AI/provider verification
+- Final AI-agent live verification.
+- Real provider credentials plus authenticated production tests.
