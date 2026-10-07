@@ -131,20 +131,19 @@ def test_local_auth_state_is_owner_only_on_posix(monkeypatch, tmp_path):
 def test_cloud_and_personal_local_apps_mount_separate_auth_routes(monkeypatch):
     monkeypatch.setattr(settings, "ENVIRONMENT", "test")
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000")
-    local_paths = {route.path for route in create_app().routes}
-
     from app.cloud_main import create_app as create_cloud_app
 
-    cloud_paths = {route.path for route in create_cloud_app().routes}
+    with TestClient(create_app()) as local_client:
+        assert local_client.post("/api/auth/login", json={}).status_code != 404
+        assert local_client.get("/api/workspace/imports").status_code != 404
+        assert local_client.get("/api/documents").status_code == 404
+        assert local_client.get("/api/storage/objects").status_code == 404
 
-    assert "/api/auth/login" in local_paths
-    assert "/api/workspace/imports" in local_paths
-    assert "/api/documents" not in local_paths
-    assert "/api/storage/objects" not in local_paths
-    assert "/api/auth/login" not in cloud_paths
-    assert "/api/workspace/imports" not in cloud_paths
-    assert "/api/documents" in cloud_paths
-    assert "/api/storage/objects" in cloud_paths
+    with TestClient(create_cloud_app()) as cloud_client:
+        assert cloud_client.post("/api/auth/login", json={}).status_code == 404
+        assert cloud_client.get("/api/workspace/imports").status_code == 404
+        assert cloud_client.get("/api/documents").status_code != 404
+        assert cloud_client.get("/api/storage/objects").status_code != 404
 
 
 def test_local_tokens_are_distinguishable_from_legacy_database_tokens(
