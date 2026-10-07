@@ -106,6 +106,7 @@ class CloudinaryObjectStorage:
         self.upload_base_url = f"https://api.cloudinary.com/v1_1/{quote(cloud_name, safe='')}"
         self.admin_base_url = self.upload_base_url
 
+    # codeql[py/weak-sensitive-data-hashing]: Cloudinary requires this documented SHA-256 parameter signature; this is request authentication, not password hashing.
     def _signature(self, params: dict[str, object]) -> str:
         payload = "&".join(
             f"{key}={params[key]}"
