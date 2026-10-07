@@ -13,6 +13,8 @@ export interface SupabaseUser {
   role?: string;
 }
 
+let refreshPromise: Promise<AuthSession | null> | null = null;
+
 interface AuthSession {
   access_token: string;
   refresh_token: string;
@@ -108,20 +110,25 @@ export async function signUp(email: string, password: string) {
 }
 
 export async function refreshSession() {
-  const refresh_token = localStorage.getItem(REFRESH_TOKEN_KEY);
-  if (!refresh_token) return null;
-
-  try {
-    const session = await request<AuthSession>('/token?grant_type=refresh_token', {
-      method: 'POST',
-      body: JSON.stringify({ refresh_token }),
-    });
-    saveSession(session);
-    return session;
-  } catch {
-    clearSession();
-    return null;
-  }
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const refresh_token = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refresh_token) return null;
+    try {
+      const session = await request<AuthSession>('/token?grant_type=refresh_token', {
+        method: 'POST',
+        body: JSON.stringify({ refresh_token }),
+      });
+      saveSession(session);
+      return session;
+    } catch {
+      clearSession();
+      return null;
+    }
+  })().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
 }
 
 export async function getCurrentUser() {
