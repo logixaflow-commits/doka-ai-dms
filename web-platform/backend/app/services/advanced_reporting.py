@@ -448,8 +448,11 @@ class AdvancedReportingService:
             return []
     
     def _save_report_template(self, template: ReportTemplate):
-        """Save report template to file"""
-        template_file = self.templates_storage_path / f"{template.id}.json"
+        """Save report template to a UUID-named file under the template root."""
+        template_uuid = uuid.UUID(str(template.id))
+        template_root = self.templates_storage_path.resolve()
+        template_file = (template_root / f"{template_uuid}.json").resolve()
+        template_file.relative_to(template_root)
         
         template_data = {
             "id": template.id,
