@@ -32,6 +32,7 @@ No AI agent may directly mutate the original source. Executor operations remain 
 | Cohere | Planned | embeddings/reranking | Off | Same rule |
 | Voyage | Planned | embeddings/reranking | Off | Same rule |
 | Mistral | Planned | general/structured inference | Off | Same rule |
+| Cloudflare | Planned | Workers AI / cloud-native inference | Off | Cloud-only optional route; never required by Personal Local |
 
 ## Recommended routing
 
@@ -95,7 +96,7 @@ Never record:
 
 As of 2026-10-07, the live Cloudflare Worker secret inventory contains B2, Cloudinary, Google Drive and Supabase bindings, but **no AI-provider secret bindings**. Therefore the cloud AI path should be treated as disabled/unconfigured.
 
-The local backend template contains five currently declared AI credentials (Gemini, OpenRouter, Groq, OpenAI, Hugging Face) and five planned/commented providers. Actual local `.env` values are not available in Git and must be tested locally without exposing secrets.
+The local backend template contains five currently declared AI credentials (Gemini, OpenRouter, Groq, OpenAI, Hugging Face) plus planned configuration for Mistral, Cerebras, NVIDIA, Cohere, Voyage and Cloudflare. Planned credentials do not enable a provider. Actual local `.env` values are not available in Git and must be tested locally without exposing secrets.
 
 ## Agent implementation audit
 
