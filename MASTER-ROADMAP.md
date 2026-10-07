@@ -21,7 +21,7 @@ Doka is complete only when the required **real evidence** passes—not merely be
 - **Cloudflare:** active Worker `doka-ai-dms` exists and was modified 2026-10-07.
 - **Supabase:** project `Enterprise AI DMS` is healthy; the remaining Security Advisor warning is leaked-password protection.
 - **Render:** account has one workspace, but service inspection is intentionally waiting for explicit workspace confirmation before selecting it.
-- **AI:** local template supports provider fallback, but live Cloudflare Worker currently has no AI-provider secrets configured. Local real `.env` values are not committed and therefore cannot be verified from GitHub.
+- **AI:** capability-based provider routing is now wired for the existing providers; planned providers are registered fail-closed and remain disabled until adapter/health/quality checks pass. Live Cloudflare Worker has no AI-provider secrets configured. Local real `.env` values are not committed and therefore cannot be verified from GitHub.
 
 ## The 12 remaining release gates
 
@@ -69,7 +69,7 @@ Use a strict three-stage contract:
 
 Duplicate/version analysis should remain deterministic/local first. AI is an optional advisor, not the source of truth.
 
-Recommended provider roles are documented in `docs/AI_PROVIDER_MATRIX.md`. Environment ownership and live-service findings are documented in `docs/ENVIRONMENT_MATRIX.md`.
+Recommended provider roles and task-specific fallback chains are documented in `docs/AI_PROVIDER_MATRIX.md`. Environment ownership and live-service findings are documented in `docs/ENVIRONMENT_MATRIX.md`.
 
 ## Documentation update rule / reminder
 
