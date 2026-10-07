@@ -57,3 +57,9 @@ enterprise-ai-dms/
 4. Keep secrets, local databases, uploads, generated builds, logs, and user documents out of Git.
 5. Prefer small, path-scoped changes. Do not move or rename existing assets without checking all launchers, CI workflows, and deployment configuration first.
 6. Update this document whenever a top-level directory or runtime boundary changes.
+
+## Documentation map
+
+Current documentation source-of-truth files are indexed by `docs/DOKA_DOCUMENTATION_INDEX.md`. Active UI, architecture and tool/service boundaries are maintained in `docs/UI.md`, `docs/ARCHITECTURE.md`, and `docs/TOOLS.md`. Execution order is canonical in `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`.
+
+The repository currently has no root `vercel.json`; Vercel configuration is intentionally kept out of the repository unless explicitly required and reviewed.
