@@ -232,6 +232,22 @@ class Settings:
         self.OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
         self.GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+        # Planned provider credentials. Empty by default and never required for local mode.
+        self.MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
+        self.MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "")
+        self.MISTRAL_API_BASE_URL = os.getenv("MISTRAL_API_BASE_URL", "")
+        self.CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "")
+        self.CEREBRAS_MODEL = os.getenv("CEREBRAS_MODEL", "")
+        self.CEREBRAS_API_BASE_URL = os.getenv("CEREBRAS_API_BASE_URL", "")
+        self.NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+        self.NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "")
+        self.NVIDIA_API_BASE_URL = os.getenv("NVIDIA_API_BASE_URL", "")
+        self.COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
+        self.COHERE_MODEL = os.getenv("COHERE_MODEL", "")
+        self.VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY", "")
+        self.VOYAGE_MODEL = os.getenv("VOYAGE_MODEL", "")
+        self.CLOUDFLARE_AI_API_TOKEN = os.getenv("CLOUDFLARE_AI_API_TOKEN", "")
+        self.CLOUDFLARE_AI_MODEL = os.getenv("CLOUDFLARE_AI_MODEL", "")
         self.AI_ENABLED = os.getenv("AI_ENABLED", "false").lower() == "true"
         # External providers may receive document text; require separate explicit consent.
         self.AI_EXTERNAL_PROCESSING_CONSENT = os.getenv("AI_EXTERNAL_PROCESSING_CONSENT", "false").lower() == "true"
