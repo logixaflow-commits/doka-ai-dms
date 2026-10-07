@@ -49,7 +49,10 @@ class DocumentVersioningService:
         if not isinstance(document_id, int) or document_id < 1:
             raise ValueError("Invalid document id.")
         root = self.versions_storage_path.resolve()
-        candidate = (root / str(document_id)).resolve()
+        raw_candidate = root / str(document_id)
+        if raw_candidate.is_symlink():
+            raise ValueError("Version directory cannot be a symlink.")
+        candidate = raw_candidate.resolve()
         try:
             candidate.relative_to(root)
         except ValueError as exc:
@@ -59,7 +62,10 @@ class DocumentVersioningService:
     def _safe_processing_file(self, file_path: str) -> Path:
         """Resolve a processing-workspace file and reject traversal/symlinks."""
         root = Path(settings.PROCESSING_WORKSPACE).resolve()
-        candidate = Path(file_path).resolve()
+        raw_candidate = Path(file_path)
+        if raw_candidate.is_symlink():
+            raise ValueError("Version source cannot be a symlink.")
+        candidate = raw_candidate.resolve()
         try:
             candidate.relative_to(root)
         except ValueError as exc:
@@ -71,7 +77,10 @@ class DocumentVersioningService:
     def _safe_version_file(self, file_path: str, document_id: int) -> Path:
         """Resolve a version file strictly beneath its document version root."""
         root = self._safe_version_dir(document_id)
-        candidate = Path(file_path).resolve()
+        raw_candidate = Path(file_path)
+        if raw_candidate.is_symlink():
+            raise ValueError("Version file cannot be a symlink.")
+        candidate = raw_candidate.resolve()
         try:
             candidate.relative_to(root)
         except ValueError as exc:
