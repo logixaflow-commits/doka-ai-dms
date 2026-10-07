@@ -26,6 +26,8 @@ Cloud credentials and server secrets must remain outside browser bundles.
 
 ## 3. Deployment tools
 
+Current live environment inventory and provider/key ownership are tracked in `docs/ENVIRONMENT_MATRIX.md`. AI routing and agent boundaries are tracked in `docs/AI_PROVIDER_MATRIX.md`.
+
 ### Vercel
 Frontend hosting target only. Production is intentionally paused/owner-controlled. Do not reactivate, reconnect, or trigger production deployment without explicit authorization. CI success does not prove production deployment readiness.
 
@@ -57,4 +59,4 @@ Use a private VPN/secure tunnel such as Tailscale when remote browser access is 
 
 For every operational tool/service distinguish code-level implementation, automated CI result, live-service configuration, real-browser result, and real-machine/copied-data result. Never convert an unavailable or skipped check into a passing result.
 
-See docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md, docs/DOKA_CLOUD_API_CONTRACTS.md and docs/PERSONAL_LOCAL_RUNBOOK.md.
+See `MASTER-ROADMAP.md`, `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`, `docs/ENVIRONMENT_MATRIX.md`, `docs/AI_PROVIDER_MATRIX.md`, `docs/DOKA_CLOUD_API_CONTRACTS.md` and `docs/PERSONAL_LOCAL_RUNBOOK.md`.
