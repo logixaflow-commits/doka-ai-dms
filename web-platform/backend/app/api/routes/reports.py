@@ -98,10 +98,17 @@ async def get_report_status(
         # For now, we'll implement a simple file-based status check
         
         reports_dir = (Path(settings.ORGANIZED_ROOT).parent / "reports").resolve()
-        
-        # Match the task id against existing report filenames; never interpolate
-        # request data into a filesystem glob expression.
-        matching_files = [path for path in reports_dir.iterdir() if report_id in path.name]
+        if not reports_dir.is_dir():
+            return {"report_id": report_id, "status": "processing", "message": "Report is being generated"}
+        try:
+            report_uuid = uuid.UUID(report_id)
+        except (ValueError, AttributeError):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid report id.")
+        report_prefix = f"report_{report_uuid}"
+        matching_files = [
+            path for path in reports_dir.iterdir()
+            if path.is_file() and not path.is_symlink() and path.name.startswith(report_prefix)
+        ]
         
         if matching_files:
             # Report completed
@@ -139,11 +146,14 @@ async def download_report(
     try:
         reports_dir = (Path(settings.ORGANIZED_ROOT).parent / "reports").resolve()
         file_path = next(
-            (path for path in reports_dir.iterdir() if path.name == filename),
+            (
+                path for path in reports_dir.iterdir()
+                if path.name == filename and path.is_file() and not path.is_symlink()
+            ),
             None,
         )
         
-        if file_path is None or not file_path.is_file():
+        if file_path is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Report file not found"
@@ -520,7 +530,7 @@ def generate_report_task(
         
         return {
             "status": "failed",
-            "error": str(e),
+            "error": "Report generation failed.",
             "report_id": report_id
         }
     
