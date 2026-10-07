@@ -475,7 +475,7 @@ Evidence boundary:
 - The Doka Quality workflow now installs the correct runtime profile for cloud-storage and symlink contract tests instead of relying on the incomplete test-only profile.
 - The backend quality job now explicitly targets maintained Personal Local boundary tests and no longer collects stale legacy enterprise tests whose ORM/routes are intentionally not part of the active runtime.
 - Backup restore validation was hardened so a rejected archive cannot create the Recovery directory before all archive safety checks pass.
-- This evidence came from an isolated runner and **does not** constitute a green GitHub Actions run. GitHub-hosted CodeQL/secret-scan/dependency-review/pip-audit evidence and live release gates remain pending.
+- GitHub-hosted verification now exists: the latest Doka Quality Checks run completed **successfully**, and CodeQL on the same commit also completed **successfully**. Secret scan, pip-audit/root dependency audit, Semgrep baseline, SPDX SBOM, backend maintained regression, cloud storage contracts, symlink security, workflow sanity and frontend lint/build/smoke all completed successfully.
 
 ### Phase 7 pre-stage — Post-release hardening
 
