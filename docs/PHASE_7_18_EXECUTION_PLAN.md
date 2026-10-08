@@ -17,9 +17,10 @@ does not become DONE merely because code exists. Each train follows:
 - AI provider fallback/circuit breaker and schema validation exist; live provider activation remains evidence-gated.
 - Organization planning is review-only by default.
 - Workflow engine now rejects empty/invalid step definitions and rejects stale/wrong-step completion.
-- Workflow completion now accepts a bounded idempotency key, serializes per-instance transitions, writes instances with atomic replacement/fsync, and returns an idempotent result for duplicate delivery. The targeted runtime suite covers invalid keys, key reuse and concurrent duplicate delivery.
+- Workflow completion now accepts a bounded idempotency key, serializes per-instance transitions, writes instances with atomic replacement/fsync, and returns an idempotent result for duplicate delivery. A new transport-agnostic durable job idempotency contract also records claim/status/attempt/result state with atomic replacement and replay-safe terminal outcomes; its contract tests cover retry exhaustion, DLQ transition and concurrent duplicate claims.
 
 ### Safety boundary before distributed takeover
+- The new job-level contract is deliberately not wired to a worker/takeover path yet. It is a single-node/POSIX durable contract and must be moved to the production job/DB ledger, with external side effects accepting the same idempotency key, before distributed takeover.
 - This file-backed contract is sufficient for the current service's deterministic step handlers and single-node/POSIX execution model.
 - Do **not** enable distributed late acknowledgements, worker takeover or external side effects on this path yet. Before activation, move the idempotency ledger to the durable job/DB layer and make each external side effect accept the same idempotency key.
 
