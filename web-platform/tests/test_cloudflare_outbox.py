@@ -108,7 +108,7 @@ def test_dispatch_failure_does_not_leak_exception_and_schedules_retry():
     db = FakeD1({"id": "evt-5", "attempts": 1, "max_attempts": 3, "lease_token": "token-5"})
 
     def fail(_event_id):
-        raise RuntimeError("secret URL and credentials")
+        raise TimeoutError("temporary delivery failure")
 
     assert asyncio.run(dispatch_one(db, fail, now=NOW)) == "pending"
     assert db.calls[-1][1] == RETRY_SQL
