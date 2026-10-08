@@ -17,16 +17,35 @@
 ## Current recorded evidence
 Latest recorded maintained Personal Local suite: 386 passed with 11 warnings. Frontend lint/build/smoke and quality/CodeQL workflows were recorded green.
 
-These results prove automated/code-side behavior only. They do not prove real browser, office-data, provider recovery or production isolation.
+This close-out pass could not rerun pytest in the accessible execution box because pytest and pip are not installed. Do not treat that environment limitation as a test failure or as fresh green evidence.
 
-## Personal Local acceptance
-Use representative copied data only. Verify source hashes before/after, import SHA-256, OCR quality, duplicate/version review, organization copy-only behavior, backup checksum, isolated restore and undo.
+## Gate 3 — OCR
+The repository contains scripts/ocr_benchmark.py and OCR regression tests. The current benchmark runner requires a copied sample directory plus a JSON manifest with reference text. The accessible test environment does not contain the required sample directory/manifest, and Tesseract is not installed there.
 
-## OCR benchmark
-Measure Myanmar/English representative samples and record CER/WER or the repository's accepted benchmark metrics. A benchmark pass must not be inferred from the presence of Tesseract.
+A historical privacy-scrubbed report contains 5 mixed mya+eng samples with mean CER 0.1660492282 and mean WER 0.3081550029, but it does not record the Tesseract version and is therefore not accepted as current Gate 3 release evidence.
+
+Required owner evidence: representative Myanmar and English samples, manifest/reference text, Tesseract version, CER/WER report and privacy-safe evidence.
+
+## Gate 4 — Personal Local browser
+A legacy Playwright-style E2E file exists at web-platform/backend/tests/test_e2e.py, but it targets an older username/password UI contract and legacy fixtures. No current Playwright dependency/runtime aligned to the Personal Local release flow was available in the accessible test environment.
+
+Required scenario: login -> import -> scan/OCR -> review -> approve -> Final copy -> backup -> isolated restore -> undo, with source SHA-256 unchanged before/after.
+
+## Gate 5 — Copied-office pilot
+The repository contains scripts/doka_pilot_check.py and source snapshot/hash logic. Existing evidence is synthetic only. No representative copied-office pilot was run in this close-out pass.
+
+Required evidence: copied data only, source SHA-256 before/after, import verification, scan/OCR result, organization review/approval, backup SHA-256, isolated Recovery manifest comparison and cleanup.
+
+## Gate 6 — Backup/restore
+Synthetic TestClient/backup evidence exists in the historical record, including successful backup verification and isolated Recovery restore with unchanged synthetic source. No real-machine timed drill was run.
+
+Required real evidence: full backup -> destroy/disposable workspace -> restore -> integrity comparison, with backup size, file count, backup duration, restore duration, RTO and RPO recorded.
 
 ## Cloud acceptance
 Use authenticated sessions and at least two distinct users for ownership isolation. Test 50 MiB boundary, signed URLs, version restore, Trash/permanent-delete behavior and provider cleanup/recovery.
 
-## Test isolation
-Future durable test infrastructure should use an isolated backend database/fixtures rather than shared production data.
+Gate 9 remains PENDING because a live unauthenticated Worker probe returned HTTP 403 and no disposable authenticated test session was available.
+
+Gate 10 remains PENDING because live Supabase health/migrations are verified but no two real authenticated test users were available. Synthetic RLS probes are not a substitute for two-user evidence.
+
+Gate 11 remains PENDING because Cloudinary provider-level recovery passed, while B2 and Google Drive live evidence is unavailable.
