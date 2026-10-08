@@ -29,12 +29,20 @@ def test_doka_pilot_gate_preserves_source_and_creates_reproducible_report(tmp_pa
     monkeypatch.setattr(config_module.settings, "BACKUP_ROOT", backups)
     monkeypatch.setattr(config_module.settings, "FINAL_ROOT", final)
     monkeypatch.setattr(config_module.settings, "QUARANTINE_ROOT", quarantine)
+    monkeypatch.setattr(config_module.settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(config_module.settings, "ALLOW_SOURCE_WRITE", False)
 
     module = _load_pilot_module()
     monkeypatch.setattr(
         __import__("sys"),
         "argv",
-        ["doka_pilot_check.py", "--source", str(source)],
+        [
+            "doka_pilot_check.py",
+            "--source", str(source),
+            "--workspace", str(workspace),
+            "--backup-root", str(backups),
+            "--output", str(tmp_path / "evidence.json"),
+        ],
     )
 
     assert module.main() == 0
@@ -110,7 +118,13 @@ def test_doka_pilot_rejects_empty_source_copy(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(
         __import__("sys"),
         "argv",
-        ["doka_pilot_check.py", "--source", str(source)],
+        [
+            "doka_pilot_check.py",
+            "--source", str(source),
+            "--workspace", str(tmp_path / "workspace"),
+            "--backup-root", str(tmp_path / "backups"),
+            "--output", str(tmp_path / "evidence.json"),
+        ],
     )
 
     assert module.main() == 2
