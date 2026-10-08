@@ -328,19 +328,6 @@ class WorkflowAutomationService:
                 return {"success": False, "error": "Workflow not found"}
             if instance.status in {"completed", "cancelled", "failed"}:
                 return {"success": False, "error": f"Instance is already {instance.status}"}
-            if instance.current_step <= 0 or instance.current_step > len(workflow.steps):
-                return {"success": False, "error": "Workflow instance has an invalid current step"}
-
-            expected_step = workflow.steps[instance.current_step - 1]
-            if step_id != expected_step.id:
-                return {
-                    "success": False,
-                    "error": "Step does not match the active workflow step",
-                    "expected_step_id": expected_step.id,
-                }
-            assigned = expected_step.assigned_to or []
-            if assigned and user_id not in assigned:
-                return {"success": False, "error": "User is not assigned to the active workflow step"}
 
             if "step_results" not in instance.data:
                 instance.data["step_results"] = []
@@ -363,6 +350,20 @@ class WorkflowAutomationService:
                     "idempotent": False,
                     "error": "Workflow step has already been completed with a different idempotency key",
                 }
+
+            if instance.current_step <= 0 or instance.current_step > len(workflow.steps):
+                return {"success": False, "error": "Workflow instance has an invalid current step"}
+
+            expected_step = workflow.steps[instance.current_step - 1]
+            if step_id != expected_step.id:
+                return {
+                    "success": False,
+                    "error": "Step does not match the active workflow step",
+                    "expected_step_id": expected_step.id,
+                }
+            assigned = expected_step.assigned_to or []
+            if assigned and user_id not in assigned:
+                return {"success": False, "error": "User is not assigned to the active workflow step"}
 
             effective_key = idempotency_key or f"legacy:{instance_id}:{step_id}:{user_id}"
             instance.data["step_results"].append({
