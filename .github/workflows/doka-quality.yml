@@ -242,7 +242,7 @@ jobs:
       - name: Run maintained Personal Local regression suite
         working-directory: web-platform/backend
         run: |
-          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest -q             tests/test_ai_provider_boundaries.py             tests/test_h1_local_auth_boundary.py             tests/test_h2_source_containment.py             tests/test_h3_unicode_passwords.py             tests/test_ocr_safety_limits.py             tests/test_workspace_backup_boundaries.py             tests/test_workspace_backup_routes.py             tests/test_symlink_safety.py             --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml
+          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest -q             tests/test_ai_provider_boundaries.py             tests/test_train1_safety_contracts.py             tests/test_unified_ai_fallback.py             tests/test_vector_search_ocr.py             tests/test_h1_local_auth_boundary.py             tests/test_h2_source_containment.py             tests/test_h3_unicode_passwords.py             tests/test_ocr_safety_limits.py             tests/test_workspace_backup_boundaries.py             tests/test_workspace_backup_routes.py             tests/test_symlink_safety.py             --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml
       - name: Export Cloud API OpenAPI contract
         working-directory: web-platform/backend
         run: python ../../scripts/export_cloud_openapi.py artifacts/cloud-openapi.json
@@ -272,7 +272,7 @@ jobs:
         run: python -m compileall -q cloudflare_worker shared
       - name: Run cloud storage provider contracts
         run: |
-          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest -q             web-platform/tests/test_cloud_storage_routing.py             web-platform/tests/test_cloudflare_storage_direct_upload.py             web-platform/tests/test_cloudflare_b2_storage.py             web-platform/tests/test_cloudflare_b2_quota.py             web-platform/tests/test_cloudflare_cloudinary_guard.py             web-platform/tests/test_cloudflare_storage_router.py             web-platform/tests/test_doka_storage_metadata_migration.py             web-platform/tests/test_cloud_storage.py
+          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest -q             web-platform/tests/test_cloud_storage_routing.py             web-platform/tests/test_cloudflare_storage_direct_upload.py             web-platform/tests/test_cloudflare_b2_storage.py             web-platform/tests/test_cloudflare_b2_quota.py             web-platform/tests/test_cloudflare_cloudinary_guard.py             web-platform/tests/test_cloudflare_storage_router.py             web-platform/tests/test_doka_storage_metadata_migration.py             web-platform/tests/test_cloud_storage.py             web-platform/tests/test_cloudflare_jobs.py             web-platform/tests/test_cloudflare_outbox.py
 
   symlink-security:
     name: Symlink security tests
