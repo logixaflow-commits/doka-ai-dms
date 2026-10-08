@@ -19,7 +19,7 @@ Live verification on 2026-10-08:
 - Worker: doka-ai-dms
 - Current traffic: 100%
 - Version number: 648
-- Version ID: 387bfa61-55e9-4dcf-9500-1c6dcddd4866
+- Version ID: d405b126-edec-4d84-82ad-7bb9ab0dde00
 - Version uploaded: 2026-10-08T18:12:42.459034Z
 - Deployment path: `.github/workflows/cloudflare-deploy.yml` uses Wrangler on `main` changes to `cloudflare_worker/**` or `wrangler.jsonc`; it requires the GitHub `CLOUDFLARE_API_TOKEN` secret and verifies `/health` after deployment.
 - Live CORS contract: explicit release/preview origins only with `allow_credentials=False`; the legacy `enterprise-ai-dms.vercel.app` origin is no longer present in the live bundle.
