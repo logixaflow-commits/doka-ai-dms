@@ -120,6 +120,24 @@ class CircuitBreaker:
             self.opened_at = now
 
 
+def select_failover_provider(
+    providers: list[str],
+    unavailable: set[str],
+    *,
+    original_provider: str,
+    approved_for_failover: bool,
+) -> str:
+    """Select a deterministic alternate only when failover is explicitly allowed."""
+    if not providers or original_provider not in providers:
+        raise ContractViolation("Original provider is not configured")
+    if not approved_for_failover:
+        raise ContractViolation("Provider failover requires explicit approval")
+    for provider in providers:
+        if provider != original_provider and provider not in unavailable:
+            return provider
+    raise ContractViolation("No safe failover provider available")
+
+
 @dataclass(frozen=True)
 class ConsentGrant:
     subject_id: str
