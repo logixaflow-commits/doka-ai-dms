@@ -147,3 +147,5 @@ Every phase closes only after implementation, automated tests, required E2E/live
 ### Deferred AI/provider verification
 - Final AI-agent live verification.
 - Real provider credentials plus authenticated production tests.
+
+- Train 1 contract layer now covers retry/DLQ, circuit breaker, failover, consent, schema, multilingual retrieval and human approval; concrete integration and runtime evidence remain before Train 2 activation.
