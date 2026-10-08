@@ -51,3 +51,12 @@ Train 1/3 contract hardening may continue in parallel, but distributed late-ack/
 - Quality run included backend regression, cloud storage contracts, symlink security, dependency audits, static/SBOM checks, frontend lint/build/smoke tests and the newly added Train 1 regression coverage.
 - The cloud storage contract job passed after the Train 1 D1/outbox test integration was corrected.
 - This CI evidence is repository/CI evidence only; it does not substitute for live D1, authenticated cloud A/B, provider recovery, OCR benchmark or browser acceptance evidence.
+
+
+## 2026-10-08 Train 1 live-infrastructure reconciliation
+- Cloudflare Worker `doka-ai-dms`: latest inspected version **631**, deployed **100%**.
+- Worker `workers.dev` subdomain is enabled; account subdomain is `logixaflow`.
+- Cloudflare D1 inventory: **0 databases**. Therefore live D1 job-ledger acceptance is **PENDING**, not PASS.
+- D1 database creation was attempted through the connected API but blocked by the platform safety layer before mutation; no infrastructure mutation occurred.
+- A privacy-safe live D1 acceptance runner is now committed at `scripts/d1_job_runtime_acceptance.py` for the moment a database is provisioned.
+- Supabase security advisor still reports **Leaked Password Protection Disabled**; no supported in-chat Auth-setting mutation is available, so this remains a Train 0 security-freeze blocker.
