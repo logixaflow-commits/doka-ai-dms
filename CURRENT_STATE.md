@@ -35,6 +35,8 @@
 - Cloudinary provider-level recovery probe on 2026-10-08: 22-byte test object, SHA-256 42b68a292fea02d6220c0ee02a4489697758f19d4fb1420d9063697087583a1c; backup download returned exact payload; delete returned success; subsequent asset lookup returned a zero-byte placeholder, proving the original delivery object was removed. Tool-side duration was not exposed.
 
 ## 6. IN PROGRESS
+- 2026-10-08 parallel checkpoint: live Supabase security advisor still has leaked-password protection WARN; live Cloudflare Worker deployment was inspected (version 602 at 100%). Neither observation closes application acceptance gates.
+- Train 1/3 workflow idempotency hardening remains targeted-runtime verified; next contract backlog is durable job idempotency → retry taxonomy → exhaustion/DLQ → provider half-open/failover/consent/schema contracts.
 - Train 1/3 contract hardening: workflow idempotency and durable instance-write safety is implemented and targeted-runtime verified on `main`; distributed worker takeover remains intentionally disabled.
 - Live Supabase Security Advisor recheck on 2026-10-08 still reports `auth_leaked_password_protection` as WARN. The connected Supabase tool exposes no Auth security-setting mutation, so this remains a release/security-freeze blocker rather than an unverified claim.
 - Gate 3: OCR benchmark evidence reconciliation.
