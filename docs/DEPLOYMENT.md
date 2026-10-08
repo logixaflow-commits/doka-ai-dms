@@ -18,12 +18,12 @@ Current URL: https://doka-ai-dms.logixaflow.workers.dev.
 Live verification on 2026-10-08:
 - Worker: doka-ai-dms
 - Current traffic: 100%
-- Version number: 591
-- Version ID: a9fdc0ab-c0f6-49e0-a8bc-cc9017e867d5
-- Version uploaded: 2026-10-07T20:11:13.465482Z
-- Deployment created: 2026-10-07T20:11:26.087286Z
+- Version number: 641
+- Version ID: 8b8eab48-535f-44f4-ba47-9c4531d68e9b
+- Version uploaded: 2026-10-08T17:01:25.783023Z
+- Deployment created: 2026-10-08T17:01:25.783023Z
 
-The Worker must authenticate cloud requests and must not proxy large document bytes unnecessarily. Direct upload sessions are used for provider-backed document bytes.
+The Worker must authenticate cloud requests and must not proxy large document bytes unnecessarily. Direct upload sessions are used for provider-backed document bytes. A dedicated `DOKA_STORAGE_SESSION_SECRET` is now provisioned as a Worker secret; `DOKA_SINGLE_USER_EMAIL` remains intentionally enabled for the current single-user deployment.
 
 ## Vercel
 Connected Vercel project: enterprise-ai-dms.
