@@ -19,7 +19,7 @@ async def test_ai_fallback_uses_next_provider(monkeypatch):
     async def call(provider):
         calls.append(provider)
         if provider == "gemini":
-            raise RuntimeError("quota")
+            raise TimeoutError("quota")
         return {"provider": provider}
 
     result = await service._with_fallback("test", call)
