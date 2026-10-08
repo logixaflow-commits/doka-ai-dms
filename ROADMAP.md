@@ -51,7 +51,7 @@ Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require re
 ## Future phases
 ### Phase 7/8 — Workflow + AI hardening
 Stronger workflow reliability, durable job-level idempotency, retry/DLQ contracts, provider quality/cost routing, multilingual retrieval and advanced AI safety after core release.
-Durable job idempotency contract is implemented/tested on `main`; distributed queue takeover remains deferred until production job/DB persistence and external-side-effect idempotency are complete.
+Durable job idempotency contract is implemented on `main`, with focused contract tests added and a disposable smoke validation passing; distributed queue takeover remains deferred until production job/DB persistence and external-side-effect idempotency are complete.
 
 ### Phase 9 — Controlled Product Expansion
 Enterprise organizations, membership lifecycle, invitations, RBAC, org-scoped sharing and regulated-workload controls. Activation requires tenant isolation, RLS/API authorization, audit and rollback evidence.
