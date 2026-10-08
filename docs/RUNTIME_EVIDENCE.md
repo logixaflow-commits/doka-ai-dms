@@ -27,3 +27,11 @@ This document records disposable-runtime observations that are useful for releas
 Train 0 remains **PENDING** for OCR/browser/pilot/recovery/cloud/provider evidence. The runtime result is a real blocker, not a missing harness feature.
 
 Train 1/3 contract hardening may continue in parallel, but distributed late-ack/worker takeover must remain disabled until external side effects use a durable idempotency contract at the job/DB layer.
+
+
+## 2026-10-08 — second live/provider checkpoint
+
+- Supabase Security Advisor still reports `auth_leaked_password_protection` as WARN. No Auth setting mutation was available through the connected tool, so no unverified remediation is claimed.
+- Cloudflare account inspection found the live `doka-ai-dms` Worker with version 602 at 100% traffic. The latest deployment was created 2026-10-08 and was not modified during this audit.
+- Cloudflare version/deployment inventory is provider evidence only; it does not replace authenticated application E2E, storage recovery, or browser acceptance evidence.
+- No B2 or Google Drive live recovery evidence was produced in this pass.
