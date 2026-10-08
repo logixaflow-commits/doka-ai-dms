@@ -42,6 +42,8 @@ Synthetic TestClient/backup evidence exists in the historical record, including 
 Required real evidence: full backup -> destroy/disposable workspace -> restore -> integrity comparison, with backup size, file count, backup duration, restore duration, RTO and RPO recorded.
 
 ## Cloud acceptance
+A dedicated runner now exists at `scripts/cloud_acceptance.py`. It requires two pre-created authenticated Supabase access tokens and never creates users or accepts service-role credentials. It exercises user-A upload/update/download, user-B list/download isolation, and optionally the exact 50 MiB upload boundary via `DOKA_CLOUD_50MIB_FILE`. The runner writes privacy-safe JSON evidence and returns non-zero until all required checks, including the 50 MiB fixture, pass.
+
 Use authenticated sessions and at least two distinct users for ownership isolation. Test 50 MiB boundary, signed URLs, version restore, Trash/permanent-delete behavior and provider cleanup/recovery.
 
 Gate 9 remains PENDING because a live unauthenticated Worker probe returned HTTP 403 and no disposable authenticated test session was available.
