@@ -35,6 +35,7 @@
 - Cloudinary provider-level recovery probe on 2026-10-08: 22-byte test object, SHA-256 42b68a292fea02d6220c0ee02a4489697758f19d4fb1420d9063697087583a1c; backup download returned exact payload; delete returned success; subsequent asset lookup returned a zero-byte placeholder, proving the original delivery object was removed. Tool-side duration was not exposed.
 
 ## 6. IN PROGRESS
+- Train 1/3 contract hardening: workflow idempotency and durable instance-write safety is implemented and targeted-runtime verified on `main`; distributed worker takeover remains intentionally disabled.
 - Gate 3: OCR benchmark evidence reconciliation.
 - Gate 4: real browser Personal Local E2E.
 - Gate 5: copied-office pilot and before/after source hashes.
@@ -81,6 +82,8 @@
 | 12 Deployment/runtime + final sign-off | BLOCKED |
 
 ## 11. LAST VERIFIED
+- Disposable runtime checkpoint 2026-10-08: Python 3.13, Node 22, npm 10, Playwright 1.64 available; Tesseract absent; required backend Python modules absent. Acceptance preflight returned not-ready without recording secrets.
+- Workflow targeted runtime checkpoint 2026-10-08: 6/6 workflow contract tests passed in the disposable runtime after idempotency/locking hardening. Full backend suite was not rerun.
 - Maintained backend regression suite: 386 passed in the latest recorded full run; this pass could not rerun pytest because the accessible execution box has no pytest/pip installation.
 - Frontend lint/build/smoke: latest recorded run passed.
 - Quality + CodeQL evidence: latest recorded workflow run passed.
