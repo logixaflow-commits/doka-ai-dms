@@ -27,13 +27,13 @@ Cloud: authenticated lifecycle -> two-user isolation -> storage/recovery -> secu
 7. Gate 7 — Dependabot/secret-scan/lockfile/lint reconciliation.
 8. Gate 8 — Personal Local final freeze and release evidence.
 
-Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require real evidence. Gate 8 remains blocked until 1–7 are evidenced.
+Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require real evidence. Gate 8 remains blocked until 1–7 are evidenced. The current execution order is Gate 3 OCR → Gate 5 copied-office pilot/recovery → Gate 4 browser E2E → Gate 6 timed recovery/RTO/RPO → Gate 7 dependency/security recheck → Gate 8 final freeze.
 
 ### Current close-out evidence
 - Gate 3: PENDING. OCR runner exists, but current representative sample/manifest and Tesseract version are unavailable.
-- Gate 4: PENDING. No current browser suite aligned to the Personal Local acceptance flow is runnable in the accessible environment.
-- Gate 5: PENDING. Pilot/hash harness exists; only synthetic evidence is recorded.
-- Gate 6: PENDING. Synthetic backup/restore evidence exists; measured real RTO/RPO does not.
+- Gate 4: PENDING. The current Playwright suite is prepared and validated for discovery/build integration, but a real browser run with a copied acceptance dataset and local admin password is still required.
+- Gate 5: PENDING. The pilot/hash harness now also verifies backup integrity and isolated recovery; only representative copied-office evidence remains.
+- Gate 6: PENDING. The pilot now captures backup creation, verification and isolated-restore timings plus zero-loss-at-backup-point evidence; a real-machine timed recovery drill is still required to establish release RTO/RPO targets.
 - Vercel: VERIFY for explicit owner-paused state because the connected API exposes live=false/latest production CANCELED but no explicit paused flag.
 
 ## Cloud release phase
@@ -43,9 +43,9 @@ Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require re
 12. Gate 12 — Deployment/runtime evidence and final go-live sign-off.
 
 ### Current close-out evidence
-- Gate 9: PENDING. Live Worker unauthenticated probe returned HTTP 403; authenticated disposable sessions are not available.
-- Gate 10: PENDING. Live Supabase is ACTIVE_HEALTHY with current migrations, but two real test users are not available.
-- Gate 11: PENDING. Cloudinary provider-level recovery passed; B2 and Google Drive live evidence is unavailable.
+- Gate 9: PENDING. An authenticated cloud acceptance runner is now prepared for user-A lifecycle plus exact 50 MiB boundary; real tokens/runtime evidence are still required.
+- Gate 10: PENDING. The same runner now includes two-user document isolation checks; live Supabase/RLS/Storage proof still requires two distinct authenticated users.
+- Gate 11: PENDING. Provider routing/unit coverage exists for Supabase/B2/Cloudinary/Google Drive, but real B2 + Google Drive recovery and Cloudinary application-path evidence remain required.
 - Gate 12: BLOCKED by Gates 9–11.
 
 ## Future phases

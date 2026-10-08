@@ -35,8 +35,13 @@ def main() -> int:
         "error_count": report["error_count"],
         "summary_by_language": report["summary_by_language"],
         "privacy": report["privacy"],
+        "gate_ready": report["gate_ready"],
+        "required_languages": report["required_languages"],
+        "missing_required_languages": report["missing_required_languages"],
+        "missing_tool_languages": report["missing_tool_languages"],
+        "toolchain": report["toolchain"],
     }, ensure_ascii=False, indent=2))
-    return 0 if report["error_count"] == 0 else 2
+    return 0 if report["gate_ready"] else 2
 
 
 if __name__ == "__main__":

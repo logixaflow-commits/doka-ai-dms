@@ -46,7 +46,7 @@ type ActionResult = { status: string };
 type BackupInfo = { archive: string; created_at?: string; sha256?: string };
 
 function authHeaders() {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('doka_local_access_token') || localStorage.getItem('access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -363,9 +363,9 @@ function LocalWorkspaceReview() {
       <Card>
         <CardHeader><CardTitle>1. Import a source folder</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <Input value={source} onChange={e => setSource(e.target.value)} placeholder="Optional local source path; otherwise SOURCE_ROOT" />
+          <Input data-testid="workspace-source-input" value={source} onChange={e => setSource(e.target.value)} placeholder="Optional local source path; otherwise SOURCE_ROOT" />
           <div className="flex gap-2">
-            <Button onClick={startImport} disabled={busy}>Start Safe Import</Button>
+            <Button data-testid="start-safe-import" onClick={startImport} disabled={busy}>Start Safe Import</Button>
             {sessionId && <Badge variant="outline">{sessionId}</Badge>}
           </div>
         </CardContent>
@@ -409,9 +409,9 @@ function LocalWorkspaceReview() {
             Show manual-review items only ({reviewCount})
           </label>
           <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => runStep('scan')} disabled={busy || status?.state === 'running'}>Scan Copy</Button>
-                <Button variant="outline" onClick={() => runStep('understand')} disabled={busy || status?.state === 'running'}>Read / OCR</Button>
-                <Button onClick={() => runStep('plan')} disabled={busy || status?.state === 'running'}>Build Review Plan</Button>
+                <Button data-testid="scan-copy" variant="outline" onClick={() => runStep('scan')} disabled={busy || status?.state === 'running'}>Scan Copy</Button>
+                <Button data-testid="run-ocr" variant="outline" onClick={() => runStep('understand')} disabled={busy || status?.state === 'running'}>Read / OCR</Button>
+                <Button data-testid="build-review-plan" onClick={() => runStep('plan')} disabled={busy || status?.state === 'running'}>Build Review Plan</Button>
                 <Button variant="outline" onClick={undo} disabled={busy}>Undo Applied Copies</Button>
                 <Button variant="outline" onClick={createBackup} disabled={busy}>Backup Workspace</Button>
                 <Button variant="outline" onClick={validateOcr} disabled={busy}>Check OCR</Button>

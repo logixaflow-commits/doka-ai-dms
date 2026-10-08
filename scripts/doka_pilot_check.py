@@ -16,6 +16,7 @@ import argparse
 import json
 import shutil
 import sys
+import time
 from pathlib import Path
 
 # Make the local backend importable when this script is run from repository root.
@@ -62,11 +63,10 @@ def workspace_backup_snapshot(root: Path) -> dict[str, str]:
 def inspect_ocr_results(results: list[dict]) -> dict:
     supported = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
     ocr_files = [item for item in results if str(item.get("extension", "")).lower() in supported]
-    failed = [
-        item.get("relative_path", "")
+    failed_count = sum(
+        item.get("extraction_method") == "ocr_failed" or int(item.get("text_length") or 0) <= 0
         for item in ocr_files
-        if item.get("extraction_method") == "ocr_failed" or int(item.get("text_length") or 0) <= 0
-    ]
+    )
     languages = {
         str(item.get("language") or "")
         for item in ocr_files
@@ -76,32 +76,53 @@ def inspect_ocr_results(results: list[dict]) -> dict:
     has_english = bool(languages & {"eng", "mya+eng"})
     return {
         "files_total": len(ocr_files),
-        "files_failed": len(failed),
-        "failed_paths": failed,
+        "files_failed": failed_count,
         "languages_detected": sorted(languages),
         "myanmar_detected": has_myanmar,
         "english_detected": has_english,
-        "representative_ocr_passed": bool(ocr_files) and not failed and has_myanmar and has_english,
+        "representative_ocr_passed": bool(ocr_files) and failed_count == 0 and has_myanmar and has_english,
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the Doka Personal Local real-machine pilot gate.")
     parser.add_argument("--source", required=True, help="COPY of representative office data; never the original source.")
+    parser.add_argument("--workspace", required=True, help="Dedicated empty Doka WORKING_ROOT for this pilot run.")
+    parser.add_argument("--backup-root", required=True, help="Dedicated backup root for this pilot run.")
+    parser.add_argument("--output", required=True, help="Path for the privacy-safe JSON evidence report.")
     parser.add_argument("--require-ocr", action="store_true", help="Require OCR tooling and successful Myanmar + English OCR on representative image/PDF files.")
     parser.add_argument("--apply-safe", action="store_true", help="Apply only non-review organization proposals after the plan is generated.")
     args = parser.parse_args()
 
     source = Path(args.source).expanduser().resolve()
+    pilot_workspace = Path(args.workspace).expanduser().resolve()
+    pilot_backup_root = Path(args.backup_root).expanduser().resolve()
+    output = Path(args.output).expanduser().resolve()
     if not source.is_dir():
         raise SystemExit(f"Source copy does not exist: {source}")
 
     # Refuse an obviously unsafe source/workspace relationship before doing any work.
+    if pilot_workspace == source or pilot_workspace.is_relative_to(source) or source.is_relative_to(pilot_workspace):
+        raise SystemExit("Refusing pilot: source and WORKING_ROOT overlap.")
+    if pilot_backup_root == source or pilot_backup_root.is_relative_to(source):
+        raise SystemExit("Refusing pilot: source and BACKUP_ROOT overlap.")
+    pilot_workspace.mkdir(parents=True, exist_ok=True)
+    pilot_backup_root.mkdir(parents=True, exist_ok=True)
+    if any(pilot_workspace.iterdir()):
+        raise SystemExit("Pilot WORKING_ROOT must be empty before the run.")
+    settings.SOURCE_ROOT = source
+    settings.WORKING_ROOT = pilot_workspace
+    settings.FINAL_ROOT = pilot_workspace / "Final"
+    settings.QUARANTINE_ROOT = pilot_workspace / "Quarantine"
+    settings.BACKUP_ROOT = pilot_backup_root
     workspace = settings.WORKING_ROOT.resolve()
     if source == workspace or source.is_relative_to(workspace) or workspace.is_relative_to(source):
         raise SystemExit("Refusing pilot: source and WORKING_ROOT overlap.")
 
     before = source_snapshot(source)
+    source_symlinks = [str(path.relative_to(source)) for path in source.rglob("*") if path.is_symlink()]
+    if source_symlinks:
+        raise SystemExit(f"Acceptance source contains symbolic links: {source_symlinks[:10]}")
     if not before:
         print(json.dumps({
             "gate": "blocked",
@@ -109,6 +130,7 @@ def main() -> int:
         }, ensure_ascii=False, indent=2))
         return 2
 
+    started_at = time.monotonic()
     ocr = ocr_validation_service.validate()
     if args.require_ocr and not ocr.get("available"):
         print(json.dumps({"gate": "blocked", "reason": "OCR unavailable", "ocr": ocr}, ensure_ascii=False, indent=2))
@@ -137,10 +159,16 @@ def main() -> int:
         apply_result = organization_planner.apply(session_id, safe_paths) if safe_paths else {"results": []}
 
     workspace_before_backup = workspace_backup_snapshot(workspace)
+    backup_started = time.monotonic()
     backup = workspace_backup_service.create(session_id=session_id)
+    backup_create_seconds = round(time.monotonic() - backup_started, 3)
     backup_name = Path(backup["archive"]).name
+    verify_started = time.monotonic()
     backup_verify = workspace_backup_service.verify(backup_name)
+    backup_verify_seconds = round(time.monotonic() - verify_started, 3)
+    restore_started = time.monotonic()
     recovery = workspace_backup_service.restore_to_recovery(backup_name, confirm=True)
+    restore_seconds = round(time.monotonic() - restore_started, 3)
     recovery_root = Path(recovery["recovery_path"])
     try:
         recovery_snapshot = source_snapshot(recovery_root)
@@ -178,13 +206,15 @@ def main() -> int:
     if not ocr_gate_passed:
         gate_reasons.append("Required Myanmar + English OCR was not successfully exercised on representative image/PDF files.")
     gate_passed = source_unchanged and import_complete and scan_complete and recovery_verified and ocr_gate_passed
+    elapsed_seconds = round(time.monotonic() - started_at, 3)
     report = {
         "gate": "passed" if gate_passed else "failed",
         "gate_reasons": gate_reasons,
         "session_id": session_id,
-        "source": str(source),
+        "source": {"file_count": len(before), "path_recorded": False},
         "source_unchanged": source_unchanged,
         "source_files": len(before),
+        "elapsed_seconds": elapsed_seconds,
         "import": {
             "state": status.get("state"),
             "files_total": status.get("files_total"),
@@ -209,14 +239,26 @@ def main() -> int:
         },
         "ocr": {**ocr, **ocr_results, "required": args.require_ocr, "gate_passed": ocr_gate_passed},
         "backup": {
-            "archive": backup.get("archive"),
+            "archive_filename": Path(str(backup.get("archive", ""))).name,
             "sha256": backup.get("sha256"),
             "verified": backup_verify.get("verified"),
+            "backup_create_seconds": backup_create_seconds,
+            "backup_verify_seconds": backup_verify_seconds,
+            "restore_seconds": restore_seconds,
+            "rto_seconds": restore_seconds,
             "recovery_verified": recovery_verified,
             "recovery_active_workspace_changed": recovery.get("active_workspace_changed"),
+            "rpo": {
+                "model": "zero_loss_at_backup_point",
+                "files_lost_at_verified_backup_point": 0 if recovery_verified else None,
+                "time_window_seconds": None,
+            },
         },
         "apply_safe": apply_result,
     }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    report["evidence_report_filename"] = output.name
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if gate_passed else 3
 

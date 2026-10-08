@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "required_languages": ["mya", "eng"],
+  "samples": [
+    {
+      "id": "myanmar-001",
+      "path": "myanmar/sample-001.png",
+      "language": "mya",
+      "mime_type": "image/png",
+      "reference": "<replace with verified ground-truth text before running>"
+    },
+    {
+      "id": "english-001",
+      "path": "english/sample-001.png",
+      "language": "eng",
+      "mime_type": "image/png",
+      "reference": "<replace with verified ground-truth text before running>"
+    }
+  ]
+}

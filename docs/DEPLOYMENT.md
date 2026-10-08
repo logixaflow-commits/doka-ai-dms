@@ -34,7 +34,7 @@ The connected API did not expose an explicit paused-state property. Do not upgra
 The connected Render workspace returned no services on 2026-10-08. This is evidence that no active Render service is visible to the connected account/workspace. No Render runtime is therefore treated as current deployment authority.
 
 ## Release evidence
-Required before production sign-off: authenticated user lifecycle, two-user isolation, 50 MiB boundary, provider recovery drills, OCR benchmark, backup/recovery proof, Supabase security settings, and runtime monitoring evidence.
+Required before production sign-off: authenticated user lifecycle, two-user isolation, 50 MiB boundary, provider recovery drills, OCR benchmark, backup/recovery proof, Supabase security settings, and runtime monitoring evidence. Gate 9/10 execution is prepared by `scripts/cloud_acceptance.py`; it requires two pre-created user access tokens and an exact 50 MiB fixture for full closure. Gate 11 additionally requires live B2 and Google Drive recovery evidence and a real Cloudinary application-path check.
 
 ## Database migration distinction
 Repository migration head: 20261007120000_doka_trigger_function_least_privilege.sql.

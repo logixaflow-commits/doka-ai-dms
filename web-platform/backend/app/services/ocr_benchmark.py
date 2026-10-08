@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import subprocess
 import unicodedata
 from pathlib import Path
 from collections.abc import Sequence
@@ -67,6 +68,45 @@ def resolve_sample_path(root: Path, relative_path: str) -> Path:
     return resolved
 
 
+def collect_ocr_toolchain() -> dict[str, Any]:
+    """Return privacy-safe OCR runtime metadata for release evidence."""
+    try:
+        from app.core.config import settings
+        command = settings.TESSERACT_CMD or "tesseract"
+        completed = subprocess.run(
+            [command, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        version_line = (completed.stdout or completed.stderr).splitlines()[0].strip() if (completed.stdout or completed.stderr) else ""
+        languages = []
+        lang_proc = subprocess.run(
+            [command, "--list-langs"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if lang_proc.returncode == 0:
+            languages = [line.strip() for line in lang_proc.stdout.splitlines()[1:] if line.strip()]
+        return {
+            "command_configured": command,
+            "version": version_line or None,
+            "languages": languages,
+            "available": completed.returncode == 0,
+        }
+    except Exception as exc:
+        return {
+            "command_configured": None,
+            "version": None,
+            "languages": [],
+            "available": False,
+            "error_type": type(exc).__name__,
+        }
+
+
 def run_ocr_benchmark(
     root: Path,
     manifest_path: Path,
@@ -78,6 +118,7 @@ def run_ocr_benchmark(
         raise ValueError("Benchmark root must be a directory.")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     samples = manifest.get("samples") if isinstance(manifest, dict) else None
+    required_languages = manifest.get("required_languages", ["mya", "eng"]) if isinstance(manifest, dict) else ["mya", "eng"]
     if not isinstance(samples, list) or not samples:
         raise ValueError("Manifest must contain a non-empty 'samples' array.")
     if ocr is None:
@@ -120,12 +161,27 @@ def run_ocr_benchmark(
             "mean_cer": sum(float(row["cer"]) for row in rows) / len(rows),
             "mean_wer": sum(float(row["wer"]) for row in rows) / len(rows),
         }
+    language_labels = {str(sample.get("language", "")).lower() for sample in samples if isinstance(sample, dict)}
+    missing_required_languages = [lang for lang in required_languages if not any(lang in label.split("+") for label in language_labels)]
+    toolchain = collect_ocr_toolchain()
+    missing_tool_languages = [lang for lang in required_languages if lang not in toolchain.get("languages", [])]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "sample_count": len(samples),
         "scored_count": sum(row["status"] == "scored" for row in results),
         "error_count": sum(row["status"] == "error" for row in results),
         "summary_by_language": summary,
+        "required_languages": required_languages,
+        "missing_required_languages": missing_required_languages,
+        "missing_tool_languages": missing_tool_languages,
+        "gate_ready": (
+            len(samples) >= 2
+            and not missing_required_languages
+            and not missing_tool_languages
+            and not any(row["status"] == "error" for row in results)
+            and toolchain["available"]
+        ),
+        "toolchain": toolchain,
         "results": results,
         "privacy": {
             "recognized_text_included": False,
