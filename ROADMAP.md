@@ -33,7 +33,7 @@ Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require re
 - Gate 3: PENDING. OCR runner exists, but current representative sample/manifest and Tesseract version are unavailable.
 - Gate 4: PENDING. The current Playwright suite is prepared and validated for discovery/build integration, but a real browser run with a copied acceptance dataset and local admin password is still required.
 - Gate 5: PENDING. The pilot/hash harness now also verifies backup integrity and isolated recovery; only representative copied-office evidence remains.
-- Gate 6: PENDING. Synthetic backup/restore evidence exists; measured real RTO/RPO does not.
+- Gate 6: PENDING. The pilot now captures backup creation, verification and isolated-restore timings plus zero-loss-at-backup-point evidence; a real-machine timed recovery drill is still required to establish release RTO/RPO targets.
 - Vercel: VERIFY for explicit owner-paused state because the connected API exposes live=false/latest production CANCELED but no explicit paused flag.
 
 ## Cloud release phase
