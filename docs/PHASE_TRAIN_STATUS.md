@@ -136,3 +136,10 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 - Runtime secrets/tokens stay outside git and evidence files.
 - Evidence files record assertions and timing only; never OCR text, credentials,
   user emails, or full source paths.
+
+
+## 2026-10-08 execution checkpoint
+- Train 0 disposable runtime preflight was executed in a clean ephemeral Python box: Python 3.13, Node 22, npm 10 and Playwright 1.64 were available; Tesseract and the required Python runtime modules were not. The preflight correctly returned not-ready and recorded no secrets, OCR text or paths.
+- Train 1/3 workflow contract hardening is now on `main`: explicit idempotency keys, per-instance POSIX file locking, atomic/fsynced instance replacement, replay-safe duplicate delivery and regression coverage.
+- The targeted workflow suite was executed in the disposable runtime: **6 passed**. This is contract/runtime evidence for the workflow change, not a full backend-suite claim.
+- The late-ack/worker-takeover boundary remains closed until external step side effects have their own durable idempotency semantics.
