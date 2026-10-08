@@ -53,7 +53,7 @@ export CORS_ORIGINS="http://127.0.0.1:3000,http://localhost:3000,http://127.0.0.
   --source "$DOKA_PILOT_SOURCE" \
   --workspace "$DOKA_PILOT_WORKSPACE" \
   --backup-root "$DOKA_PILOT_BACKUPS" \
-  --output "$EVIDENCE/gate-5-pilot.json" \
+  --output "$EVIDENCE/gate-5-pilot-gate-6-recovery.json" \
   --require-ocr
 
 cd "$FRONTEND"
