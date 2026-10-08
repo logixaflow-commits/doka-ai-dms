@@ -14,15 +14,15 @@ does not become DONE merely because code exists. Each train follows:
 - AI safety: consent, input/output limits, schema validation and human approval.
 
 ### Current foundation
-- AI provider fallback/circuit breaker and schema validation exist; live provider activation remains evidence-gated.
+- AI provider fallback/circuit breaker and schema validation are wired into the concrete unified AI router; failover is explicitly opt-in and live provider activation remains evidence-gated.
 - Organization planning is review-only by default.
 - Workflow engine now rejects empty/invalid step definitions and rejects stale/wrong-step completion.
 - Workflow completion now accepts a bounded idempotency key, serializes per-instance transitions, writes instances with atomic replacement/fsync, and returns an idempotent result for duplicate delivery. A new transport-agnostic durable job idempotency contract also records claim/status/attempt/result state with atomic replacement and replay-safe terminal outcomes; its contract tests cover retry exhaustion, DLQ transition and concurrent duplicate claims.
 
 ### Safety boundary before distributed takeover
-- The new job-level contract is deliberately not wired to a worker/takeover path yet. It is a single-node/POSIX durable contract and must be moved to the production job/DB ledger, with external side effects accepting the same idempotency key, before distributed takeover.
-- This file-backed contract is sufficient for the current service's deterministic step handlers and single-node/POSIX execution model.
-- Do **not** enable distributed late acknowledgements, worker takeover or external side effects on this path yet. Before activation, move the idempotency ledger to the durable job/DB layer and make each external side effect accept the same idempotency key.
+- The D1 production-shaped job ledger adapter is now wired at the Worker layer and uses the existing unique jobs.idempotency_key field. It supports durable create/converge, claim, success, retry, non-retryable failure and dead-letter transitions. Distributed takeover is still deliberately absent; Train 3 must add lease/fencing plus external-side-effect idempotency before activation.
+- The file-backed contract remains useful for local deterministic workflow tests; the Worker D1 adapter is the concrete durable path for cloud job state.
+- Do **not** enable distributed late acknowledgements or worker takeover yet. The remaining activation prerequisite is the Train 3 lease/fencing contract and proof that every external side effect consumes the same job idempotency key.
 
 ### Next acceptance gates
 - Duplicate delivery leaves one durable outcome.
@@ -191,3 +191,11 @@ Each later phase retains the same activation sequence: contract → implementati
 ## Train 1 safety contract checkpoint
 - Implemented contract layer for retry taxonomy/exhaustion, DLQ completeness, circuit breaker state transitions, explicit failover approval, consent scope, fail-closed structured output, mya/eng retrieval constraints, and human approval.
 - These contracts remain provider/queue agnostic. They must be wired into concrete integrations before runtime acceptance; distributed worker takeover remains disabled.
+
+
+### Concrete integration checkpoint — 2026-10-08
+- cloudflare_worker/jobs.py: durable D1 job/idempotency adapter over the existing jobs table.
+- cloudflare_worker/outbox.py: retry taxonomy is now applied at the actual delivery boundary; non-retryable failures dead-letter immediately.
+- web-platform/backend/app/services/unified_ai_service.py: retry classification + circuit breaker + explicit failover approval are enforced in provider routing; structured/provider errors fail closed.
+- web-platform/backend/app/services/vector_search.py: OCR-aware Unicode NFC normalization, language-scoped retrieval and Myanmar-safe local ranking are enforced before result ranking.
+- Tests were added for the D1 job adapter, non-retryable outbox delivery, AI fail-closed/failover approval, and OCR-aware retrieval. Runtime execution remains evidence-gated.
