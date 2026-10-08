@@ -126,7 +126,7 @@ async def mark_retry(
     ):
         raise ValueError("Invalid claimed outbox event.")
     instant = _utc(now)
-    terminal = attempts >= max_attempts
+    terminal = (not retryable) or attempts >= max_attempts
     delay = min(3600, 30 * (2 ** min(attempts - 1, 7)))
     status = "dead" if terminal else "pending"
     await db.execute(
