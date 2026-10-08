@@ -18,7 +18,7 @@ Current URL: https://doka-ai-dms.logixaflow.workers.dev.
 Live verification on 2026-10-08:
 - Worker: doka-ai-dms
 - Current traffic: 100%
-- Version number: 647
+- Version number: 648
 - Version ID: 387bfa61-55e9-4dcf-9500-1c6dcddd4866
 - Version uploaded: 2026-10-08T18:12:42.459034Z
 - Deployment path: `.github/workflows/cloudflare-deploy.yml` uses Wrangler on `main` changes to `cloudflare_worker/**` or `wrangler.jsonc`; it requires the GitHub `CLOUDFLARE_API_TOKEN` secret and verifies `/health` after deployment.
