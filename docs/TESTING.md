@@ -51,3 +51,15 @@ Gate 9 remains PENDING because a live unauthenticated Worker probe returned HTTP
 Gate 10 remains PENDING because live Supabase health/migrations are verified but no two real authenticated test users were available. Synthetic RLS probes are not a substitute for two-user evidence.
 
 Gate 11 remains PENDING because Cloudinary provider-level recovery passed, while B2 and Google Drive live evidence is unavailable.
+
+
+### Train 1 live D1 acceptance
+
+Once a D1 database is provisioned and the Worker migration set is applied, run:
+
+`python scripts/d1_job_runtime_acceptance.py --output Phase0_Evidence/train1/d1-job-runtime.json`
+
+Required environment presence is checked by `scripts/acceptance_preflight.py`:
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `DOKA_D1_DATABASE_ID`.
+
+The runner is disposable and privacy-safe: it verifies duplicate idempotency convergence, terminal success, retry, and exhaustion/dead state, then attempts cleanup. It never records credentials, database IDs, test IDs, or payload contents.
