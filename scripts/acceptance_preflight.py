@@ -25,6 +25,10 @@ CLOUD_ENV = (
     "DOKA_CLOUD_USER_A_TOKEN",
     "DOKA_CLOUD_USER_B_TOKEN",
 )
+CLOUDFLARE_ENV = (
+    "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "DOKA_D1_DATABASE_ID",
+)
+
 PROVIDER_ENV = (
     "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_STORAGE_BUCKET",
     "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET",
@@ -89,6 +93,7 @@ def main() -> int:
         "tesseract_languages": tesseract_languages(),
         "cloud_env_present": {name: bool(os.getenv(name, "").strip()) for name in CLOUD_ENV},
         "provider_env_present": {name: bool(os.getenv(name, "").strip()) for name in PROVIDER_ENV},
+        "cloudflare_env_present": {name: bool(os.getenv(name, "").strip()) for name in CLOUDFLARE_ENV},
     }
 
     local_ready = (
