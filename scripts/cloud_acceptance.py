@@ -111,6 +111,12 @@ def main() -> int:
             raise AssertionError("user A download metadata SHA-256 mismatch")
         evidence["checks"]["user_a_download"] = True
 
+        trash_a = _auth(client, user_a, f"/api/documents/{document_id}", method="DELETE")
+        _assert_status(trash_a, 200, "user A trash")
+        restore_a = _auth(client, user_a, f"/api/documents/{document_id}/restore", method="POST")
+        _assert_status(restore_a, 200, "user A restore")
+        evidence["checks"]["user_a_trash_restore"] = True
+
         list_b = _auth(client, user_b, "/api/documents")
         _assert_status(list_b, 200, "user B document list")
         ids_b = {str(item.get("id")) for item in list_b.json().get("documents", [])}
@@ -134,9 +140,33 @@ def main() -> int:
                     files={"file": (fixture.name, handle, "application/octet-stream")},
                 )
             _assert_status(boundary, 200, "exact 50 MiB upload")
+            boundary_document = boundary.json().get("document") or {}
+            boundary_document_id = str(boundary_document.get("id") or "")
+            if not boundary_document_id:
+                raise AssertionError("exact 50 MiB upload did not return a document id")
             evidence["checks"]["exact_50_mib_boundary"] = True
+
+            trash_boundary = _auth(
+                client, user_a, f"/api/documents/{boundary_document_id}", method="DELETE"
+            )
+            _assert_status(trash_boundary, 200, "exact 50 MiB trash")
+            permanent_boundary = _auth(
+                client,
+                user_a,
+                f"/api/documents/{boundary_document_id}/permanent",
+                method="DELETE",
+            )
+            _assert_status(permanent_boundary, 200, "exact 50 MiB permanent cleanup")
         else:
             evidence["checks"]["exact_50_mib_boundary"] = "pending_fixture"
+
+        permanent = _auth(
+            client,
+            user_a,
+            f"/api/documents/{document_id}/permanent",
+            method="DELETE",
+        )
+        _assert_status(permanent, 200, "user A permanent cleanup")
 
     evidence["elapsed_seconds"] = round(time.monotonic() - started, 3)
     evidence["gate9_ready"] = all(
