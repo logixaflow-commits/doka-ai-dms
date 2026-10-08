@@ -326,7 +326,7 @@ class VectorSearchService:
                 if score >= threshold:
                     scored.append((doc, score))
             scored.sort(key=lambda item: item[1], reverse=True)
-            return scored[offset:offset + limit]
+            return scored[:limit]
 
         documents = [doc for doc, _ in eligible]
         query_vector = self.generate_embedding(query_text)
