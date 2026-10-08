@@ -18,10 +18,11 @@ Current URL: https://doka-ai-dms.logixaflow.workers.dev.
 Live verification on 2026-10-08:
 - Worker: doka-ai-dms
 - Current traffic: 100%
-- Version number: 641
-- Version ID: 8b8eab48-535f-44f4-ba47-9c4531d68e9b
-- Version uploaded: 2026-10-08T17:01:25.783023Z
-- Deployment created: 2026-10-08T17:01:25.783023Z
+- Version number: 647
+- Version ID: 387bfa61-55e9-4dcf-9500-1c6dcddd4866
+- Version uploaded: 2026-10-08T18:12:42.459034Z
+- Deployment path: `.github/workflows/cloudflare-deploy.yml` uses Wrangler on `main` changes to `cloudflare_worker/**` or `wrangler.jsonc`; it requires the GitHub `CLOUDFLARE_API_TOKEN` secret and verifies `/health` after deployment.
+- Live CORS contract: explicit release/preview origins only with `allow_credentials=False`; the legacy `enterprise-ai-dms.vercel.app` origin is no longer present in the live bundle.
 
 The Worker must authenticate cloud requests and must not proxy large document bytes unnecessarily. Direct upload sessions are used for provider-backed document bytes. A dedicated `DOKA_STORAGE_SESSION_SECRET` is now provisioned as a Worker secret; `DOKA_SINGLE_USER_EMAIL` remains intentionally enabled for the current single-user deployment.
 
