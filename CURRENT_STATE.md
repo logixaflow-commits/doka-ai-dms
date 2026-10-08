@@ -121,6 +121,7 @@
 
 ## 15. TRAIN 1 RUNTIME EVIDENCE STATUS — 2026-10-08
 - Concrete integration remains CI-verified: latest Doka Quality Checks **SUCCESS** and CodeQL **SUCCESS** on commit `ce328544a1b88b32fb53bd01227789bcbf3446a0`.
-- Live Cloudflare Worker is version 631 at 100% traffic.
+- Live Cloudflare Worker is version 641 at 100% traffic.
+- Cloudflare direct-upload session signing uses a dedicated `DOKA_STORAGE_SESSION_SECRET` Worker secret; `DOKA_SINGLE_USER_EMAIL` remains enabled for the current single-user deployment.
 - Live D1 is now provisioned, migrated and bound to the Worker. Disposable acceptance passed duplicate convergence, terminal success, retry exhaustion/dead transition and outbox terminal delivery; privacy-safe evidence is recorded at `Phase0_Evidence/train1/d1-job-runtime.json`.
 - Supabase Auth leaked-password protection remains a security-freeze blocker.
