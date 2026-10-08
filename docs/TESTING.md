@@ -55,11 +55,11 @@ Gate 11 remains PENDING because Cloudinary provider-level recovery passed, while
 
 ### Train 1 live D1 acceptance
 
-Once a D1 database is provisioned and the Worker migration set is applied, run:
+Once D1 credentials are available in the runtime environment, the reusable runner can be executed again; the current live acceptance has already been recorded separately:
 
 `python scripts/d1_job_runtime_acceptance.py --output Phase0_Evidence/train1/d1-job-runtime.json`
 
-Required environment presence is checked by `scripts/acceptance_preflight.py`:
+Current connector-side live acceptance passed and is recorded at `Phase0_Evidence/train1/d1-job-runtime.json`. Required environment presence is checked by `scripts/acceptance_preflight.py`:
 `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `DOKA_D1_DATABASE_ID`.
 
 The runner is disposable and privacy-safe: it verifies duplicate idempotency convergence, terminal success, retry, and exhaustion/dead state, then attempts cleanup. It never records credentials, database IDs, test IDs, or payload contents.
