@@ -204,7 +204,7 @@ Each later phase retains the same activation sequence: contract → implementati
 ## Train 1 runtime-evidence closure — 2026-10-08
 
 ### Live infrastructure check
-- Cloudflare Worker `doka-ai-dms` is currently enabled on its `workers.dev` subdomain and the latest inspected deployment is **version 631 at 100% traffic**.
+- Cloudflare Worker `doka-ai-dms` is currently enabled on its `workers.dev` subdomain and the latest inspected deployment is **version 641 at 100% traffic**.
 - Production D1 is now provisioned and the Worker has the `DOKA_DB` binding at 100% traffic.
 - The reviewed baseline migration is applied. Disposable live D1 acceptance passed duplicate convergence, terminal success, retry exhaustion/dead transition and outbox delivery; privacy-safe evidence is recorded under `Phase0_Evidence/train1/d1-job-runtime.json`.
 - Repository migration manifest verification remains fail-closed; migrations are not applied merely by documentation.
