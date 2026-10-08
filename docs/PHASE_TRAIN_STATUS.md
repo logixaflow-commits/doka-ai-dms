@@ -172,3 +172,9 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 - Unified AI provider routing now uses the Train 1 retry taxonomy and circuit-breaker state machine. Provider failover is explicitly opt-in through `AI_PROVIDER_FAILOVER_APPROVED=true`; without it, a provider outage does not silently broaden external data processing.
 - Retrieval now canonicalizes OCR text to Unicode NFC, records SHA-256 retrieval identity, validates supported `mya`/`eng` language metadata, scopes ranking by language, and avoids the English-centric embedding path for Myanmar OCR.
 - These are implementation/contract changes, not live provider/runtime PASS claims. Acceptance still requires real D1/Worker, AI-provider, and Myanmar/English benchmark evidence.
+
+
+### CI reconciliation — 2026-10-08
+- Latest implementation commit `06f6874aa999fec441bbb285327a17af795625c2` has **Doka Quality Checks: SUCCESS** and **CodeQL: SUCCESS**.
+- The successful Quality run included the concrete Train 1 regression tests; cloud storage contract tests also passed.
+- Remaining Train 1 exit work is live/runtime evidence and any provider/queue consumer paths that require real credentials or infrastructure. No production PASS is claimed from CI alone.
