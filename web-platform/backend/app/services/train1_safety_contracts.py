@@ -9,7 +9,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Mapping, Optional\n\ntry:\n    import httpx\nexcept ImportError:  # pragma: no cover - optional at contract-only runtime\n    httpx = None
+from typing import Any, Callable, Mapping, Optional
+
+try:
+    import httpx
+except ImportError:  # pragma: no cover - optional at contract-only runtime
+    httpx = None
 
 
 class ErrorClass(str, Enum):
