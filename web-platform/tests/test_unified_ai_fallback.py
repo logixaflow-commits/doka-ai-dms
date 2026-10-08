@@ -10,6 +10,7 @@ async def test_ai_fallback_uses_next_provider(monkeypatch):
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_ORDER", ["gemini", "openrouter", "groq"])
     monkeypatch.setattr(settings, "AI_PROVIDER_MAX_ATTEMPTS", 0)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
 
     service = UnifiedAIService()
     service.providers = {"gemini": {}, "openrouter": {}, "groq": {}}
@@ -24,6 +25,42 @@ async def test_ai_fallback_uses_next_provider(monkeypatch):
     result = await service._with_fallback("test", call)
     assert result == {"provider": "openrouter"}
     assert calls == ["gemini", "openrouter"]
+
+
+@pytest.mark.asyncio
+async def test_ai_failover_is_disabled_without_explicit_approval(monkeypatch):
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False)
+    service = UnifiedAIService()
+    service.providers = {"gemini": {}, "openrouter": {}}
+    calls = []
+
+    async def call(provider):
+        calls.append(provider)
+        raise TimeoutError("temporary")
+
+    with pytest.raises(RuntimeError, match="All configured AI providers failed"):
+        await service._with_fallback("test", call)
+    assert calls == ["gemini"]
+
+
+@pytest.mark.asyncio
+async def test_non_retryable_provider_error_fails_closed(monkeypatch):
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
+    service = UnifiedAIService()
+    service.providers = {"gemini": {}, "openrouter": {}}
+    calls = []
+
+    async def call(provider):
+        calls.append(provider)
+        raise ValueError("invalid structured output")
+
+    with pytest.raises(ValueError, match="invalid structured output"):
+        await service._with_fallback("test", call)
+    assert calls == ["gemini"]
 
 
 @pytest.mark.asyncio
