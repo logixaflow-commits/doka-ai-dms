@@ -40,3 +40,5 @@ Train 1/3 contract hardening may continue in parallel, but distributed late-ack/
 - Cloudflare account inspection found the live `doka-ai-dms` Worker with version 602 at 100% traffic. The latest deployment was created 2026-10-08 and was not modified during this audit.
 - Cloudflare version/deployment inventory is provider evidence only; it does not replace authenticated application E2E, storage recovery, or browser acceptance evidence.
 - No B2 or Google Drive live recovery evidence was produced in this pass.
+
+- Train 1 safety contracts are focused contract evidence only; no external provider call or production queue integration is claimed.
