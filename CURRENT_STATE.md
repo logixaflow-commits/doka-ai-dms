@@ -111,3 +111,9 @@
 - AI: unified_ai_service now uses the Train 1 circuit breaker and retry taxonomy; provider failover is opt-in via AI_PROVIDER_FAILOVER_APPROVED and structured/non-retryable failures fail closed.
 - Retrieval: vector_search now canonicalizes OCR text to Unicode NFC, validates mya/eng identity + SHA-256, scopes ranking by language, and uses deterministic local ranking for Myanmar OCR instead of the English-centric embedding model.
 - Runtime constraint: Cloudflare account inspection returned zero D1 databases, so D1 runtime acceptance cannot honestly be marked PASS. Provider runtime evidence and Myanmar/English benchmark remain pending.
+
+
+## 14. TRAIN 1 CI RECONCILIATION — 2026-10-08
+- Concrete Train 1 implementation is CI-verified on main: Doka Quality Checks passed and CodeQL passed on the final implementation commit 06f6874aa999fec441bbb285327a17af795625c2.
+- The Quality run covered backend regression (including Train 1 safety/AI/retrieval tests), Cloudflare job/outbox/storage contracts, dependency audits, static/SBOM checks, frontend lint/build/smoke, and symlink security.
+- This closes the implementation/CI portion of Train 1. It does **not** close live evidence gates that require real OCR tooling, browser data, authenticated cloud users, provider recovery, or provisioned D1 infrastructure.
