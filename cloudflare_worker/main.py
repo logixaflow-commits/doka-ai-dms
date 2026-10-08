@@ -1193,11 +1193,24 @@ async def permanently_delete_document(request: Request, document_id: str, user_i
     return {"deleted": True, "document_id": document_id, "objects_deleted": len(objects)}
 
 
-origins = ["https://enterprise-ai-dms.vercel.app"]
+def _cors_origins() -> list[str]:
+    """Return explicit browser origins; never fall back to a wildcard."""
+    raw = os.getenv("DOKA_CORS_ORIGINS", "")
+    configured = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    if configured:
+        return configured
+    # Keep known release/preview origins available until deployment configuration
+    # explicitly replaces them. Bearer-token auth does not require cookies.
+    return [
+        "https://enterprise-ai-dms-logixaflow-9859.vercel.app",
+        "https://enterprise-ai-dms-git-main-logixaflow-9859.vercel.app",
+    ]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=_cors_origins(),
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
