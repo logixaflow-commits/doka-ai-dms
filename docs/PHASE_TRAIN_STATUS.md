@@ -143,3 +143,22 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 - Train 1/3 workflow contract hardening is now on `main`: explicit idempotency keys, per-instance POSIX file locking, atomic/fsynced instance replacement, replay-safe duplicate delivery and regression coverage.
 - The targeted workflow suite was executed in the disposable runtime: **6 passed**. This is contract/runtime evidence for the workflow change, not a full backend-suite claim.
 - The late-ack/worker-takeover boundary remains closed until external step side effects have their own durable idempotency semantics.
+
+
+## 2026-10-08 parallel execution checkpoint — Train 0 + Train 1/3 + forward preparation
+
+### Train 0 live/provider observations
+- Supabase Security Advisor was rechecked live. `auth_leaked_password_protection` remains WARN and is still a release/security-freeze blocker.
+- Cloudflare Workers live inspection confirmed Worker `doka-ai-dms` exists and currently has a 100% deployment on version 602. This is deployment evidence only; it is not application acceptance evidence.
+- Cloudflare currently reports 602 versions and 603 deployments; no rollback or traffic change was performed during this audit.
+- OCR/browser/cloud/provider acceptance remains evidence-gated and is not promoted to PASS without the required runtime/data/credential evidence.
+
+### Train 1/3 hardening boundary
+- Workflow idempotency and atomic instance persistence are implemented and targeted-runtime verified.
+- Next contract unit: durable job-level idempotency + retry boundary + retry exhaustion + DLQ state model before any distributed worker takeover.
+- AI provider work remains contract-first: half-open circuit behavior, failover safety, consent boundary and output schema tests before activation.
+
+### Forward train preparation (not activated)
+- Train 2: organization lifecycle, RBAC/tenant matrix, RLS/storage isolation, invitation/session replay controls, migration rollback contract.
+- Train 3: queue lease/takeover, duplicate delivery, bounded retries/DLQ, load/failure-injection and restore-drill contracts.
+- Train 4+: retain phase-by-phase contracts and rollback/acceptance gates; implementation/activation remains sequential.
