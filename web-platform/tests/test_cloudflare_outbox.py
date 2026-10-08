@@ -91,6 +91,19 @@ def test_dispatch_publishes_only_event_id_then_marks_delivered():
     assert db.calls[1][2][2] == "token-4"
 
 
+def test_non_retryable_dispatch_failure_moves_event_to_dead():
+    db = FakeD1({"id": "evt-schema", "attempts": 1, "max_attempts": 3, "lease_token": "token-schema"})
+
+    class PermanentError(Exception):
+        retryable = False
+
+    def fail(_event_id):
+        raise PermanentError("schema invalid")
+
+    assert asyncio.run(dispatch_one(db, fail, now=NOW)) == "dead"
+    assert db.calls[-1][2][0] == "dead"
+
+
 def test_dispatch_failure_does_not_leak_exception_and_schedules_retry():
     db = FakeD1({"id": "evt-5", "attempts": 1, "max_attempts": 3, "lease_token": "token-5"})
 
