@@ -14,6 +14,20 @@ from typing import Any, Awaitable, Callable
 from .d1 import D1Database
 
 
+def _is_retryable(error: BaseException) -> bool:
+    """Retry only transient transport/provider failures; fail closed otherwise."""
+    explicit = getattr(error, "retryable", None)
+    if explicit is True:
+        return True
+    if explicit is False:
+        return False
+    if isinstance(error, (TimeoutError, ConnectionError)):
+        return True
+    response = getattr(error, "response", None)
+    status = getattr(response, "status_code", 0)
+    return status == 408 or status == 429 or 500 <= status <= 599
+
+
 class OutboxError(RuntimeError):
     """Safe outbox operation failure."""
 
@@ -97,6 +111,7 @@ async def mark_retry(
     db: D1Database,
     event: dict[str, Any],
     *,
+    retryable: bool = True,
     now: datetime | None = None,
 ) -> str:
     event_id = event.get("id")
