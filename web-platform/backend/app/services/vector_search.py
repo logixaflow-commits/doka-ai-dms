@@ -13,22 +13,16 @@ import re
 
 from app.services.train1_safety_contracts import RetrievalDocument, validate_retrieval_documents
 
-# Try to import sentence-transformers
+# sentence-transformers is optional and loaded lazily so importing the service
+# never downloads a model or performs network I/O.
 try:
     from sentence_transformers import SentenceTransformer
     SENTENCE_TRANSFORMERS_AVAILABLE = True
-    try:
-        # Use a lightweight model for efficiency
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        logger.info("Loaded sentence-transformers model: all-MiniLM-L6-v2")
-    except Exception as e:
-        logger.warning(f"Failed to load sentence-transformers model: {e}")
-        SENTENCE_TRANSFORMERS_AVAILABLE = False
-        model = None
 except ImportError:
-    logger.warning("sentence-transformers not installed. Semantic search disabled.")
     SENTENCE_TRANSFORMERS_AVAILABLE = False
-    model = None
+    SentenceTransformer = None
+model = None
+
 
 # Try to import Redis for caching
 try:
@@ -142,8 +136,14 @@ class VectorSearchService:
             List of floats (embedding vector) or None if unavailable
         """
         text = self._normalize_text(text)
-        if not text or not SENTENCE_TRANSFORMERS_AVAILABLE or not self.model:
+        if not text or not SENTENCE_TRANSFORMERS_AVAILABLE:
             return None
+        if self.model is None:
+            try:
+                self.model = SentenceTransformer("all-MiniLM-L6-v2")
+            except Exception as exc:
+                logger.warning("Failed to load semantic retrieval model: %s", exc)
+                return None
 
         # Check cache
         cache_key = self._get_cache_key(text, "embed")
