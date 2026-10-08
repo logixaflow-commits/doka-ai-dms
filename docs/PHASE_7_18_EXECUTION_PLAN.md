@@ -199,3 +199,40 @@ Each later phase retains the same activation sequence: contract → implementati
 - web-platform/backend/app/services/unified_ai_service.py: retry classification + circuit breaker + explicit failover approval are enforced in provider routing; structured/provider errors fail closed.
 - web-platform/backend/app/services/vector_search.py: OCR-aware Unicode NFC normalization, language-scoped retrieval and Myanmar-safe local ranking are enforced before result ranking.
 - Tests were added for the D1 job adapter, non-retryable outbox delivery, AI fail-closed/failover approval, and OCR-aware retrieval. Runtime execution remains evidence-gated.
+
+
+## Train 1 runtime-evidence closure — 2026-10-08
+
+### Live infrastructure check
+- Cloudflare Worker `doka-ai-dms` is currently enabled on its `workers.dev` subdomain and the latest inspected deployment is **version 631 at 100% traffic**.
+- The connected Cloudflare account currently has **0 D1 databases**. This is the only hard infrastructure blocker for the new D1 job ledger runtime proof.
+- A D1 database was **not** created through this session because the connected API safety layer blocked the destructive/side-effecting database-creation request. No false runtime evidence is recorded.
+- Repository migration manifest verification remains fail-closed; migrations are not applied merely by documentation.
+
+### Train 1 evidence gates
+1. Provision D1 database using the approved account/runtime path.
+2. Bind the real database ID to the Worker.
+3. Apply the reviewed D1 migrations.
+4. Execute duplicate-create/converge, claim, success, retry, exhaustion/dead tests against the live database.
+5. Verify outbox idempotency and retry/dead transitions with the real delivery boundary.
+6. Verify AI provider retry/circuit/failover using real provider credentials and explicit consent/failover approval.
+7. Run the Myanmar/English OCR-aware retrieval benchmark on representative samples.
+8. Capture privacy-safe evidence and re-run the release gate checker.
+9. Only after these pass, consider Train 1 runtime closure complete.
+
+### Safety boundary
+Distributed worker takeover, lease renewal, fencing and late acknowledgements remain disabled until the durable D1 ledger and every external side effect share the same idempotency key contract.
+
+## Remaining phase preparation
+
+### Train 0 — Release Evidence Closure
+Run first where runtime prerequisites exist: OCR → copied-office pilot → backup/restore → browser E2E → cloud A/B → B2 → Google Drive → Cloudinary → Supabase auth-security warning → final release gate.
+
+### Train 2 — Controlled Product Expansion
+Prepare but do not activate until Train 1 runtime closure: organization lifecycle, RBAC, tenant permission matrix, RLS, storage isolation, invitation replay, session invalidation, migration rollback.
+
+### Train 3 — Scale & Reliability
+Prepare tests/contracts only. Activate after Train 1 runtime closure and Train 2 authorization/storage boundaries: queue lease, fencing, worker takeover, duplicate delivery, retry/DLQ, load baseline, failure injection, restore drill.
+
+### Train 4–18
+Keep the roadmap sequential. Pre-create only documentation, test matrices, migration review checklists and evidence schemas that do not activate production behavior. Activation remains gated by the previous train's signed evidence.
