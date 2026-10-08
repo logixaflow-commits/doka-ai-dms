@@ -267,7 +267,7 @@ class Settings:
         self.AI_PROVIDER_MAX_ATTEMPTS = int(os.getenv("AI_PROVIDER_MAX_ATTEMPTS", "0"))
         self.AI_PROVIDER_TIMEOUT_SECONDS = float(os.getenv("AI_PROVIDER_TIMEOUT_SECONDS", "30"))
         self.AI_PROVIDER_FAILURE_THRESHOLD = max(1, int(os.getenv("AI_PROVIDER_FAILURE_THRESHOLD", "3")))
-        self.AI_PROVIDER_COOLDOWN_SECONDS = max(0.0, float(os.getenv("AI_PROVIDER_COOLDOWN_SECONDS", "30")))
+        self.AI_PROVIDER_COOLDOWN_SECONDS = max(0.1, float(os.getenv("AI_PROVIDER_COOLDOWN_SECONDS", "30")))
         # Provider failover is opt-in; a provider outage must not silently broaden data sharing.\n        self.AI_PROVIDER_FAILOVER_APPROVED = os.getenv("AI_PROVIDER_FAILOVER_APPROVED", "false").lower() == "true"\n        self.AI_MAX_INPUT_CHARS = int(os.getenv("AI_MAX_INPUT_CHARS", "100000"))
 
         # Railway-specific settings
