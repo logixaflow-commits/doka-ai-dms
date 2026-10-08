@@ -27,12 +27,12 @@ Cloud: authenticated lifecycle -> two-user isolation -> storage/recovery -> secu
 7. Gate 7 — Dependabot/secret-scan/lockfile/lint reconciliation.
 8. Gate 8 — Personal Local final freeze and release evidence.
 
-Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require real evidence. Gate 8 remains blocked until 1–7 are evidenced.
+Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require real evidence. Gate 8 remains blocked until 1–7 are evidenced. The current execution order is Gate 3 OCR → Gate 5 copied-office pilot/recovery → Gate 4 browser E2E → Gate 6 timed recovery/RTO/RPO → Gate 7 dependency/security recheck → Gate 8 final freeze.
 
 ### Current close-out evidence
 - Gate 3: PENDING. OCR runner exists, but current representative sample/manifest and Tesseract version are unavailable.
-- Gate 4: PENDING. No current browser suite aligned to the Personal Local acceptance flow is runnable in the accessible environment.
-- Gate 5: PENDING. Pilot/hash harness exists; only synthetic evidence is recorded.
+- Gate 4: PENDING. The current Playwright suite is prepared and validated for discovery/build integration, but a real browser run with a copied acceptance dataset and local admin password is still required.
+- Gate 5: PENDING. The pilot/hash harness now also verifies backup integrity and isolated recovery; only representative copied-office evidence remains.
 - Gate 6: PENDING. Synthetic backup/restore evidence exists; measured real RTO/RPO does not.
 - Vercel: VERIFY for explicit owner-paused state because the connected API exposes live=false/latest production CANCELED but no explicit paused flag.
 
