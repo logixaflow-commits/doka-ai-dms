@@ -3,6 +3,9 @@ Workflow Automation Service
 Provides custom approval workflows, conditional routing, and automated task assignments
 """
 import uuid
+import os
+import tempfile
+from contextlib import contextmanager
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from dataclasses import dataclass
@@ -290,9 +293,32 @@ class WorkflowAutomationService:
         instance_id: str,
         step_id: str,
         user_id: int,
-        result: Dict[str, Any]
+        result: Dict[str, Any],
+        idempotency_key: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Complete the active workflow step exactly once."""
+        """Complete the active workflow step exactly once with a durable key."""
+        try:
+            if idempotency_key is not None:
+                idempotency_key = str(idempotency_key).strip()
+                if not idempotency_key or len(idempotency_key) > 128 or any(
+                    char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-"
+                    for char in idempotency_key
+                ):
+                    return {"success": False, "error": "Invalid idempotency key"}
+            with self._lock_workflow_instance(instance_id):
+                return self._complete_step_locked(instance_id, step_id, user_id, result, idempotency_key)
+        except Exception as e:
+            logger.error(f"Failed to complete step: {e}")
+            return {"success": False, "error": str(e)}
+
+    def _complete_step_locked(
+        self,
+        instance_id: str,
+        step_id: str,
+        user_id: int,
+        result: Dict[str, Any],
+        idempotency_key: Optional[str],
+    ) -> Dict[str, Any]:
         try:
             instance = self.get_workflow_instance(instance_id)
             if not instance:
@@ -323,16 +349,26 @@ class WorkflowAutomationService:
                 if item.get("step_id") == step_id and item.get("user_id") == user_id
             ]
             if existing:
+                recorded_key = existing[0].get("idempotency_key")
+                if idempotency_key is None or recorded_key == idempotency_key:
+                    return {
+                        "success": True,
+                        "idempotent": True,
+                        "instance_status": instance.status,
+                        "current_step": instance.current_step,
+                        "idempotency_key": recorded_key,
+                    }
                 return {
-                    "success": True,
-                    "idempotent": True,
-                    "instance_status": instance.status,
-                    "current_step": instance.current_step,
+                    "success": False,
+                    "idempotent": False,
+                    "error": "Workflow step has already been completed with a different idempotency key",
                 }
 
+            effective_key = idempotency_key or f"legacy:{instance_id}:{step_id}:{user_id}"
             instance.data["step_results"].append({
                 "step_id": step_id,
                 "user_id": user_id,
+                "idempotency_key": effective_key,
                 "result": result,
                 "completed_at": datetime.utcnow().isoformat()
             })
@@ -356,10 +392,32 @@ class WorkflowAutomationService:
                 "idempotent": False,
                 "instance_status": instance.status,
                 "current_step": instance.current_step,
+                "idempotency_key": effective_key,
             }
         except Exception as e:
             logger.error(f"Failed to complete step: {e}")
             return {"success": False, "error": str(e)}
+
+    @contextmanager
+    def _lock_workflow_instance(self, instance_id: str):
+        """Serialize instance transitions and keep the lock durable across processes on POSIX."""
+        lock_path = self.instances_storage_path / f"{instance_id}.lock"
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        lock_file = open(lock_path, "a+")
+        try:
+            try:
+                import fcntl
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            except ImportError:
+                pass
+            yield
+        finally:
+            try:
+                import fcntl
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            except ImportError:
+                pass
+            lock_file.close()
 
     def get_workflow(self, workflow_id: str) -> Optional[Workflow]:
         """Get workflow by ID"""
@@ -498,8 +556,18 @@ class WorkflowAutomationService:
             "data": instance.data
         }
         
-        with open(instance_file, 'w') as f:
-            json.dump(instance_data, f, indent=2)
+        fd, temp_name = tempfile.mkstemp(
+            prefix=f".{instance.id}.", suffix=".tmp", dir=str(self.instances_storage_path)
+        )
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(instance_data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_name, instance_file)
+        finally:
+            if os.path.exists(temp_name):
+                os.unlink(temp_name)
 
 
 # Singleton instance
