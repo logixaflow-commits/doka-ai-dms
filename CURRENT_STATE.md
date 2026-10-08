@@ -36,6 +36,7 @@
 
 ## 6. IN PROGRESS
 - Train 1/3 contract hardening: workflow idempotency and durable instance-write safety is implemented and targeted-runtime verified on `main`; distributed worker takeover remains intentionally disabled.
+- Live Supabase Security Advisor recheck on 2026-10-08 still reports `auth_leaked_password_protection` as WARN. The connected Supabase tool exposes no Auth security-setting mutation, so this remains a release/security-freeze blocker rather than an unverified claim.
 - Gate 3: OCR benchmark evidence reconciliation.
 - Gate 4: real browser Personal Local E2E.
 - Gate 5: copied-office pilot and before/after source hashes.
