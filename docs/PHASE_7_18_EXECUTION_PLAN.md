@@ -186,3 +186,8 @@ For every phase:
 
 ### Train 4–18 preparation
 Each later phase retains the same activation sequence: contract → implementation → feature flag → migration → rollback → security review → performance baseline → acceptance evidence → activation. No later-train feature is activated merely because its documentation or tests exist.
+
+
+## Train 1 safety contract checkpoint
+- Implemented contract layer for retry taxonomy/exhaustion, DLQ completeness, circuit breaker state transitions, explicit failover approval, consent scope, fail-closed structured output, mya/eng retrieval constraints, and human approval.
+- These contracts remain provider/queue agnostic. They must be wired into concrete integrations before runtime acceptance; distributed worker takeover remains disabled.
