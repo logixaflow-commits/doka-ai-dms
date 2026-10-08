@@ -36,6 +36,7 @@
 
 ## 6. IN PROGRESS
 - 2026-10-08 parallel checkpoint: live Supabase security advisor still has leaked-password protection WARN; live Cloudflare Worker deployment was inspected (version 602 at 100%). Neither observation closes application acceptance gates.
+- Vercel connected project `enterprise-ai-dms` remains `live=false` with latest production deployment `CANCELED`; the latest GitHub commit status also reports a Vercel `failure` check attributed to a build-rate-limit target. This does not change the release-gate evidence decision.
 - Train 1 checkpoint: durable job-level idempotency state is implemented/tested on `main`; retry taxonomy and provider/AI safety contracts are next. Distributed worker takeover remains disabled.
 - Train 1/3 workflow hardening is targeted-runtime verified, and durable job-level idempotency state is now implemented/tested on `main`. Next contract backlog: retry taxonomy → retry exhaustion/DLQ → provider half-open/failover/consent/schema → multilingual retrieval → human approval.
 - Train 1/3 contract hardening: workflow idempotency and durable instance-write safety is implemented and targeted-runtime verified on `main`; distributed worker takeover remains intentionally disabled.
