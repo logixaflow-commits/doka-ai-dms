@@ -91,4 +91,4 @@
 - Vercel: project inactive/latest production deployment canceled; explicit paused flag unavailable.
 
 ## 12. NEXT ACTION
-**Owner-provided evidence is now the critical path:** provide a disposable copied Myanmar/English OCR sample set + manifest, a runnable Personal Local browser environment, a copied-office pilot dataset, two disposable cloud test accounts, and live B2/Google Drive credentials/connectors. Then rerun only the blocked gates and record measured evidence before closing Gates 8 and 12.
+**Owner-provided runtime evidence is now the critical path.** The repository is prepared through Gates 3–11: Personal Local OCR/pilot/browser/recovery runners are ready, and `scripts/cloud_acceptance.py` is ready for Gate 9/10 with two pre-created user access tokens plus an exact 50 MiB fixture. Gate 11 still requires live B2 and Google Drive credentials/connectors and a real Cloudinary application-path run. Then rerun only the blocked gates, record measured evidence, and close Gate 8 before Gate 12.
