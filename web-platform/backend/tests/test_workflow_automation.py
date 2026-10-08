@@ -57,3 +57,33 @@ def test_workflow_completion_checks_step_and_assignment(service):
 
     replay = service.complete_step(instance.id, step.id, 7, {"approved": True})
     assert replay["success"] is False
+
+def test_workflow_reports_failure_when_next_step_execution_fails(service, monkeypatch):
+    workflow = service.create_workflow(
+        "two-step",
+        "",
+        "document",
+        [
+            {"name": "approve", "type": "approval", "assigned_to": [7], "order": 0},
+            {"name": "notify", "type": "notification", "order": 1},
+        ],
+        1,
+    )
+    instance = service.start_workflow(workflow.id, 10, 1)
+    first_step = workflow.steps[0]
+    original_execute = service._execute_step
+
+    def fail_next(current_instance, step):
+        if step.id == workflow.steps[1].id:
+            current_instance.status = "failed"
+            service._save_workflow_instance(current_instance)
+            return
+        original_execute(current_instance, step)
+
+    monkeypatch.setattr(service, "_execute_step", fail_next)
+    result = service.complete_step(instance.id, first_step.id, 7, {"approved": True})
+
+    assert result["success"] is False
+    assert result["instance_status"] == "failed"
+    assert result["error"] == "Workflow failed while executing the next step"
+
