@@ -163,8 +163,8 @@ async def dispatch_one(
         result = publish_event_id(event_id)
         if inspect.isawaitable(result):
             await result
-    except Exception:
-        return await mark_retry(db, event, now=instant)
+    except Exception as exc:
+        return await mark_retry(db, event, retryable=_is_retryable(exc), now=instant)
 
     lease_token = event.get("lease_token")
     if not isinstance(lease_token, str) or not lease_token:
