@@ -10,8 +10,12 @@ Cloud: authenticated lifecycle -> two-user isolation -> storage/recovery -> secu
 ## Completed phases
 - Phase A–E: historical remediation tracks; evidence retained in archive.
 - Phase 0: completeness/documentation inventory.
-- Core Phase 1–6 coding-side foundations: architecture, security, workflow reliability, AI/provider boundaries, and CI/quality foundations substantially implemented.
+- Documentation migration Phases 1–6.
+- Core coding-side foundations: architecture, security, workflow reliability, AI/provider boundaries, and CI/quality foundations substantially implemented.
 - Quality gate: dependency/secret/lockfile/lint/CodeQL evidence recorded.
+- Cloudflare Worker current deployment evidence verified on 2026-10-08.
+- Render service absence verified for the connected workspace.
+- Cloudinary provider-level recovery probe verified on 2026-10-08.
 
 ## Active release phase — Personal Local
 1. Gate 1 — Local auth/session/restart/replay.
@@ -25,11 +29,24 @@ Cloud: authenticated lifecycle -> two-user isolation -> storage/recovery -> secu
 
 Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require real evidence. Gate 8 remains blocked until 1–7 are evidenced.
 
+### Current close-out evidence
+- Gate 3: PENDING. OCR runner exists, but current representative sample/manifest and Tesseract version are unavailable.
+- Gate 4: PENDING. No current browser suite aligned to the Personal Local acceptance flow is runnable in the accessible environment.
+- Gate 5: PENDING. Pilot/hash harness exists; only synthetic evidence is recorded.
+- Gate 6: PENDING. Synthetic backup/restore evidence exists; measured real RTO/RPO does not.
+- Vercel: VERIFY for explicit owner-paused state because the connected API exposes live=false/latest production CANCELED but no explicit paused flag.
+
 ## Cloud release phase
 9. Gate 9 — Authenticated Cloud lifecycle E2E.
 10. Gate 10 — Two-user isolation + RLS/Storage/RPC proof.
 11. Gate 11 — B2/Cloudinary/Google Drive + 50 MiB + recovery proof.
 12. Gate 12 — Deployment/runtime evidence and final go-live sign-off.
+
+### Current close-out evidence
+- Gate 9: PENDING. Live Worker unauthenticated probe returned HTTP 403; authenticated disposable sessions are not available.
+- Gate 10: PENDING. Live Supabase is ACTIVE_HEALTHY with current migrations, but two real test users are not available.
+- Gate 11: PENDING. Cloudinary provider-level recovery passed; B2 and Google Drive live evidence is unavailable.
+- Gate 12: BLOCKED by Gates 9–11.
 
 ## Future phases
 ### Phase 7/8 — Workflow + AI hardening
@@ -71,9 +88,8 @@ Ecosystem and API platform, intelligent operations, data intelligence, regional/
 Every phase closes only after implementation, automated tests, required E2E/live verification, acceptance criteria, evidence recording, and documentation updates. Status vocabulary: DONE / VERIFIED / PENDING / BLOCKED / DEFERRED / NEXT / VERIFY.
 
 ## Verification and future backlog — preserved from Phase 0 ledger
-
 ### Release/live verification backlog
-- Real Cloudinary E2E.
+- Real Cloudinary application-path E2E.
 - Real Supabase Storage E2E.
 - Real B2 E2E.
 - Real Google Drive E2E.
