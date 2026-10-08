@@ -66,7 +66,7 @@ async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkey
 
     async def failing(provider):
         calls.append(provider)
-        raise RuntimeError("provider unavailable")
+        raise TimeoutError("provider unavailable")
 
     with pytest.raises(RuntimeError, match="All configured AI providers failed"):
         await service._with_fallback("circuit-test", failing, ["openai", "gemini"])
@@ -90,11 +90,13 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
-    monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 0)
+    monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 0.1)
     service = UnifiedAIService()
+    ticks = iter([0.0, 0.0, 0.2, 0.2])
+    monkeypatch.setattr("app.services.unified_ai_service.time.monotonic", lambda: next(ticks))
 
     async def failing(_provider):
-        raise RuntimeError("temporary")
+        raise TimeoutError("temporary")
 
     with pytest.raises(RuntimeError):
         await service._with_fallback("circuit-test", failing, ["openai"])
