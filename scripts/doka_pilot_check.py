@@ -159,10 +159,16 @@ def main() -> int:
         apply_result = organization_planner.apply(session_id, safe_paths) if safe_paths else {"results": []}
 
     workspace_before_backup = workspace_backup_snapshot(workspace)
+    backup_started = time.monotonic()
     backup = workspace_backup_service.create(session_id=session_id)
+    backup_create_seconds = round(time.monotonic() - backup_started, 3)
     backup_name = Path(backup["archive"]).name
+    verify_started = time.monotonic()
     backup_verify = workspace_backup_service.verify(backup_name)
+    backup_verify_seconds = round(time.monotonic() - verify_started, 3)
+    restore_started = time.monotonic()
     recovery = workspace_backup_service.restore_to_recovery(backup_name, confirm=True)
+    restore_seconds = round(time.monotonic() - restore_started, 3)
     recovery_root = Path(recovery["recovery_path"])
     try:
         recovery_snapshot = source_snapshot(recovery_root)
@@ -236,8 +242,17 @@ def main() -> int:
             "archive_filename": Path(str(backup.get("archive", ""))).name,
             "sha256": backup.get("sha256"),
             "verified": backup_verify.get("verified"),
+            "backup_create_seconds": backup_create_seconds,
+            "backup_verify_seconds": backup_verify_seconds,
+            "restore_seconds": restore_seconds,
+            "rto_seconds": restore_seconds,
             "recovery_verified": recovery_verified,
             "recovery_active_workspace_changed": recovery.get("active_workspace_changed"),
+            "rpo": {
+                "model": "zero_loss_at_backup_point",
+                "files_lost_at_verified_backup_point": 0 if recovery_verified else None,
+                "time_window_seconds": None,
+            },
         },
         "apply_safe": apply_result,
     }
