@@ -15,6 +15,13 @@
       }
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DOKA_DB",
+      "database_name": "doka-ai-dms-prod",
+      "database_id": "4f3a294b-11ae-4ba7-903b-6f32539cebce"
+    }
+  ],
   "vars": {
     "SUPABASE_URL": "https://jkobgssaqifzrqfirdfu.supabase.co",
     "SUPABASE_STORAGE_BUCKET": "doka-documents",
