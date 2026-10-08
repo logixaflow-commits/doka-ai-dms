@@ -46,7 +46,7 @@ set CORS_ORIGINS=http://127.0.0.1:3000,http://localhost:3000,http://127.0.0.1:80
 "%VENV%\Scripts\python.exe" "%ROOT%\scripts\ocr_benchmark.py" --root "%DOKA_OCR_ROOT%" --manifest "%DOKA_OCR_MANIFEST%" --output "%EVIDENCE%\gate-3-ocr.json"
 if errorlevel 1 exit /b 3
 
-"%VENV%\Scripts\python.exe" "%ROOT%\scripts\doka_pilot_check.py" --source "%DOKA_PILOT_SOURCE%" --workspace "%DOKA_PILOT_WORKSPACE%" --backup-root "%DOKA_PILOT_BACKUPS%" --output "%EVIDENCE%\gate-5-pilot.json" --require-ocr
+"%VENV%\Scripts\python.exe" "%ROOT%\scripts\doka_pilot_check.py" --source "%DOKA_PILOT_SOURCE%" --workspace "%DOKA_PILOT_WORKSPACE%" --backup-root "%DOKA_PILOT_BACKUPS%" --output "%EVIDENCE%\gate-5-pilot-gate-6-recovery.json" --require-ocr
 if errorlevel 1 exit /b 5
 
 cd /d "%FRONTEND%"
