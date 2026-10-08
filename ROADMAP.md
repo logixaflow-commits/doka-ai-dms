@@ -149,3 +149,15 @@ Every phase closes only after implementation, automated tests, required E2E/live
 - Real provider credentials plus authenticated production tests.
 
 - Train 1 contract layer now covers retry/DLQ, circuit breaker, failover, consent, schema, multilingual retrieval and human approval; concrete integration and runtime evidence remain before Train 2 activation.
+
+
+## Train 1 integration checkpoint — 2026-10-08
+
+Train 1 is beyond contract-only work. Concrete repository paths now enforce:
+
+- durable D1 job idempotency over the existing jobs table schema;
+- retryable vs non-retryable outbox delivery with bounded retry/dead transitions;
+- AI provider circuit breaking, conservative retry classification, explicit failover approval, consent and fail-closed provider output handling;
+- OCR-aware Myanmar/English retrieval with Unicode NFC normalization, identity/hash validation and language-scoped ranking.
+
+The next Train 1 exit step is evidence, not speculative wiring: D1 runtime requires a provisioned database, provider acceptance requires real configured providers/consent, and multilingual retrieval requires the representative benchmark. Train 3 lease/fencing/takeover remains gated until those prerequisites and external-side-effect idempotency are proven.
