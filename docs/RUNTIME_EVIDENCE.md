@@ -42,3 +42,12 @@ Train 1/3 contract hardening may continue in parallel, but distributed late-ack/
 - No B2 or Google Drive live recovery evidence was produced in this pass.
 
 - Train 1 safety contracts are focused contract evidence only; no external provider call or production queue integration is claimed.
+
+
+## 2026-10-08 Train 1 CI evidence
+- Latest main commit: 06f6874aa999fec441bbb285327a17af795625c2
+- GitHub Actions **Doka Quality Checks: SUCCESS**.
+- GitHub Actions **CodeQL: SUCCESS**.
+- Quality run included backend regression, cloud storage contracts, symlink security, dependency audits, static/SBOM checks, frontend lint/build/smoke tests and the newly added Train 1 regression coverage.
+- The cloud storage contract job passed after the Train 1 D1/outbox test integration was corrected.
+- This CI evidence is repository/CI evidence only; it does not substitute for live D1, authenticated cloud A/B, provider recovery, OCR benchmark or browser acceptance evidence.
