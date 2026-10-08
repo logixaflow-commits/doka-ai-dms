@@ -36,6 +36,13 @@ Parallel tracks:
 Current blockers are runtime/environmental, not missing acceptance harness code.
 Do not mark a gate PASS from code or CI alone.
 
+### Current Train 0/parallel-prep state
+- Acceptance preflight exists and reports missing local/cloud capabilities without recording secrets.
+- Gate 9/10 evidence mapping accepts the privacy-safe User A/B isolation assertion from the cloud runner.
+- Live Supabase RLS has been inspected; the leaked-password-protection warning remains a security-freeze blocker until the platform setting is resolved.
+- Real Tesseract, copied-office, recovery, authenticated cloud, and provider-recovery evidence remain runtime prerequisites.
+- Train 1 workflow/AI foundations are being hardened in parallel, but are not activated as a release claim.
+
 ## Train 1 — Phase 7/8 Workflow + AI Hardening
 
 **Exit:** durable workflow/idempotency/retry evidence, provider failover evidence,
@@ -62,6 +69,12 @@ Parallel tracks:
 
 **Exit:** duplicate delivery, worker takeover, bounded retry/DLQ, load baseline,
 and disposable restore drill evidence.
+
+**Safety boundary:** do not enable late acknowledgements/worker-takeover behavior
+until the affected jobs have a durable idempotency contract. Otherwise a worker
+crash can convert safe redelivery into duplicate side effects. The implementation
+must therefore land as one tested unit: idempotency key + durable state transition
++ late-ack/takeover policy + duplicate-delivery test.
 
 Parallel tracks:
 - queue/lease/idempotency
