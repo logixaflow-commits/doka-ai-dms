@@ -91,17 +91,29 @@ class WorkflowAutomationService:
         try:
             workflow_id = str(uuid.uuid4())
             
-            # Convert steps to WorkflowStep objects
+            if not steps:
+                raise ValueError("Workflow must contain at least one step.")
+            allowed_types = {"approval", "task", "notification", "condition"}
             workflow_steps = []
+            seen_orders = set()
             for step_data in steps:
+                step_type = str(step_data.get("type", "")).strip().lower()
+                if step_type not in allowed_types:
+                    raise ValueError("Unsupported workflow step type: " + (step_type or "missing"))
+                if "name" not in step_data or not str(step_data["name"]).strip():
+                    raise ValueError("Workflow steps require a non-empty name.")
+                order = step_data.get("order")
+                if not isinstance(order, int) or order < 0 or order in seen_orders:
+                    raise ValueError("Workflow step order must be unique, integer, and non-negative.")
+                seen_orders.add(order)
                 step = WorkflowStep(
                     id=str(uuid.uuid4()),
-                    name=step_data["name"],
-                    type=step_data["type"],
+                    name=str(step_data["name"]).strip(),
+                    type=step_type,
                     assigned_to=step_data.get("assigned_to"),
                     conditions=step_data.get("conditions"),
                     actions=step_data.get("actions"),
-                    order=step_data["order"]
+                    order=order
                 )
                 workflow_steps.append(step)
             
@@ -160,8 +172,10 @@ class WorkflowAutomationService:
             # Save instance
             self._save_workflow_instance(instance)
             
-            # Execute first step
+            # Execute first step. A failed first step must never look successful.
             self._execute_step(instance, workflow.steps[0])
+            if instance.status == "failed":
+                raise RuntimeError("Workflow failed while executing its first step.")
             
             logger.info(f"Started workflow instance {instance_id}")
             return instance
@@ -278,53 +292,66 @@ class WorkflowAutomationService:
         user_id: int,
         result: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Complete workflow step"""
+        """Complete the active workflow step exactly once."""
         try:
-            # Get instance
             instance = self.get_workflow_instance(instance_id)
-            
             if not instance:
                 return {"success": False, "error": "Instance not found"}
-            
-            # Get workflow
             workflow = self.get_workflow(instance.workflow_id)
-            
             if not workflow:
                 return {"success": False, "error": "Workflow not found"}
-            
-            # Update step result
+            if instance.status in {"completed", "cancelled", "failed"}:
+                return {"success": False, "error": f"Instance is already {instance.status}"}
+            if instance.current_step <= 0 or instance.current_step > len(workflow.steps):
+                return {"success": False, "error": "Workflow instance has an invalid current step"}
+
+            expected_step = workflow.steps[instance.current_step - 1]
+            if step_id != expected_step.id:
+                return {
+                    "success": False,
+                    "error": "Step does not match the active workflow step",
+                    "expected_step_id": expected_step.id,
+                }
+            assigned = expected_step.assigned_to or []
+            if assigned and user_id not in assigned:
+                return {"success": False, "error": "User is not assigned to the active workflow step"}
+
             if "step_results" not in instance.data:
                 instance.data["step_results"] = []
-            
+            existing = [
+                item for item in instance.data["step_results"]
+                if item.get("step_id") == step_id and item.get("user_id") == user_id
+            ]
+            if existing:
+                return {
+                    "success": True,
+                    "idempotent": True,
+                    "instance_status": instance.status,
+                    "current_step": instance.current_step,
+                }
+
             instance.data["step_results"].append({
                 "step_id": step_id,
                 "user_id": user_id,
                 "result": result,
                 "completed_at": datetime.utcnow().isoformat()
             })
-            
-            # Check if workflow is complete
             if instance.current_step >= len(workflow.steps):
                 instance.status = "completed"
                 instance.completed_at = datetime.utcnow()
             else:
-                # Execute next step
-                next_step = workflow.steps[instance.current_step]
-                self._execute_step(instance, next_step)
-            
-            # Save instance
+                self._execute_step(instance, workflow.steps[instance.current_step])
             self._save_workflow_instance(instance)
-            
             return {
                 "success": True,
+                "idempotent": False,
                 "instance_status": instance.status,
-                "current_step": instance.current_step
+                "current_step": instance.current_step,
             }
-            
         except Exception as e:
             logger.error(f"Failed to complete step: {e}")
             return {"success": False, "error": str(e)}
-    
+
     def get_workflow(self, workflow_id: str) -> Optional[Workflow]:
         """Get workflow by ID"""
         try:
