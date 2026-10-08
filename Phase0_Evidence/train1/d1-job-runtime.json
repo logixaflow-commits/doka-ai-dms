@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-08T10:02:00Z",
+  "scope": "train1-d1-runtime",
+  "checks": {
+    "d1_provisioned": true,
+    "reviewed_migration_applied": true,
+    "duplicate_converges": true,
+    "success_terminal": true,
+    "retry_exhaustion_dead": true,
+    "outbox_delivery_terminal": true,
+    "worker_binding_present": true
+  },
+  "passed": true,
+  "privacy": {
+    "credentials_recorded": false,
+    "database_id_recorded": false,
+    "payload_recorded": false,
+    "test_ids_recorded": false
+  },
+  "method": "direct Cloudflare API acceptance against disposable rows; cleanup completed"
+}
