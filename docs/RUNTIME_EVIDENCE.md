@@ -56,7 +56,10 @@ Train 1/3 contract hardening may continue in parallel, but distributed late-ack/
 ## 2026-10-08 Train 1 live-infrastructure reconciliation
 - Cloudflare Worker `doka-ai-dms`: latest inspected version **631**, deployed **100%**.
 - Worker `workers.dev` subdomain is enabled; account subdomain is `logixaflow`.
-- Cloudflare D1 inventory: **0 databases**. Therefore live D1 job-ledger acceptance is **PENDING**, not PASS.
-- D1 database creation was attempted through the connected API but blocked by the platform safety layer before mutation; no infrastructure mutation occurred.
-- A privacy-safe live D1 acceptance runner is now committed at `scripts/d1_job_runtime_acceptance.py` for the moment a database is provisioned.
+- Cloudflare D1: production database provisioned in APAC and bound to the live Worker as `DOKA_DB`.
+- Reviewed baseline migration was applied successfully.
+- Live disposable acceptance passed duplicate convergence, terminal success, retry exhaustion/dead transition, and outbox terminal delivery; no credentials, database ID, payloads or test IDs were recorded.
+- Privacy-safe evidence is committed at `Phase0_Evidence/train1/d1-job-runtime.json`.
+- `scripts/d1_job_runtime_acceptance.py` remains available for repeatable credential-backed execution outside the connector runtime.
 - Supabase security advisor still reports **Leaked Password Protection Disabled**; no supported in-chat Auth-setting mutation is available, so this remains a Train 0 security-freeze blocker.
+- Real AI provider credentials/runtime and OCR runtime remain unavailable, so those evidence gates remain open.
