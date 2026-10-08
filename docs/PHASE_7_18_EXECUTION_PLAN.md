@@ -155,3 +155,33 @@ For every phase:
 6. Run disposable acceptance environment.
 7. Record privacy-safe evidence.
 8. Activate only after the evidence gate passes.
+
+
+## Contract backlog prepared during Train 0 closure
+
+### Train 1 — Workflow + AI Hardening
+1. Durable job-level idempotency key and state machine.
+2. Explicit retryable/non-retryable error taxonomy.
+3. Retry exhaustion state and DLQ transition.
+4. Provider circuit breaker: closed → open → half-open → closed/open tests.
+5. Provider failover must preserve request identity, consent and output schema.
+6. Consent boundary must be enforced before any external AI provider call.
+7. Structured AI output schema validation must fail closed on invalid output.
+8. OCR/multilingual retrieval contract must preserve language metadata and avoid cross-language corruption.
+9. Human approval boundary must be explicit for destructive/externally visible actions.
+
+### Train 2 — Controlled Product Expansion
+- Contract-first organization lifecycle and membership transitions.
+- Tenant authorization matrix mapped to RLS and storage ownership.
+- Invitation expiry, replay and session invalidation tests.
+- Migration forward/rollback pair and acceptance evidence.
+
+### Train 3 — Scale & Reliability
+- Queue lease contract with owner, lease expiry and fencing token.
+- Duplicate delivery must converge to one durable outcome.
+- Retry budget and DLQ transition must be observable and replay-safe.
+- Load baseline and failure-injection scenarios before traffic expansion.
+- Restore drill must measure RTO and explicitly state the RPO model.
+
+### Train 4–18 preparation
+Each later phase retains the same activation sequence: contract → implementation → feature flag → migration → rollback → security review → performance baseline → acceptance evidence → activation. No later-train feature is activated merely because its documentation or tests exist.
