@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "required_environment": {
+    "DOKA_CLOUD_BASE_URL": "https://example.invalid",
+    "DOKA_CLOUD_USER_A_TOKEN": "<pre-created-user-a-access-token>",
+    "DOKA_CLOUD_USER_B_TOKEN": "<pre-created-user-b-access-token>",
+    "DOKA_CLOUD_50MIB_FILE": "<optional-exact-52428800-byte-fixture>"
+  },
+  "acceptance": {
+    "gate_9": [
+      "health",
+      "user_a_upload",
+      "user_a_update",
+      "user_a_download",
+      "exact_50_mib_boundary"
+    ],
+    "gate_10": [
+      "user_b_cannot_list_user_a_document",
+      "user_b_cannot_download_user_a_document"
+    ],
+    "gate_11": [
+      "supabase_source_path",
+      "b2_over_50_mib_path",
+      "cloudinary_derivative_under_10_mib",
+      "google_drive_export_and_recovery"
+    ]
+  },
+  "privacy": {
+    "tokens_recorded": false,
+    "emails_recorded": false
+  }
+}
