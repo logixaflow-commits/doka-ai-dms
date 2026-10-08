@@ -93,8 +93,12 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
     monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 0.1)
     service = UnifiedAIService()
-    ticks = iter([0.0, 0.0, 0.2, 0.2, 0.2])
-    monkeypatch.setattr("app.services.unified_ai_service.time.monotonic", lambda: next(ticks))
+    clock_calls = [0]
+    def monotonic():
+        value = 0.0 if clock_calls[0] < 2 else 1.0
+        clock_calls[0] += 1
+        return value
+    monkeypatch.setattr("app.services.unified_ai_service.time.monotonic", monotonic)
 
     async def failing(_provider):
         raise TimeoutError("temporary")
