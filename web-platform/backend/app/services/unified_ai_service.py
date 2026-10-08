@@ -11,6 +11,12 @@ import httpx
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.services.train1_safety_contracts import (
+    CircuitBreaker,
+    ErrorClass,
+    classify_error,
+    select_failover_provider,
+)
 
 logger = get_logger(__name__)
 
@@ -39,6 +45,7 @@ class UnifiedAIService:
         self.providers: Dict[str, Dict[str, Any]] = {}
         self._provider_failures: Dict[str, int] = {}
         self._provider_opened_at: Dict[str, float] = {}
+        self._provider_circuits: Dict[str, CircuitBreaker] = {}
         self._init_providers()
 
     def _init_providers(self):
@@ -115,24 +122,32 @@ class UnifiedAIService:
         configured = settings.AI_PROVIDER_MAX_ATTEMPTS
         return configured if configured > 0 else candidate_count
 
+    def _provider_circuit(self, provider: str) -> CircuitBreaker:
+        circuit = self._provider_circuits.get(provider)
+        if circuit is None:
+            circuit = CircuitBreaker(
+                failure_threshold=settings.AI_PROVIDER_FAILURE_THRESHOLD,
+                recovery_after=settings.AI_PROVIDER_COOLDOWN_SECONDS,
+            )
+            self._provider_circuits[provider] = circuit
+        return circuit
+
     def _provider_is_available(self, provider: str) -> bool:
-        opened_at = self._provider_opened_at.get(provider)
-        if opened_at is None:
-            return True
-        if time.monotonic() - opened_at >= settings.AI_PROVIDER_COOLDOWN_SECONDS:
-            return True
-        return False
+        return self._provider_circuit(provider).allow(time.monotonic())
 
     def _record_provider_success(self, provider: str) -> None:
         self._provider_failures.pop(provider, None)
         self._provider_opened_at.pop(provider, None)
+        self._provider_circuit(provider).success()
 
     def _record_provider_failure(self, provider: str) -> None:
+        now = time.monotonic()
         failures = self._provider_failures.get(provider, 0) + 1
         self._provider_failures[provider] = failures
-        if failures >= settings.AI_PROVIDER_FAILURE_THRESHOLD:
-            self._provider_opened_at[provider] = time.monotonic()
-            logger.warning("AI provider '%s' circuit opened after %s consecutive failures", provider, failures)
+        self._provider_opened_at[provider] = now
+        self._provider_circuit(provider).failure(now)
+        if self._provider_circuit(provider).state.value == "open":
+            logger.warning("AI provider '%s' circuit opened after %s failures", provider, failures)
 
     async def _with_fallback(
         self,
@@ -148,20 +163,40 @@ class UnifiedAIService:
         if not candidates:
             raise RuntimeError("No AI providers are configured")
 
+        # Failover is explicitly opt-in because each alternate provider may be
+        # a separate data processor. Consent alone is not permission to broaden
+        # the processor set after a provider failure.
+        if len(candidates) > 1 and not getattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False):
+            candidates = candidates[:1]
+
         errors = []
-        for provider in candidates:
+        unavailable: set[str] = set()
+        original = candidates[0]
+        for index, provider in enumerate(candidates):
             if not self._provider_is_available(provider):
                 errors.append(f"{provider}: circuit open")
+                unavailable.add(provider)
                 continue
+            if index > 0:
+                provider = select_failover_provider(
+                    candidates,
+                    unavailable,
+                    original_provider=original,
+                    approved_for_failover=getattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False),
+                )
             try:
                 result = await call(provider)
                 self._record_provider_success(provider)
                 logger.info("AI operation '%s' completed with provider '%s'", operation, provider)
                 return result
             except Exception as exc:
+                if classify_error(exc) is ErrorClass.NON_RETRYABLE:
+                    logger.error("AI operation '%s' failed closed on provider '%s'", operation, provider)
+                    raise
                 self._record_provider_failure(provider)
-                errors.append(f"{provider}: {exc}")
-                logger.warning("AI provider '%s' failed for '%s'; trying next provider", provider, operation)
+                unavailable.add(provider)
+                errors.append(f"{provider}: transient provider failure")
+                logger.warning("AI provider '%s' failed transiently for '%s'; trying approved alternate", provider, operation)
 
         raise RuntimeError(f"All configured AI providers failed for '{operation}': " + " | ".join(errors))
 
