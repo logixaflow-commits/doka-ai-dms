@@ -51,11 +51,16 @@ def test_workflow_completion_checks_step_and_assignment(service):
     assert service.complete_step(instance.id, "wrong", 7, {})["success"] is False
     assert service.complete_step(instance.id, step.id, 8, {})["success"] is False
 
-    result = service.complete_step(instance.id, step.id, 7, {"approved": True})
+    result = service.complete_step(
+        instance.id, step.id, 7, {"approved": True}, idempotency_key="approve-1"
+    )
     assert result["success"] is True
     assert result["instance_status"] == "completed"
+    assert result["idempotency_key"] == "approve-1"
 
-    replay = service.complete_step(instance.id, step.id, 7, {"approved": True})
+    replay = service.complete_step(
+        instance.id, step.id, 7, {"approved": True}, idempotency_key="approve-1"
+    )
     assert replay["success"] is False
 
 def test_workflow_reports_failure_when_next_step_execution_fails(service, monkeypatch):
@@ -87,3 +92,45 @@ def test_workflow_reports_failure_when_next_step_execution_fails(service, monkey
     assert result["instance_status"] == "failed"
     assert result["error"] == "Workflow failed while executing the next step"
 
+
+def test_workflow_rejects_invalid_idempotency_key(service):
+    workflow = service.create_workflow(
+        "approval",
+        "",
+        "document",
+        [{"name": "approve", "type": "approval", "assigned_to": [7], "order": 0}],
+        1,
+    )
+    instance = service.start_workflow(workflow.id, 10, 1)
+    step = workflow.steps[0]
+
+    result = service.complete_step(
+        instance.id, step.id, 7, {}, idempotency_key="bad key with spaces"
+    )
+    assert result == {"success": False, "error": "Invalid idempotency key"}
+
+
+def test_workflow_rejects_reuse_with_different_idempotency_key(service):
+    workflow = service.create_workflow(
+        "two-step",
+        "",
+        "document",
+        [
+            {"name": "approve", "type": "approval", "assigned_to": [7], "order": 0},
+            {"name": "notify", "type": "notification", "order": 1},
+        ],
+        1,
+    )
+    instance = service.start_workflow(workflow.id, 10, 1)
+    step = workflow.steps[0]
+
+    first = service.complete_step(
+        instance.id, step.id, 7, {"approved": True}, idempotency_key="approve-1"
+    )
+    assert first["success"] is True
+
+    conflict = service.complete_step(
+        instance.id, step.id, 7, {"approved": True}, idempotency_key="approve-2"
+    )
+    assert conflict["success"] is False
+    assert "different idempotency key" in conflict["error"]
