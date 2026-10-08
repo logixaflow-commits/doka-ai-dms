@@ -8,6 +8,10 @@ import numpy as np
 import hashlib
 import json
 import os
+import unicodedata
+import re
+
+from app.services.train1_safety_contracts import RetrievalDocument, validate_retrieval_documents
 
 # Try to import sentence-transformers
 try:
@@ -59,7 +63,7 @@ class VectorSearchService:
 
     def _get_cache_key(self, text: str, suffix: str = "embed") -> str:
         """Generate cache key for text."""
-        text_hash = hashlib.md5(text[:500].encode()).hexdigest()
+        text_hash = hashlib.sha256(self._normalize_text(text)[:500].encode("utf-8")).hexdigest()
         return f"vector_search:{suffix}:{text_hash}"
 
     def _get_cache(self, cache_key: str) -> Optional[List[float]]:
@@ -99,6 +103,34 @@ class VectorSearchService:
         # Fallback to in-memory cache
         self.embedding_cache[cache_key] = value
 
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """Normalize OCR text to canonical Unicode NFC."""
+        if not isinstance(text, str):
+            return ""
+        return unicodedata.normalize("NFC", text).replace("\u200b", " ").strip()
+
+    @staticmethod
+    def _detect_language(text: str) -> str:
+        """Classify the dominant supported OCR script as mya or eng."""
+        normalized = VectorSearchService._normalize_text(text)
+        mya = sum(
+            1 for char in normalized
+            if "\u1000" <= char <= "\u109f"
+            or "\ua9e0" <= char <= "\ua9ff"
+            or "\uaa60" <= char <= "\ua97f"
+            or "\u116d0" <= char <= "\u116ff"
+        )
+        latin = sum(1 for char in normalized.casefold() if "a" <= char <= "z")
+        return "mya" if mya and mya >= max(1, latin) else "eng"
+
+    @staticmethod
+    def _retrieval_identity(doc: Dict, text: str) -> RetrievalDocument:
+        document_id = str(doc.get("id") or doc.get("document_id") or "").strip()
+        language = str(doc.get("language") or VectorSearchService._detect_language(text)).strip().lower()
+        digest = hashlib.sha256(VectorSearchService._normalize_text(text).encode("utf-8")).hexdigest()
+        return RetrievalDocument(document_id=document_id, language=language, text_hash=digest)
+
     def generate_embedding(self, text: str) -> Optional[List[float]]:
         """
         Generate vector embedding from text.
@@ -109,6 +141,7 @@ class VectorSearchService:
         Returns:
             List of floats (embedding vector) or None if unavailable
         """
+        text = self._normalize_text(text)
         if not text or not SENTENCE_TRANSFORMERS_AVAILABLE or not self.model:
             return None
 
@@ -211,7 +244,7 @@ class VectorSearchService:
 
         # Generate cache key for search results
         doc_ids = str(sorted([doc_id for doc_id, _ in document_vectors]))
-        query_hash = hashlib.md5(json.dumps(query_vector).encode()).hexdigest()
+        query_hash = hashlib.sha256(json.dumps(query_vector, separators=(",", ":")).encode("utf-8")).hexdigest()
         cache_key = f"vector_search:result:{query_hash}:{limit}:{threshold}:{doc_ids}"
         
         # Check cache
@@ -261,10 +294,34 @@ class VectorSearchService:
         Returns:
             List of (document, similarity_score) tuples
         """
+        query_text = self._normalize_text(query_text)
         if not query_text or not documents:
             return []
 
-        # Generate query embedding
+        query_language = self._detect_language(query_text)
+        eligible = []
+        identities = []
+        for doc in documents:
+            text = self._normalize_text(doc.get("ocr_text", "") or doc.get("text", "") or doc.get("original_filename", ""))
+            identities.append(self._retrieval_identity(doc, text))
+            eligible.append((doc, text))
+        validate_retrieval_documents(identities)
+        eligible = [(doc, text) for doc, text in eligible if self._detect_language(text) == query_language]
+        if not eligible:
+            return []
+
+        if query_language == "mya":
+            query_terms = set(re.findall(r"\w+", query_text.casefold(), flags=re.UNICODE))
+            scored = []
+            for doc, text in eligible:
+                terms = set(re.findall(r"\w+", text.casefold(), flags=re.UNICODE))
+                score = len(query_terms & terms) / len(query_terms | terms) if query_terms and terms else 0.0
+                if score >= threshold:
+                    scored.append((doc, score))
+            scored.sort(key=lambda item: item[1], reverse=True)
+            return scored[offset:offset + limit]
+
+        documents = [doc for doc, _ in eligible]
         query_vector = self.generate_embedding(query_text)
         if not query_vector:
             return []
@@ -272,7 +329,7 @@ class VectorSearchService:
         # Prepare document vectors
         document_vectors = []
         for doc in documents:
-            text_to_embed = doc.get('ocr_text', '') or doc.get('original_filename', '')
+            text_to_embed = self._normalize_text(doc.get("ocr_text", "") or doc.get("text", "") or doc.get("original_filename", ""))
             if text_to_embed:
                 embedding = self.generate_embedding(text_to_embed)
                 if embedding:
