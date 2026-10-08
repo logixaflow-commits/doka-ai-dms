@@ -30,13 +30,13 @@
 - Gate 7: quality/dependency/security workflow evidence is green.
 - Live Supabase migration head: 20261005113241_doka_audit_export_backup_actions — verified from the live migration list on 2026-10-08.
 - Repository migration head: 20261007120000_doka_trigger_function_least_privilege. This is newer than the live head and must never be represented as live production state.
-- Cloudflare Worker doka-ai-dms is live at 100% traffic; the latest inspected deployment after D1 binding is version 100% on the current live deployment. Production D1 `DOKA_DB` is now provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
+- Cloudflare Worker doka-ai-dms is live at 100% traffic; the current live deployment is version 641 at 100% traffic. Production D1 `DOKA_DB` is now provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
 - Render connected workspace: service listing returned no active services on 2026-10-08.
 - Cloudinary provider-level recovery probe on 2026-10-08: 22-byte test object, SHA-256 42b68a292fea02d6220c0ee02a4489697758f19d4fb1420d9063697087583a1c; backup download returned exact payload; delete returned success; subsequent asset lookup returned a zero-byte placeholder, proving the original delivery object was removed. Tool-side duration was not exposed.
 
 ## 6. IN PROGRESS
-- 2026-10-08 parallel checkpoint: live Supabase security advisor still has leaked-password protection WARN; live Cloudflare Worker deployment was inspected (version 602 at 100%). Neither observation closes application acceptance gates.
-- Vercel connected project `enterprise-ai-dms` remains `live=false` with latest production deployment `CANCELED`; the latest GitHub commit status also reports a Vercel `failure` check attributed to a build-rate-limit target. This does not change the release-gate evidence decision.
+- 2026-10-08 parallel checkpoint: live Supabase security advisor still has leaked-password protection WARN; live Cloudflare Worker is version 641 at 100% traffic. Neither observation closes application acceptance gates.
+- Vercel connected project `enterprise-ai-dms` remains `live=false` with latest production deployment `CANCELED`; the latest GitHub commit status is currently `Vercel: success`, while the connected Vercel project's latest production deployment remains `CANCELED` and `live=false`. This does not change the release-gate evidence decision.
 - Train 1 checkpoint: D1 job-idempotency/outbox adapters are now live-backed and their disposable acceptance evidence is recorded; AI retry/circuit/failover and OCR-aware retrieval remain runtime/provider evidence gates.
 - Train 1/3 workflow hardening is targeted-runtime verified, and durable job-level idempotency state is now implemented/tested on `main`. Next contract backlog: retry taxonomy → retry exhaustion/DLQ → provider half-open/failover/consent/schema → multilingual retrieval → human approval.
 - Train 1/3 hardening: workflow idempotency, D1 job idempotency, outbox retry/DLQ handling, AI circuit/failover/consent/schema boundaries, and OCR-aware retrieval safeguards are implemented; distributed worker takeover remains intentionally disabled.
@@ -94,7 +94,7 @@
 - Frontend lint/build/smoke: latest recorded run passed.
 - Quality + CodeQL evidence: latest recorded workflow run passed.
 - Live Supabase head: 20261005113241_doka_audit_export_backup_actions, freshly verified on 2026-10-08.
-- Cloudflare Worker: latest inspected 100% traffic version 602 on 2026-10-08; no rollback or traffic change was performed.
+- Cloudflare Worker: latest inspected version 641 at 100% traffic on 2026-10-08; no rollback or traffic change was performed.
 - Render: connected workspace returned no services.
 - Cloudinary: provider-level recovery probe passed on 2026-10-08 as recorded above.
 - Vercel: project inactive/latest production deployment canceled; explicit paused flag unavailable.
@@ -102,7 +102,7 @@
 ## 12. NEXT ACTION
 **Owner-provided runtime evidence is now the critical path.** The repository is prepared through Gates 3–11: Personal Local OCR/pilot/browser/recovery runners are ready, and `scripts/cloud_acceptance.py` is ready for Gate 9/10 with two pre-created user access tokens plus an exact 50 MiB fixture. Gate 11 still requires live B2 and Google Drive credentials/connectors and a real Cloudinary application-path run. Then rerun only the blocked gates, record measured evidence, and close Gate 8 before Gate 12.
 
-- Train 1 safety contracts are now wired into concrete paths where the repository has them: D1 jobs/outbox, unified AI provider routing, and vector retrieval. Remaining evidence is runtime/provider acceptance; no concrete queue consumer exists in the current Worker, and D1 is not provisioned in the connected account.
+- Train 1 safety contracts are now wired into concrete paths where the repository has them: D1 jobs/outbox, unified AI provider routing, and vector retrieval. Remaining evidence is runtime/provider acceptance; no concrete queue consumer exists in the current Worker, and production D1 is provisioned and bound to the Worker; no queue consumer is exposed by the current Worker entrypoint.
 
 
 ## 13. TRAIN 1 CONCRETE INTEGRATION CHECKPOINT — 2026-10-08
