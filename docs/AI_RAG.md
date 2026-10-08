@@ -11,7 +11,7 @@ AI is disabled by default. External document processing requires explicit consen
 ## Provider boundary
 Implemented provider adapters are not automatically configured, enabled, live-tested or production-approved. Unsupported providers fail closed.
 
-The current architecture includes provider routing/fallback logic and schema validation for AI document output. Embedding routing honors configured provider order and can fall back to deterministic local similarity where designed.
+The current architecture includes provider routing/fallback logic and schema validation for AI document output. Embedding routing honors configured provider order and can fall back to deterministic local similarity where designed. Provider circuit state is currently process-local; this is not yet a distributed health registry or a production failover proof.
 
 ## Agent boundary
 Reader: source reading, OCR/metadata extraction and duplicate/version clues; no writes.
