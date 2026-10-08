@@ -118,7 +118,7 @@ class VectorSearchService:
             1 for char in normalized
             if "\u1000" <= char <= "\u109f"
             or "\ua9e0" <= char <= "\ua9ff"
-            or "\uaa60" <= char <= "\ua97f"
+            or "\uaa60" <= char <= "\ua9ff"
             or "\u116d0" <= char <= "\u116ff"
         )
         latin = sum(1 for char in normalized.casefold() if "a" <= char <= "z")
