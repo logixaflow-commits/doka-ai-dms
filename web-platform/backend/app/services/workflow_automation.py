@@ -341,6 +341,15 @@ class WorkflowAutomationService:
                 instance.completed_at = datetime.utcnow()
             else:
                 self._execute_step(instance, workflow.steps[instance.current_step])
+                if instance.status == "failed":
+                    self._save_workflow_instance(instance)
+                    return {
+                        "success": False,
+                        "idempotent": False,
+                        "instance_status": "failed",
+                        "current_step": instance.current_step,
+                        "error": "Workflow failed while executing the next step",
+                    }
             self._save_workflow_instance(instance)
             return {
                 "success": True,
