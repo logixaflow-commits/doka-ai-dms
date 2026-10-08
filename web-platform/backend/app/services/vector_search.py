@@ -178,11 +178,18 @@ class VectorSearchService:
         Returns:
             List of embedding vectors
         """
-        if not texts or not SENTENCE_TRANSFORMERS_AVAILABLE or not self.model:
+        if not texts or not SENTENCE_TRANSFORMERS_AVAILABLE:
             return [None] * len(texts)
+        if self.model is None:
+            try:
+                self.model = SentenceTransformer("all-MiniLM-L6-v2")
+            except Exception as exc:
+                logger.warning("Failed to load semantic retrieval model: %s", exc)
+                return [None] * len(texts)
 
         try:
-            embeddings = self.model.encode(texts, convert_to_numpy=True)
+            normalized = [self._normalize_text(text) for text in texts]
+            embeddings = self.model.encode(normalized, convert_to_numpy=True)
             return [emb.tolist() if emb is not None else None for emb in embeddings]
         except Exception as e:
             logger.error(f"Failed to generate batch embeddings: {e}")
