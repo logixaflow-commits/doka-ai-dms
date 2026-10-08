@@ -155,7 +155,8 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 
 ### Train 1/3 hardening boundary
 - Workflow idempotency and atomic instance persistence are implemented and targeted-runtime verified.
-- Next contract unit: durable job-level idempotency + retry boundary + retry exhaustion + DLQ state model before any distributed worker takeover.
+- Durable job-level idempotency state contract is now implemented and contract-tested on `main`: claim binding, atomic persistence, duplicate convergence, retry exhaustion and DLQ transition. The queue adapter is intentionally not wired yet; distributed takeover remains closed until the durable ledger is backed by the production job/DB layer and external side effects share the key.
+- Next contract unit: retryable/non-retryable taxonomy + provider half-open/failover/consent/schema contracts before any distributed worker takeover.
 - AI provider work remains contract-first: half-open circuit behavior, failover safety, consent boundary and output schema tests before activation.
 
 ### Forward train preparation (not activated)
