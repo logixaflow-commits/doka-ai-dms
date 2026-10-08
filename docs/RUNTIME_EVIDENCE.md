@@ -22,6 +22,11 @@ This document records disposable-runtime observations that are useful for releas
 - Covered: normal completion, wrong assignment/step, next-step failure propagation, invalid idempotency key, key reuse conflict, and concurrent duplicate delivery.
 - Full backend suite was not claimed; this is targeted contract evidence only.
 
+### Durable job-level idempotency contract checkpoint
+- `job_idempotency.py` now provides a transport-agnostic durable state machine for claim → running → retryable/exhausted → dead-lettered or succeeded.
+- Contract tests cover duplicate claim convergence, key-to-job binding, retry exhaustion/DLQ, terminal replay safety, concurrent duplicate claims, and explicit absence of takeover/lease APIs.
+- No queue worker or late-ack/takeover path was enabled by this change.
+
 ## Release interpretation
 
 Train 0 remains **PENDING** for OCR/browser/pilot/recovery/cloud/provider evidence. The runtime result is a real blocker, not a missing harness feature.
