@@ -60,6 +60,7 @@ async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkey
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 2)
     monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 60)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
     service = UnifiedAIService()
 
     calls = []
@@ -92,7 +93,7 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
     monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 0.1)
     service = UnifiedAIService()
-    ticks = iter([0.0, 0.0, 0.2, 0.2])
+    ticks = iter([0.0, 0.0, 0.2, 0.2, 0.2])
     monkeypatch.setattr("app.services.unified_ai_service.time.monotonic", lambda: next(ticks))
 
     async def failing(_provider):
