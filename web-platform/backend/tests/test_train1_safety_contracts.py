@@ -10,6 +10,7 @@ from app.services.train1_safety_contracts import (
     SchemaField,
     classify_error,
     decide_retry,
+    select_failover_provider,
     make_dlq_record,
     require_consent,
     require_human_approval,
@@ -101,3 +102,19 @@ def test_human_approval_is_required_for_side_effects():
         require_human_approval(True, side_effect=True)
     with pytest.raises(ContractViolation):
         require_human_approval(False, side_effect=True, approver_id="admin-1")
+
+def test_failover_requires_explicit_approval_and_healthy_alternate():
+    assert select_failover_provider(
+        ["primary", "secondary"], {"primary"},
+        original_provider="primary", approved_for_failover=True,
+    ) == "secondary"
+    with pytest.raises(ContractViolation):
+        select_failover_provider(
+            ["primary", "secondary"], {"primary"},
+            original_provider="primary", approved_for_failover=False,
+        )
+    with pytest.raises(ContractViolation):
+        select_failover_provider(
+            ["primary", "secondary"], {"primary", "secondary"},
+            original_provider="primary", approved_for_failover=True,
+        )
