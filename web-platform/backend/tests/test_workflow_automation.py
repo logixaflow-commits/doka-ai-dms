@@ -1,4 +1,5 @@
 import pytest
+from concurrent.futures import ThreadPoolExecutor
 
 from app.services.workflow_automation import WorkflowAutomationService
 
@@ -134,3 +135,32 @@ def test_workflow_rejects_reuse_with_different_idempotency_key(service):
     )
     assert conflict["success"] is False
     assert "different idempotency key" in conflict["error"]
+
+def test_workflow_duplicate_delivery_is_serialized_by_idempotency_key(service):
+    workflow = service.create_workflow(
+        "duplicate-safe",
+        "",
+        "document",
+        [
+            {"name": "approve", "type": "approval", "assigned_to": [7], "order": 0},
+            {"name": "notify", "type": "notification", "order": 1},
+        ],
+        1,
+    )
+    instance = service.start_workflow(workflow.id, 10, 1)
+    step = workflow.steps[0]
+
+    def deliver():
+        return service.complete_step(
+            instance.id,
+            step.id,
+            7,
+            {"approved": True},
+            idempotency_key="delivery-1",
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: deliver(), range(2)))
+
+    assert sorted(result["idempotent"] for result in results) == [False, True]
+    assert sum(result["success"] for result in results) == 2
