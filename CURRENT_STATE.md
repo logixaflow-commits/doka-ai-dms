@@ -101,3 +101,5 @@
 
 ## 12. NEXT ACTION
 **Owner-provided runtime evidence is now the critical path.** The repository is prepared through Gates 3–11: Personal Local OCR/pilot/browser/recovery runners are ready, and `scripts/cloud_acceptance.py` is ready for Gate 9/10 with two pre-created user access tokens plus an exact 50 MiB fixture. Gate 11 still requires live B2 and Google Drive credentials/connectors and a real Cloudinary application-path run. Then rerun only the blocked gates, record measured evidence, and close Gate 8 before Gate 12.
+
+- Train 1 safety contract layer now covers retry/DLQ, circuit breaker, failover approval, consent, schema, multilingual retrieval and human approval. Integration and runtime evidence remain pending where concrete provider/queue/RAG paths are absent.
