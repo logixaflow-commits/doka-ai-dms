@@ -157,10 +157,18 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 - Workflow idempotency and atomic instance persistence are implemented and targeted-runtime verified.
 - Durable job-level idempotency state contract is now implemented and contract-tested on `main`: claim binding, atomic persistence, duplicate convergence, retry exhaustion and DLQ transition. The queue adapter is intentionally not wired yet; distributed takeover remains closed until the durable ledger is backed by the production job/DB layer and external side effects share the key.
 - Train 1 safety contract layer is now implemented/tested: conservative retry taxonomy, exhaustion/DLQ records, circuit breaker closed/open/half-open transitions, explicit failover approval, exact consent scope, fail-closed AI output schema, mya/eng retrieval identity/hash/language checks, and human-approval boundary. These are transport/provider agnostic and do not enable worker takeover.
-- Remaining Train 1 integration work is to wire these contracts into real queue/provider/RAG/AI paths once those concrete integrations exist, then run runtime evidence.
+- Train 1 concrete integration is now partially wired: the Cloudflare D1 `jobs` ledger enforces durable idempotency-key binding/replay, the D1 outbox applies retryable/non-retryable failure handling, the unified AI router uses the shared retry taxonomy/circuit breaker and requires explicit failover approval, and retrieval now normalizes OCR text and language-scopes Myanmar/English ranking.\n- Remaining Train 1 work is runtime evidence plus any concrete side-effect/consumer wiring discovered during acceptance. Worker takeover/late acknowledgement remains disabled until Train 3.
 - AI provider work remains contract-first: half-open circuit behavior, failover safety, consent boundary and output schema tests before activation.
 
 ### Forward train preparation (not activated)
 - Train 2: organization lifecycle, RBAC/tenant matrix, RLS/storage isolation, invitation/session replay controls, migration rollback contract.
 - Train 3: queue lease/takeover, duplicate delivery, bounded retries/DLQ, load/failure-injection and restore-drill contracts.
 - Train 4+: retain phase-by-phase contracts and rollback/acceptance gates; implementation/activation remains sequential.
+
+
+### 2026-10-08 Train 1 concrete-integration checkpoint
+- D1 durable job adapter added at `cloudflare_worker/jobs.py`, using the existing authoritative `jobs.idempotency_key` uniqueness and bounded attempt fields. It supports create-or-converge, pending claim, success, retryable failure, non-retryable failure and exhaustion → dead transitions. It does not implement lease takeover.
+- D1 outbox delivery now distinguishes transient failures from permanent/schema failures; permanent failures go directly to `dead` and transient failures retain bounded exponential backoff.
+- Unified AI provider routing now uses the Train 1 retry taxonomy and circuit-breaker state machine. Provider failover is explicitly opt-in through `AI_PROVIDER_FAILOVER_APPROVED=true`; without it, a provider outage does not silently broaden external data processing.
+- Retrieval now canonicalizes OCR text to Unicode NFC, records SHA-256 retrieval identity, validates supported `mya`/`eng` language metadata, scopes ranking by language, and avoids the English-centric embedding path for Myanmar OCR.
+- These are implementation/contract changes, not live provider/runtime PASS claims. Acceptance still requires real D1/Worker, AI-provider, and Myanmar/English benchmark evidence.
