@@ -236,7 +236,12 @@ jobs:
       - name: Compile backend and pilot utilities
         run: |
           python -m compileall -q web-platform/backend
-          python -m py_compile scripts/doka_pilot_check.py scripts/ocr_benchmark.py
+          python -m py_compile \
+            scripts/doka_pilot_check.py \
+            scripts/ocr_benchmark.py \
+            scripts/cloud_acceptance.py \
+            scripts/d1_job_runtime_acceptance.py \
+            scripts/release_gate_check.py
       - name: Verify D1 migration manifest
         run: python scripts/verify_d1_migrations.py --manifest cloudflare_worker/migrations/manifest.json
       - name: Run maintained Personal Local regression suite
