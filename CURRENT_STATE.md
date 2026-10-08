@@ -110,17 +110,17 @@
 - Outbox: actual delivery failures now use a conservative retry taxonomy; permanent failures dead-letter immediately and transient failures use bounded backoff.
 - AI: unified_ai_service now uses the Train 1 circuit breaker and retry taxonomy; provider failover is opt-in via AI_PROVIDER_FAILOVER_APPROVED and structured/non-retryable failures fail closed.
 - Retrieval: vector_search now canonicalizes OCR text to Unicode NFC, validates mya/eng identity + SHA-256, scopes ranking by language, and uses deterministic local ranking for Myanmar OCR instead of the English-centric embedding model.
-- Runtime constraint: Cloudflare account inspection returned zero D1 databases, so D1 runtime acceptance cannot honestly be marked PASS. Provider runtime evidence and Myanmar/English benchmark remain pending.
+- Runtime constraint: D1 runtime acceptance is now PASS for the disposable ledger/outbox state-transition scope. Provider runtime evidence and Myanmar/English benchmark remain pending.
 
 
 ## 14. TRAIN 1 CI RECONCILIATION — 2026-10-08
 - Concrete Train 1 implementation is CI-verified on main: Doka Quality Checks passed and CodeQL passed on the final implementation commit 06f6874aa999fec441bbb285327a17af795625c2.
 - The Quality run covered backend regression (including Train 1 safety/AI/retrieval tests), Cloudflare job/outbox/storage contracts, dependency audits, static/SBOM checks, frontend lint/build/smoke, and symlink security.
-- This closes the implementation/CI portion of Train 1. It does **not** close live evidence gates that require real OCR tooling, browser data, authenticated cloud users, provider recovery, or provisioned D1 infrastructure.
+- This closes the implementation/CI portion of Train 1. D1 runtime infrastructure and disposable ledger acceptance are now closed; real OCR tooling, browser data, authenticated cloud users, provider recovery, and AI provider runtime evidence remain open.
 
 
 ## 15. TRAIN 1 RUNTIME EVIDENCE STATUS — 2026-10-08
 - Concrete integration remains CI-verified: latest Doka Quality Checks **SUCCESS** and CodeQL **SUCCESS** on commit `ce328544a1b88b32fb53bd01227789bcbf3446a0`.
 - Live Cloudflare Worker is version 631 at 100% traffic.
-- Live D1 cannot yet be proven because the connected Cloudflare account has zero D1 databases. A disposable live D1 acceptance runner is prepared but intentionally not executed without a real database.
+- Live D1 is now provisioned, migrated and bound to the Worker. Disposable acceptance passed duplicate convergence, terminal success, retry exhaustion/dead transition and outbox terminal delivery; privacy-safe evidence is recorded at `Phase0_Evidence/train1/d1-job-runtime.json`.
 - Supabase Auth leaked-password protection remains a security-freeze blocker.
