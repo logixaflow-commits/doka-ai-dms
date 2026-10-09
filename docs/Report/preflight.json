@@ -1,0 +1,88 @@
+{
+  "cloud_env_present": {
+    "DOKA_CLOUD_BASE_URL": false,
+    "DOKA_CLOUD_USER_A_TOKEN": false,
+    "DOKA_CLOUD_USER_B_TOKEN": false
+  },
+  "cloud_ready": false,
+  "cloudflare_env_present": {
+    "CLOUDFLARE_ACCOUNT_ID": false,
+    "CLOUDFLARE_API_TOKEN": false,
+    "DOKA_D1_DATABASE_ID": false
+  },
+  "commands": {
+    "node": {
+      "available": true,
+      "path_recorded": false,
+      "version_available": true,
+      "version_recorded": true
+    },
+    "npm": {
+      "available": true,
+      "path_recorded": false,
+      "version_available": true,
+      "version_recorded": true
+    },
+    "python": {
+      "available": true,
+      "version_ok": true
+    },
+    "tesseract": {
+      "available": true,
+      "path_recorded": false,
+      "version_available": true,
+      "version_recorded": true
+    }
+  },
+  "local_ready": true,
+  "mode": "local",
+  "privacy": {
+    "credential_values_recorded": false,
+    "environment_values_recorded": false,
+    "ocr_text_recorded": false,
+    "paths_recorded": false
+  },
+  "provider_env_present": {
+    "CLOUDINARY_API_KEY": false,
+    "CLOUDINARY_API_SECRET": false,
+    "CLOUDINARY_CLOUD_NAME": false,
+    "R2_ACCESS_KEY_ID": false,
+    "R2_BUCKET": false,
+    "R2_ENDPOINT_URL": false,
+    "R2_SECRET_ACCESS_KEY": false,
+    "SUPABASE_PUBLISHABLE_KEY": false,
+    "SUPABASE_STORAGE_BUCKET": false,
+    "SUPABASE_URL": false
+  },
+  "python": {
+    "major": 3,
+    "minor": 14,
+    "version_ok": true
+  },
+  "python_modules": {
+    "PIL": true,
+    "argon2": true,
+    "bcrypt": true,
+    "boto3": true,
+    "cv2": true,
+    "fastapi": true,
+    "httpx": true,
+    "jwt": true,
+    "loguru": true,
+    "numpy": true,
+    "openpyxl": true,
+    "pdf2image": true,
+    "pdfplumber": true,
+    "pytesseract": true,
+    "pytest": true,
+    "pytest_asyncio": true,
+    "yaml": true
+  },
+  "ready": true,
+  "schema_version": 1,
+  "tesseract_languages": {
+    "available": true,
+    "eng": true,
+    "mya": true
+  }
+}
