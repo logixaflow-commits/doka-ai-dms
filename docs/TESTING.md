@@ -67,3 +67,6 @@ The runner is disposable and privacy-safe: it verifies duplicate idempotency con
 
 ## D1 migration integrity
 `python scripts/verify_d1_migrations.py --manifest cloudflare_worker/migrations/manifest.json` verifies that the numbered migration sequence and reviewed Git-blob hashes match. `web-platform/tests/test_d1_migrations.py` applies the numbered SQL files to a disposable SQLite database and verifies the organization-owner, document-owner-membership, permission-recipient and permission-granter guards. This does not apply migrations to production.
+
+
+The production D1 authorization migration was applied only after a SQL export completed, the export restored in disposable SQLite, the affected metadata tables were confirmed empty, and all four migration guard tests passed. The post-apply read-only query confirmed the unique-owner index and six integrity triggers; see `Phase0_Evidence/train1/d1-authorization-migration-2026-10-09.json`.

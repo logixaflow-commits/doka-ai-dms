@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "scope": "train1-d1-authorization-integrity-migration",
+  "date": "2026-10-09",
+  "privacy": {
+    "credentials_recorded": false,
+    "signed_backup_url_recorded": false,
+    "user_data_recorded": false
+  },
+  "pre_change_backup": {
+    "export_complete": true,
+    "bookmark": "00000003-00000000-000050ff-e4c25120e0784b58c5e72db907e0ca24",
+    "sql_bytes": 8910,
+    "sha256": "0f0f53195798cc95f24f8a90edd289bf6460f14f818a27cdd7185a815d2a1d6d",
+    "restored_in_disposable_sqlite": true,
+    "restored_schema_object_count": 43
+  },
+  "pre_change_row_counts": {
+    "users": 0,
+    "organizations": 0,
+    "organization_members": 0,
+    "documents": 0,
+    "document_permissions": 0
+  },
+  "migration_validation": {
+    "manifest_checksum_verified": true,
+    "disposable_sqlite_tests_passed": 4,
+    "production_query_batch_success": true
+  },
+  "production_post_check": {
+    "database_id": "4f3a294b-11ae-4ba7-903b-6f32539cebce",
+    "authorization_guard_objects_found": 7,
+    "authorization_guard_objects_expected": 7,
+    "metadata_row_counts_remain_zero": true,
+    "database_changed_by_migration": true,
+    "size_after_bytes": 192512
+  },
+  "passed": true
+}

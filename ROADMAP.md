@@ -28,7 +28,7 @@ Cloud: authenticated lifecycle -> two-user isolation -> storage/recovery -> secu
 8. Gate 8 — Personal Local final freeze and release evidence.
 
 Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require real evidence. Gate 8 remains blocked until 1–7 are evidenced. The current execution order is Gate 3 OCR → Gate 5 copied-office pilot/recovery → Gate 4 browser E2E → Gate 6 timed recovery/RTO/RPO → Gate 7 dependency/security recheck → Gate 8 final freeze. Latest local checks on 2026-10-09: maintained Personal Local backend suite 58 passed; Cloud storage/provider/release-gate suite 86 passed; frontend install/build/smoke/lint passed on Node 22 (Node 24 is the declared/CI runtime). GitHub Actions results for the latest commit are not available through the connected status view.
-- D1 authorization migration 0002 is source-verified and passes disposable SQLite tests. A read-only production schema audit found its unique-owner index and four integrity triggers are not yet present; the production metadata tables checked are empty. Apply only after preserving the pre-change export evidence and verifying the post-change object list.
+- D1 authorization migration 0002 was applied after export-and-restore preflight. The post-change production D1 query found the unique-owner index and all six integrity triggers expected by the migration; the affected metadata tables remain empty. Privacy-safe evidence is recorded under `Phase0_Evidence/train1/d1-authorization-migration-2026-10-09.json`.
 
 ### Current close-out evidence
 - Gate 3: PENDING. OCR runner exists, but current representative sample/manifest and Tesseract version are unavailable.
