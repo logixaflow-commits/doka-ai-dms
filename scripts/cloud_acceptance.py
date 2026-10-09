@@ -172,9 +172,9 @@ def main() -> int:
                 method="DELETE",
             )
             _assert_status(permanent, 200, "user A permanent cleanup")
-        created_document_ids.remove(document_id)
+            created_document_ids.remove(document_id)
     
-        finally:
+    finally:
         # Best-effort cleanup also runs when any assertion fails midway.
         if created_document_ids:
             try:
