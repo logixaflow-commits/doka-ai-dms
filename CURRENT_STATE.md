@@ -11,7 +11,7 @@
 - **Personal Cloud:** foundation implemented; authenticated lifecycle, two-user isolation, B2/Drive recovery and full provider-boundary evidence remain pending. The acceptance runner was reconciled to the current signed direct-upload/download contract, hashes actual downloaded bytes, records privacy-safe failure evidence and performs best-effort cleanup in a finally path; fresh CI/runtime evidence is still pending.
 - **Enterprise:** deferred.
 - **Cloudflare Worker:** current live deployment is verified below.
-- **Vercel:** project is inactive in the connected account, but the connector does not expose an explicit paused flag; retain VERIFY rather than infer owner-paused state.
+- **Vercel:** project reports `live=false`; the repository's Vercel production smoke workflow explicitly states production is intentionally paused and is manual-only. Keep Gate 12 blocked until owner-approved reactivation and final acceptance.
 - **Render:** no services were returned for the connected Render workspace; this is evidence of no accessible active Render runtime.
 
 ## 4. COMPLETED
@@ -29,19 +29,19 @@
 - Gate 1: local auth/session/restart/replay code and automated safety verification; browser acceptance remains separate.
 - Gate 2: organization apply/locking/limits/undo automated verification; browser acceptance remains separate.
 - Gate 7: quality/dependency/security workflow evidence is green.
-- Live Supabase migration head: 20261005113241_doka_audit_export_backup_actions — verified from the live migration list on 2026-10-08.
-- Repository migration head: 20261007120000_doka_trigger_function_least_privilege. This is newer than the live head and must never be represented as live production state.
-- Cloudflare Worker doka-ai-dms is live at 100% traffic; the latest inspected deployment is version 652. The live bundle now contains the explicit-origin CORS contract (no legacy old Vercel origin). Production D1 `DOKA_DB` remains provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
+- Live Supabase migration head: `20261009083942_doka_trigger_function_least_privilege` — applied during the 2026-10-09 cloud follow-up and verified from the live migration list. The corresponding migration filename is reconciled on PR #24.
+- Trigger-function privilege verification after migration: `anon_can_execute=false`, `authenticated_can_execute=false`, `service_role_can_execute=true` for `public.doka_set_updated_at()`.
+- Cloudflare Worker `doka-ai-dms` is live at 100% traffic; the latest inspected deployment is version 671 (100% on version ID `14e89790-c793-4d9b-9025-c5c7f412033f`). The configured 50 MiB limit and provider bindings are present; provider application-path acceptance remains pending. Production D1 `DOKA_DB` remains provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
 - Render connected workspace: service listing returned no active services on 2026-10-08.
 - Cloudinary provider-level recovery probe on 2026-10-08: 22-byte test object, SHA-256 42b68a292fea02d6220c0ee02a4489697758f19d4fb1420d9063697087583a1c; backup download returned exact payload; delete returned success; subsequent asset lookup returned a zero-byte placeholder, proving the original delivery object was removed. Tool-side duration was not exposed.
 
 ## 6. IN PROGRESS
-- 2026-10-09 checkpoint: live Supabase security advisor still has leaked-password protection WARN; latest inspected Cloudflare Worker version is 652 at 100% traffic. Neither observation closes application acceptance gates.
-- Vercel connected project `enterprise-ai-dms` remains `live=false` with latest production deployment `CANCELED`; the latest GitHub commit status is currently `Vercel: success`, while the connected Vercel project's latest production deployment remains `CANCELED` and `live=false`. This does not change the release-gate evidence decision.
+- 2026-10-09 cloud checkpoint: live Supabase security advisor still has leaked-password protection WARN; latest inspected Cloudflare Worker version is 671 at 100% traffic. Supabase least-privilege trigger-function migration is now applied and verified. Neither observation closes application acceptance gates.
+- Vercel project `enterprise-ai-dms` remains `live=false` with latest deployment `CANCELED`. The deployment API links the cancellation to the ignored-build-step setting, and `.github/workflows/vercel-production.yml` explicitly documents production as intentionally paused/manual-only. No production deploy was triggered; Gate 12 remains blocked pending owner-approved reactivation and gate evidence.
 - Train 1 checkpoint: D1 job-idempotency/outbox adapters are now live-backed and their disposable acceptance evidence is recorded; AI retry/circuit/failover and OCR-aware retrieval remain runtime/provider evidence gates.
-- Train 1/3 workflow hardening is targeted-runtime verified, and durable job-level idempotency state is now implemented/tested on `main`. Next contract backlog: retry taxonomy → retry exhaustion/DLQ → provider half-open/failover/consent/schema → multilingual retrieval → human approval.
+- Train 1 implementation status: durable job idempotency, retry taxonomy/exhaustion and DLQ handling, provider circuit/failover/consent/schema boundaries, and OCR-aware multilingual retrieval safeguards are implemented and covered by focused tests/CI. The remaining Train 1 work is real provider/runtime acceptance and representative Myanmar/English retrieval benchmarking; human approval remains a required workflow boundary. Distributed worker takeover remains intentionally disabled.
 - Train 1/3 hardening: workflow idempotency, D1 job idempotency, outbox retry/DLQ handling, AI circuit/failover/consent/schema boundaries, and OCR-aware retrieval safeguards are implemented; distributed worker takeover remains intentionally disabled.
-- Live Supabase Security Advisor recheck on 2026-10-08 still reports `auth_leaked_password_protection` as WARN. The connected Supabase tool exposes no Auth security-setting mutation, so this remains a release/security-freeze blocker rather than an unverified claim.
+- Live Supabase Security Advisor recheck on 2026-10-09 still reports `auth_leaked_password_protection` as WARN. The connected Supabase tool exposes no Auth security-setting mutation, so an authorized project operator must enable it and rerun the advisor; this remains a release/security-freeze blocker.
 - Gate 3: OCR benchmark evidence reconciliation.
 - Gate 4: synthetic Chromium browser flow now passes on 2026-10-09 (login → import → scan → understand → review plan; source SHA-256 unchanged), with privacy-safe evidence at `Phase0_Evidence/acceptance/personal-local-browser-smoke-2026-10-09.json`. Gate remains PENDING until the same flow is exercised with representative copied-office data and real OCR requirements.
 - Gate 5: copied-office pilot and before/after source hashes.
@@ -60,9 +60,12 @@
 - Gate 9: live Worker unauthenticated probe returned HTTP 403; no disposable authenticated test-user session was available for the required lifecycle test.
 - Gate 10: live Supabase is healthy with current migrations, but two real authenticated test users were not available. Existing synthetic RLS probes are not accepted as two-user release evidence.
 - Gate 11: Cloudinary provider-level recovery verified; B2 and Google Drive live credentials/connectors are not available. Therefore the complete storage/recovery gate remains PENDING.
-- Vercel explicit paused-state evidence: the connected Vercel project reports live=false and latest production deployment CANCELED, but the API response exposes no explicit paused-state field. Keep VERIFY for the exact owner-paused claim.
+- Vercel production pause: repository workflow documentation explicitly says production is intentionally paused and its smoke workflow is manual-only. The latest deployment was canceled by the ignored-build-step setting; do not infer a failed app build or reactivate production without owner approval.
+- Cloudflare deploy workflow: the old duplicate `Doka Cloudflare Deploy` workflow repeatedly failed at `setup-node@v7` before deployment/health checks and used unpinned `wrangler@latest`. PR #24 removes that workflow in favor of the retained pinned, dry-run, explicit-confirmation `Cloudflare Worker Production Deploy` path.
 
 ## 8. BLOCKED
+- AI billing guard is being implemented on PR #24: the unified service is restricted to allowlisted OpenRouter free chat models and free embeddings; billable provider adapters and Hugging Face inference are not registered/called. This is a branch change, not a deployed runtime change.
+- OpenRouter credential reachability is unverified: no AI provider key name was found in the inspected Vercel environment list or Cloudflare Worker secret bindings. No test inference request was sent and no key value was read. Confirm the intended backend runtime/secret store before claiming the key works.
 - Gate 8: Personal Local final freeze, blocked until Gates 1–7 are fully evidenced.
 - Gate 12: deployment/final go-live, blocked until Gates 9–11 are fully evidenced.
 

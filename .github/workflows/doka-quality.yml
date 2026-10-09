@@ -48,6 +48,28 @@ permissions:
   contents: read
 
 jobs:
+  repository-self-audit:
+    name: Repository self-audit preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Test self-audit behavior
+        run: python -m unittest scripts/audit/test_doka_self_audit.py -v
+      - name: Run repository self-audit
+        run: python scripts/audit/doka_self_audit.py --output "$RUNNER_TEMP/doka-self-audit.json"
+      - name: Upload self-audit report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: doka-self-audit-report
+          path: ${{ runner.temp }}/doka-self-audit.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   backend-dependency-audit:
     name: Backend dependency audit
     runs-on: ubuntu-latest

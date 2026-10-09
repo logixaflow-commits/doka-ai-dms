@@ -50,56 +50,43 @@ class UnifiedAIService:
 
     def _init_providers(self):
         """Register only providers that have a complete, implemented adapter."""
-        base = {
-            "gemini": (settings.GEMINI_API_KEY, settings.GEMINI_MODEL),
-            "openrouter": (settings.OPENROUTER_API_KEY, settings.OPENROUTER_MODEL),
-            "groq": (settings.GROQ_API_KEY, settings.GROQ_MODEL),
-            "openai": (settings.OPENAI_API_KEY, settings.OPENAI_MODEL),
+        # Strict free-only policy: only explicitly allowlisted OpenRouter chat models
+        # may be registered. Other provider keys can remain configured for unrelated
+        # uses, but this service never sends requests to billable provider APIs.
+        model = settings.OPENROUTER_MODEL.strip()
+        free_chat_models = {
+            "openrouter/free",
+            "apodex/apodex-1.1-mini:free",
+            "inception/mercury-decide:free",
+            "liquid/lfm-2.5-2.6b:free",
+            "nvidia/nemotron-3.5-lightning:free",
+            "thinkingmachines/inkling-small:free",
+            "thinkingmachines/inkling:free",
+            "cohere/north-mini-code:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+            "google/gemma-4-26b-a4b-it:free",
+            "google/gemma-4-31b-it:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "poolside/laguna-s-2.1:free",
+            "dots-studio/dots-3-note-preview:free",
         }
-        for name, (api_key, model) in base.items():
-            if api_key and not api_key.startswith("your_") and model:
-                self.providers[name] = {
-                    "api_key": api_key,
-                    "model": model,
-                    "enabled": True,
-                }
+        if (
+            settings.OPENROUTER_API_KEY
+            and not settings.OPENROUTER_API_KEY.startswith("your_")
+            and model in free_chat_models
+        ):
+            self.providers["openrouter"] = {
+                "api_key": settings.OPENROUTER_API_KEY,
+                "model": model,
+                "enabled": True,
+            }
+        elif settings.OPENROUTER_API_KEY:
+            logger.warning("OpenRouter model is not on the Doka free-chat allowlist; external AI remains unavailable")
 
-        # These adapters use explicit OpenAI-compatible endpoints. A key without
-        # a model and endpoint must never make the provider appear available.
-        compatible = {
-            "mistral": (
-                getattr(settings, "MISTRAL_API_KEY", ""),
-                getattr(settings, "MISTRAL_MODEL", ""),
-                getattr(settings, "MISTRAL_API_BASE_URL", ""),
-            ),
-            "cerebras": (
-                getattr(settings, "CEREBRAS_API_KEY", ""),
-                getattr(settings, "CEREBRAS_MODEL", ""),
-                getattr(settings, "CEREBRAS_API_BASE_URL", ""),
-            ),
-            "nvidia": (
-                getattr(settings, "NVIDIA_API_KEY", ""),
-                getattr(settings, "NVIDIA_MODEL", ""),
-                getattr(settings, "NVIDIA_API_BASE_URL", ""),
-            ),
-        }
-        for name, (api_key, model, endpoint) in compatible.items():
-            if (
-                api_key
-                and not api_key.startswith("your_")
-                and model
-                and endpoint
-            ):
-                self.providers[name] = {
-                    "api_key": api_key,
-                    "model": model,
-                    "endpoint": endpoint,
-                    "enabled": True,
-                }
-
-        # Cohere, Voyage, Cloudflare AI, and other planned providers remain
-        # explicit roadmap capabilities until a dedicated adapter exists.
-        # Merely supplying a secret must not activate an unimplemented route.
+        # Gemini, Groq, OpenAI, Mistral, Cerebras, NVIDIA and other provider
+        # adapters are intentionally not registered under the free-only policy.
+        # Their configured credentials are never used by this service.
         if self.providers:
             logger.info("AI providers configured: %s", self.get_available_providers())
         else:
@@ -390,31 +377,46 @@ class UnifiedAIService:
             )
         providers = [provider] if provider else self._embedding_provider_order()
         errors = []
+        free_embedding_models = {
+            "liquid/lfm-2.5-embedding-350m:free",
+            "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+        }
         for candidate in providers:
-            if candidate != "huggingface":
-                errors.append(f"{candidate}: no dedicated embedding adapter")
+            if candidate != "openrouter":
+                errors.append(f"{candidate}: disabled by the free-only AI policy")
                 continue
-            if not settings.HUGGINGFACE_API_KEY or not settings.HUGGINGFACE_MODEL:
-                errors.append("huggingface: credentials/model not configured")
+            model = settings.OPENROUTER_EMBEDDING_MODEL.strip()
+            if model not in free_embedding_models:
+                errors.append("openrouter: embedding model is not on the free-only allowlist")
+                continue
+            if not settings.OPENROUTER_API_KEY or settings.OPENROUTER_API_KEY.startswith("your_"):
+                errors.append("openrouter: API key is not configured")
                 continue
             try:
-                cfg = {"api_key": settings.HUGGINGFACE_API_KEY, "model": settings.HUGGINGFACE_MODEL}
                 async with httpx.AsyncClient(timeout=settings.AI_PROVIDER_TIMEOUT_SECONDS) as client:
                     response = await client.post(
-                        f"https://api-inference.huggingface.co/models/{cfg['model']}",
-                        headers={"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"},
-                        json={"inputs": text},
+                        "https://openrouter.ai/api/v1/embeddings",
+                        headers={
+                            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://enterprise-dms.local",
+                            "X-Title": "Doka",
+                        },
+                        json={"model": model, "input": text},
                     )
                     response.raise_for_status()
-                    data = response.json()
-                vector = data[0] if isinstance(data, list) and data and isinstance(data[0], list) else data
+                    payload = response.json()
+                data = payload.get("data") if isinstance(payload, dict) else None
+                vector = data[0].get("embedding") if isinstance(data, list) and data and isinstance(data[0], dict) else None
                 if not isinstance(vector, list) or not vector or not all(isinstance(v, (int, float)) for v in vector):
-                    raise ValueError("Hugging Face returned an invalid embedding vector.")
+                    raise ValueError("OpenRouter returned an invalid embedding vector.")
                 return [float(v) for v in vector]
             except Exception as exc:
-                errors.append(f"{candidate}: {exc}")
-                logger.warning("Embedding provider '%s' failed; trying next provider", candidate)
-        raise RuntimeError("All configured embedding providers failed: " + " | ".join(errors))
+                # Do not fall back to a provider that may charge. compare_similarity()
+                # may still use its deterministic local similarity implementation.
+                errors.append(f"{candidate}: free embedding request failed ({type(exc).__name__})")
+                logger.warning("Free embedding provider failed; local similarity fallback remains available")
+        raise RuntimeError("All configured free embedding providers failed: " + " | ".join(errors))
 
     @staticmethod
     def _local_similarity(text1: str, text2: str) -> float:

@@ -29,6 +29,7 @@ async def test_ai_fallback_uses_next_provider(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_ai_failover_is_disabled_without_explicit_approval(monkeypatch):
+    monkeypatch.setattr(settings, "AI_PROVIDER_ORDER", ["gemini", "openrouter"])
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False)
@@ -47,6 +48,7 @@ async def test_ai_failover_is_disabled_without_explicit_approval(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_non_retryable_provider_error_fails_closed(monkeypatch):
+    monkeypatch.setattr(settings, "AI_PROVIDER_ORDER", ["gemini", "openrouter"])
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
@@ -101,6 +103,42 @@ async def test_external_embeddings_require_ai_enabled_and_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_ENABLED", False)
     with pytest.raises(RuntimeError, match="AI is disabled"):
+        await service.get_embedding("private document text")
+
+
+
+def test_free_only_provider_registration_ignores_paid_provider_keys(monkeypatch):
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setattr(settings, "OPENROUTER_MODEL", "openrouter/free")
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setattr(settings, "OPENAI_MODEL", "gpt-4o")
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "test-groq-key")
+
+    service = UnifiedAIService()
+
+    assert list(service.providers) == ["openrouter"]
+    assert service.providers["openrouter"]["model"] == "openrouter/free"
+
+
+def test_non_free_openrouter_chat_model_is_rejected(monkeypatch):
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setattr(settings, "OPENROUTER_MODEL", "openai/gpt-4o")
+
+    service = UnifiedAIService()
+
+    assert "openrouter" not in service.providers
+
+
+@pytest.mark.asyncio
+async def test_paid_embedding_provider_is_never_called_by_free_only_policy(monkeypatch):
+    service = UnifiedAIService()
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_EMBEDDING_PROVIDER_ORDER", ["huggingface"])
+    monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-hf-key")
+
+    with pytest.raises(RuntimeError, match="disabled by the free-only AI policy"):
         await service.get_embedding("private document text")
 
 
