@@ -166,6 +166,7 @@ This section records the connected-service state actually inspected during the c
 - [x] Configuration includes B2, Cloudinary, Google Drive, and Supabase secret bindings; the inspection recorded binding names only, never secret values.
 - [x] Configured Worker-side max object size is 52,428,800 bytes (50 MiB); rate-limit binding is configured for 100 requests per 60 seconds.
 - [ ] Cloudflare configuration is not end-to-end acceptance. Run authenticated application-path tests for each provider, exact size boundary and >50 MiB routing/recovery where supported, checksum verification, and failure/retry behavior.
+- [x] Removed the duplicate `.github/workflows/cloudflare-deploy.yml` from the PR branch: it repeatedly failed at `setup-node@v7` before the deploy/health steps and used unpinned `wrangler@latest`. The retained `.github/workflows/cloudflare-worker-deploy.yml` uses pinned tooling, a dry-run, and explicit production confirmation (or a `[deploy-worker]` commit marker). This prevents the broken, less-controlled workflow from competing with the gated deployment path.
 
 ### Upstash / QStash / Workflow
 - [x] Upstash Redis database `Doka` reports active, TLS enabled, eviction disabled.
