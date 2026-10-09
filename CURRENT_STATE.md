@@ -64,6 +64,8 @@
 - Cloudflare deploy workflow: the old duplicate `Doka Cloudflare Deploy` workflow repeatedly failed at `setup-node@v7` before deployment/health checks and used unpinned `wrangler@latest`. PR #24 removes that workflow in favor of the retained pinned, dry-run, explicit-confirmation `Cloudflare Worker Production Deploy` path.
 
 ## 8. BLOCKED
+- AI billing guard is being implemented on PR #24: the unified service is restricted to allowlisted OpenRouter free chat models and free embeddings; billable provider adapters and Hugging Face inference are not registered/called. This is a branch change, not a deployed runtime change.
+- OpenRouter credential reachability is unverified: no AI provider key name was found in the inspected Vercel environment list or Cloudflare Worker secret bindings. No test inference request was sent and no key value was read. Confirm the intended backend runtime/secret store before claiming the key works.
 - Gate 8: Personal Local final freeze, blocked until Gates 1–7 are fully evidenced.
 - Gate 12: deployment/final go-live, blocked until Gates 9–11 are fully evidenced.
 
