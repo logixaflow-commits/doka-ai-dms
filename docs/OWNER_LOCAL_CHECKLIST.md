@@ -181,16 +181,17 @@ This section records the connected-service state actually inspected during the c
 
 ### Render
 - [x] Connected account has a workspace named `My Workspace`.
-- [ ] Service listing was not run because the Render connector requires an explicitly selected workspace. If Render is part of the intended cloud architecture, select the correct workspace before any service inspection. No workspace was guessed.
+- [x] Inspected Render workspace `My Workspace` (`tea-datqhq0jo6nc73c3qva0`) and queried services with previews both enabled and disabled on 2026-10-09; the connected service listing returned `null`, with no service IDs/configuration to inspect or edit. This does not prove that the owner has no Render service in another account/team; it means none is visible through the current connected workspace response.
+- [ ] Owner/runtime follow-up: open Render Dashboard and confirm the service belongs to this account/workspace and is shared with the connected identity. Do not create a replacement service or deploy blindly. `infrastructure/railway/*` exists in the repository, but that is not evidence Railway is active; do not use it as the live runtime without confirmation.
 
 
 ### AI model and billing boundary
 - [x] Inspected Vercel project environment-variable names without decrypting secrets: no `OPENROUTER_API_KEY` or other AI-provider key was present in the returned Vercel environment list. Values were not revealed.
 - [x] Inspected Cloudflare Worker secret-binding names only: the Worker has storage/provider secrets but no OpenRouter/Gemini/Groq/OpenAI/Hugging Face AI key binding. Secret values were not retrieved.
-- [x] PR #24 now defaults AI task routing to OpenRouter's free router, restricts generic chat to the supplied free-model allowlist, and routes embeddings only to the free OpenRouter embedding allowlist. Other provider APIs are not registered by the unified AI service; Hugging Face inference is not used as an embedding fallback.
-- [ ] The OpenRouter key's presence/usability and actual zero-cost usage are **not yet verified** because no key was found in the inspected Vercel/Cloudflare secret stores. Do not paste a key into chat or logs. Locate the intended backend runtime's secret store, add it there if needed, then run a non-sensitive smoke request and verify the model/usage in OpenRouter.
+- [x] PR #24 is merged to `main`; the unified AI service defaults to OpenRouter's free router, restricts generic chat to the explicit free-model allowlist, and routes embeddings only to the free OpenRouter embedding allowlist. Other provider APIs are not registered by the unified AI service; Hugging Face inference is not used as an embedding fallback. GitHub Doka Quality Checks and CodeQL both passed on merge commit `c0f9a5e1c73f750c58b926f45b074552650c0001`.
+- [ ] The OpenRouter key's presence/usability and actual zero-cost usage are **not yet verified** because no key was found in the inspected Vercel/Cloudflare secret stores and no active Render service was visible through the connector. Do not paste a key into chat or logs. Once the intended backend service is confirmed, add the key in that service's secret manager, then run a non-sensitive smoke request and verify the model/usage in OpenRouter.
 - [ ] Some supplied model IDs are specialized (embedding, reranking, content safety, audio, behavior scoring). They must only be wired into matching task-specific adapters; they are not interchangeable with chat-completion models.
-- [ ] Render workspace/service inspection remains blocked until the owner selects the intended workspace; no workspace or runtime was guessed.
+- [ ] Render runtime configuration remains unverified because the explicit `My Workspace` service-list requests returned `null`. Confirm the actual service in Render Dashboard before changing environment variables or deploying; do not guess a service ID or substitute Railway.
 
 
 ### Cloud completion conditions
