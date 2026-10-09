@@ -29,6 +29,7 @@ async def test_ai_fallback_uses_next_provider(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_ai_failover_is_disabled_without_explicit_approval(monkeypatch):
+    monkeypatch.setattr(settings, "AI_PROVIDER_ORDER", ["gemini", "openrouter"])
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False)
@@ -47,6 +48,7 @@ async def test_ai_failover_is_disabled_without_explicit_approval(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_non_retryable_provider_error_fails_closed(monkeypatch):
+    monkeypatch.setattr(settings, "AI_PROVIDER_ORDER", ["gemini", "openrouter"])
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
