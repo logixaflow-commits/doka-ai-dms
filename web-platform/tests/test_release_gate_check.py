@@ -1,6 +1,17 @@
 from __future__ import annotations
 
-from scripts.release_gate_check import gate_ready
+import importlib.util
+from pathlib import Path
+
+_MODULE_SPEC = importlib.util.spec_from_file_location(
+    "doka_release_gate_check",
+    Path(__file__).resolve().parents[2] / "scripts" / "release_gate_check.py",
+)
+assert _MODULE_SPEC is not None and _MODULE_SPEC.loader is not None
+DOKA_RELEASE_GATE_CHECK = importlib.util.module_from_spec(_MODULE_SPEC)
+_MODULE_SPEC.loader.exec_module(DOKA_RELEASE_GATE_CHECK)
+
+gate_ready = DOKA_RELEASE_GATE_CHECK.gate_ready
 
 
 def _all_prerequisites():

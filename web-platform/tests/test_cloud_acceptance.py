@@ -1,12 +1,23 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
+from pathlib import Path
 
 import httpx
 import pytest
 
-from scripts.cloud_acceptance import _download_and_verify, _upload_document
+_MODULE_SPEC = importlib.util.spec_from_file_location(
+    "doka_cloud_acceptance",
+    Path(__file__).resolve().parents[2] / "scripts" / "cloud_acceptance.py",
+)
+assert _MODULE_SPEC is not None and _MODULE_SPEC.loader is not None
+DOKA_CLOUD_ACCEPTANCE = importlib.util.module_from_spec(_MODULE_SPEC)
+_MODULE_SPEC.loader.exec_module(DOKA_CLOUD_ACCEPTANCE)
+
+_download_and_verify = DOKA_CLOUD_ACCEPTANCE._download_and_verify
+_upload_document = DOKA_CLOUD_ACCEPTANCE._upload_document
 
 
 def test_upload_uses_signed_provider_url_and_worker_completion():
