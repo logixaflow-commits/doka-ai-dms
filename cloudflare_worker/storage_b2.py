@@ -22,6 +22,17 @@ from storage_contracts_compat import (
 )
 
 
+def b2_region_from_endpoint(endpoint: str, configured_region: str = "") -> str:
+    """Prefer an explicit region; infer it from standard Backblaze S3 endpoints otherwise."""
+    if configured_region.strip():
+        return configured_region.strip()
+    host = (urlsplit(endpoint.strip()).hostname or "").lower()
+    match = re.fullmatch(r"s3\.([a-z0-9-]+)\.backblazeb2\.com", host)
+    if match:
+        return match.group(1)
+    return "us-east-005"
+
+
 @dataclass(frozen=True)
 class B2StorageConfig:
     endpoint: str
