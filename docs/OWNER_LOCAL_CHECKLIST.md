@@ -145,7 +145,7 @@ This section records the connected-service state actually inspected during the c
 
 ### Supabase — project `Enterprise AI DMS`
 - [x] Project reports `ACTIVE_HEALTHY`; PostgreSQL 17.6.1.141.
-- [x] Live migration head observed: `20261005113241_doka_audit_export_backup_actions`, matching the previously recorded expected head.
+- [x] Applied the pending least-privilege trigger-function migration during this cloud follow-up. Live head is now `20261009083942_doka_trigger_function_least_privilege`; privilege check confirms `anon` and `authenticated` cannot directly execute `public.doka_set_updated_at()`, while `service_role` can. The repository migration filename was reconciled to this applied version on the PR branch.
 - [x] `public.doka_documents`, `public.doka_document_versions`, and `public.doka_audit_events` have RLS enabled. Inspected owner policies constrain access using `auth.uid()`; version policies scope through the owning document.
 - [x] Storage bucket `doka-documents` is private and has a 52,428,800-byte (50 MiB) file-size limit. Its object policies scope paths to `users/<auth.uid()>/...`.
 - [x] Document table row count was 0 during this snapshot; no customer document content was read.
@@ -156,10 +156,10 @@ This section records the connected-service state actually inspected during the c
 ### Vercel — project `enterprise-ai-dms`
 - [x] Project uses Vite and Node 24.x.
 - [ ] Project reports `live=false`; latest deployment is `CANCELED`.
-- [ ] The 30 most recent deployments filtered to production were all `CANCELED`, including attempts on `main`. This is a persistent deployment-state issue, not proof of a build failure. Investigate Vercel deployment settings, cancellation source, Git integration, and deployment protection/limits before attempting production promotion.
+- [x] The 30 most recent deployments filtered to production were `CANCELED`; the latest deployment links to Vercel's `ignored-build-step` documentation. The repository's `.github/workflows/vercel-production.yml` explicitly says production is intentionally paused and its smoke check is manual-only. Thus these cancellations may be the configured intentional pause/ignored-build behavior, not a failed application build. Keep production paused unless the owner explicitly authorizes reactivation.
 - [x] Vercel runtime error aggregation reported no runtime error clusters in the inspected 7-day window.
 - [ ] Detailed runtime log query for the last 24 hours was unavailable because the Hobby plan's retention window is shorter than the requested range; this is not evidence that logs are empty.
-- [ ] Do not promote/redeploy production until the owner confirms the cancellation is not intentional and the exact candidate passes the release gates. No production deploy was triggered.
+- [x] No production deploy was triggered. Gate 12 remains blocked because production is intentionally paused in repository documentation and the release gates are not yet closed; any reactivation requires explicit owner approval and a successful candidate.
 
 ### Cloudflare Worker — `doka-ai-dms`
 - [x] Worker script exists; latest inspected deployment routes 100% traffic to version 671 (`14e89790-c793-4d9b-9025-c5c7f412033f`) as of this snapshot.
