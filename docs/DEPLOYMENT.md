@@ -15,12 +15,12 @@
 ## Cloudflare Worker
 Current URL: https://doka-ai-dms.logixaflow.workers.dev.
 
-Live verification on 2026-10-08:
+Live verification on 2026-10-09:
 - Worker: doka-ai-dms
 - Current traffic: 100%
-- Version number: 648
-- Version ID: d405b126-edec-4d84-82ad-7bb9ab0dde00
-- Version uploaded: 2026-10-08T18:13:36.346894Z
+- Version number: 652
+- Version ID: d856562e-50d7-4b2e-ad43-283b7825acd1
+- Version uploaded: 2026-10-09T03:24:07.098165Z
 - Deployment path: `.github/workflows/cloudflare-deploy.yml` uses Wrangler on `main` changes to `cloudflare_worker/**` or `wrangler.jsonc`; it requires the GitHub `CLOUDFLARE_API_TOKEN` secret and verifies `/health` after deployment.
 - Live CORS contract: explicit release/preview origins only with `allow_credentials=False`; the legacy `enterprise-ai-dms.vercel.app` origin is no longer present in the live bundle.
 
