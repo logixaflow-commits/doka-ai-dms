@@ -5,15 +5,15 @@ import hashlib
 import hmac
 import json
 import time
-from urllib.parse import quote
 from workers import env as worker_env
 
 from shared.storage_contracts import StorageObjectRef, UploadMetadata
-from storage_b2 import B2StorageConfig, B2StorageProvider
+from storage_b2 import B2StorageConfig, B2StorageProvider, b2_region_from_endpoint
 from storage_cloudinary import CloudinaryConfig, CloudinaryDerivativeProvider
 from storage_router import CloudStorageRouter
 from storage_supabase import SupabaseDirectStorageProvider, SupabaseStorageConfig
 from storage_google_drive import GoogleDriveConfig, GoogleDriveExportProvider
+
 
 
 def build_storage_router(request, token: str, fetcher_factory):
@@ -38,7 +38,7 @@ def build_storage_router(request, token: str, fetcher_factory):
                 bucket=_read_env(request, "B2_BUCKET"),
                 key_id=_read_env(request, "B2_KEY_ID"),
                 application_key=_read_env(request, "B2_APPLICATION_KEY"),
-                region=_read_env(request, "B2_REGION", "us-east-005"),
+                region=b2_region_from_endpoint(_read_env(request, "B2_ENDPOINT"), _read_env(request, "B2_REGION")),
             ),
             fetcher_factory(request),
         )
