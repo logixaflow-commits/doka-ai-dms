@@ -8,7 +8,7 @@
 
 ## 3. Overall Status
 - **Personal Local:** foundation implemented; real OCR benchmark data, real browser acceptance, copied-office pilot, and measured recovery drill remain required.
-- **Personal Cloud:** foundation implemented; authenticated lifecycle, two-user isolation, B2/Drive recovery and full provider-boundary evidence remain pending.
+- **Personal Cloud:** foundation implemented; authenticated lifecycle, two-user isolation, B2/Drive recovery and full provider-boundary evidence remain pending. The acceptance runner now records privacy-safe failure evidence and performs best-effort cleanup in a finally path.
 - **Enterprise:** deferred.
 - **Cloudflare Worker:** current live deployment is verified below.
 - **Vercel:** project is inactive in the connected account, but the connector does not expose an explicit paused flag; retain VERIFY rather than infer owner-paused state.
@@ -30,12 +30,12 @@
 - Gate 7: quality/dependency/security workflow evidence is green.
 - Live Supabase migration head: 20261005113241_doka_audit_export_backup_actions — verified from the live migration list on 2026-10-08.
 - Repository migration head: 20261007120000_doka_trigger_function_least_privilege. This is newer than the live head and must never be represented as live production state.
-- Cloudflare Worker doka-ai-dms is live at 100% traffic; the latest inspected deployment is version 648. The live bundle now contains the explicit-origin CORS contract (no legacy old Vercel origin). Production D1 `DOKA_DB` remains provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
+- Cloudflare Worker doka-ai-dms is live at 100% traffic; the latest inspected deployment is version 652. The live bundle now contains the explicit-origin CORS contract (no legacy old Vercel origin). Production D1 `DOKA_DB` remains provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
 - Render connected workspace: service listing returned no active services on 2026-10-08.
 - Cloudinary provider-level recovery probe on 2026-10-08: 22-byte test object, SHA-256 42b68a292fea02d6220c0ee02a4489697758f19d4fb1420d9063697087583a1c; backup download returned exact payload; delete returned success; subsequent asset lookup returned a zero-byte placeholder, proving the original delivery object was removed. Tool-side duration was not exposed.
 
 ## 6. IN PROGRESS
-- 2026-10-08 parallel checkpoint: live Supabase security advisor still has leaked-password protection WARN; live Cloudflare Worker is version 641 at 100% traffic. Neither observation closes application acceptance gates.
+- 2026-10-09 checkpoint: live Supabase security advisor still has leaked-password protection WARN; latest inspected Cloudflare Worker version is 652 at 100% traffic. Neither observation closes application acceptance gates.
 - Vercel connected project `enterprise-ai-dms` remains `live=false` with latest production deployment `CANCELED`; the latest GitHub commit status is currently `Vercel: success`, while the connected Vercel project's latest production deployment remains `CANCELED` and `live=false`. This does not change the release-gate evidence decision.
 - Train 1 checkpoint: D1 job-idempotency/outbox adapters are now live-backed and their disposable acceptance evidence is recorded; AI retry/circuit/failover and OCR-aware retrieval remain runtime/provider evidence gates.
 - Train 1/3 workflow hardening is targeted-runtime verified, and durable job-level idempotency state is now implemented/tested on `main`. Next contract backlog: retry taxonomy → retry exhaustion/DLQ → provider half-open/failover/consent/schema → multilingual retrieval → human approval.
