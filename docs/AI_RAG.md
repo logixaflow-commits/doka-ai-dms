@@ -16,7 +16,7 @@ The current architecture includes provider routing/fallback logic and schema val
 
 ## Free-only model and billing boundary
 
-Doka's provider adapter is being tightened to a free-only OpenRouter policy:
+Doka's unified provider adapter now enforces a free-only OpenRouter policy (merged to `main` in PR #24):
 - Generic document analysis accepts only the explicit free chat-model allowlist or `openrouter/free`.
 - Embeddings use the OpenRouter free embedding allowlist, defaulting to `liquid/lfm-2.5-embedding-350m:free`.
 - Gemini, Groq, OpenAI, Hugging Face Inference API, and other provider adapters are not called by the unified service. Their environment keys, if present, do not activate those routes.
