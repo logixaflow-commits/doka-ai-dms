@@ -1,7 +1,8 @@
 """Small, prepared-statement-only adapter for Cloudflare D1 Python bindings.
 
-This module is deliberately not wired into the active Supabase-backed Worker
-until a D1 database and binding have been provisioned and migration gates pass.
+The production D1 binding and baseline schema exist, but the active document
+API remains Supabase-backed. Do not switch document metadata paths to D1 until
+a separately reviewed data-path migration and end-to-end acceptance are complete.
 """
 from __future__ import annotations
 

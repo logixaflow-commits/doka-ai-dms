@@ -33,7 +33,10 @@
     "authorization_guard_objects_expected": 7,
     "metadata_row_counts_remain_zero": true,
     "database_changed_by_migration": true,
-    "size_after_bytes": 192512
+    "size_after_bytes": 192512,
+    "active_document_api_metadata_backend": "supabase_postgres",
+    "d1_document_metadata_tables_are_not_active_api_store": true,
+    "migration_guards_apply_to_d1_schema_only": true
   },
   "passed": true
 }
