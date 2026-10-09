@@ -8,7 +8,7 @@
 
 ## 3. Overall Status
 - **Personal Local:** foundation implemented; real OCR benchmark data, real browser acceptance, copied-office pilot, and measured recovery drill remain required.
-- **Personal Cloud:** foundation implemented; authenticated lifecycle, two-user isolation, B2/Drive recovery and full provider-boundary evidence remain pending. The acceptance runner now records privacy-safe failure evidence and performs best-effort cleanup in a finally path.
+- **Personal Cloud:** foundation implemented; authenticated lifecycle, two-user isolation, B2/Drive recovery and full provider-boundary evidence remain pending. The acceptance runner was reconciled to the current signed direct-upload/download contract, hashes actual downloaded bytes, records privacy-safe failure evidence and performs best-effort cleanup in a finally path; fresh CI/runtime evidence is still pending.
 - **Enterprise:** deferred.
 - **Cloudflare Worker:** current live deployment is verified below.
 - **Vercel:** project is inactive in the connected account, but the connector does not expose an explicit paused flag; retain VERIFY rather than infer owner-paused state.
@@ -95,13 +95,13 @@
 - Frontend lint/build/smoke: latest recorded run passed.
 - Quality + CodeQL evidence: latest recorded workflow run passed.
 - Live Supabase head: 20261005113241_doka_audit_export_backup_actions, freshly verified on 2026-10-08.
-- Cloudflare Worker: latest inspected version 641 at 100% traffic on 2026-10-08; no rollback or traffic change was performed.
+- Cloudflare Worker: latest inspected version 652 at 100% traffic on 2026-10-09; no rollback or traffic change was performed.
 - Render: connected workspace returned no services.
 - Cloudinary: provider-level recovery probe passed on 2026-10-08 as recorded above.
 - Vercel: project inactive/latest production deployment canceled; explicit paused flag unavailable.
 
 ## 12. NEXT ACTION
-**Owner-provided runtime evidence is now the critical path.** The repository is prepared through Gates 3–11: Personal Local OCR/pilot/browser/recovery runners are ready, and `scripts/cloud_acceptance.py` is ready for Gate 9/10 with two pre-created user access tokens plus an exact 50 MiB fixture. Gate 11 still requires live B2 and Google Drive credentials/connectors and a real Cloudinary application-path run. Then rerun only the blocked gates, record measured evidence, and close Gate 8 before Gate 12.
+**Owner-provided runtime evidence is now the critical path.** The repository is prepared through Gates 3–11: Personal Local OCR/pilot/browser/recovery runners are ready, and `scripts/cloud_acceptance.py` now uses the current signed direct-upload/completion contract, verifies actual downloaded bytes, and is ready for Gate 9/10 execution after CI validation with two pre-created user access tokens plus an exact 50 MiB fixture. Gate 11 still requires live B2 and Google Drive credentials/connectors and a real Cloudinary application-path run. Then rerun only the blocked gates, record measured evidence, and close Gate 8 before Gate 12.
 
 - Train 1 safety contracts are now wired into concrete paths where the repository has them: D1 jobs/outbox, unified AI provider routing, and vector retrieval. Remaining evidence is runtime/provider acceptance; no concrete queue consumer exists in the current Worker, and production D1 is provisioned and bound to the Worker; no queue consumer is exposed by the current Worker entrypoint.
 
@@ -122,7 +122,7 @@
 
 ## 15. TRAIN 1 RUNTIME EVIDENCE STATUS — 2026-10-08
 - Concrete integration remains CI-verified: latest Doka Quality Checks **SUCCESS** and CodeQL **SUCCESS** on commit `ce328544a1b88b32fb53bd01227789bcbf3446a0`.
-- Live Cloudflare Worker is version 641 at 100% traffic.
+- Live Cloudflare Worker is version 652 at 100% traffic (verified 2026-10-09).
 - Cloudflare direct-upload session signing uses a dedicated `DOKA_STORAGE_SESSION_SECRET` Worker secret; `DOKA_SINGLE_USER_EMAIL` remains enabled for the current single-user deployment.
 - Live D1 is now provisioned, migrated and bound to the Worker. Disposable acceptance passed duplicate convergence, terminal success, retry exhaustion/dead transition and outbox terminal delivery; privacy-safe evidence is recorded at `Phase0_Evidence/train1/d1-job-runtime.json`.
 - Supabase Auth leaked-password protection remains a security-freeze blocker.

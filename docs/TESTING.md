@@ -2,7 +2,7 @@
 
 > **Owner:** How is Doka tested from code-level checks through release acceptance?
 > **Update when:** Test suites, acceptance criteria, benchmark methodology, CI evidence or release-test requirements change.
-> **Last Updated:** 2026-10-08
+> **Last Updated:** 2026-10-09
 > **Do NOT put here:** Product roadmap ownership, secrets, or deployment topology.
 
 ## Required layers
@@ -42,7 +42,7 @@ Synthetic TestClient/backup evidence exists in the historical record, including 
 Required real evidence: full backup -> destroy/disposable workspace -> restore -> integrity comparison, with backup size, file count, backup duration, restore duration, RTO and RPO recorded.
 
 ## Cloud acceptance
-A dedicated runner now exists at `scripts/cloud_acceptance.py`. It requires two pre-created authenticated Supabase access tokens and never creates users or accepts service-role credentials. It exercises user-A upload/update/download, trash→restore→permanent-delete lifecycle, user-B list/download isolation, and optionally the exact 50 MiB upload boundary via `DOKA_CLOUD_50MIB_FILE`. The runner writes privacy-safe JSON evidence and returns non-zero until all required checks, including the 50 MiB fixture, pass. On runtime/assertion failures it writes a privacy-safe failure record (failure class only) and attempts best-effort trash/permanent-delete cleanup in a `finally` path. The exact-50-MiB acceptance object is cleaned up immediately after successful upload.
+The runner at `scripts/cloud_acceptance.py` follows the current Worker direct-upload contract: authenticated `/api/storage/upload-session`, HTTPS signed provider upload, `/api/storage/upload-complete`, then actual signed download and SHA-256 verification. It does not POST file bytes to the legacy `/api/documents` endpoint, which is intentionally HTTP 410. It requires two pre-created authenticated Supabase access tokens and never creates users or accepts service-role credentials. It exercises user-A upload/update/download integrity, trash→restore→trash→permanent-delete lifecycle, user-B list/download isolation, and optionally an exact 50 MiB upload plus download-integrity boundary via `DOKA_CLOUD_50MIB_FILE`. The runner writes privacy-safe JSON evidence and returns non-zero until all required checks, including the 50 MiB fixture, pass. On runtime/assertion failures it writes a privacy-safe failure record (failure class only) and attempts best-effort trash/permanent-delete cleanup in a `finally` path. The exact-50-MiB acceptance object is cleaned up immediately after successful upload and download verification.
 
 Use authenticated sessions and at least two distinct users for ownership isolation. Test 50 MiB boundary, signed URLs, version restore, Trash/permanent-delete behavior and provider cleanup/recovery.
 

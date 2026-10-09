@@ -9,10 +9,15 @@
   "acceptance": {
     "gate_9": [
       "health",
+      "user_a_list",
       "user_a_upload",
+      "upload_integrity",
       "user_a_update",
-      "user_a_download",
-      "exact_50_mib_boundary"
+      "user_a_download_integrity",
+      "user_a_trash_restore",
+      "permanent_cleanup",
+      "exact_50_mib_boundary",
+      "exact_50_mib_download_integrity"
     ],
     "gate_10": [
       "user_b_cannot_list_user_a_document",
@@ -28,5 +33,11 @@
   "privacy": {
     "tokens_recorded": false,
     "emails_recorded": false
+  },
+  "upload_contract": {
+    "session_endpoint": "/api/storage/upload-session",
+    "direct_upload": "HTTPS signed provider URL; file bytes do not pass through Worker",
+    "completion_endpoint": "/api/storage/upload-complete",
+    "download_integrity": "SHA-256 of actual downloaded bytes must match expected digest"
   }
 }

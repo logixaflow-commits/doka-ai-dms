@@ -44,7 +44,7 @@ Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require re
 
 ### Current close-out evidence
 - Gate 9: PENDING. An authenticated cloud acceptance runner is now prepared for user-A lifecycle plus exact 50 MiB boundary; real tokens/runtime evidence are still required; runner cleanup and failure evidence paths are now hardened.
-- Gate 10: PENDING. The same runner now includes two-user document isolation checks; live Supabase/RLS/Storage proof still requires two distinct authenticated users.
+- Gate 10: PENDING. The runner now follows the current signed direct-upload/completion/download contract and verifies actual bytes; it includes two-user document isolation checks. Live Supabase/RLS/Storage proof still requires two distinct authenticated users and a dedicated acceptance environment.
 - Gate 11: PENDING. Provider routing/unit coverage exists for Supabase/B2/Cloudinary/Google Drive, but real B2 + Google Drive recovery and Cloudinary application-path evidence remain required.
 - Gate 12: BLOCKED by Gates 9–11.
 
