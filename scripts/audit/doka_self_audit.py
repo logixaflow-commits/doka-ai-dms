@@ -24,7 +24,7 @@ REQUIRED_FILES = (
     "docs/DEPLOYMENT.md",
 )
 REQUIRED_GATE_NUMBERS = (3, 4, 5, 6, 8, 9, 10, 11, 12)
-EVIDENCE_REFERENCE_RE = re.compile(r"(?<![\w./-])((?:Phase0_Evidence|phase0_evidence)/[^\s)`<>\]]+)", re.I)
+EVIDENCE_REFERENCE_RE = re.compile(r"((?:Phase0_Evidence|phase0_evidence)/[^\s)<>]+)", re.I)
 
 
 def _check(name: str, ok: bool, detail: str, category: str = "structure") -> dict[str, str]:
