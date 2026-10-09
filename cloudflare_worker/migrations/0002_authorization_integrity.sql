@@ -1,5 +1,5 @@
 -- Doka Cloud Edition — authorization integrity guards.
--- This migration is source-level only until a D1 database is explicitly provisioned.
+-- Apply explicitly after reviewing a backup; provisioning D1 does not apply migrations.
 --
 -- Rules:
 -- 1. An organization-owned document must be owned by an organization member.

@@ -88,12 +88,13 @@
 | 12 Deployment/runtime + final sign-off | BLOCKED |
 
 ## 11. LAST VERIFIED
-- Disposable runtime checkpoint 2026-10-08: Python 3.13, Node 22, npm 10, Playwright 1.64 available; Tesseract absent; required backend Python modules absent. Acceptance preflight returned not-ready without recording secrets.
-- 2026-10-09 targeted Cloud storage/provider acceptance suite: 82 passed in a disposable Python 3.13 runtime, including signed upload/download integrity and release-gate regression tests. This is local targeted evidence, not a verified GitHub Actions result. The broad legacy backend directory did not complete collection because full-suite dependencies were absent and one legacy test imports missing `app.models`; no broad-suite pass is claimed.
+- Disposable runtime checkpoint 2026-10-09: Python 3.13, Node 22, npm 10; required maintained backend modules available; Tesseract absent; Cloud acceptance tokens absent. Acceptance preflight returned not-ready without recording secrets.
+- 2026-10-09 targeted Cloud storage/provider acceptance suite: 86 passed in a disposable Python 3.13 runtime, including signed upload/download integrity and release-gate regression tests. The maintained Personal Local backend suite also passed 58 tests. This is local targeted evidence, not a verified GitHub Actions result. The broad legacy backend directory still has five collection errors in deferred ORM/model tests; no broad-suite pass is claimed.
+- D1 authorization migration preflight 2026-10-09: production D1 has 0 rows in the user/org/document/permission metadata tables; migration 0002 index/triggers are absent. A D1 SQL export completed and restored into local SQLite (43 objects; SHA-256 recorded in post-apply evidence), and the migration passes 4 disposable SQLite guard tests. Production application is tracked separately from source verification.
 - Workflow targeted runtime checkpoint 2026-10-08: 6/6 workflow contract tests passed in the disposable runtime after idempotency/locking hardening. Full backend suite was not rerun.
 - Durable job idempotency contract: claim/state/attempt persistence, retry exhaustion, DLQ transition and concurrent duplicate claims are now covered by focused contract tests; no queue takeover is enabled.
 - Maintained backend regression suite: 386 passed in the latest recorded full run; the full maintained suite was not rerun in this pass. The separate targeted Cloud suite result is recorded above.
-- Frontend lint/build/smoke: latest recorded run passed.
+- Frontend 2026-10-09: `npm ci`, production build, smoke suite and ESLint passed; npm reported zero vulnerabilities. Local runtime was Node 22, while the package requires Node 24.x (CI is configured for Node 24). Playwright discovery found one test; browser acceptance remains pending.
 - Quality + CodeQL evidence: latest recorded workflow run passed.
 - Live Supabase head: 20261005113241_doka_audit_export_backup_actions, freshly verified on 2026-10-08.
 - Cloudflare Worker: latest inspected version 652 at 100% traffic on 2026-10-09; no rollback or traffic change was performed.

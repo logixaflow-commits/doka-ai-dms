@@ -2,11 +2,11 @@
   {
     "number": 1,
     "name": "0001_doka_cloud_baseline.sql",
-    "git_blob_sha": "8f9c07676737e6ec6cb94ef8d73cb74d7bdf1ffa"
+    "git_blob_sha": "c641b8416b38dd28d2fafefc49c85a0de2518ef8"
   },
   {
     "number": 2,
     "name": "0002_authorization_integrity.sql",
-    "git_blob_sha": "6265e214eaa72879d26760bc830a3c11a26a3ce8"
+    "git_blob_sha": "24cdbf134be9800325167ee1c200dd93bb5b5a0a"
   }
 ]
