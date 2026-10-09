@@ -92,7 +92,7 @@
 - 2026-10-09 targeted Cloud storage/provider acceptance suite: 82 passed in a disposable Python 3.13 runtime, including signed upload/download integrity and release-gate regression tests. This is local targeted evidence, not a verified GitHub Actions result. The broad legacy backend directory did not complete collection because full-suite dependencies were absent and one legacy test imports missing `app.models`; no broad-suite pass is claimed.
 - Workflow targeted runtime checkpoint 2026-10-08: 6/6 workflow contract tests passed in the disposable runtime after idempotency/locking hardening. Full backend suite was not rerun.
 - Durable job idempotency contract: claim/state/attempt persistence, retry exhaustion, DLQ transition and concurrent duplicate claims are now covered by focused contract tests; no queue takeover is enabled.
-- Maintained backend regression suite: 386 passed in the latest recorded full run; this pass could not rerun pytest because the accessible execution box has no pytest/pip installation.
+- Maintained backend regression suite: 386 passed in the latest recorded full run; the full maintained suite was not rerun in this pass. The separate targeted Cloud suite result is recorded above.
 - Frontend lint/build/smoke: latest recorded run passed.
 - Quality + CodeQL evidence: latest recorded workflow run passed.
 - Live Supabase head: 20261005113241_doka_audit_export_backup_actions, freshly verified on 2026-10-08.

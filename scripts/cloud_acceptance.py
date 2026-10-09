@@ -106,6 +106,18 @@ def _upload_document(
     return document
 
 
+def _read_fifty_mib_fixture(path: str | Path) -> bytes:
+    fixture = Path(path)
+    if fixture.is_symlink() or not fixture.is_file():
+        raise AssertionError("50 MiB fixture must be a regular, non-symlink file")
+    if fixture.stat().st_size != MAX_SOURCE_BYTES:
+        raise AssertionError("50 MiB fixture must be exactly 52428800 bytes")
+    payload = fixture.read_bytes()
+    if len(payload) != MAX_SOURCE_BYTES:
+        raise AssertionError("50 MiB fixture size changed while reading")
+    return payload
+
+
 def _download_and_verify(client: httpx.Client, token: str, document_id: str, expected_sha256: str) -> None:
     response = _auth(client, token, f"/api/documents/{document_id}/download")
     _assert_status(response, 200, "create signed download URL")
@@ -145,8 +157,9 @@ def main() -> int:
     args = parser.parse_args()
 
     base_url = (args.base_url or _require("DOKA_CLOUD_BASE_URL")).rstrip("/")
-    if urlparse(base_url).scheme != "https":
-        raise SystemExit("DOKA_CLOUD_BASE_URL must use HTTPS")
+    parsed_base_url = urlparse(base_url)
+    if parsed_base_url.scheme != "https" or not parsed_base_url.netloc:
+        raise SystemExit("DOKA_CLOUD_BASE_URL must be an absolute HTTPS URL")
     user_a = _require("DOKA_CLOUD_USER_A_TOKEN")
     user_b = _require("DOKA_CLOUD_USER_B_TOKEN")
     if user_a == user_b:
@@ -220,9 +233,7 @@ def main() -> int:
 
             if args.fifty_mib_file:
                 fixture = Path(args.fifty_mib_file)
-                if fixture.stat().st_size != MAX_SOURCE_BYTES:
-                    raise AssertionError("50 MiB fixture must be exactly 52428800 bytes")
-                boundary_payload = fixture.read_bytes()
+                boundary_payload = _read_fifty_mib_fixture(fixture)
                 boundary_digest = hashlib.sha256(boundary_payload).hexdigest()
                 boundary = _upload_document(
                     client, user_a, boundary_payload, fixture.name, "application/octet-stream"

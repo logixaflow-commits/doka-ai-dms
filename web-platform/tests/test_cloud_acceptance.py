@@ -17,6 +17,7 @@ DOKA_CLOUD_ACCEPTANCE = importlib.util.module_from_spec(_MODULE_SPEC)
 _MODULE_SPEC.loader.exec_module(DOKA_CLOUD_ACCEPTANCE)
 
 _download_and_verify = DOKA_CLOUD_ACCEPTANCE._download_and_verify
+_read_fifty_mib_fixture = DOKA_CLOUD_ACCEPTANCE._read_fifty_mib_fixture
 _upload_document = DOKA_CLOUD_ACCEPTANCE._upload_document
 
 
@@ -120,3 +121,21 @@ def test_upload_rejects_non_https_signed_provider_url():
         base_url="https://cloud.example", transport=httpx.MockTransport(handler)
     ) as client, pytest.raises(AssertionError, match="safe HTTPS URL"):
         _upload_document(client, "user-token", b"x", "acceptance.txt", "text/plain")
+
+
+def test_fifty_mib_fixture_rejects_symlinks(tmp_path):
+    target = tmp_path / "target.bin"
+    target.write_bytes(b"not a release fixture")
+    link = tmp_path / "fixture.bin"
+    link.symlink_to(target)
+
+    with pytest.raises(AssertionError, match="non-symlink"):
+        _read_fifty_mib_fixture(link)
+
+
+def test_fifty_mib_fixture_requires_exact_size(tmp_path):
+    fixture = tmp_path / "fixture.bin"
+    fixture.write_bytes(b"too small")
+
+    with pytest.raises(AssertionError, match="exactly 52428800 bytes"):
+        _read_fifty_mib_fixture(fixture)
