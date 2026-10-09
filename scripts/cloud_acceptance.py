@@ -178,7 +178,7 @@ def main() -> int:
         evidence["failure_class"] = type(exc).__name__
         evidence["elapsed_seconds"] = round(time.monotonic() - started, 3)
         evidence["gate9_ready"] = False
-        output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+        output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(json.dumps(evidence, indent=2, sort_keys=True))
         return 2
     finally:
