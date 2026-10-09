@@ -5,7 +5,7 @@ import hashlib
 import re
 
 from cloudflare_worker.storage_b2 import B2StorageConfig, B2StorageProvider
-from cloudflare_worker.storage_runtime import _b2_region_from_endpoint
+from cloudflare_worker.storage_b2 import b2_region_from_endpoint
 from app.services.storage_router import B2_MULTIPART_THRESHOLD_BYTES, UploadMetadata
 
 
@@ -14,16 +14,16 @@ def run(coro):
 
 
 def test_b2_region_is_inferred_from_backblaze_endpoint():
-    assert _b2_region_from_endpoint("https://s3.eu-central-003.backblazeb2.com/") == "eu-central-003"
+    assert b2_region_from_endpoint("https://s3.eu-central-003.backblazeb2.com/") == "eu-central-003"
 
 
 def test_explicit_b2_region_takes_precedence():
-    assert _b2_region_from_endpoint("https://s3.eu-central-003.backblazeb2.com/", "eu-central-003") == "eu-central-003"
-    assert _b2_region_from_endpoint("https://s3.eu-central-003.backblazeb2.com/", "custom-region") == "custom-region"
+    assert b2_region_from_endpoint("https://s3.eu-central-003.backblazeb2.com/", "eu-central-003") == "eu-central-003"
+    assert b2_region_from_endpoint("https://s3.eu-central-003.backblazeb2.com/", "custom-region") == "custom-region"
 
 
 def test_nonstandard_b2_endpoint_uses_legacy_default():
-    assert _b2_region_from_endpoint("https://s3.example") == "us-east-005"
+    assert b2_region_from_endpoint("https://s3.example") == "us-east-005"
 
 
 def test_b2_signed_upload_contains_no_application_secret():
