@@ -48,6 +48,7 @@
 - Gate 9: authenticated Cloud lifecycle E2E.
 - Gate 10: two-user isolation plus live RLS/Storage/API proof.
 - Gate 11: B2 >50 MiB, Google Drive export/recovery, 50 MiB routing and complete provider recovery evidence.
+- Release-gate hardening: Gate 12 now requires explicit `passed: true` final deployment/runtime sign-off in addition to Gates 8–11; regression tests are wired into Doka Quality Checks. The current connector view exposes the Vercel commit status but not push-triggered GitHub Actions run results, so this change is not marked CI-verified until a direct run result is available.
 - Final live-infrastructure evidence reconciliation.
 
 ## 7. PENDING
