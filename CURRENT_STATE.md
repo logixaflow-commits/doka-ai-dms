@@ -32,7 +32,7 @@
 - Live Supabase migration head: `20261009083942_doka_trigger_function_least_privilege` — applied during the 2026-10-09 cloud follow-up and verified from the live migration list. The corresponding migration filename is reconciled on PR #24.
 - Trigger-function privilege verification after migration: `anon_can_execute=false`, `authenticated_can_execute=false`, `service_role_can_execute=true` for `public.doka_set_updated_at()`.
 - Cloudflare Worker `doka-ai-dms` is live at 100% traffic; the latest inspected deployment is version 671 (100% on version ID `14e89790-c793-4d9b-9025-c5c7f412033f`). The configured 50 MiB limit and provider bindings are present; provider application-path acceptance remains pending. Production D1 `DOKA_DB` remains provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
-- Render connected workspace: service listing returned no active services on 2026-10-08.
+- Render connected workspace `My Workspace`: explicit service-list calls returned `null` on 2026-10-09; no service ID/configuration was available to inspect. This is a connector visibility result, not proof no service exists in another account/team. Railway configuration files in the repository are not proof that Railway is the active runtime.
 - Cloudinary provider-level recovery probe on 2026-10-08: 22-byte test object, SHA-256 42b68a292fea02d6220c0ee02a4489697758f19d4fb1420d9063697087583a1c; backup download returned exact payload; delete returned success; subsequent asset lookup returned a zero-byte placeholder, proving the original delivery object was removed. Tool-side duration was not exposed.
 
 ## 6. IN PROGRESS
@@ -64,7 +64,7 @@
 - Cloudflare deploy workflow: the old duplicate `Doka Cloudflare Deploy` workflow repeatedly failed at `setup-node@v7` before deployment/health checks and used unpinned `wrangler@latest`. PR #24 removes that workflow in favor of the retained pinned, dry-run, explicit-confirmation `Cloudflare Worker Production Deploy` path.
 
 ## 8. BLOCKED
-- AI billing guard is being implemented on PR #24: the unified service is restricted to allowlisted OpenRouter free chat models and free embeddings; billable provider adapters and Hugging Face inference are not registered/called. This is a branch change, not a deployed runtime change.
+- AI billing guard is merged to `main` in PR #24: the unified service is restricted to allowlisted OpenRouter free chat models and free embeddings; billable provider adapters and Hugging Face inference are not registered/called. GitHub Doka Quality Checks and CodeQL passed on merge commit `c0f9a5e1c73f750c58b926f45b074552650c0001`. This is repository/CI verification, not proof that a deployed runtime has the key configured or has made a zero-cost inference request.
 - OpenRouter credential reachability is unverified: no AI provider key name was found in the inspected Vercel environment list or Cloudflare Worker secret bindings. No test inference request was sent and no key value was read. Confirm the intended backend runtime/secret store before claiming the key works.
 - Gate 8: Personal Local final freeze, blocked until Gates 1–7 are fully evidenced.
 - Gate 12: deployment/final go-live, blocked until Gates 9–11 are fully evidenced.
