@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "scope": "personal-local-browser-smoke",
+  "run_date": "2026-10-09",
+  "result": "passed",
+  "test_count": 1,
+  "passed": 1,
+  "failed": 0,
+  "duration_seconds": 1.925,
+  "browser": {
+    "engine": "Chromium",
+    "version": "156.0.8078.4",
+    "mode": "headless"
+  },
+  "runtime": {
+    "node": "22.21.1",
+    "platform": "Linux arm64"
+  },
+  "fixture": {
+    "kind": "synthetic text document",
+    "representative_office_data": false,
+    "secrets_recorded": false,
+    "absolute_paths_recorded": false
+  },
+  "checks": {
+    "local_login": true,
+    "workspace_navigation": true,
+    "safe_import": true,
+    "source_sha256_unchanged": true,
+    "workspace_scan": true,
+    "understand_ocr_action_completed": true,
+    "organization_review_plan": true
+  },
+  "gate_decision": {
+    "gate_4_closed": false,
+    "reason": "Synthetic single-file browser smoke passed; representative copied-office data and real Myanmar/English OCR acceptance are still required."
+  }
+}

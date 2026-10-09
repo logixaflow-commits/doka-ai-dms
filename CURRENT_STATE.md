@@ -43,7 +43,7 @@
 - Train 1/3 hardening: workflow idempotency, D1 job idempotency, outbox retry/DLQ handling, AI circuit/failover/consent/schema boundaries, and OCR-aware retrieval safeguards are implemented; distributed worker takeover remains intentionally disabled.
 - Live Supabase Security Advisor recheck on 2026-10-08 still reports `auth_leaked_password_protection` as WARN. The connected Supabase tool exposes no Auth security-setting mutation, so this remains a release/security-freeze blocker rather than an unverified claim.
 - Gate 3: OCR benchmark evidence reconciliation.
-- Gate 4: real browser Personal Local E2E.
+- Gate 4: synthetic Chromium browser flow now passes on 2026-10-09 (login → import → scan → understand → review plan; source SHA-256 unchanged), with privacy-safe evidence at `Phase0_Evidence/acceptance/personal-local-browser-smoke-2026-10-09.json`. Gate remains PENDING until the same flow is exercised with representative copied-office data and real OCR requirements.
 - Gate 5: copied-office pilot and before/after source hashes.
 - Gate 6: measured backup/restore RTO/RPO.
 - Gate 9: authenticated Cloud lifecycle E2E.
@@ -54,7 +54,7 @@
 
 ## 7. PENDING
 - Gate 3: current representative sample directory/manifest and Tesseract version are not available in the accessible test environment. A historical privacy-scrubbed report exists (5 mixed mya+eng samples; mean CER 0.1660492282; mean WER 0.3081550029), but it does not record Tesseract version and is not sufficient to close the current gate.
-- Gate 4: the current Playwright suite is now aligned to the Personal Local acceptance flow (login → Safe Workspace → import → scan → understand/OCR → review plan → source hash comparison). The suite is implementation-ready, but no browser runtime/data acceptance run has been executed in the accessible test box.
+- Gate 4: the Playwright flow ran successfully in headless Chromium against a local Personal Local backend/frontend with one synthetic text file. It covered login, import, scan, understand/OCR action, review plan and source hash equality. This is a smoke pass, not representative-office release evidence; Gate 4 remains pending.
 - Gate 5: pilot harness and source-hash logic exist; path-overlap, symlink and isolated-root safety are now regression-tested. Only synthetic evidence is recorded. No copied representative office-data pilot has been run in this pass.
 - Gate 6: synthetic backup/restore evidence exists; no timed real-machine drill was run, so RTO/RPO are unmeasured.
 - Gate 9: live Worker unauthenticated probe returned HTTP 403; no disposable authenticated test-user session was available for the required lifecycle test.

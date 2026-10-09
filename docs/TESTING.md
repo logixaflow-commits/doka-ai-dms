@@ -27,7 +27,7 @@ A historical privacy-scrubbed report contains 5 mixed mya+eng samples with mean 
 Required owner evidence: representative Myanmar and English samples, manifest/reference text, Tesseract version, CER/WER report and privacy-safe evidence.
 
 ## Gate 4 — Personal Local browser
-The repository now contains a current Playwright suite at web-platform/frontend/e2e/personal-local.spec.ts plus a dedicated config and stable UI selectors. The suite covers the Personal Local release flow and source immutability check. The browser runtime/data acceptance run remains pending.
+The repository now contains a current Playwright suite at web-platform/frontend/e2e/personal-local.spec.ts plus a dedicated config and stable UI selectors. The suite covers the Personal Local release flow and source immutability check. A synthetic single-text-file browser smoke passed in headless Chromium on 2026-10-09 (1 test, 1.925 seconds). Privacy-safe evidence is recorded at `Phase0_Evidence/acceptance/personal-local-browser-smoke-2026-10-09.json`. Representative copied-office data and actual Myanmar/English OCR remain required, so Gate 4 remains pending.
 
 Required scenario: login -> import -> scan/OCR -> review -> approve -> Final copy -> backup -> isolated restore -> undo, with source SHA-256 unchanged before/after.
 
