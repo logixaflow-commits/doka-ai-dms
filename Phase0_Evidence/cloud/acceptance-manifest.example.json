@@ -3,8 +3,7 @@
   "required_environment": {
     "DOKA_CLOUD_BASE_URL": "https://example.invalid",
     "DOKA_CLOUD_USER_A_TOKEN": "<pre-created-user-a-access-token>",
-    "DOKA_CLOUD_USER_B_TOKEN": "<pre-created-user-b-access-token>",
-    "DOKA_CLOUD_50MIB_FILE": "<optional-exact-52428800-byte-fixture>"
+    "DOKA_CLOUD_USER_B_TOKEN": "<pre-created-user-b-access-token>"
   },
   "acceptance": {
     "gate_9": [
@@ -24,10 +23,11 @@
       "user_b_cannot_download_user_a_document"
     ],
     "gate_11": [
-      "supabase_source_path",
-      "b2_over_50_mib_path",
-      "cloudinary_derivative_under_10_mib",
-      "google_drive_export_and_recovery"
+      "supabase_storage",
+      "b2_recovery",
+      "cloudinary_application_path",
+      "google_drive_recovery",
+      "exact_50_mib_boundary"
     ]
   },
   "privacy": {
@@ -39,5 +39,8 @@
     "direct_upload": "HTTPS signed provider URL; file bytes do not pass through Worker",
     "completion_endpoint": "/api/storage/upload-complete",
     "download_integrity": "SHA-256 of actual downloaded bytes must match expected digest"
+  },
+  "required_for_full_gate_closure": {
+    "DOKA_CLOUD_50MIB_FILE": "Exact 52428800-byte regular non-symlink fixture; required for Gate 9 PASS, although the runner can execute partial lifecycle checks without it."
   }
 }

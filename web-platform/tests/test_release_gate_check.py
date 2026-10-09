@@ -24,9 +24,9 @@ def _all_prerequisites():
         6: {"recovery_verified": True, "rto_seconds": 12.5},
         7: {"passed": True},
         8: {"passed": True},
-        9: {"gate9_ready": True, "checks": {"two_user_isolation": True}},
+        9: {"passed": True, "gate9_ready": True, "checks": {"two_user_isolation": True}},
         10: {"checks": {"two_user_isolation": True}},
-        11: {"checks": {
+        11: {"passed": True, "checks": {
             "supabase_storage": True,
             "b2_recovery": True,
             "cloudinary_application_path": True,
@@ -41,6 +41,25 @@ def test_gate_12_requires_explicit_final_signoff():
     assert not gate_ready(12, evidence)
     evidence[12] = {"passed": True}
     assert gate_ready(12, evidence)
+
+
+def test_gate_9_requires_runner_pass_and_readiness_to_agree():
+    evidence = _all_prerequisites()
+    evidence[9]["passed"] = False
+    assert not gate_ready(9, evidence)
+    evidence[9]["passed"] = True
+    evidence[9]["gate9_ready"] = False
+    assert not gate_ready(9, evidence)
+
+
+def test_gate_11_requires_explicit_pass_and_all_provider_checks():
+    evidence = _all_prerequisites()
+    evidence[11]["passed"] = False
+    assert not gate_ready(11, evidence)
+    evidence[11]["passed"] = True
+    assert gate_ready(11, evidence)
+    evidence[11]["checks"]["google_drive_recovery"] = False
+    assert not gate_ready(11, evidence)
 
 
 def test_gate_12_stays_pending_if_any_cloud_gate_is_missing():

@@ -34,7 +34,9 @@ def gate_ready(gate: int, evidence: dict[int, dict[str, Any]]) -> bool:
     if gate == 8:
         return all(gate_ready(g, evidence) for g in range(1, 8))
     if gate == 9:
-        return item.get("gate9_ready") is True
+        # The runner's overall result and its Gate 9 readiness must agree.
+        # This prevents a hand-edited readiness flag from closing the gate.
+        return item.get("passed") is True and item.get("gate9_ready") is True
     if gate == 10:
         # The authenticated cloud runner intentionally emits one privacy-safe
         # evidence object containing the User A/B isolation assertion. Accept
@@ -46,6 +48,8 @@ def gate_ready(gate: int, evidence: dict[int, dict[str, Any]]) -> bool:
         return cloud.get("checks", {}).get("two_user_isolation") is True
     if gate == 11:
         checks = item.get("checks", {})
+        if item.get("passed") is not True or not isinstance(checks, dict):
+            return False
         return all(checks.get(name) is True for name in (
             "supabase_storage", "b2_recovery", "cloudinary_application_path",
             "google_drive_recovery", "exact_50_mib_boundary",
