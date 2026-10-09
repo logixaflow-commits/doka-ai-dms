@@ -4,28 +4,16 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import re
 import time
-from urllib.parse import quote, urlsplit
 from workers import env as worker_env
 
 from shared.storage_contracts import StorageObjectRef, UploadMetadata
-from storage_b2 import B2StorageConfig, B2StorageProvider
+from storage_b2 import B2StorageConfig, B2StorageProvider, b2_region_from_endpoint
 from storage_cloudinary import CloudinaryConfig, CloudinaryDerivativeProvider
 from storage_router import CloudStorageRouter
 from storage_supabase import SupabaseDirectStorageProvider, SupabaseStorageConfig
 from storage_google_drive import GoogleDriveConfig, GoogleDriveExportProvider
 
-
-def _b2_region_from_endpoint(endpoint: str, configured_region: str = "") -> str:
-    """Prefer an explicit region; infer it from standard Backblaze S3 endpoints otherwise."""
-    if configured_region.strip():
-        return configured_region.strip()
-    host = (urlsplit(endpoint.strip()).hostname or "").lower()
-    match = re.fullmatch(r"s3\.([a-z0-9-]+)\.backblazeb2\.com", host)
-    if match:
-        return match.group(1)
-    return "us-east-005"
 
 
 def build_storage_router(request, token: str, fetcher_factory):
@@ -50,7 +38,7 @@ def build_storage_router(request, token: str, fetcher_factory):
                 bucket=_read_env(request, "B2_BUCKET"),
                 key_id=_read_env(request, "B2_KEY_ID"),
                 application_key=_read_env(request, "B2_APPLICATION_KEY"),
-                region=_b2_region_from_endpoint(_read_env(request, "B2_ENDPOINT"), _read_env(request, "B2_REGION")),
+                region=b2_region_from_endpoint(_read_env(request, "B2_ENDPOINT"), _read_env(request, "B2_REGION")),
             ),
             fetcher_factory(request),
         )
