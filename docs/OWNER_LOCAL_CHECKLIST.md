@@ -137,3 +137,54 @@ These are future product trains, not prerequisites to claim the current gates pa
 ## E. Completion rule
 
 A checkbox is complete only when the implementation or owner action exists, tests/acceptance have run, evidence is stored in the repo without secrets, documentation/current state is updated, and the correct reviewer accepts it. Statuses must remain explicit: DONE / VERIFIED / PENDING / BLOCKED / DEFERRED / NEXT / VERIFY.
+
+
+## F. Live Cloud verification snapshot (read-only, 2026-10-09)
+
+This section records the connected-service state actually inspected during the cloud follow-up. It is not a go-live approval. No live settings, production deployments, user records, object contents, credentials, or schedules were changed or created during this inspection.
+
+### Supabase — project `Enterprise AI DMS`
+- [x] Project reports `ACTIVE_HEALTHY`; PostgreSQL 17.6.1.141.
+- [x] Live migration head observed: `20261005113241_doka_audit_export_backup_actions`, matching the previously recorded expected head.
+- [x] `public.doka_documents`, `public.doka_document_versions`, and `public.doka_audit_events` have RLS enabled. Inspected owner policies constrain access using `auth.uid()`; version policies scope through the owning document.
+- [x] Storage bucket `doka-documents` is private and has a 52,428,800-byte (50 MiB) file-size limit. Its object policies scope paths to `users/<auth.uid()>/...`.
+- [x] Document table row count was 0 during this snapshot; no customer document content was read.
+- [ ] Security blocker remains: Supabase Advisor reports `auth_leaked_password_protection` WARN (disabled). The available connector exposes no Auth setting mutation in this session; an authorized project operator must enable it and re-run the advisor.
+- [ ] Performance Advisor reports three unused indexes as INFO. Do not remove them just because they are currently unused; the observed document table is empty and these indexes may serve expected future workloads. Reassess after representative traffic and query-plan evidence.
+- [ ] RLS policy inspection is not equivalent to two-authenticated-user proof. Gate 10 requires User A/B runtime tests against actual REST/RPC/Storage routes.
+
+### Vercel — project `enterprise-ai-dms`
+- [x] Project uses Vite and Node 24.x.
+- [ ] Project reports `live=false`; latest deployment is `CANCELED`.
+- [ ] The 30 most recent deployments filtered to production were all `CANCELED`, including attempts on `main`. This is a persistent deployment-state issue, not proof of a build failure. Investigate Vercel deployment settings, cancellation source, Git integration, and deployment protection/limits before attempting production promotion.
+- [x] Vercel runtime error aggregation reported no runtime error clusters in the inspected 7-day window.
+- [ ] Detailed runtime log query for the last 24 hours was unavailable because the Hobby plan's retention window is shorter than the requested range; this is not evidence that logs are empty.
+- [ ] Do not promote/redeploy production until the owner confirms the cancellation is not intentional and the exact candidate passes the release gates. No production deploy was triggered.
+
+### Cloudflare Worker — `doka-ai-dms`
+- [x] Worker script exists; latest inspected deployment routes 100% traffic to version 671 (`14e89790-c793-4d9b-9025-c5c7f412033f`) as of this snapshot.
+- [x] Configuration includes B2, Cloudinary, Google Drive, and Supabase secret bindings; the inspection recorded binding names only, never secret values.
+- [x] Configured Worker-side max object size is 52,428,800 bytes (50 MiB); rate-limit binding is configured for 100 requests per 60 seconds.
+- [ ] Cloudflare configuration is not end-to-end acceptance. Run authenticated application-path tests for each provider, exact size boundary and >50 MiB routing/recovery where supported, checksum verification, and failure/retry behavior.
+
+### Upstash / QStash / Workflow
+- [x] Upstash Redis database `Doka` reports active, TLS enabled, eviction disabled.
+- [x] Inspected Redis usage window reported zero daily read/write requests; this may simply mean the service is idle and is not a health proof.
+- [x] QStash US/EU schedule lists returned empty; inspected US QStash delivery logs, workflow runs, and QStash/workflow DLQs were empty.
+- [ ] Determine whether no schedules/messages is intentional for this release. If QStash/workflows are part of the enabled product path, configure a dedicated acceptance endpoint and run signed delivery, duplicate, retry, failure, and completion tests. Do not invent destination URLs or schedules.
+- [ ] Confirm whether Redis is expected to be in the active production path before interpreting zero traffic as an issue.
+
+### Cloudinary
+- [x] Account reports Free plan, 64 assets, approximately 177.5 MB storage usage, 44 bandwidth usage units, and 0.17 of 25 credits used in the latest reported snapshot.
+- [ ] Account quota is not Doka application-path proof. Test an actual Doka-generated derivative/preview and restore/recovery behavior with a dedicated acceptance object; record checksums and clean up only that test object.
+
+### Render
+- [x] Connected account has a workspace named `My Workspace`.
+- [ ] Service listing was not run because the Render connector requires an explicitly selected workspace. If Render is part of the intended cloud architecture, select the correct workspace before any service inspection. No workspace was guessed.
+
+### Cloud completion conditions
+- [ ] Resolve Supabase leaked-password-protection warning.
+- [ ] Investigate why recent Vercel production deployments are canceled and establish owner intent before any promotion.
+- [ ] Run two-user Cloud E2E/isolation and real provider-path recovery tests using disposable identities and test objects.
+- [ ] Verify QStash/Workflow/Redis are intentionally idle or execute acceptance tests against a dedicated endpoint.
+- [ ] Store scrubbed evidence and re-run security/performance advisors and deployment smoke checks after authorized fixes.
