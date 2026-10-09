@@ -51,7 +51,11 @@ def gate_ready(gate: int, evidence: dict[int, dict[str, Any]]) -> bool:
             "google_drive_recovery", "exact_50_mib_boundary",
         ))
     if gate == 12:
-        return all(gate_ready(g, evidence) for g in range(8, 12))
+        # Final sign-off must be explicit in addition to all prerequisite gates.
+        # Presence of Gates 8–11 alone is not deployment/runtime evidence.
+        return item.get("passed") is True and all(
+            gate_ready(g, evidence) for g in range(8, 12)
+        )
     return item.get("passed") is True
 
 def main() -> int:
