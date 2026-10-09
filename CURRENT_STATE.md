@@ -88,14 +88,14 @@
 | 12 Deployment/runtime + final sign-off | BLOCKED |
 
 ## 11. LAST VERIFIED
-- Disposable runtime checkpoint 2026-10-09: Python 3.13, Node 22, npm 10; required maintained backend modules available; Tesseract absent; Cloud acceptance tokens absent. Acceptance preflight returned not-ready without recording secrets.
+- Disposable runtime checkpoint 2026-10-09: Python 3.13, Node 24.21.0 (installed through an isolated npm runtime), npm 10; required maintained backend modules available; Tesseract absent; Cloud acceptance tokens absent. Acceptance preflight returned not-ready without recording secrets.
 - 2026-10-09 targeted Cloud storage/provider/D1 migration acceptance suite: 90 passed in a disposable Python 3.13 runtime, including signed upload/download integrity and release-gate regression tests. The maintained Personal Local backend suite also passed 58 tests. This is local targeted evidence, not a verified GitHub Actions result. The broad legacy backend directory still has five collection errors in deferred ORM/model tests; no broad-suite pass is claimed.
 - D1 authorization migration 0002 applied to production D1 on 2026-10-09 after a completed SQL export (8,910 bytes; SHA-256 and bookmark recorded in `Phase0_Evidence/train1/d1-authorization-migration-2026-10-09.json`) was restored successfully into disposable SQLite. All 5 relevant metadata tables were empty before the change. Post-apply read-only verification found all 7 expected authorization index/trigger objects and confirmed those tables remain empty; 4 disposable SQLite migration tests pass.
   Important boundary: the active Cloud document API still uses Supabase Postgres/Storage; these D1 guards harden the provisioned D1 schema only and do not substitute for live Supabase RLS plus two-user API acceptance.
 - Workflow targeted runtime checkpoint 2026-10-08: 6/6 workflow contract tests passed in the disposable runtime after idempotency/locking hardening. Full backend suite was not rerun.
 - Durable job idempotency contract: claim/state/attempt persistence, retry exhaustion, DLQ transition and concurrent duplicate claims are now covered by focused contract tests; no queue takeover is enabled.
 - Maintained backend regression suite: 386 passed in the latest recorded full run; the full maintained suite was not rerun in this pass. The separate targeted Cloud suite result is recorded above.
-- Frontend 2026-10-09: `npm ci`, production build, smoke suite and ESLint passed; npm reported zero vulnerabilities. Local runtime was Node 22, while the package requires Node 24.x (CI is configured for Node 24). Playwright discovery found one test; browser acceptance remains pending.
+- Frontend 2026-10-09: `npm ci`, production TypeScript/Vite build, all smoke tests, ESLint and `npm audit --audit-level=high` passed under Node 24.21.0; npm reported zero vulnerabilities. Playwright discovery found one test; actual browser acceptance remains pending because authenticated pilot credentials, representative source data and Tesseract are unavailable.
 - Quality + CodeQL evidence: latest recorded workflow run passed.
 - Live Supabase head: 20261005113241_doka_audit_export_backup_actions, freshly verified on 2026-10-08.
 - Cloudflare Worker: latest inspected version 652 at 100% traffic on 2026-10-09; no rollback or traffic change was performed.
