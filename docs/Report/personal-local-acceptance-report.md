@@ -5,7 +5,7 @@
 
 ## Result
 
-**Acceptance is not fully passed.** The local environment is ready, the copied-office import/scan and backup/recovery checks passed, and the browser workflow passed against a small isolated fixture. The full pilot still reports OCR timeouts, the benchmark's Myanmar accuracy is poor and its reference has not been visually verified, and the browser flow against the full office copy timed out.
+**Acceptance is not fully passed.** The local environment is ready, the copied-office import/scan and backup/recovery checks passed, and a two-image real-office sample passed both the pilot and browser workflows. The full pilot still reports OCR timeouts, the benchmark's Myanmar accuracy is poor and its reference has not been visually verified, and the browser flow against the full office copy timed out.
 
 ## Requested checks
 
@@ -22,6 +22,7 @@
 | Backup and recovery | Passed | Backup verification and recovery comparison passed; the active workspace was not changed by recovery. |
 | Full pilot OCR gate | **Failed** | 3 of 235 OCR-supported files timed out at the configured 30-second limit. Poppler was then installed under `D:\Doka`; missing-Poppler PDF errors were eliminated. The three timed-out files each succeeded when retried individually with a 120-second in-memory timeout, but the complete pilot was not rerun with that longer timeout. See [pilot-recovery.json](./pilot-recovery.json). |
 | Browser acceptance | Partial | The full-office browser test did not pass: its import/understand steps exceeded the test's time limits. Login → import → scan → OCR → plan passed with a separate five-image fixture copied under `D:\Doka`; this does not establish a full-office browser pass. See [browser-sample-acceptance.json](./browser-sample-acceptance.json). |
+| Small representative office sample | **Passed for the sample only** | A fresh folder under `D:\Doka\AcceptanceSmallSample` staged two small office scans (one English, one Myanmar/English). Actual image OCR succeeded for both; import/scan, source unchanged, backup verification, and Recovery comparison all passed. The same two-file fixture also passed login → import → scan → OCR → plan in the browser. This result does not establish full-dataset acceptance. See [small-sample-pilot.json](./small-sample-pilot.json) and [small-sample-browser-acceptance.json](./small-sample-browser-acceptance.json). |
 | `run_personal_local_acceptance.bat` | Not run | The batch runner creates a virtual environment and evidence under the repository, installs frontend dependencies/browser binaries, builds the frontend, and starts local servers. It was not run because the requested write boundary excluded those repository locations. Equivalent component checks were run manually with their state and evidence directed to `D:\Doka`. |
 
 ## What is still needed for a full pass
@@ -37,5 +38,6 @@
 - [pilot-recovery.json](./pilot-recovery.json) — copied-office import/scan, OCR gate, backup, and recovery results.
 - [ocr-benchmark.json](./ocr-benchmark.json) — aggregate bilingual OCR benchmark results. Recognized and reference text are excluded.
 - [browser-sample-acceptance.json](./browser-sample-acceptance.json) — successful browser workflow against the small isolated fixture.
+- [small-sample-pilot.json](./small-sample-pilot.json) and [small-sample-browser-acceptance.json](./small-sample-browser-acceptance.json) — pilot and browser evidence from the two real office scans.
 
 Office files, the OCR sample image/reference, credentials, logs, screenshots, videos, and traces are deliberately not copied into this report folder.
