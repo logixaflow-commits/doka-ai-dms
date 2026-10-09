@@ -147,6 +147,7 @@ def main() -> int:
                 boundary_document_id = str(boundary_document.get("id") or "")
                 if not boundary_document_id:
                     raise AssertionError("exact 50 MiB upload did not return a document id")
+                created_document_ids.append(boundary_document_id)
                 evidence["checks"]["exact_50_mib_boundary"] = True
     
                 trash_boundary = _auth(
@@ -160,7 +161,7 @@ def main() -> int:
                     method="DELETE",
                 )
                 _assert_status(permanent_boundary, 200, "exact 50 MiB permanent cleanup")
-            created_document_ids.remove(boundary_document_id)
+                created_document_ids.remove(boundary_document_id)
             else:
                 evidence["checks"]["exact_50_mib_boundary"] = "pending_fixture"
     
