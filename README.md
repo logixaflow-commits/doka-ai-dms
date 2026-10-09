@@ -35,6 +35,7 @@ Personal Local development requires a strong `BOOTSTRAP_ADMIN_PASSWORD`; no usab
 | `ROADMAP.md` | release gates, phases and backlog |
 | `UI_DESIGN_SYSTEM.md` | implemented UI/design/accessibility contract |
 | `TOOL.md` | working, evidence and documentation protocol |
+| `docs/SELF_AUDIT.md` | repository-local structural/evidence preflight |
 | `SECURITY.md` | security boundaries and verification rules |
 | `docs/ARCHITECTURE.md` | detailed architecture reference |
 | `docs/DEVELOPMENT.md` | development setup and contribution workflow |
