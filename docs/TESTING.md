@@ -31,6 +31,11 @@ The repository now contains a current Playwright suite at web-platform/frontend/
 
 Required scenario: login -> import -> scan/OCR -> review -> approve -> Final copy -> backup -> isolated restore -> undo, with source SHA-256 unchanged before/after.
 
+## Repo-side Personal Local preflight
+The pilot harness now rejects overlapping source/workspace/backup/evidence paths, symlink roots, source trees containing symlinks, non-empty dedicated workspace/backup roots, and evidence targets that are not regular-file paths. It validates the source before creating mutable pilot roots. The maintained backend workflow explicitly includes `web-platform/tests/test_doka_pilot.py`, so these guardrails are checked in CI when the workflow runs.
+
+Local validation on 2026-10-09: the maintained Personal Local safety subset plus pilot/idempotency tests passed **71 tests**; frontend TypeScript/build/smoke/lint checks passed. The actual Playwright browser acceptance and representative OCR/copied-office pilot remain separate, pending release gates.
+
 ## Gate 5 — Copied-office pilot
 The repository contains scripts/doka_pilot_check.py with dedicated workspace/backup isolation, source before/after hashes, OCR checks, backup verification, and isolated recovery comparison. Existing evidence is still synthetic only; no representative copied-office pilot was run in this close-out pass.
 

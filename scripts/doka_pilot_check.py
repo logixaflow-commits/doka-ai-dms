@@ -36,6 +36,37 @@ from app.services.safe_workspace_service import (  # noqa: E402
 from app.services.workspace_backup_service import workspace_backup_service  # noqa: E402
 
 
+def validate_pilot_paths(
+    source: Path, workspace: Path, backup_root: Path, output: Path
+) -> None:
+    """Fail closed if pilot inputs, mutable roots, and evidence can overlap."""
+    raw_paths = {
+        "source": source.expanduser(),
+        "workspace": workspace.expanduser(),
+        "backup_root": backup_root.expanduser(),
+        "output": output.expanduser(),
+    }
+    for label, path in raw_paths.items():
+        if path.is_symlink():
+            raise SystemExit(f"Refusing pilot: {label} path must not be a symbolic link.")
+
+    resolved = {label: path.resolve() for label, path in raw_paths.items()}
+    if not resolved["source"].is_dir():
+        raise SystemExit("Source copy does not exist or is not a directory.")
+    if resolved["output"].exists() and not resolved["output"].is_file():
+        raise SystemExit("Refusing pilot: evidence output must be a regular file path.")
+
+    labels = list(resolved)
+    for index, left_label in enumerate(labels):
+        left = resolved[left_label]
+        for right_label in labels[index + 1:]:
+            right = resolved[right_label]
+            if left == right or left.is_relative_to(right) or right.is_relative_to(left):
+                raise SystemExit(
+                    f"Refusing pilot: {left_label} and {right_label} paths must be disjoint."
+                )
+
+
 def source_snapshot(root: Path) -> dict[str, str]:
     """Hash every regular file so the pilot can prove the supplied copy stayed unchanged."""
     snapshot: dict[str, str] = {}
@@ -94,22 +125,36 @@ def main() -> int:
     parser.add_argument("--apply-safe", action="store_true", help="Apply only non-review organization proposals after the plan is generated.")
     args = parser.parse_args()
 
-    source = Path(args.source).expanduser().resolve()
+    validate_pilot_paths(
+        Path(args.source), Path(args.workspace), Path(args.backup_root), Path(args.output)
+    )
+    source = Path(args.source).expanduser().resolve(strict=True)
     pilot_workspace = Path(args.workspace).expanduser().resolve()
     pilot_backup_root = Path(args.backup_root).expanduser().resolve()
     output = Path(args.output).expanduser().resolve()
-    if not source.is_dir():
-        raise SystemExit(f"Source copy does not exist: {source}")
+    source_symlinks = [str(path.relative_to(source)) for path in source.rglob("*") if path.is_symlink()]
+    if source_symlinks:
+        raise SystemExit(f"Acceptance source contains symbolic links: {source_symlinks[:10]}")
+    before = source_snapshot(source)
+    if not before:
+        print(json.dumps({
+            "gate": "blocked",
+            "reason": "The supplied source copy contains no regular files to validate.",
+        }, ensure_ascii=False, indent=2))
+        return 2
 
-    # Refuse an obviously unsafe source/workspace relationship before doing any work.
-    if pilot_workspace == source or pilot_workspace.is_relative_to(source) or source.is_relative_to(pilot_workspace):
-        raise SystemExit("Refusing pilot: source and WORKING_ROOT overlap.")
-    if pilot_backup_root == source or pilot_backup_root.is_relative_to(source):
-        raise SystemExit("Refusing pilot: source and BACKUP_ROOT overlap.")
+    if pilot_workspace.exists():
+        if not pilot_workspace.is_dir():
+            raise SystemExit("Pilot WORKING_ROOT must be a directory.")
+        if any(pilot_workspace.iterdir()):
+            raise SystemExit("Pilot WORKING_ROOT must be empty before the run.")
+    if pilot_backup_root.exists():
+        if not pilot_backup_root.is_dir():
+            raise SystemExit("Pilot BACKUP_ROOT must be a directory.")
+        if any(pilot_backup_root.iterdir()):
+            raise SystemExit("Pilot BACKUP_ROOT must be empty before the run.")
     pilot_workspace.mkdir(parents=True, exist_ok=True)
     pilot_backup_root.mkdir(parents=True, exist_ok=True)
-    if any(pilot_workspace.iterdir()):
-        raise SystemExit("Pilot WORKING_ROOT must be empty before the run.")
     settings.SOURCE_ROOT = source
     settings.WORKING_ROOT = pilot_workspace
     settings.FINAL_ROOT = pilot_workspace / "Final"
@@ -118,17 +163,6 @@ def main() -> int:
     workspace = settings.WORKING_ROOT.resolve()
     if source == workspace or source.is_relative_to(workspace) or workspace.is_relative_to(source):
         raise SystemExit("Refusing pilot: source and WORKING_ROOT overlap.")
-
-    before = source_snapshot(source)
-    source_symlinks = [str(path.relative_to(source)) for path in source.rglob("*") if path.is_symlink()]
-    if source_symlinks:
-        raise SystemExit(f"Acceptance source contains symbolic links: {source_symlinks[:10]}")
-    if not before:
-        print(json.dumps({
-            "gate": "blocked",
-            "reason": "The supplied source copy contains no regular files to validate.",
-        }, ensure_ascii=False, indent=2))
-        return 2
 
     started_at = time.monotonic()
     ocr = ocr_validation_service.validate()

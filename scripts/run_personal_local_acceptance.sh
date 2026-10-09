@@ -73,9 +73,18 @@ npm run dev -- --host 127.0.0.1 --port 3000 >"$EVIDENCE/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 trap 'kill "$FRONTEND_PID" 2>/dev/null || true; kill "$BACKEND_PID" 2>/dev/null || true' EXIT
 
+READY=0
 for _ in $(seq 1 60); do
-  if curl -fsS http://127.0.0.1:8000/health >/dev/null && curl -fsS http://127.0.0.1:3000/login >/dev/null; then break; fi
+  if curl -fsS http://127.0.0.1:8000/health >/dev/null && curl -fsS http://127.0.0.1:3000/login >/dev/null; then
+    READY=1
+    break
+  fi
   sleep 1
 done
+if [[ "$READY" != "1" ]]; then
+  echo "Personal Local acceptance services did not become healthy within 60 seconds." >&2
+  tail -n 80 "$EVIDENCE/backend.log" "$EVIDENCE/frontend.log" >&2 || true
+  exit 1
+fi
 
 npm run test:e2e:local

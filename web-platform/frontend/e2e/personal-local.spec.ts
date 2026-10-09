@@ -13,6 +13,10 @@ test.beforeAll(async () => {
 });
 
 async function snapshot(root: string): Promise<Record<string, string>> {
+  const rootInfo = await lstat(root);
+  if (rootInfo.isSymbolicLink() || !rootInfo.isDirectory()) {
+    throw new Error('Acceptance source root must be a real directory, not a symbolic link.');
+  }
   const output: Record<string, string> = {};
   async function walk(current: string) {
     for (const entry of await readdir(current, { withFileTypes: true })) {

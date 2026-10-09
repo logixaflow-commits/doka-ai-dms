@@ -1,6 +1,7 @@
 from pathlib import Path
 import importlib.util
 import json
+import pytest
 
 from app.core import config as config_module
 
@@ -132,3 +133,36 @@ def test_doka_pilot_rejects_empty_source_copy(tmp_path, monkeypatch, capsys):
     report = json.loads(output[output.index("{"):])
     assert report["gate"] == "blocked"
     assert "no regular files" in report["reason"]
+
+
+def test_pilot_paths_reject_output_inside_source(tmp_path):
+    module = _load_pilot_module()
+    source = tmp_path / "source"
+    source.mkdir()
+    with pytest.raises(SystemExit, match="source and output paths must be disjoint"):
+        module.validate_pilot_paths(
+            source, tmp_path / "workspace", tmp_path / "backups", source / "evidence.json"
+        )
+
+
+def test_pilot_paths_reject_workspace_backup_overlap(tmp_path):
+    module = _load_pilot_module()
+    source = tmp_path / "source"
+    source.mkdir()
+    workspace = tmp_path / "workspace"
+    with pytest.raises(SystemExit, match="workspace and backup_root paths must be disjoint"):
+        module.validate_pilot_paths(
+            source, workspace, workspace / "backups", tmp_path / "evidence.json"
+        )
+
+
+def test_pilot_paths_reject_symlinked_source_root(tmp_path):
+    module = _load_pilot_module()
+    source = tmp_path / "source"
+    source.mkdir()
+    link = tmp_path / "source-link"
+    link.symlink_to(source, target_is_directory=True)
+    with pytest.raises(SystemExit, match="source path must not be a symbolic link"):
+        module.validate_pilot_paths(
+            link, tmp_path / "workspace", tmp_path / "backups", tmp_path / "evidence.json"
+        )

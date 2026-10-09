@@ -18,6 +18,7 @@
 - Phase A–E remediation work preserved as historical evidence.
 - Documentation migration Phases 1–6.
 - Personal Local foundation.
+- Personal Local pilot harness hardened in-repo: all source/workspace/backup/evidence paths must be disjoint; symlink roots, nested source symlinks, non-empty pilot roots and non-file evidence targets fail closed before processing. Source snapshot and symlink checks run before mutable roots are created. These checks have regression coverage.
 - Local Auth/Session/Restart/Replay implementation.
 - Organization Apply/locking/limits/Undo implementation.
 - Dependabot/secret-scan/lockfile/lint reconciliation.
@@ -54,7 +55,7 @@
 ## 7. PENDING
 - Gate 3: current representative sample directory/manifest and Tesseract version are not available in the accessible test environment. A historical privacy-scrubbed report exists (5 mixed mya+eng samples; mean CER 0.1660492282; mean WER 0.3081550029), but it does not record Tesseract version and is not sufficient to close the current gate.
 - Gate 4: the current Playwright suite is now aligned to the Personal Local acceptance flow (login → Safe Workspace → import → scan → understand/OCR → review plan → source hash comparison). The suite is implementation-ready, but no browser runtime/data acceptance run has been executed in the accessible test box.
-- Gate 5: pilot harness and source-hash logic exist; only synthetic evidence is recorded. No copied representative office-data pilot has been run in this pass.
+- Gate 5: pilot harness and source-hash logic exist; path-overlap, symlink and isolated-root safety are now regression-tested. Only synthetic evidence is recorded. No copied representative office-data pilot has been run in this pass.
 - Gate 6: synthetic backup/restore evidence exists; no timed real-machine drill was run, so RTO/RPO are unmeasured.
 - Gate 9: live Worker unauthenticated probe returned HTTP 403; no disposable authenticated test-user session was available for the required lifecycle test.
 - Gate 10: live Supabase is healthy with current migrations, but two real authenticated test users were not available. Existing synthetic RLS probes are not accepted as two-user release evidence.
