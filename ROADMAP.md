@@ -13,7 +13,7 @@ Cloud: authenticated lifecycle -> two-user isolation -> storage/recovery -> secu
 - Documentation migration Phases 1–6.
 - Core coding-side foundations: architecture, security, workflow reliability, AI/provider boundaries, and CI/quality foundations substantially implemented.
 - Quality gate: dependency/secret/lockfile/lint/CodeQL evidence recorded.
-- Cloudflare Worker current deployment evidence verified on 2026-10-08.
+- Cloudflare Worker current deployment evidence verified on 2026-10-09 (version 652 at 100% traffic).
 - Render service absence verified for the connected workspace.
 - Cloudinary provider-level recovery probe verified on 2026-10-08.
 
@@ -43,7 +43,7 @@ Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require re
 12. Gate 12 — Deployment/runtime evidence and final go-live sign-off.
 
 ### Current close-out evidence
-- Gate 9: PENDING. An authenticated cloud acceptance runner is now prepared for user-A lifecycle plus exact 50 MiB boundary; real tokens/runtime evidence are still required.
+- Gate 9: PENDING. An authenticated cloud acceptance runner is now prepared for user-A lifecycle plus exact 50 MiB boundary; real tokens/runtime evidence are still required; runner cleanup and failure evidence paths are now hardened.
 - Gate 10: PENDING. The same runner now includes two-user document isolation checks; live Supabase/RLS/Storage proof still requires two distinct authenticated users.
 - Gate 11: PENDING. Provider routing/unit coverage exists for Supabase/B2/Cloudinary/Google Drive, but real B2 + Google Drive recovery and Cloudinary application-path evidence remain required.
 - Gate 12: BLOCKED by Gates 9–11.
