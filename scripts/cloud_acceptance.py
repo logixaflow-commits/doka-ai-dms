@@ -173,7 +173,14 @@ def main() -> int:
             )
             _assert_status(permanent, 200, "user A permanent cleanup")
             created_document_ids.remove(document_id)
-    
+    except Exception as exc:
+        evidence["passed"] = False
+        evidence["failure_class"] = type(exc).__name__
+        evidence["elapsed_seconds"] = round(time.monotonic() - started, 3)
+        evidence["gate9_ready"] = False
+        output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+        print(json.dumps(evidence, indent=2, sort_keys=True))
+        return 2
     finally:
         # Best-effort cleanup also runs when any assertion fails midway.
         if created_document_ids:
