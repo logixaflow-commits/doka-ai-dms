@@ -232,6 +232,7 @@ class Settings:
         self.HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
         self.OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
         self.OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+        self.OPENROUTER_EMBEDDING_MODEL = os.getenv("OPENROUTER_EMBEDDING_MODEL", "liquid/lfm-2.5-embedding-350m:free")
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
         self.GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
         # Planned provider credentials. Empty by default and never required for local mode.
@@ -257,13 +258,13 @@ class Settings:
         self.AI_CLASSIFICATION_ENABLED = os.getenv("AI_CLASSIFICATION_ENABLED", "false").lower() == "true"
         self.AI_PROVIDER_ORDER = [
             p.strip().lower() for p in os.getenv(
-                "AI_PROVIDER_ORDER", "gemini,openrouter,groq,openai"
+                "AI_PROVIDER_ORDER", "openrouter"
             ).split(",") if p.strip()
         ]
-        self.AI_CLASSIFICATION_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_CLASSIFICATION_PROVIDER_ORDER", "gemini,groq,openrouter,openai").split(",") if p.strip()]
-        self.AI_PLANNING_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_PLANNING_PROVIDER_ORDER", "openai,gemini,groq,openrouter").split(",") if p.strip()]
-        self.AI_FAST_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_FAST_PROVIDER_ORDER", "groq,gemini").split(",") if p.strip()]
-        self.AI_EMBEDDING_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_EMBEDDING_PROVIDER_ORDER", "huggingface").split(",") if p.strip()]
+        self.AI_CLASSIFICATION_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_CLASSIFICATION_PROVIDER_ORDER", "openrouter").split(",") if p.strip()]
+        self.AI_PLANNING_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_PLANNING_PROVIDER_ORDER", "openrouter").split(",") if p.strip()]
+        self.AI_FAST_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_FAST_PROVIDER_ORDER", "openrouter").split(",") if p.strip()]
+        self.AI_EMBEDDING_PROVIDER_ORDER = [p.strip().lower() for p in os.getenv("AI_EMBEDDING_PROVIDER_ORDER", "openrouter").split(",") if p.strip()]
         self.AI_PROVIDER_MAX_ATTEMPTS = int(os.getenv("AI_PROVIDER_MAX_ATTEMPTS", "0"))
         self.AI_PROVIDER_TIMEOUT_SECONDS = float(os.getenv("AI_PROVIDER_TIMEOUT_SECONDS", "30"))
         self.AI_PROVIDER_FAILURE_THRESHOLD = max(1, int(os.getenv("AI_PROVIDER_FAILURE_THRESHOLD", "3")))
