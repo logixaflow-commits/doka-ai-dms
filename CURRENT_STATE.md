@@ -89,6 +89,7 @@
 
 ## 11. LAST VERIFIED
 - Disposable runtime checkpoint 2026-10-08: Python 3.13, Node 22, npm 10, Playwright 1.64 available; Tesseract absent; required backend Python modules absent. Acceptance preflight returned not-ready without recording secrets.
+- 2026-10-09 targeted Cloud storage/provider acceptance suite: 82 passed in a disposable Python 3.13 runtime, including signed upload/download integrity and release-gate regression tests. This is local targeted evidence, not a verified GitHub Actions result. The broad legacy backend directory did not complete collection because full-suite dependencies were absent and one legacy test imports missing `app.models`; no broad-suite pass is claimed.
 - Workflow targeted runtime checkpoint 2026-10-08: 6/6 workflow contract tests passed in the disposable runtime after idempotency/locking hardening. Full backend suite was not rerun.
 - Durable job idempotency contract: claim/state/attempt persistence, retry exhaustion, DLQ transition and concurrent duplicate claims are now covered by focused contract tests; no queue takeover is enabled.
 - Maintained backend regression suite: 386 passed in the latest recorded full run; this pass could not rerun pytest because the accessible execution box has no pytest/pip installation.

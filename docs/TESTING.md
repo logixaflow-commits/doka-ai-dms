@@ -17,7 +17,7 @@
 ## Current recorded evidence
 Latest recorded maintained Personal Local suite: 386 passed with 11 warnings. Frontend lint/build/smoke and quality/CodeQL workflows were recorded green.
 
-This close-out pass could not rerun pytest in the accessible execution box because pytest and pip are not installed. Do not treat that environment limitation as a test failure or as fresh green evidence.
+The default repository-work box lacks pip/pytest, so targeted validation was run in a separate disposable Python 3.13 runtime on 2026-10-09. Compilation checks passed and the curated Cloud storage/provider/release-gate/acceptance suite passed **82 tests**. This is local targeted evidence, not a GitHub Actions result; the connected status view still does not expose the push-triggered Doka Quality Checks run for the latest commit. A broad legacy backend test-directory collection was also attempted but stopped at collection with eight import errors because full-suite-only dependencies (`sqlalchemy`, scikit-learn, Playwright, requests and MinIO) were absent and one legacy test imports the missing `app.models` module. That broad collection is not counted as a pass and remains outside the curated contract-suite result.
 
 ## Gate 3 — OCR
 The repository contains scripts/ocr_benchmark.py and OCR regression tests. The current benchmark runner requires a copied sample directory plus a JSON manifest with reference text. The accessible test environment does not contain the required sample directory/manifest, and Tesseract is not installed there.
