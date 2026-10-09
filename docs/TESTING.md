@@ -75,3 +75,8 @@ The runner is disposable and privacy-safe: it verifies duplicate idempotency con
 
 
 The production D1 authorization migration was applied only after a SQL export completed, the export restored in disposable SQLite, the affected metadata tables were confirmed empty, and all four migration guard tests passed. The post-apply read-only query confirmed the unique-owner index and six integrity triggers; see `Phase0_Evidence/train1/d1-authorization-migration-2026-10-09.json`.
+
+
+## Repository self-audit
+
+Run `python scripts/audit/doka_self_audit.py` to check canonical documentation, release-gate references, the current next-action marker, and referenced evidence-path presence. The script's tests run in the `repository-self-audit` GitHub Actions job. Evidence references are advisory by default; missing runtime credentials or real-world acceptance evidence must remain visible as release blockers and are not treated as passing. See [SELF_AUDIT.md](SELF_AUDIT.md).
