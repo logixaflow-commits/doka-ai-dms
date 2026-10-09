@@ -183,6 +183,16 @@ This section records the connected-service state actually inspected during the c
 - [x] Connected account has a workspace named `My Workspace`.
 - [ ] Service listing was not run because the Render connector requires an explicitly selected workspace. If Render is part of the intended cloud architecture, select the correct workspace before any service inspection. No workspace was guessed.
 
+
+### AI model and billing boundary
+- [x] Inspected Vercel project environment-variable names without decrypting secrets: no `OPENROUTER_API_KEY` or other AI-provider key was present in the returned Vercel environment list. Values were not revealed.
+- [x] Inspected Cloudflare Worker secret-binding names only: the Worker has storage/provider secrets but no OpenRouter/Gemini/Groq/OpenAI/Hugging Face AI key binding. Secret values were not retrieved.
+- [x] PR #24 now defaults AI task routing to OpenRouter's free router, restricts generic chat to the supplied free-model allowlist, and routes embeddings only to the free OpenRouter embedding allowlist. Other provider APIs are not registered by the unified AI service; Hugging Face inference is not used as an embedding fallback.
+- [ ] The OpenRouter key's presence/usability and actual zero-cost usage are **not yet verified** because no key was found in the inspected Vercel/Cloudflare secret stores. Do not paste a key into chat or logs. Locate the intended backend runtime's secret store, add it there if needed, then run a non-sensitive smoke request and verify the model/usage in OpenRouter.
+- [ ] Some supplied model IDs are specialized (embedding, reranking, content safety, audio, behavior scoring). They must only be wired into matching task-specific adapters; they are not interchangeable with chat-completion models.
+- [ ] Render workspace/service inspection remains blocked until the owner selects the intended workspace; no workspace or runtime was guessed.
+
+
 ### Cloud completion conditions
 - [ ] Resolve Supabase leaked-password-protection warning.
 - [ ] Investigate why recent Vercel production deployments are canceled and establish owner intent before any promotion.
