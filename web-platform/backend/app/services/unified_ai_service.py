@@ -3,6 +3,7 @@ Office DMS - Unified AI Service
 Free-first multi-provider AI orchestration with automatic fallback.
 AI is optional: local/rule-based processing remains the default.
 """
+import asyncio
 import json
 import re
 import time
@@ -122,19 +123,24 @@ class UnifiedAIService:
     def _provider_is_available(self, provider: str) -> bool:
         return self._provider_circuit(provider).allow(time.monotonic())
 
-    def _record_provider_success(self, provider: str) -> None:
-        self._provider_failures.pop(provider, None)
-        self._provider_opened_at.pop(provider, None)
-        self._provider_circuit(provider).success()
+    def _record_provider_success(self, provider: str, *, probe: bool) -> None:
+        circuit = self._provider_circuit(provider)
+        circuit.success(probe=probe)
+        if circuit.state.value == "closed":
+            self._provider_failures.pop(provider, None)
+            self._provider_opened_at.pop(provider, None)
 
-    def _record_provider_failure(self, provider: str) -> None:
+    def _record_provider_failure(self, provider: str, *, probe: bool) -> None:
         now = time.monotonic()
+        circuit = self._provider_circuit(provider)
+        was_open = circuit.state.value == "open"
         failures = self._provider_failures.get(provider, 0) + 1
         self._provider_failures[provider] = failures
-        self._provider_opened_at[provider] = now
-        self._provider_circuit(provider).failure(now)
-        if self._provider_circuit(provider).state.value == "open":
-            logger.warning("AI provider '%s' circuit opened after %s failures", provider, failures)
+        circuit.failure(now, probe=probe)
+        if circuit.state.value == "open":
+            self._provider_opened_at[provider] = circuit.opened_at or now
+            if not was_open:
+                logger.warning("AI provider '%s' circuit opened after %s failures", provider, failures)
 
     async def _with_fallback(
         self,
@@ -160,10 +166,6 @@ class UnifiedAIService:
         unavailable: set[str] = set()
         original = candidates[0]
         for index, provider in enumerate(candidates):
-            if not self._provider_is_available(provider):
-                errors.append(f"{provider}: circuit open")
-                unavailable.add(provider)
-                continue
             if index > 0:
                 provider = select_failover_provider(
                     candidates,
@@ -171,16 +173,28 @@ class UnifiedAIService:
                     original_provider=original,
                     approved_for_failover=getattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False),
                 )
+            if not self._provider_is_available(provider):
+                errors.append(f"{provider}: circuit open")
+                unavailable.add(provider)
+                continue
+            circuit = self._provider_circuit(provider)
+            recovery_probe = circuit.state.value == "half_open"
             try:
                 result = await call(provider)
-                self._record_provider_success(provider)
+                self._record_provider_success(provider, probe=recovery_probe)
                 logger.info("AI operation '%s' completed with provider '%s'", operation, provider)
                 return result
+            except asyncio.CancelledError:
+                if recovery_probe:
+                    circuit.abandon_probe(time.monotonic())
+                raise
             except Exception as exc:
                 if classify_error(exc) is ErrorClass.NON_RETRYABLE:
+                    if recovery_probe:
+                        circuit.abandon_probe(time.monotonic())
                     logger.error("AI operation '%s' failed closed on provider '%s'", operation, provider)
                     raise
-                self._record_provider_failure(provider)
+                self._record_provider_failure(provider, probe=recovery_probe)
                 unavailable.add(provider)
                 errors.append(f"{provider}: transient provider failure")
                 logger.warning("AI provider '%s' failed transiently for '%s'; trying approved alternate", provider, operation)
