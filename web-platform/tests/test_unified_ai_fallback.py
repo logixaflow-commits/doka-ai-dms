@@ -1,6 +1,7 @@
 import pytest
 
 from app.core.config import settings
+from app.services.train1_safety_contracts import ConsentGrant
 from app.services.unified_ai_service import UnifiedAIService, build_document_analysis_prompt
 
 
@@ -22,7 +23,7 @@ async def test_ai_fallback_uses_next_provider(monkeypatch):
             raise TimeoutError("quota")
         return {"provider": provider}
 
-    result = await service._with_fallback("test", call)
+    result = await service._with_fallback("test", call, consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True), subject_id="user-1", purpose="document_analysis", scope="document:7")
     assert result == {"provider": "openrouter"}
     assert calls == ["gemini", "openrouter"]
 
@@ -87,7 +88,7 @@ async def test_external_ai_requires_separate_explicit_consent(monkeypatch):
         return "should not run"
 
     with pytest.raises(RuntimeError, match="consent is required"):
-        await service._with_fallback("sensitive-document", call)
+        await service._with_fallback("sensitive-document", call, consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True), subject_id="user-1", purpose="document_analysis", scope="document:7")
     assert called is False
 
 @pytest.mark.asyncio
@@ -98,7 +99,7 @@ async def test_external_embeddings_require_ai_enabled_and_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
 
     with pytest.raises(RuntimeError, match="consent is required"):
-        await service.get_embedding("private document text")
+        await service.get_embedding("private document text", consent_grant=ConsentGrant("user-1", "embedding", "document:7", True), subject_id="user-1", scope="document:7")
 
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_ENABLED", False)
@@ -193,4 +194,4 @@ async def test_external_embeddings_enforce_the_configured_input_limit(monkeypatc
     monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-key")
 
     with pytest.raises(ValueError, match="configured AI input limit"):
-        await service.get_embedding("x" * 1001)
+        await service.get_embedding("x" * 1001, consent_grant=ConsentGrant("user-1", "embedding", "document:7", True), subject_id="user-1", scope="document:7")
