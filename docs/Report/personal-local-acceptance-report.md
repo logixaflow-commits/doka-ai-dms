@@ -27,7 +27,7 @@
 
 ## What is still needed for a full pass
 
-1. **Validate Myanmar benchmark truth and quality.** Check the Myanmar reference against the rendered sample locally. If it does not match exactly, correct it; ideally add clear representative Myanmar and English samples with verified references. Agree on an acceptable CER/WER threshold—the runner does not currently make `gate_ready` an accuracy-threshold pass.
+1. **Validate Myanmar benchmark truth and quality.** Check the Myanmar reference against the rendered sample locally. If it does not match exactly, correct it; add clear representative Myanmar and English samples with verified references. The runner now enforces default mean CER ≤0.30 and mean WER ≤0.60 per language label; set a different threshold only when explicitly justified in the manifest.
 2. **Resolve and rerun the full OCR pilot.** The PDF-rendering dependency is now available under `D:\Doka`, but the complete pilot still has three 30-second OCR timeouts. A 120-second retry worked for each affected file individually; the full pilot needs to be rerun with a supported longer-timeout setting or after the relevant timeout configuration is explicitly approved and implemented.
 3. **Complete full-dataset browser acceptance.** The sample-fixture browser test passed, but the full-office browser test exceeded its time limits. Run it again after addressing the long import/OCR duration, and verify the full source copy remains unchanged.
 4. **Run the named batch runner only if its repository writes are approved.** The current authorization covered this report folder, not the runner's other repository outputs (virtual environment, frontend install/build artifacts, and acceptance evidence).
