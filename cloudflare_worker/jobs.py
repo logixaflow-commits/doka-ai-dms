@@ -14,6 +14,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from .d1 import D1Database
+
 
 class JobStateConflict(RuntimeError):
     """Raised when a conditional job transition updates no durable row."""
@@ -24,8 +26,6 @@ def _require_single_change(result: dict[str, Any], *, operation: str) -> None:
     changes = meta.get("changes") if isinstance(meta, dict) else None
     if type(changes) is not int or changes != 1:
         raise JobStateConflict(f"{operation} did not update the expected job state.")
-
-from .d1 import D1Database
 
 _KEY_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-")
 _MAX_KEY = 255
