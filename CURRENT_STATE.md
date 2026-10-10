@@ -53,7 +53,7 @@
 - Final live-infrastructure evidence reconciliation.
 
 ## 7. PENDING
-- Gate 3: current representative sample directory/manifest and Tesseract version are not available in the accessible test environment. A historical privacy-scrubbed report exists (5 mixed mya+eng samples; mean CER 0.1660492282; mean WER 0.3081550029), but it does not record Tesseract version and is not sufficient to close the current gate.
+- Gate 3: BLOCKED/PENDING. The latest six-sample report is now correctly `gate_ready=false`: the Myanmar/English sample scored CER 79.94% and WER 171.43%, exceeding the benchmark defaults (mean CER ≤0.30 and mean WER ≤0.60). The OCR reference still requires visual verification against the rendered scan, and a representative re-run is required after correction. Do not use the older aggregate report to close this gate.
 - Gate 4: the Playwright flow ran successfully in headless Chromium against a local Personal Local backend/frontend with one synthetic text file. It covered login, import, scan, understand/OCR action, review plan and source hash equality. This is a smoke pass, not representative-office release evidence; Gate 4 remains pending.
 - Gate 5: pilot harness and source-hash logic exist; path-overlap, symlink and isolated-root safety are now regression-tested. Only synthetic evidence is recorded. No copied representative office-data pilot has been run in this pass.
 - Gate 6: synthetic backup/restore evidence exists; no timed real-machine drill was run, so RTO/RPO are unmeasured.
