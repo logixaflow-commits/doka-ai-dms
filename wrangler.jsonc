@@ -27,5 +27,7 @@
     "SUPABASE_STORAGE_BUCKET": "doka-documents",
     "DOKA_STORAGE_MAX_OBJECT_BYTES": "52428800"
   },
-  "previews": {}
+  "previews": {
+    // Intentionally omit production data bindings until isolated staging resources exist.
+  }
 }
