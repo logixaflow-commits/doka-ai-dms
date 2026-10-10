@@ -320,8 +320,14 @@ class UnifiedAIService:
         if not isinstance(result, dict):
             raise ValueError("AI provider analysis must be a JSON object.")
         required = {"category", "confidence", "key_entities", "suspicious", "suspicious_reason"}
-        if not required.issubset(result):
+        missing = required - set(result)
+        unknown = set(result) - required
+        if missing:
             raise ValueError("AI provider analysis is missing required fields.")
+        if unknown:
+            # Do not let unmodeled provider fields cross the AI trust boundary
+            # into application logic, logs, or future consumers implicitly.
+            raise ValueError("AI provider analysis contains unknown fields.")
         confidence = result["confidence"]
         if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
             raise ValueError("AI provider confidence must be between 0 and 1.")
