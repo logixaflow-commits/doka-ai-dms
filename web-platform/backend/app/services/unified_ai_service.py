@@ -13,8 +13,10 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.train1_safety_contracts import (
     CircuitBreaker,
+    ConsentGrant,
     ErrorClass,
     classify_error,
+    require_consent,
     select_failover_provider,
 )
 
@@ -98,12 +100,30 @@ class UnifiedAIService:
         remaining = [p for p in self.providers if p not in ordered]
         return ordered + remaining
 
-    def _ensure_external_ai_allowed(self) -> None:
-        """Fail closed before any provider receives document or embedding text."""
+    def _ensure_external_ai_allowed(
+        self,
+        *,
+        consent_grant: Optional[ConsentGrant] = None,
+        subject_id: Optional[str] = None,
+        purpose: Optional[str] = None,
+        scope: Optional[str] = None,
+    ) -> None:
+        """Require global enablement and an exact, resource-scoped consent grant."""
         if not settings.AI_ENABLED:
             raise RuntimeError("AI is disabled; use local/rule-based processing")
         if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
             raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
+        if not subject_id or not purpose or not scope:
+            raise RuntimeError("Explicit subject, purpose, and resource scope are required for external AI processing.")
+        try:
+            require_consent(
+                consent_grant,
+                subject_id=subject_id,
+                purpose=purpose,
+                scope=scope,
+            )
+        except ValueError as exc:
+            raise RuntimeError("A matching, granted resource-scoped consent record is required.") from exc
 
     def _provider_limit(self, candidate_count: int) -> int:
         configured = settings.AI_PROVIDER_MAX_ATTEMPTS
@@ -141,9 +161,16 @@ class UnifiedAIService:
         operation: str,
         call: Callable[[str], Awaitable[Any]],
         providers: Optional[List[str]] = None,
+        *,
+        consent_grant: Optional[ConsentGrant] = None,
+        subject_id: Optional[str] = None,
+        purpose: Optional[str] = None,
+        scope: Optional[str] = None,
     ) -> Any:
-        """Try providers in order; on quota/network/model failure continue to the next."""
-        self._ensure_external_ai_allowed()
+        """Try providers only under exact-scope consent; failover cannot broaden consent."""
+        self._ensure_external_ai_allowed(
+            consent_grant=consent_grant, subject_id=subject_id, purpose=purpose, scope=scope
+        )
 
         candidates = providers or self.get_available_providers()
         candidates = candidates[: self._provider_limit(len(candidates))]
@@ -211,8 +238,14 @@ class UnifiedAIService:
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
 
-    async def call_openai(self, prompt: str, system_prompt: Optional[str] = None) -> str:
-        self._ensure_external_ai_allowed()
+    async def call_openai(
+        self, prompt: str, system_prompt: Optional[str] = None, *,
+        consent_grant: Optional[ConsentGrant] = None, subject_id: Optional[str] = None,
+        purpose: Optional[str] = None, scope: Optional[str] = None,
+    ) -> str:
+        self._ensure_external_ai_allowed(
+            consent_grant=consent_grant, subject_id=subject_id, purpose=purpose, scope=scope
+        )
         provider = self.providers.get("openai")
         if not provider:
             raise ValueError("OpenAI provider not available")
@@ -230,8 +263,14 @@ class UnifiedAIService:
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
 
-    async def call_gemini(self, prompt: str, system_prompt: Optional[str] = None) -> str:
-        self._ensure_external_ai_allowed()
+    async def call_gemini(
+        self, prompt: str, system_prompt: Optional[str] = None, *,
+        consent_grant: Optional[ConsentGrant] = None, subject_id: Optional[str] = None,
+        purpose: Optional[str] = None, scope: Optional[str] = None,
+    ) -> str:
+        self._ensure_external_ai_allowed(
+            consent_grant=consent_grant, subject_id=subject_id, purpose=purpose, scope=scope
+        )
         provider = self.providers.get("gemini")
         if not provider:
             raise ValueError("Gemini provider not available")
@@ -251,8 +290,14 @@ class UnifiedAIService:
             response.raise_for_status()
             return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
-    async def call_openrouter(self, prompt: str, system_prompt: Optional[str] = None) -> str:
-        self._ensure_external_ai_allowed()
+    async def call_openrouter(
+        self, prompt: str, system_prompt: Optional[str] = None, *,
+        consent_grant: Optional[ConsentGrant] = None, subject_id: Optional[str] = None,
+        purpose: Optional[str] = None, scope: Optional[str] = None,
+    ) -> str:
+        self._ensure_external_ai_allowed(
+            consent_grant=consent_grant, subject_id=subject_id, purpose=purpose, scope=scope
+        )
         provider = self.providers.get("openrouter")
         if not provider:
             raise ValueError("OpenRouter provider not available")
@@ -275,8 +320,14 @@ class UnifiedAIService:
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
 
-    async def call_groq(self, prompt: str, system_prompt: Optional[str] = None) -> str:
-        self._ensure_external_ai_allowed()
+    async def call_groq(
+        self, prompt: str, system_prompt: Optional[str] = None, *,
+        consent_grant: Optional[ConsentGrant] = None, subject_id: Optional[str] = None,
+        purpose: Optional[str] = None, scope: Optional[str] = None,
+    ) -> str:
+        self._ensure_external_ai_allowed(
+            consent_grant=consent_grant, subject_id=subject_id, purpose=purpose, scope=scope
+        )
         provider = self.providers.get("groq")
         if not provider:
             raise ValueError("Groq provider not available")
@@ -333,8 +384,12 @@ class UnifiedAIService:
             raise ValueError("AI provider suspicious_reason must be a string or null.")
         return result
 
-    async def analyze_document(self, text: str, provider: Optional[str] = None) -> Dict[str, Any]:
-        """Analyze a document with an explicit provider or free-first fallback chain."""
+    async def analyze_document(
+        self, text: str, provider: Optional[str] = None, *,
+        consent_grant: Optional[ConsentGrant] = None, subject_id: Optional[str] = None,
+        scope: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Analyze a document only with consent bound to its exact resource."""
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Document text is required for AI analysis.")
         max_input_chars = settings.AI_MAX_INPUT_CHARS
@@ -346,13 +401,13 @@ class UnifiedAIService:
 
         async def call(prov: str):
             if prov == "gemini":
-                raw = await self.call_gemini(user_payload, system_prompt)
+                raw = await self.call_gemini(user_payload, system_prompt, consent_grant=consent_grant, subject_id=subject_id, purpose="document_analysis", scope=scope)
             elif prov == "openrouter":
-                raw = await self.call_openrouter(user_payload, system_prompt)
+                raw = await self.call_openrouter(user_payload, system_prompt, consent_grant=consent_grant, subject_id=subject_id, purpose="document_analysis", scope=scope)
             elif prov == "groq":
-                raw = await self.call_groq(user_payload, system_prompt)
+                raw = await self.call_groq(user_payload, system_prompt, consent_grant=consent_grant, subject_id=subject_id, purpose="document_analysis", scope=scope)
             elif prov == "openai":
-                raw = await self.call_openai(user_payload, system_prompt)
+                raw = await self.call_openai(user_payload, system_prompt, consent_grant=consent_grant, subject_id=subject_id, purpose="document_analysis", scope=scope)
             elif prov in {"mistral", "cerebras", "nvidia"}:
                 raw = await self._call_openai_compatible(prov, user_payload, system_prompt)
             else:
@@ -360,15 +415,26 @@ class UnifiedAIService:
             return self._parse_analysis_result(raw)
 
         providers = [provider] if provider else self._providers_for_task("classification")
-        return await self._with_fallback("document_analysis", call, providers)
+        return await self._with_fallback(
+            "document_analysis", call, providers,
+            consent_grant=consent_grant, subject_id=subject_id,
+            purpose="document_analysis", scope=scope,
+        )
 
     def _embedding_provider_order(self) -> List[str]:
         configured = getattr(settings, "AI_EMBEDDING_PROVIDER_ORDER", ["huggingface", "voyage", "cohere"])
         return list(dict.fromkeys(configured))
 
-    async def get_embedding(self, text: str, provider: Optional[str] = None) -> List[float]:
-        """Embeddings are optional; semantic search must have a local fallback."""
-        self._ensure_external_ai_allowed()
+    async def get_embedding(
+        self, text: str, provider: Optional[str] = None, *,
+        consent_grant: Optional[ConsentGrant] = None, subject_id: Optional[str] = None,
+        scope: Optional[str] = None,
+    ) -> List[float]:
+        """Embeddings are optional and require exact-scope consent like document analysis."""
+        self._ensure_external_ai_allowed(
+            consent_grant=consent_grant, subject_id=subject_id,
+            purpose="embedding", scope=scope,
+        )
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Text is required for embedding generation.")
         if len(text) > settings.AI_MAX_INPUT_CHARS:
