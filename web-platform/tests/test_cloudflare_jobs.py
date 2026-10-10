@@ -9,6 +9,7 @@ from cloudflare_worker.jobs import (
     CREATE_SQL,
     FAIL_SQL,
     SUCCEED_SQL,
+    JobStateConflict,
     claim_next_job,
     create_or_get_job,
     mark_failed,
@@ -20,13 +21,14 @@ NOW = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
 
 
 class FakeD1:
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, *, changes=1):
         self.rows = list(rows or [])
+        self.changes = changes
         self.calls = []
 
     async def execute(self, sql, parameters=()):
         self.calls.append(("execute", sql, parameters))
-        return {"success": True, "meta": {"changes": 1}}
+        return {"success": True, "meta": {"changes": self.changes}}
 
     async def first(self, sql, parameters=()):
         self.calls.append(("first", sql, parameters))
@@ -119,4 +121,22 @@ def test_invalid_idempotency_key_is_rejected(key):
     with pytest.raises(ValueError):
         asyncio.run(create_or_get_job(
             FakeD1(), job_id="job", job_type="ocr", idempotency_key=key, payload={},
+        ))
+
+
+def test_success_rejects_stale_job_state_transition():
+    db = FakeD1(changes=0)
+    with pytest.raises(JobStateConflict, match="expected job state"):
+        asyncio.run(mark_succeeded(db, {"id": "job-stale"}, {"ok": True}, now=NOW))
+
+
+def test_failure_rejects_stale_job_state_transition():
+    db = FakeD1(changes=0)
+    with pytest.raises(JobStateConflict, match="expected job state"):
+        asyncio.run(mark_failed(
+            db,
+            {"id": "job-stale", "attempts": 1, "max_attempts": 3},
+            retryable=True,
+            error="temporary",
+            now=NOW,
         ))
