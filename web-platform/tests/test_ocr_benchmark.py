@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -59,3 +60,27 @@ def test_ocr_benchmark_report_does_not_include_reference_or_recognized_text(tmp_
     assert report["privacy"]["reference_text_included"] is False
     assert "မင်္ဂလာပါ" not in serialized
     assert str(root) not in serialized
+
+
+def test_checked_in_ocr_report_gate_matches_sample_metrics():
+    repository_root = Path(__file__).resolve().parents[2]
+    report_path = repository_root / "docs" / "Report" / "ocr-benchmark.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    quality_gate = report["quality_gate"]
+    expected_failures = [
+        {"sample_id": row["sample_id"], "reason": reason}
+        for row in report["results"]
+        if row["status"] == "scored"
+        for reason, failed in (
+            ("cer_exceeds_threshold", float(row["cer"]) > quality_gate["max_cer"]),
+            ("wer_exceeds_threshold", float(row["wer"]) > quality_gate["max_wer"]),
+        )
+        if failed
+    ]
+    expected_passed = report["execution_ready"] and not expected_failures
+
+    assert quality_gate["failures"] == expected_failures
+    assert quality_gate["failure_count"] == len(expected_failures)
+    assert quality_gate["passed"] is expected_passed
+    assert report["gate_ready"] is expected_passed
