@@ -165,6 +165,40 @@ def run_ocr_benchmark(
     missing_required_languages = [lang for lang in required_languages if not any(lang in label.split("+") for label in language_labels)]
     toolchain = collect_ocr_toolchain()
     missing_tool_languages = [lang for lang in required_languages if lang not in toolchain.get("languages", [])]
+    configured_thresholds = manifest.get("quality_thresholds", {}) if isinstance(manifest, dict) else {}
+    if not isinstance(configured_thresholds, dict):
+        raise ValueError("quality_thresholds must be an object keyed by language label.")
+    quality_thresholds: dict[str, dict[str, float]] = {}
+    quality_failures: list[dict[str, Any]] = []
+    for language, metrics in summary.items():
+        configured = configured_thresholds.get(language, {})
+        if not isinstance(configured, dict):
+            raise ValueError(f"Quality thresholds for {language!r} must be an object.")
+        max_cer = configured.get("max_mean_cer", 0.30)
+        max_wer = configured.get("max_mean_wer", 0.60)
+        if (
+            isinstance(max_cer, bool) or not isinstance(max_cer, (int, float))
+            or not 0 <= max_cer <= 1
+            or isinstance(max_wer, bool) or not isinstance(max_wer, (int, float))
+            or not 0 <= max_wer <= 1
+        ):
+            raise ValueError(f"Quality thresholds for {language!r} must be between 0 and 1.")
+        quality_thresholds[language] = {
+            "max_mean_cer": float(max_cer),
+            "max_mean_wer": float(max_wer),
+        }
+        if metrics["mean_cer"] > max_cer or metrics["mean_wer"] > max_wer:
+            quality_failures.append({
+                "language": language,
+                "mean_cer_exceeded": metrics["mean_cer"] > max_cer,
+                "mean_wer_exceeded": metrics["mean_wer"] > max_wer,
+            })
+    # Every required language must have a scored sample, not merely a manifest entry.
+    scored_language_labels = {row["language"].lower() for row in results if row["status"] == "scored"}
+    missing_scored_languages = [
+        lang for lang in required_languages
+        if not any(lang in label.split("+") for label in scored_language_labels)
+    ]
     return {
         "schema_version": 2,
         "sample_count": len(samples),
@@ -174,10 +208,15 @@ def run_ocr_benchmark(
         "required_languages": required_languages,
         "missing_required_languages": missing_required_languages,
         "missing_tool_languages": missing_tool_languages,
+        "missing_scored_languages": missing_scored_languages,
+        "quality_thresholds": quality_thresholds,
+        "quality_failures": quality_failures,
         "gate_ready": (
             len(samples) >= 2
             and not missing_required_languages
             and not missing_tool_languages
+            and not missing_scored_languages
+            and not quality_failures
             and not any(row["status"] == "error" for row in results)
             and toolchain["available"]
         ),
