@@ -21,7 +21,7 @@
   ],
   "missing_required_languages": [],
   "missing_tool_languages": [],
-  "gate_ready": true,
+  "gate_ready": false,
   "toolchain": {
     "command_configured": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "version": "tesseract v5.5.3.20260724",
@@ -110,5 +110,42 @@
     "recognized_text_included": false,
     "reference_text_included": false,
     "source_files_modified": false
+  },
+  "execution_ready": true,
+  "quality_gate": {
+    "max_cer": 0.1,
+    "max_wer": 0.2,
+    "passed": false,
+    "failure_count": 7,
+    "failures": [
+      {
+        "sample_id": "sample-001",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-001",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-002",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-002",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-004",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "office-myanmar-001",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "office-myanmar-001",
+        "reason": "wer_exceeds_threshold"
+      }
+    ]
   }
 }
