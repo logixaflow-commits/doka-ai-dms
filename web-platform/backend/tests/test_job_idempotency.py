@@ -75,3 +75,25 @@ def test_takeover_is_not_part_of_this_contract(tmp_path: Path):
     assert not hasattr(store, "take_over")
     assert not hasattr(store, "lease")
     assert not hasattr(store, "ack_late")
+
+def test_windows_lock_backend_is_used_when_posix_flock_is_unavailable(tmp_path: Path, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.services import job_idempotency
+
+    lock_calls = []
+    fake_msvcrt = SimpleNamespace(
+        LK_LOCK=1,
+        LK_UNLCK=2,
+        locking=lambda fd, mode, nbytes: lock_calls.append((mode, nbytes)),
+    )
+    monkeypatch.setattr(job_idempotency, "fcntl", None)
+    monkeypatch.setattr(job_idempotency, "msvcrt", fake_msvcrt)
+
+    store = JobIdempotencyStore(tmp_path)
+    record, created = store.claim("job-1", "windows-key")
+
+    assert created is True
+    assert record.job_id == "job-1"
+    assert lock_calls == [(fake_msvcrt.LK_LOCK, 1), (fake_msvcrt.LK_UNLCK, 1)]
+    assert (tmp_path / ".windows-key.lock").read_bytes() == b"\\0"
