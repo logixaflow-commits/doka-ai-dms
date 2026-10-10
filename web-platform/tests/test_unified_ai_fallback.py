@@ -140,7 +140,7 @@ async def test_paid_embedding_provider_is_never_called_by_free_only_policy(monke
     monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-hf-key")
 
     with pytest.raises(RuntimeError, match="disabled by the free-only AI policy"):
-        await service.get_embedding("private document text")
+        await service.get_embedding("private document text", consent_grant=ConsentGrant("user-1", "embedding", "document:7", True), subject_id="user-1", scope="document:7")
 
 
 def test_document_analysis_prompt_keeps_ocr_text_as_untrusted_data():
