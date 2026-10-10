@@ -140,6 +140,8 @@ async def test_paid_embedding_provider_is_never_called_by_free_only_policy(monke
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_EMBEDDING_PROVIDER_ORDER", ["huggingface"])
     monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-hf-key")
+    # Isolate the free-only provider policy from the independent consent boundary.
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
 
     with pytest.raises(RuntimeError, match="disabled by the free-only AI policy"):
         await service.get_embedding("private document text")
