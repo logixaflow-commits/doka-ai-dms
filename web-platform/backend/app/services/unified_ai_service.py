@@ -99,11 +99,21 @@ class UnifiedAIService:
         return ordered + remaining
 
     def _ensure_external_ai_allowed(self) -> None:
-        """Fail closed before any provider receives document or embedding text."""
+        """Fail closed until a persisted, user/document-scoped grant is verified.
+
+        AI_EXTERNAL_PROCESSING_CONSENT is a deployment-wide switch, not
+        evidence that the authenticated user consented to this purpose and
+        document. No trusted consent repository is wired into every provider
+        entry point, so the global flag must never authorize disclosure.
+        """
         if not settings.AI_ENABLED:
             raise RuntimeError("AI is disabled; use local/rule-based processing")
         if not getattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False):
-            raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
+            raise RuntimeError("External AI processing is disabled by configuration.")
+        raise RuntimeError(
+            "External AI processing is blocked until a persisted user-, purpose-, "
+            "and document-scoped consent grant can be verified."
+        )
 
     def _provider_limit(self, candidate_count: int) -> int:
         configured = settings.AI_PROVIDER_MAX_ATTEMPTS

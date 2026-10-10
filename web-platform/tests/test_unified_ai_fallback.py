@@ -14,6 +14,7 @@ async def test_ai_fallback_uses_next_provider(monkeypatch):
 
     service = UnifiedAIService()
     service.providers = {"gemini": {}, "openrouter": {}, "groq": {}}
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
     calls = []
 
     async def call(provider):
@@ -35,6 +36,7 @@ async def test_ai_failover_is_disabled_without_explicit_approval(monkeypatch):
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False)
     service = UnifiedAIService()
     service.providers = {"gemini": {}, "openrouter": {}}
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
     calls = []
 
     async def call(provider):
@@ -54,6 +56,7 @@ async def test_non_retryable_provider_error_fails_closed(monkeypatch):
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
     service = UnifiedAIService()
     service.providers = {"gemini": {}, "openrouter": {}}
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
     calls = []
 
     async def call(provider):
@@ -86,7 +89,7 @@ async def test_external_ai_requires_separate_explicit_consent(monkeypatch):
         called = True
         return "should not run"
 
-    with pytest.raises(RuntimeError, match="consent is required"):
+    with pytest.raises(RuntimeError, match="disabled by configuration"):
         await service._with_fallback("sensitive-document", call)
     assert called is False
 
@@ -97,7 +100,7 @@ async def test_external_embeddings_require_ai_enabled_and_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
 
-    with pytest.raises(RuntimeError, match="consent is required"):
+    with pytest.raises(RuntimeError, match="disabled by configuration"):
         await service.get_embedding("private document text")
 
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
@@ -137,6 +140,8 @@ async def test_paid_embedding_provider_is_never_called_by_free_only_policy(monke
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_EMBEDDING_PROVIDER_ORDER", ["huggingface"])
     monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-hf-key")
+    # Isolate the free-only provider policy from the independent consent boundary.
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
 
     with pytest.raises(RuntimeError, match="disabled by the free-only AI policy"):
         await service.get_embedding("private document text")
@@ -181,7 +186,7 @@ async def test_direct_provider_methods_require_explicit_consent(
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
 
-    with pytest.raises(RuntimeError, match="consent is required"):
+    with pytest.raises(RuntimeError, match="disabled by configuration"):
         await getattr(service, method_name)("private document text")
 
 @pytest.mark.asyncio
@@ -191,6 +196,7 @@ async def test_external_embeddings_enforce_the_configured_input_limit(monkeypatc
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_MAX_INPUT_CHARS", 1000)
     monkeypatch.setattr(settings, "HUGGINGFACE_API_KEY", "test-key")
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
 
     with pytest.raises(ValueError, match="configured AI input limit"):
         await service.get_embedding("x" * 1001)
