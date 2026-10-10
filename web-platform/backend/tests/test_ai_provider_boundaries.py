@@ -112,3 +112,34 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
     assert await service._with_fallback("circuit-test", success, ["openai"]) == {"ok": True}
     assert "openai" not in service._provider_failures
     assert "openai" not in service._provider_opened_at
+
+
+def test_ai_analysis_schema_rejects_unknown_fields(monkeypatch):
+    service = UnifiedAIService()
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    payload = {
+        "category": "invoice",
+        "confidence": 0.9,
+        "key_entities": [],
+        "suspicious": False,
+        "suspicious_reason": None,
+        "tool_call": "unexpected",
+    }
+    with pytest.raises(ValueError, match="unknown fields"):
+        service._parse_analysis_result(json.dumps(payload))
+
+
+def test_ai_analysis_schema_rejects_non_finite_confidence(monkeypatch):
+    service = UnifiedAIService()
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    payload = {
+        "category": "invoice",
+        "confidence": float("nan"),
+        "key_entities": [],
+        "suspicious": False,
+        "suspicious_reason": None,
+    }
+    with pytest.raises(ValueError, match="confidence must be between 0 and 1"):
+        service._parse_analysis_result(json.dumps(payload))
