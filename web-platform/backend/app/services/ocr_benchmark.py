@@ -112,7 +112,11 @@ def run_ocr_benchmark(
     manifest_path: Path,
     *,
     ocr: Callable[[str, str], tuple[str, str | None]] | None = None,
+    max_cer: float = 0.10,
+    max_wer: float = 0.20,
 ) -> dict[str, Any]:
+    if not 0 <= max_cer <= 1 or not 0 <= max_wer <= 1:
+        raise ValueError("OCR quality thresholds must be between 0 and 1")
     root = root.resolve(strict=True)
     if not root.is_dir():
         raise ValueError("Benchmark root must be a directory.")
@@ -165,6 +169,21 @@ def run_ocr_benchmark(
     missing_required_languages = [lang for lang in required_languages if not any(lang in label.split("+") for label in language_labels)]
     toolchain = collect_ocr_toolchain()
     missing_tool_languages = [lang for lang in required_languages if lang not in toolchain.get("languages", [])]
+    quality_failures = [
+        {"sample_id": row["sample_id"], "reason": reason}
+        for row in results if row["status"] == "scored"
+        for reason, failed in (
+            ("cer_exceeds_threshold", float(row["cer"]) > max_cer),
+            ("wer_exceeds_threshold", float(row["wer"]) > max_wer),
+        ) if failed
+    ]
+    execution_ready = (
+        len(samples) >= 2
+        and not missing_required_languages
+        and not missing_tool_languages
+        and not any(row["status"] == "error" for row in results)
+        and toolchain["available"]
+    )
     return {
         "schema_version": 2,
         "sample_count": len(samples),
@@ -174,13 +193,17 @@ def run_ocr_benchmark(
         "required_languages": required_languages,
         "missing_required_languages": missing_required_languages,
         "missing_tool_languages": missing_tool_languages,
-        "gate_ready": (
-            len(samples) >= 2
-            and not missing_required_languages
-            and not missing_tool_languages
-            and not any(row["status"] == "error" for row in results)
-            and toolchain["available"]
-        ),
+        # gate_ready now means the configured quality gate passes, not merely
+        # that Tesseract and its language packs are installed.
+        "gate_ready": execution_ready and not quality_failures,
+        "execution_ready": execution_ready,
+        "quality_gate": {
+            "max_cer": max_cer,
+            "max_wer": max_wer,
+            "passed": execution_ready and not quality_failures,
+            "failure_count": len(quality_failures),
+            "failures": quality_failures,
+        },
         "toolchain": toolchain,
         "results": results,
         "privacy": {
