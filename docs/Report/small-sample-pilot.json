@@ -1,0 +1,90 @@
+{
+  "gate": "passed",
+  "gate_reasons": [],
+  "session_id": "d945ca29d4b641519c90ae666a4f8ebf",
+  "source": {
+    "file_count": 2,
+    "path_recorded": false
+  },
+  "source_unchanged": true,
+  "source_files": 2,
+  "elapsed_seconds": 9.246,
+  "import": {
+    "state": "completed",
+    "files_total": 2,
+    "files_verified": 2,
+    "files_failed": 0
+  },
+  "scan": {
+    "files_total": 2,
+    "files_readable": 2,
+    "files_unreadable": 0,
+    "exact_duplicate_groups": 0,
+    "filename_collision_groups": 0
+  },
+  "understanding": {
+    "analyzed_files": 2,
+    "ai_used": false
+  },
+  "organization_plan": {
+    "proposals_total": 2,
+    "review_required": 2,
+    "requires_user_approval": true
+  },
+  "ocr": {
+    "available": true,
+    "executable": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "myanmar_language": "mya",
+    "english_language": "eng",
+    "languages": [
+      "eng",
+      "mya",
+      "osd"
+    ],
+    "checks": [
+      {
+        "name": "tesseract",
+        "ok": true,
+        "detail": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+      },
+      {
+        "name": "english",
+        "ok": true,
+        "detail": "eng language data"
+      },
+      {
+        "name": "myanmar",
+        "ok": true,
+        "detail": "mya language data"
+      }
+    ],
+    "files_total": 2,
+    "files_failed": 0,
+    "languages_detected": [
+      "eng",
+      "mya+eng"
+    ],
+    "myanmar_detected": true,
+    "english_detected": true,
+    "representative_ocr_passed": true,
+    "required": true,
+    "gate_passed": true
+  },
+  "backup": {
+    "archive_filename": "workspace_20261009T162443920767Z.zip",
+    "sha256": "79a99cb5a251d3b3e4739b09d05281454af0322f86806d3e053339b9f1f1614e",
+    "verified": true,
+    "backup_create_seconds": 0.029,
+    "backup_verify_seconds": 0.003,
+    "restore_seconds": 0.043,
+    "rto_seconds": 0.043,
+    "recovery_verified": true,
+    "recovery_active_workspace_changed": false,
+    "rpo": {
+      "model": "zero_loss_at_backup_point",
+      "files_lost_at_verified_backup_point": 0,
+      "time_window_seconds": null
+    }
+  },
+  "apply_safe": null
+}

@@ -1,0 +1,92 @@
+{
+  "gate": "failed",
+  "gate_reasons": [
+    "Required Myanmar + English OCR was not successfully exercised on representative image/PDF files."
+  ],
+  "session_id": "b0e1e2385c3748ddb236e6122dfde58a",
+  "source": {
+    "file_count": 346,
+    "path_recorded": false
+  },
+  "source_unchanged": true,
+  "source_files": 346,
+  "elapsed_seconds": 1501.902,
+  "import": {
+    "state": "completed",
+    "files_total": 346,
+    "files_verified": 346,
+    "files_failed": 0
+  },
+  "scan": {
+    "files_total": 346,
+    "files_readable": 346,
+    "files_unreadable": 0,
+    "exact_duplicate_groups": 146,
+    "filename_collision_groups": 134
+  },
+  "understanding": {
+    "analyzed_files": 346,
+    "ai_used": false
+  },
+  "organization_plan": {
+    "proposals_total": 346,
+    "review_required": 345,
+    "requires_user_approval": true
+  },
+  "ocr": {
+    "available": true,
+    "executable": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "myanmar_language": "mya",
+    "english_language": "eng",
+    "languages": [
+      "eng",
+      "mya",
+      "osd"
+    ],
+    "checks": [
+      {
+        "name": "tesseract",
+        "ok": true,
+        "detail": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+      },
+      {
+        "name": "english",
+        "ok": true,
+        "detail": "eng language data"
+      },
+      {
+        "name": "myanmar",
+        "ok": true,
+        "detail": "mya language data"
+      }
+    ],
+    "files_total": 235,
+    "files_failed": 3,
+    "languages_detected": [
+      "eng",
+      "mya+eng"
+    ],
+    "myanmar_detected": true,
+    "english_detected": true,
+    "representative_ocr_passed": false,
+    "required": true,
+    "gate_passed": false
+  },
+  "backup": {
+    "archive_filename": "workspace_20261009T151139048068Z.zip",
+    "sha256": "7974eebb402709eb00cb607b47b97c5826402864a3f10b9e59af9e0bd9bb8279",
+    "verified": true,
+    "backup_create_seconds": 36.018,
+    "backup_verify_seconds": 4.919,
+    "restore_seconds": 19.03,
+    "rto_seconds": 19.03,
+    "recovery_verified": true,
+    "recovery_active_workspace_changed": false,
+    "rpo": {
+      "model": "zero_loss_at_backup_point",
+      "files_lost_at_verified_backup_point": 0,
+      "time_window_seconds": null
+    }
+  },
+  "apply_safe": null
+}

@@ -1,0 +1,114 @@
+{
+  "schema_version": 2,
+  "sample_count": 6,
+  "scored_count": 6,
+  "error_count": 0,
+  "summary_by_language": {
+    "eng": {
+      "samples": 5,
+      "mean_cer": 0.18082227127291411,
+      "mean_wer": 0.3865432812801234
+    },
+    "mya+eng": {
+      "samples": 1,
+      "mean_cer": 0.7994269340974212,
+      "mean_wer": 1.7142857142857142
+    }
+  },
+  "required_languages": [
+    "mya",
+    "eng"
+  ],
+  "missing_required_languages": [],
+  "missing_tool_languages": [],
+  "gate_ready": true,
+  "toolchain": {
+    "command_configured": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "version": "tesseract v5.5.3.20260724",
+    "languages": [
+      "eng",
+      "mya",
+      "osd"
+    ],
+    "available": true
+  },
+  "results": [
+    {
+      "sample_id": "sample-001",
+      "language": "eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 177,
+      "reference_characters": 384,
+      "cer": 0.4609375,
+      "word_errors": 54,
+      "reference_words": 57,
+      "wer": 0.9473684210526315
+    },
+    {
+      "sample_id": "sample-002",
+      "language": "eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 78,
+      "reference_characters": 271,
+      "cer": 0.2878228782287823,
+      "word_errors": 19,
+      "reference_words": 42,
+      "wer": 0.4523809523809524
+    },
+    {
+      "sample_id": "sample-003",
+      "language": "eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 3,
+      "reference_characters": 158,
+      "cer": 0.0189873417721519,
+      "word_errors": 2,
+      "reference_words": 28,
+      "wer": 0.07142857142857142
+    },
+    {
+      "sample_id": "sample-004",
+      "language": "eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 5,
+      "reference_characters": 77,
+      "cer": 0.06493506493506493,
+      "word_errors": 4,
+      "reference_words": 13,
+      "wer": 0.3076923076923077
+    },
+    {
+      "sample_id": "sample-005",
+      "language": "eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 10,
+      "reference_characters": 140,
+      "cer": 0.07142857142857142,
+      "word_errors": 4,
+      "reference_words": 26,
+      "wer": 0.15384615384615385
+    },
+    {
+      "sample_id": "office-myanmar-001",
+      "language": "mya+eng",
+      "detected_language": "eng",
+      "status": "scored",
+      "character_errors": 279,
+      "reference_characters": 349,
+      "cer": 0.7994269340974212,
+      "word_errors": 72,
+      "reference_words": 42,
+      "wer": 1.7142857142857142
+    }
+  ],
+  "privacy": {
+    "recognized_text_included": false,
+    "reference_text_included": false,
+    "source_files_modified": false
+  }
+}
