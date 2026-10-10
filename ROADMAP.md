@@ -32,7 +32,7 @@ Gates 1, 2 and 7 have automated/code-side evidence. Gates 3–6 still require re
   Boundary: the deployed document metadata path remains Supabase-backed, so Gate 10 still requires live Supabase RLS/API isolation evidence; D1 migration success does not close it.
 
 ### Current close-out evidence
-- Gate 3: PENDING. OCR runner exists, but current representative sample/manifest and Tesseract version are unavailable.
+- Gate 3: PENDING/BLOCKED. The benchmark now enforces mean CER ≤0.30 and mean WER ≤0.60 by language label. The latest six-sample report correctly fails: the single Myanmar/English sample has CER 79.94% and WER 171.43%. The reference text still needs visual verification against the rendered scan, followed by a representative rerun; code/CI alone cannot close this gate.
 - Gate 4: PENDING. The current Playwright suite is prepared and validated for discovery/build integration, but a real browser run with a copied acceptance dataset and local admin password is still required.
 - Gate 5: PENDING. The pilot/hash harness now also verifies backup integrity and isolated recovery; only representative copied-office evidence remains.
 - Gate 6: PENDING. The pilot now captures backup creation, verification and isolated-restore timings plus zero-loss-at-backup-point evidence; a real-machine timed recovery drill is still required to establish release RTO/RPO targets.
