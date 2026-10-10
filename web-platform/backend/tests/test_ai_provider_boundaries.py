@@ -24,8 +24,21 @@ async def test_external_ai_requires_explicit_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
     service = UnifiedAIService()
-    with pytest.raises(RuntimeError, match="consent is required"):
+    with pytest.raises(RuntimeError, match="disabled by configuration"):
         await service._with_fallback("boundary-test", lambda _provider: pytest.fail("provider called"), ["openai"])
+
+
+@pytest.mark.asyncio
+async def test_global_consent_flag_does_not_authorize_document_disclosure(monkeypatch):
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    service = UnifiedAIService()
+    with pytest.raises(RuntimeError, match="persisted user-.*document-scoped consent"):
+        await service._with_fallback(
+            "scope-boundary-test",
+            lambda _provider: pytest.fail("provider must not receive document content"),
+            ["openrouter"],
+        )
 
 
 @pytest.mark.asyncio
@@ -62,6 +75,8 @@ async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkey
     monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 60)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
     service = UnifiedAIService()
+    # Exercise provider retry/circuit behavior independently of the consent gate.
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
 
     calls = []
 
@@ -93,6 +108,8 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
     monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 0.1)
     service = UnifiedAIService()
+    # Exercise provider recovery independently of the consent gate.
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
     clock_calls = [0]
     def monotonic():
         value = 0.0 if clock_calls[0] < 2 else 1.0
