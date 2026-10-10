@@ -56,6 +56,7 @@ async def test_non_retryable_provider_error_fails_closed(monkeypatch):
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", True)
     service = UnifiedAIService()
     service.providers = {"gemini": {}, "openrouter": {}}
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", lambda: None)
     calls = []
 
     async def call(provider):
@@ -99,7 +100,7 @@ async def test_external_embeddings_require_ai_enabled_and_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
 
-    with pytest.raises(RuntimeError, match="consent is required"):
+    with pytest.raises(RuntimeError, match="disabled by configuration"):
         await service.get_embedding("private document text")
 
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
@@ -183,7 +184,7 @@ async def test_direct_provider_methods_require_explicit_consent(
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
 
-    with pytest.raises(RuntimeError, match="consent is required"):
+    with pytest.raises(RuntimeError, match="disabled by configuration"):
         await getattr(service, method_name)("private document text")
 
 @pytest.mark.asyncio
