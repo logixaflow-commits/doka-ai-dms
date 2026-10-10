@@ -25,6 +25,11 @@ try:
 except ImportError:  # pragma: no cover - Windows fallback
     fcntl = None
 
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover - POSIX fallback
+    msvcrt = None
+
 _ALLOWED_KEY = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 _TERMINAL = {"succeeded", "exhausted", "dead_lettered"}
 _ACTIVE = {"received", "running", "retryable", "failed"}
@@ -65,14 +70,32 @@ class JobIdempotencyStore:
 
     @contextmanager
     def _lock(self, key: str):
-        lock_file = open(self._lock_path(key), "a+")
+        # Keep the lock file stable: unlinking it can let concurrent processes
+        # lock different inodes for the same key. Windows byte-range locks need
+        # at least one byte in the file, while POSIX flock does not.
+        lock_file = open(self._lock_path(key), "a+b")
+        locked = False
         try:
             if fcntl is not None:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                locked = True
+            elif msvcrt is not None:  # pragma: no cover - exercised on Windows CI
+                lock_file.seek(0, os.SEEK_END)
+                if lock_file.tell() == 0:
+                    lock_file.write(b"\0")
+                    lock_file.flush()
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                locked = True
+            else:  # fail closed rather than silently run without process locking
+                raise RuntimeError("No supported inter-process file locking backend")
             yield
         finally:
-            if fcntl is not None:
+            if locked and fcntl is not None:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            elif locked and msvcrt is not None:  # pragma: no cover - exercised on Windows CI
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
             lock_file.close()
 
     def get(self, key: str) -> Optional[JobRecord]:
