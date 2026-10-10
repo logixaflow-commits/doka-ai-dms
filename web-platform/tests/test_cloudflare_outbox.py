@@ -1,18 +1,20 @@
 """Tests for leased outbox delivery and retry boundaries."""
 import asyncio
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import pytest
 
 from cloudflare_worker.outbox import (
     CLAIM_SQL, DELIVER_SQL, RETRY_SQL, OutboxError, claim_next,
-    dispatch_one, mark_retry,
+    dispatch_one, mark_delivered, mark_retry, _is_retryable,
 )
 
 
 class FakeD1:
-    def __init__(self, event=None):
+    def __init__(self, event=None, *, changes=1):
         self.event = event
+        self.changes = changes
         self.calls = []
 
     async def first(self, sql, parameters=()):
@@ -21,7 +23,7 @@ class FakeD1:
 
     async def execute(self, sql, parameters=()):
         self.calls.append(("execute", sql, parameters))
-        return {"success": True, "meta": {"changes": 1}}
+        return {"success": True, "meta": {"changes": self.changes}}
 
 
 NOW = datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)
@@ -117,3 +119,38 @@ def test_dispatch_failure_does_not_leak_exception_and_schedules_retry():
 
 def test_dispatch_idle_when_no_pending_event():
     assert asyncio.run(dispatch_one(FakeD1(), lambda _event_id: None, now=NOW)) == "idle"
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (408, True),
+        (425, True),
+        (429, True),
+        (500, True),
+        (599, True),
+        (400, False),
+        (401, False),
+        (404, False),
+        (600, False),
+        ("503", False),
+        (None, False),
+    ],
+)
+def test_retry_classification_is_type_safe_and_fail_closed(status, expected):
+    error = RuntimeError("provider failure")
+    error.response = SimpleNamespace(status_code=status)
+    assert _is_retryable(error) is expected
+
+
+def test_delivery_rejects_stale_lease_state_transition():
+    db = FakeD1(changes=0)
+    with pytest.raises(OutboxError, match="expected outbox state"):
+        asyncio.run(mark_delivered(db, "evt-stale", "lease-stale", now=NOW))
+
+
+def test_retry_rejects_stale_lease_state_transition():
+    db = FakeD1(changes=0)
+    event = {"id": "evt-stale", "attempts": 1, "max_attempts": 3, "lease_token": "lease-stale"}
+    with pytest.raises(OutboxError, match="expected outbox state"):
+        asyncio.run(mark_retry(db, event, now=NOW))
