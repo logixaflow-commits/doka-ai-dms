@@ -14,6 +14,17 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+
+class JobStateConflict(RuntimeError):
+    """Raised when a conditional job transition updates no durable row."""
+
+
+def _require_single_change(result: dict[str, Any], *, operation: str) -> None:
+    meta = result.get("meta")
+    changes = meta.get("changes") if isinstance(meta, dict) else None
+    if type(changes) is not int or changes != 1:
+        raise JobStateConflict(f"{operation} did not update the expected job state.")
+
 from .d1 import D1Database
 
 _KEY_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-")
@@ -157,7 +168,8 @@ async def mark_succeeded(
     if not isinstance(job_id, str) or not job_id:
         raise ValueError("Invalid claimed job.")
     encoded = _payload_json(result)
-    await db.execute(SUCCEED_SQL, (encoded, _stamp(now), job_id))
+    result = await db.execute(SUCCEED_SQL, (encoded, _stamp(now), job_id))
+    _require_single_change(result, operation="Job success")
 
 
 async def mark_failed(
@@ -187,8 +199,9 @@ async def mark_failed(
     status = "dead" if terminal else "pending"
     delay = min(3600, 30 * (2 ** min(attempts - 1, 7)))
     available = instant if terminal else instant + timedelta(seconds=delay)
-    await db.execute(
+    result = await db.execute(
         FAIL_SQL,
         (status, _stamp(available), error.strip(), _stamp(instant), job_id),
     )
+    _require_single_change(result, operation="Job failure")
     return status
