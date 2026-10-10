@@ -3,6 +3,7 @@ import json
 import pytest
 
 from app.core.config import settings
+from app.services.train1_safety_contracts import ConsentGrant
 from app.services.unified_ai_service import UnifiedAIService, build_document_analysis_prompt
 
 
@@ -25,7 +26,9 @@ async def test_external_ai_requires_explicit_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
     service = UnifiedAIService()
     with pytest.raises(RuntimeError, match="consent is required"):
-        await service._with_fallback("boundary-test", lambda _provider: pytest.fail("provider called"), ["openai"])
+        await service._with_fallback("boundary-test", lambda _provider: pytest.fail("provider called"), ["openai"],
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+            subject_id="user-1", purpose="document_analysis", scope="document:7")
 
 
 @pytest.mark.asyncio
@@ -42,6 +45,30 @@ def test_ai_analysis_schema_rejects_invalid_provider_output(monkeypatch):
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     with pytest.raises(ValueError, match="missing required fields"):
         service._parse_analysis_result('{"category":"invoice"}')
+
+
+def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatch):
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    service = UnifiedAIService()
+    with pytest.raises(RuntimeError, match="resource-scoped consent"):
+        service._ensure_external_ai_allowed(
+            subject_id="user-1", purpose="document_analysis", scope="document:7"
+        )
+    with pytest.raises(RuntimeError, match="matching, granted resource-scoped consent"):
+        service._ensure_external_ai_allowed(
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:8", True),
+            subject_id="user-1", purpose="document_analysis", scope="document:7",
+        )
+    with pytest.raises(RuntimeError, match="matching, granted resource-scoped consent"):
+        service._ensure_external_ai_allowed(
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", False),
+            subject_id="user-1", purpose="document_analysis", scope="document:7",
+        )
+    service._ensure_external_ai_allowed(
+        consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+        subject_id="user-1", purpose="document_analysis", scope="document:7",
+    )
 
 
 def test_local_similarity_is_available_without_external_provider():
@@ -70,7 +97,7 @@ async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkey
         raise TimeoutError("provider unavailable")
 
     with pytest.raises(RuntimeError, match="All configured AI providers failed"):
-        await service._with_fallback("circuit-test", failing, ["openai", "gemini"])
+        await service._with_fallback("circuit-test", failing, ["openai", "gemini"], consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True), subject_id="user-1", purpose="document_analysis", scope="document:7")
     assert calls == ["openai", "gemini"]
 
     calls.clear()
@@ -104,11 +131,11 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
         raise TimeoutError("temporary")
 
     with pytest.raises(RuntimeError):
-        await service._with_fallback("circuit-test", failing, ["openai"])
+        await service._with_fallback("circuit-test", failing, ["openai"], consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True), subject_id="user-1", purpose="document_analysis", scope="document:7")
 
     async def success(_provider):
         return {"ok": True}
 
-    assert await service._with_fallback("circuit-test", success, ["openai"]) == {"ok": True}
+    assert await service._with_fallback("circuit-test", success, ["openai"], consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True), subject_id="user-1", purpose="document_analysis", scope="document:7") == {"ok": True}
     assert "openai" not in service._provider_failures
     assert "openai" not in service._provider_opened_at
