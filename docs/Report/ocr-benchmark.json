@@ -21,7 +21,7 @@
   ],
   "missing_required_languages": [],
   "missing_tool_languages": [],
-  "gate_ready": true,
+  "gate_ready": false,
   "toolchain": {
     "command_configured": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "version": "tesseract v5.5.3.20260724",
@@ -110,5 +110,23 @@
     "recognized_text_included": false,
     "reference_text_included": false,
     "source_files_modified": false
-  }
+  },
+  "missing_scored_languages": [],
+  "quality_thresholds": {
+    "eng": {
+      "max_mean_cer": 0.3,
+      "max_mean_wer": 0.6
+    },
+    "mya+eng": {
+      "max_mean_cer": 0.3,
+      "max_mean_wer": 0.6
+    }
+  },
+  "quality_failures": [
+    {
+      "language": "mya+eng",
+      "mean_cer_exceeded": true,
+      "mean_wer_exceeded": true
+    }
+  ]
 }
