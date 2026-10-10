@@ -104,7 +104,7 @@ async def test_external_embeddings_require_ai_enabled_and_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_ENABLED", False)
     with pytest.raises(RuntimeError, match="AI is disabled"):
-        await service.get_embedding("private document text")
+        await service.get_embedding("private document text", consent_grant=ConsentGrant("user-1", "embedding", "document:7", True), subject_id="user-1", scope="document:7")
 
 
 
