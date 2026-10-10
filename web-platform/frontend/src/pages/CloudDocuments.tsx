@@ -116,12 +116,11 @@ export default function CloudDocuments() {
       const result = await uploadCloudDocument(file);
       setDocuments(current => [result.document, ...current.filter(item => item.id !== result.document.id)]);
       setFile(null);
-      if (result.warnings?.length) {
-        setMessage(`Uploaded “${result.document.filename}” with storage warning: ${result.warnings.join(', ')}.`);
-      }
       const input = document.getElementById('doka-cloud-file') as HTMLInputElement | null;
       if (input) input.value = '';
-      setMessage(`Uploaded “${result.document.filename}”. SHA-256 integrity fingerprint saved.`);
+      setMessage(result.warnings?.length
+        ? `Uploaded “${result.document.filename}”, but storage reported a warning: ${result.warnings.join(', ')}.`
+        : `Uploaded “${result.document.filename}”. SHA-256 integrity fingerprint saved.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
     } finally { setBusy(false); }
@@ -381,7 +380,7 @@ export default function CloudDocuments() {
   const emptyTitle = showTrash ? 'Trash is empty' : documents.length === 0 ? 'No documents yet' : 'No matching documents';
 
   return (
-    <div className="space-y-7">
+    <div className="doka-dashboard">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary"><CloudUpload className="h-4 w-4" /> Private cloud library</div>
@@ -400,12 +399,12 @@ export default function CloudDocuments() {
       </section>
 
       {!showTrash && <section className="grid gap-4 sm:grid-cols-3">
-        <Card className="doka-stat-card"><CardContent className="flex items-center gap-4 p-5"><span className="rounded-2xl bg-blue-50 p-3 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"><Files className="h-5 w-5" /></span><div><p className="text-xs text-muted-foreground">Total documents</p><p className="mt-1 text-2xl font-semibold">{loading ? '—' : documents.length}</p></div></CardContent></Card>
-        <Card className="doka-stat-card"><CardContent className="flex items-center gap-4 p-5"><span className="rounded-2xl bg-violet-50 p-3 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300"><HardDrive className="h-5 w-5" /></span><div><p className="text-xs text-muted-foreground">Storage used</p><p className="mt-1 text-2xl font-semibold">{loading ? '—' : formatSize(totalBytes)}</p></div></CardContent></Card>
-        <Card className="doka-stat-card"><CardContent className="flex items-center gap-4 p-5"><span className="rounded-2xl bg-amber-50 p-3 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"><ShieldCheck className="h-5 w-5" /></span><div><p className="text-xs text-muted-foreground">Marked for review</p><p className="mt-1 text-2xl font-semibold">{loading ? '—' : reviewCount}</p></div></CardContent></Card>
+        <Card className="doka-stat"><CardContent className="flex items-center gap-4 p-5"><span className="rounded-2xl bg-blue-50 p-3 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"><Files className="h-5 w-5" /></span><div><p className="text-xs text-muted-foreground">Total documents</p><p className="mt-1 text-2xl font-semibold">{loading ? '—' : documents.length}</p></div></CardContent></Card>
+        <Card className="doka-stat"><CardContent className="flex items-center gap-4 p-5"><span className="rounded-2xl bg-violet-50 p-3 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300"><HardDrive className="h-5 w-5" /></span><div><p className="text-xs text-muted-foreground">Storage used</p><p className="mt-1 text-2xl font-semibold">{loading ? '—' : formatSize(totalBytes)}</p></div></CardContent></Card>
+        <Card className="doka-stat"><CardContent className="flex items-center gap-4 p-5"><span className="rounded-2xl bg-amber-50 p-3 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"><ShieldCheck className="h-5 w-5" /></span><div><p className="text-xs text-muted-foreground">Marked for review</p><p className="mt-1 text-2xl font-semibold">{loading ? '—' : reviewCount}</p></div></CardContent></Card>
       </section>}
 
-      {!showTrash && <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+      {!showTrash && <Card className="doka-panel overflow-hidden border-0 shadow-none">
         <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-3"><span className="rounded-2xl bg-primary/10 p-3 text-primary"><UploadCloud className="h-5 w-5" /></span><div><h2 className="font-semibold">Add files to your library</h2><p className="mt-1 text-sm text-muted-foreground">Direct-to-cloud upload · Private storage · SHA-256 fingerprint</p></div></div>
@@ -420,7 +419,7 @@ export default function CloudDocuments() {
       </Card>}
 
       {!showTrash && (
-        <Card className="rounded-2xl border-border/70 shadow-sm">
+        <Card className="doka-panel overflow-hidden border-0 shadow-none">
           <CardContent className="space-y-4 p-5 sm:p-6">
             <div><h2 className="font-semibold">Batch upload queue</h2><p className="mt-1 text-xs text-muted-foreground">Add multiple files, upload them sequentially and retry any failed item. Each file is limited to 50 MiB.</p></div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -428,7 +427,7 @@ export default function CloudDocuments() {
               <Button onClick={() => void processBatch()} disabled={busy || !batchQueue.some(item => item.status === 'queued' || item.status === 'failed')}>Upload queue</Button>
               <Button variant="outline" onClick={retryFailedBatch} disabled={busy || !batchQueue.some(item => item.status === 'failed')}>Retry failed</Button>
             </div>
-            {batchQueue.length > 0 && <div className="divide-y divide-border/70 rounded-xl border border-border/70">
+            {batchQueue.length > 0 && <div className="divide-y divide-border/70 rounded-xl border border-border/70 dark:border-slate-700/70">
               {batchQueue.map(item => <div key={item.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0"><p className="break-all text-sm font-medium">{item.file.name}</p><p className="text-xs text-muted-foreground">{formatSize(item.file.size)} · {item.error || item.status}</p></div>
                 <Badge variant={item.status === 'complete' ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="capitalize">{item.status}</Badge>
@@ -442,7 +441,7 @@ export default function CloudDocuments() {
       {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
       {message && <div role="status" className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />{message}</div>}
 
-      <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm">
+      <Card className="doka-panel overflow-hidden border-0 shadow-none">
         <div className="flex flex-col gap-4 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex items-center gap-3">
             {!showTrash && documents.length > 0 && <input type="checkbox" aria-label="Select all visible documents" checked={documents.length > 0 && documents.every(item => selectedIds.includes(item.id))} onChange={event => setSelectedIds(event.target.checked ? documents.map(item => item.id) : [])} disabled={busy} className="h-4 w-4 accent-primary" />}
@@ -468,7 +467,7 @@ export default function CloudDocuments() {
         <CardContent className="p-0">
           {loading ? <div className="space-y-3 p-6"><div className="h-16 animate-pulse rounded-xl bg-muted" /><div className="h-16 animate-pulse rounded-xl bg-muted" /><div className="h-16 animate-pulse rounded-xl bg-muted" /></div> :
             documents.length === 0 ? <div className="px-6 py-14 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground"><File className="h-7 w-7" /></span><h3 className="mt-4 font-semibold">{emptyTitle}</h3><p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">{showTrash ? 'Documents you delete will appear here for recovery.' : 'Choose a file above to create your private cloud library.'}</p></div> :
-              <div className="divide-y divide-border/70">{documents.map(item => <div key={item.id} className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/30 lg:flex-row lg:items-center lg:justify-between sm:px-6">
+              <div className="divide-y divide-border/70">{documents.map(item => <div key={item.id} className="doka-table-row flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-muted/30 lg:flex-row lg:items-center lg:justify-between sm:px-6">
                 <div className="flex min-w-0 items-start gap-3">
                   {!showTrash && <input type="checkbox" aria-label={`Select ${item.filename}`} checked={selectedIds.includes(item.id)} onChange={event => toggleSelected(item.id, event.target.checked)} disabled={busy} className="mt-3 h-4 w-4 shrink-0 accent-primary" />}
                   <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"><File className="h-5 w-5" /></span>
