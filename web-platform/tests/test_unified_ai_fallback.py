@@ -43,7 +43,7 @@ async def test_ai_failover_is_disabled_without_explicit_approval(monkeypatch):
         raise TimeoutError("temporary")
 
     with pytest.raises(RuntimeError, match="All configured AI providers failed"):
-        await service._with_fallback("test", call)
+        await service._with_fallback("test", call, consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True), subject_id="user-1", purpose="document_analysis", scope="document:7")
     assert calls == ["gemini"]
 
 
@@ -62,7 +62,7 @@ async def test_non_retryable_provider_error_fails_closed(monkeypatch):
         raise ValueError("invalid structured output")
 
     with pytest.raises(ValueError, match="invalid structured output"):
-        await service._with_fallback("test", call)
+        await service._with_fallback("test", call, consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True), subject_id="user-1", purpose="document_analysis", scope="document:7")
     assert calls == ["gemini"]
 
 
