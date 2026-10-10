@@ -26,5 +26,8 @@
     "SUPABASE_URL": "https://jkobgssaqifzrqfirdfu.supabase.co",
     "SUPABASE_STORAGE_BUCKET": "doka-documents",
     "DOKA_STORAGE_MAX_OBJECT_BYTES": "52428800",
+  },
+  "previews": {
+    // Intentionally omit production D1, rate limiter, and storage/auth bindings until isolated staging resources exist.
   }
 }
