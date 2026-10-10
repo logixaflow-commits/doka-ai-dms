@@ -39,6 +39,9 @@ def main() -> int:
         "required_languages": report["required_languages"],
         "missing_required_languages": report["missing_required_languages"],
         "missing_tool_languages": report["missing_tool_languages"],
+        "missing_scored_languages": report["missing_scored_languages"],
+        "quality_thresholds": report["quality_thresholds"],
+        "quality_failures": report["quality_failures"],
         "toolchain": report["toolchain"],
     }, ensure_ascii=False, indent=2))
     return 0 if report["gate_ready"] else 2
