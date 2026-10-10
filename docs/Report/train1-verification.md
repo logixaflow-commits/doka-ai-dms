@@ -18,6 +18,16 @@
 | 7 | Structured AI output | **Pass** | Contract tests pass for required fields and rejection of unknown fields. The provider-boundary test also confirms invalid provider analysis output is rejected. |
 | 8 | Myanmar/English + OCR | **Partial** | The bilingual retrieval contract and OCR safety tests pass. The isolated two-scan English and Myanmar/English pilot/browser workflow passed, but the broader benchmark scored Myanmar/English CER 79.94% and WER 171.43%, with its reference not visually verified. The full copied-office pilot had three OCR timeouts. This is not a full OCR-quality or full-office acceptance pass; see [personal-local-acceptance-report.md](./personal-local-acceptance-report.md). |
 
+## Follow-up remediation — 2026-10-11
+
+The repository follow-up has since corrected two code-side findings from this historical read-only report:
+
+- **Windows local idempotency lock:** added `msvcrt` byte-range locking as the Windows fallback and a regression test for lock/unlock behavior. Python compilation and a disposable 100-way concurrent-claim smoke test passed; the full focused pytest suite is tracked by current CI.
+- **Exact-scope provider consent:** the unified AI service now requires a granted `ConsentGrant` matching subject, purpose, and exact resource scope at provider-fallback and embedding entry points. Missing or mismatched grants fail closed. This is not yet end-to-end consent completion: application consent persistence and trusted caller propagation still require integration evidence, so affected callers without grants remain blocked from external processing.
+- **OCR quality gate:** benchmark gate readiness now includes scored samples for required languages and per-language-label mean CER/WER thresholds (defaults 0.30/0.60). The latest six-sample report was corrected to `gate_ready=false` because its Myanmar/English result exceeds both limits. Visual verification of the Myanmar reference and a new representative benchmark remain required.
+
+These fixes do not change the historical results below; they are follow-up changes with new commits and CI evidence tracked separately.
+
 ## Verification runs
 
 1. Targeted contracts: `test_job_idempotency.py`, `test_train1_safety_contracts.py`, `test_ai_provider_boundaries.py`, `test_ocr_safety_limits.py`, `test_cloudflare_jobs.py`, `test_cloudflare_outbox.py`, and `test_unified_ai_fallback.py` — **64 passed, 1 failed, 1 skipped**.
