@@ -112,3 +112,78 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
     assert await service._with_fallback("circuit-test", success, ["openai"]) == {"ok": True}
     assert "openai" not in service._provider_failures
     assert "openai" not in service._provider_opened_at
+
+
+@pytest.mark.asyncio
+async def test_provider_circuit_breaker_allows_only_one_half_open_probe(monkeypatch):
+    import asyncio
+    import time
+
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
+    monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 60)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False)
+    service = UnifiedAIService()
+    circuit = service._provider_circuit("openrouter")
+    circuit.failure(time.monotonic(), probe=False)
+    circuit.opened_at = time.monotonic() - 61
+
+    started = asyncio.Event()
+    release = asyncio.Event()
+    calls = 0
+
+    async def slow_success(_provider):
+        nonlocal calls
+        calls += 1
+        started.set()
+        await release.wait()
+        return "ok"
+
+    first = asyncio.create_task(
+        service._with_fallback("half-open-test", slow_success, ["openrouter"])
+    )
+    await started.wait()
+
+    with pytest.raises(RuntimeError, match="All configured AI providers failed"):
+        await service._with_fallback("half-open-test", slow_success, ["openrouter"])
+
+    assert calls == 1
+    assert circuit.state.value == "half_open"
+    release.set()
+    assert await first == "ok"
+    assert circuit.state.value == "closed"
+
+
+@pytest.mark.asyncio
+async def test_cancelled_recovery_probe_reopens_circuit(monkeypatch):
+    import asyncio
+    import time
+
+    monkeypatch.setattr(settings, "AI_ENABLED", True)
+    monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
+    monkeypatch.setattr(settings, "AI_PROVIDER_COOLDOWN_SECONDS", 60)
+    monkeypatch.setattr(settings, "AI_PROVIDER_FAILOVER_APPROVED", False)
+    service = UnifiedAIService()
+    circuit = service._provider_circuit("openrouter")
+    circuit.failure(time.monotonic(), probe=False)
+    circuit.opened_at = time.monotonic() - 61
+
+    started = asyncio.Event()
+
+    async def cancelled_call(_provider):
+        started.set()
+        await asyncio.Event().wait()
+
+    task = asyncio.create_task(
+        service._with_fallback("cancelled-probe-test", cancelled_call, ["openrouter"])
+    )
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert circuit.state.value == "open"
+    assert circuit.opened_at is not None
+    assert not circuit.allow(circuit.opened_at + 59)
