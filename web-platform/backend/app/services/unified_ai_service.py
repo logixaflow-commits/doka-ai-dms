@@ -506,11 +506,16 @@ class UnifiedAIService:
         denom = math.sqrt(sum(v * v for v in left.values())) * math.sqrt(sum(v * v for v in right.values()))
         return dot / denom if denom else 0.0
 
-    async def compare_similarity(self, text1: str, text2: str) -> float:
-        """Compare embeddings and fall back to deterministic local similarity."""
+    async def compare_similarity(
+        self, text1: str, text2: str, *, subject_id: Optional[str] = None,
+        scope: Optional[str] = None,
+    ) -> float:
+        """Compare embeddings only with a persisted exact-scope grant; otherwise local-only."""
         try:
-            emb1 = await self.get_embedding(text1)
-            emb2 = await self.get_embedding(text2)
+            if not subject_id or not scope:
+                raise RuntimeError("Authenticated subject and resource scope are required for external embeddings.")
+            emb1 = await self.get_embedding(text1, consent_grant=None, subject_id=subject_id, scope=scope)
+            emb2 = await self.get_embedding(text2, consent_grant=None, subject_id=subject_id, scope=scope)
             import numpy as np
             denom = np.linalg.norm(emb1) * np.linalg.norm(emb2)
             return float(np.dot(emb1, emb2) / denom) if denom else 0.0
