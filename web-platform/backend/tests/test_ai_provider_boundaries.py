@@ -62,6 +62,27 @@ def test_ai_analysis_schema_rejects_invalid_provider_output(monkeypatch):
     with pytest.raises(ValueError, match="missing required fields"):
         service._parse_analysis_result('{"category":"invoice"}')
 
+@pytest.mark.parametrize(
+    "raw, message",
+    [
+        (
+            '{"category":"invoice","confidence":0.9,"key_entities":[],"suspicious":false,"suspicious_reason":null,"unexpected":"value"}',
+            "unknown fields",
+        ),
+        (
+            '{"category":"invoice","confidence":NaN,"key_entities":[],"suspicious":false,"suspicious_reason":null}',
+            "finite number",
+        ),
+        (
+            '{"category":"invoice","confidence":Infinity,"key_entities":[],"suspicious":false,"suspicious_reason":null}',
+            "finite number",
+        ),
+    ],
+)
+def test_ai_analysis_schema_rejects_unknown_fields_and_non_finite_confidence(raw, message):
+    with pytest.raises(ValueError, match=message):
+        UnifiedAIService()._parse_analysis_result(raw)
+
 
 def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatch, consent_db):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
