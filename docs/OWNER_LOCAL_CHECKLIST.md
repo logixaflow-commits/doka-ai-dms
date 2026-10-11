@@ -1,13 +1,13 @@
 # Doka Owner-Run Local Checklist and Remaining Work
 
-**Purpose:** Keep every step that cannot be truthfully completed from repository/connected-service access visible in one place. This is a checklist, not a claim that the release is approved. Do not mark a gate complete without recording reproducible evidence.
+**Purpose:** Keep every step that cannot be truthfully completed from repository/connected-service access visible in one place. This is a checklist, not a claim that the release is approved. Do not mark a gate complete without recording reproducible evidence. The consolidated P0–P3 release and future-train inventory lives in [ROADMAP.md](../ROADMAP.md); this file is the owner/environment execution checklist. The current exact-HEAD CI state and blockers are in [CURRENT_STATE.md](../CURRENT_STATE.md).
 
 ## A. Owner/local-machine work required before Personal Local release
 
 Run from a clean checkout of the PR/main branch after its changes are merged. Use a dedicated test copy and never point acceptance scripts at original office files.
 
 ### A1. Prepare and report the local environment
-- [ ] Pull the intended commit and confirm the working tree is clean.
+- [ ] Pull the intended commit and confirm the working tree is clean. Require a successful CI run associated with that exact commit; an earlier green run does not verify later commits.
 - [ ] Use the supported Python and Node versions documented by the repo; install dependencies from lockfiles/requirements.
 - [ ] Install Tesseract OCR and record the exact version, language packs, OS, and runtime versions.
 - [ ] Prepare a representative, privacy-approved Myanmar + English document set and a manifest. Include scanned PDFs/images and relevant office formats; remove secrets and personal data where possible.
@@ -19,7 +19,8 @@ Run from a clean checkout of the PR/main branch after its changes are merged. Us
 - [ ] Record Tesseract version/language packs, sample count and file types, per-sample and aggregate CER/WER, resource/time limits, failures, and privacy-safe evidence.
 - [ ] Inspect Myanmar Unicode normalization and mixed-language output; investigate poor samples instead of averaging them away.
 - [ ] Save the report/manifest under the documented `Phase0_Evidence/` location and link it from current-state evidence.
-- [ ] Pass only if the agreed benchmark thresholds and resource bounds are met. If thresholds are absent or fail, define/fix them before release.
+- [ ] Pass only if per-language mean CER <= 0.30 and mean WER <= 0.60 (current benchmark defaults) and resource bounds are met. Any override must be explicitly justified in the sample manifest; do not loosen a threshold just to pass.
+- [ ] The latest recorded six-sample result fails: Myanmar/English CER 79.94% and WER 171.43%. Visually verify the Myanmar reference against the rendered scan before correcting the reference or interpreting the score; then rerun a representative benchmark.
 
 ### A3. Gate 5 — copied-office pilot and source integrity
 - [ ] Use a representative COPY of office data, never the original directory.
@@ -200,3 +201,9 @@ This section records the connected-service state actually inspected during the c
 - [ ] Run two-user Cloud E2E/isolation and real provider-path recovery tests using disposable identities and test objects.
 - [ ] Verify QStash/Workflow/Redis are intentionally idle or execute acceptance tests against a dedicated endpoint.
 - [ ] Store scrubbed evidence and re-run security/performance advisors and deployment smoke checks after authorized fixes.
+
+
+## E. Exact-HEAD and consent safety reminders — 2026-10-11
+- [ ] Current CI evidence is stale relative to later code/docs commits: run 38072383164 passed nine reported jobs on c470c260d38de59766b90b3f1d8c0ecd55d625c3, not the current main HEAD. Verify a new directly associated successful run before code-side closure.
+- [ ] Exact-scope consent checks now fail closed at the unified AI boundary, but trusted authenticated identity propagation, persisted grant/revocation/audit lifecycle and real free-only provider acceptance are still open. Do not provide a client-supplied grant as the authority and do not enable external processing without the trusted grant path.
+- [ ] If local OCR/browser/cloud evidence is unavailable to the repository runtime, keep the gate pending and record the exact missing artifact/input; do not manufacture evidence or mark the release ready.
