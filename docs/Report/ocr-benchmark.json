@@ -19,7 +19,9 @@
     "mya",
     "eng"
   ],
-  "missing_required_languages": [],
+  "missing_required_languages": [
+    "mya"
+  ],
   "missing_tool_languages": [],
   "gate_ready": false,
   "toolchain": {
@@ -111,7 +113,9 @@
     "reference_text_included": false,
     "source_files_modified": false
   },
-  "missing_scored_languages": [],
+  "missing_scored_languages": [
+    "mya"
+  ],
   "quality_thresholds": {
     "eng": {
       "max_mean_cer": 0.3,
@@ -124,9 +128,14 @@
   },
   "quality_failures": [
     {
+      "language": "mya",
+      "reason": "No language-specific scored sample; only a mixed mya+eng sample is present"
+    },
+    {
       "language": "mya+eng",
       "mean_cer_exceeded": true,
       "mean_wer_exceeded": true
     }
-  ]
+  ],
+  "acceptance_note": "Historical scores preserved. Gate interpretation tightened: a mixed mya+eng sample does not count as a language-specific mya or eng benchmark. This report is not a new benchmark run."
 }
