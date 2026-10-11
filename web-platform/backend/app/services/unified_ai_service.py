@@ -129,7 +129,7 @@ class UnifiedAIService:
                 purpose=purpose,
                 scope=scope,
             )
-        except (ValueError, OSError, RuntimeError) as exc:
+        except Exception as exc:
             raise RuntimeError("A matching, active database-backed consent grant is required.") from exc
 
     def _provider_limit(self, candidate_count: int) -> int:
