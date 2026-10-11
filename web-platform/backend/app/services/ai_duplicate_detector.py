@@ -29,7 +29,10 @@ class AIDuplicateDetector:
     async def detect_duplicates(
         self,
         documents: List[Dict[str, Any]],
-        threshold: float = 0.85
+        threshold: float = 0.85,
+        *,
+        subject_id: Optional[str] = None,
+        consent_scope: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Detect duplicate documents using AI
@@ -53,7 +56,9 @@ class AIDuplicateDetector:
                 for j, doc2 in enumerate(documents[i+1:], i+1):
                     similarity = await ai_service.compare_similarity(
                         doc1.get("text", ""),
-                        doc2.get("text", "")
+                        doc2.get("text", ""),
+                        subject_id=subject_id,
+                        scope=consent_scope,
                     )
 
                     if similarity >= threshold:
@@ -71,7 +76,10 @@ class AIDuplicateDetector:
             logger.error(f"AI duplicate detection failed: {e}")
             return []
 
-    async def classify_document(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def classify_document(
+        self, text: str, metadata: Optional[Dict[str, Any]] = None, *,
+        subject_id: Optional[str] = None, consent_scope: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Classify document using AI
 
@@ -87,7 +95,12 @@ class AIDuplicateDetector:
             return {}
 
         try:
-            result = await ai_service.analyze_document(text)
+            if not subject_id or not consent_scope:
+                logger.info("Authenticated identity and consent scope absent; external classification skipped")
+                return {}
+            result = await ai_service.analyze_document(
+                text, subject_id=subject_id, scope=consent_scope
+            )
             logger.info("AI classified document using the configured classification chain")
             return result
 
