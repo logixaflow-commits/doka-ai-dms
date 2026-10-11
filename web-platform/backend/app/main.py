@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import local_auth, workspace, workspace_files
+from app.api.routes import ai_consent, local_auth, workspace, workspace_files
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.observability import init_observability
@@ -91,6 +91,7 @@ def create_app() -> FastAPI:
         return response
 
     app.include_router(local_auth.router, prefix="/api/auth", tags=["Authentication"])
+    app.include_router(ai_consent.router)
     app.include_router(workspace.router)
     app.include_router(workspace_files.router)
 
