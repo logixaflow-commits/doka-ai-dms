@@ -5,6 +5,7 @@ and PDF handling via pdf2image.
 """
 import io
 import re
+import tempfile
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -225,20 +226,7 @@ class OCRService:
                     rgb_image = np.array(source_image.convert("RGB"))
                 image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
 
-            if self.preprocessing:
-                image = self._preprocess_image(image)
-
-            # Convert to PIL for pytesseract
-            pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-
-            # Run OCR
-            custom_config = f"--oem {self.oem} --psm {self.psm}"
-            text = pytesseract.image_to_string(
-                pil_image,
-                lang=language or self.lang_string,
-                config=custom_config,
-                timeout=self.timeout,
-            )
+            text = self._recognize_image(image, language or self.lang_string)
 
             cleaned_text = self._clean_text(text)
             
@@ -331,16 +319,7 @@ class OCRService:
                 image = images[0]
                 try:
                     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-                    if self.preprocessing:
-                        cv_image = self._preprocess_image(cv_image)
-                    pil_image = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
-                    custom_config = f"--oem {self.oem} --psm {self.psm}"
-                    page_text = pytesseract.image_to_string(
-                        pil_image,
-                        lang=language or self.lang_string,
-                        config=custom_config,
-                        timeout=self.timeout,
-                    )
+                    page_text = self._recognize_image(cv_image, language or self.lang_string)
                     if page_text.strip():
                         all_text.append(f"--- Page {page_number} ---\\n{page_text}")
                 finally:
@@ -369,7 +348,93 @@ class OCRService:
             logger.debug(f"pdfplumber extraction failed: {e}")
             return ""
 
-    def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
+    def _layout_ocr_settings(self, image: np.ndarray) -> tuple[int, int]:
+        """Use block segmentation for wide crops and sparse-text mode for pages."""
+        height, width = image.shape[:2]
+        if width / height >= 2:
+            return 6, 5
+        return self.psm, 10
+
+    def _recognize_image(self, image: np.ndarray, language: str) -> str:
+        """Recognize an image, using line segmentation for Myanmar page layouts."""
+        psm, threshold_constant = self._layout_ocr_settings(image)
+        if self.preprocessing:
+            image = self._preprocess_image(image, threshold_constant=threshold_constant)
+
+        if self._uses_line_recognition(image, language):
+            lines = self._text_line_images(image)
+            if 2 <= len(lines) <= 80:
+                return self._recognize_text_lines(lines, language)
+
+        pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        return pytesseract.image_to_string(
+            pil_image,
+            lang=language,
+            config=f"--oem {self.oem} --psm {psm}",
+            timeout=self.timeout,
+        )
+
+    @staticmethod
+    def _uses_line_recognition(image: np.ndarray, language: str) -> bool:
+        languages = {part.strip().lower() for part in language.split("+")}
+        height, width = image.shape[:2]
+        return "mya" in languages and width / height < 2
+
+    def _text_line_images(self, image: np.ndarray) -> list[Image.Image]:
+        """Segment horizontal text rows for single-line Tesseract recognition."""
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        ink = gray < 200
+        active_rows = ink.mean(axis=1) > 0.001
+        row_bands: list[tuple[int, int]] = []
+        start = None
+        for row, active in enumerate(active_rows):
+            if active and start is None:
+                start = row
+            elif not active and start is not None:
+                row_bands.append((start, row))
+                start = None
+        if start is not None:
+            row_bands.append((start, len(active_rows)))
+
+        merged_bands: list[tuple[int, int]] = []
+        for start, end in row_bands:
+            if merged_bands and start - merged_bands[-1][1] <= 12:
+                merged_bands[-1] = (merged_bands[-1][0], end)
+            else:
+                merged_bands.append((start, end))
+
+        line_images = []
+        for start, end in merged_bands:
+            top = max(0, start - 8)
+            bottom = min(gray.shape[0], end + 8)
+            line = gray[top:bottom]
+            active_columns = np.flatnonzero((line < 200).any(axis=0))
+            if not active_columns.size:
+                continue
+            left = max(0, int(active_columns[0]) - 20)
+            right = min(gray.shape[1], int(active_columns[-1]) + 21)
+            line_images.append(Image.fromarray(gray[top:bottom, left:right]).convert("RGB"))
+        return line_images
+
+    def _recognize_text_lines(self, lines: list[Image.Image], language: str) -> str:
+        """Pass all detected rows to one local Tesseract process."""
+        with tempfile.TemporaryDirectory(prefix="doka-ocr-lines-") as temp_dir:
+            image_path = Path(temp_dir) / "text-lines.tiff"
+            lines[0].save(
+                image_path,
+                format="TIFF",
+                save_all=True,
+                append_images=lines[1:],
+                compression="tiff_deflate",
+            )
+            return pytesseract.image_to_string(
+                str(image_path),
+                lang=language,
+                config=f"--oem {self.oem} --psm 7",
+                timeout=self.timeout,
+            )
+
+    def _preprocess_image(self, image: np.ndarray, *, threshold_constant: int = 10) -> np.ndarray:
         """
         Apply adaptive thresholding while preserving the source image dimensions.
         """
@@ -378,7 +443,7 @@ class OCRService:
             binary = cv2.adaptiveThreshold(
                 gray, 255,
                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 31, 10
+                cv2.THRESH_BINARY, 41, threshold_constant
             )
             return cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
 

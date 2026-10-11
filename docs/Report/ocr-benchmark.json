@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-10-11T12:44:10.086373Z",
+  "generated_at": "2026-10-11T14:04:36.006145Z",
   "sample_count": 3,
   "scored_count": 3,
   "error_count": 0,
@@ -8,18 +8,18 @@
   "summary_by_language": {
     "eng": {
       "samples": 1,
-      "mean_cer": 0.006329113924050633,
-      "mean_wer": 0.03571428571428571
+      "mean_cer": 0.02531645569620253,
+      "mean_wer": 0.10714285714285714
     },
     "mya": {
       "samples": 1,
-      "mean_cer": 0.104,
-      "mean_wer": 0.2222222222222222
+      "mean_cer": 0.088,
+      "mean_wer": 0.19444444444444445
     },
     "mya+eng": {
       "samples": 1,
-      "mean_cer": 0.19281663516068054,
-      "mean_wer": 0.216
+      "mean_cer": 0.043478260869565216,
+      "mean_wer": 0.16
     }
   },
   "required_languages": [
@@ -47,26 +47,9 @@
   "quality_gate": {
     "max_cer": 0.1,
     "max_wer": 0.2,
-    "failures": [
-      {
-        "sample_id": "undertaking-myanmar-heading-001",
-        "reason": "cer_exceeds_threshold"
-      },
-      {
-        "sample_id": "undertaking-myanmar-heading-001",
-        "reason": "wer_exceeds_threshold"
-      },
-      {
-        "sample_id": "undertaking-mixed-page-001",
-        "reason": "cer_exceeds_threshold"
-      },
-      {
-        "sample_id": "undertaking-mixed-page-001",
-        "reason": "wer_exceeds_threshold"
-      }
-    ],
-    "failure_count": 4,
-    "passed": false
+    "failures": [],
+    "failure_count": 0,
+    "passed": true
   },
   "scoring": {
     "normalization": "NFC, case-folded, whitespace-collapsed",
@@ -74,7 +57,7 @@
     "myanmar_word_tokenizer": "mmdt-tokenizer 0.1.3 grammar-based word segmentation",
     "other_word_tokenizer": "whitespace"
   },
-  "gate_ready": false,
+  "gate_ready": true,
   "toolchain": {
     "command_configured": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "version": "tesseract v5.5.3.20260724",
@@ -88,7 +71,10 @@
       "dpi": 300,
       "oem": 3,
       "psm": 11,
-      "preprocessing": true
+      "preprocessing": true,
+      "psm_layout_policy": "PSM 6 for width/height >= 2; configured PSM otherwise",
+      "preprocessing_method": "adaptive Gaussian threshold, block size 41, C=5 for width/height >= 2 and C=10 otherwise",
+      "text_line_ocr_policy": "Myanmar-containing portrait/square images: detect text rows and OCR a multipage TIFF with PSM 7; other images use layout PSM"
     }
   },
   "results": [
@@ -97,36 +83,36 @@
       "language": "eng",
       "detected_language": "eng",
       "status": "scored",
-      "character_errors": 1,
+      "character_errors": 4,
       "reference_characters": 158,
-      "cer": 0.006329113924050633,
-      "word_errors": 1,
+      "cer": 0.02531645569620253,
+      "word_errors": 3,
       "reference_words": 28,
-      "wer": 0.03571428571428571
+      "wer": 0.10714285714285714
     },
     {
       "sample_id": "undertaking-myanmar-heading-001",
       "language": "mya",
       "detected_language": "mya",
       "status": "scored",
-      "character_errors": 13,
+      "character_errors": 11,
       "reference_characters": 125,
-      "cer": 0.104,
-      "word_errors": 8,
+      "cer": 0.088,
+      "word_errors": 7,
       "reference_words": 36,
-      "wer": 0.2222222222222222
+      "wer": 0.19444444444444445
     },
     {
       "sample_id": "undertaking-mixed-page-001",
       "language": "mya+eng",
       "detected_language": "mya",
       "status": "scored",
-      "character_errors": 102,
+      "character_errors": 23,
       "reference_characters": 529,
-      "cer": 0.19281663516068054,
-      "word_errors": 27,
+      "cer": 0.043478260869565216,
+      "word_errors": 20,
       "reference_words": 125,
-      "wer": 0.216
+      "wer": 0.16
     }
   ],
   "privacy": {

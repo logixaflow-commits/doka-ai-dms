@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from app.core.exceptions import OCRError
 from app.services.ocr_service import OCRService
@@ -68,3 +69,39 @@ def test_ocr_adaptive_preprocessing_preserves_dimensions_and_binary_output():
 
     assert processed.shape == image.shape
     assert set(np.unique(processed)) == {0, 255}
+
+
+def test_ocr_layout_settings_select_block_mode_for_wide_images():
+    service = OCRService()
+    wide_crop = np.zeros((825, 2550, 3), dtype=np.uint8)
+    portrait_page = np.zeros((3300, 2550, 3), dtype=np.uint8)
+
+    assert service._layout_ocr_settings(wide_crop) == (6, 5)
+    assert service._layout_ocr_settings(portrait_page) == (service.psm, 10)
+
+
+def test_ocr_line_recognition_uses_one_tesseract_call_and_cleans_temp_files(tmp_path, monkeypatch):
+    import pytesseract
+
+    service = OCRService()
+    image = np.full((200, 100, 3), 255, dtype=np.uint8)
+    image[30:40, 10:90] = 0
+    image[150:160, 15:85] = 0
+    captured = {}
+
+    def fake_image_to_string(path, *, lang, config, timeout):
+        captured.update(path=Path(path), lang=lang, config=config, timeout=timeout)
+        with Image.open(path) as multipage:
+            captured["frames"] = multipage.n_frames
+        return "မင်္ဂလာပါ\nမိတ်ဆွေ"
+
+    monkeypatch.setattr(pytesseract, "image_to_string", fake_image_to_string)
+
+    result = service._recognize_image(image, "mya+eng")
+
+    assert result == "မင်္ဂလာပါ\nမိတ်ဆွေ"
+    assert captured["frames"] == 2
+    assert captured["lang"] == "mya+eng"
+    assert captured["config"] == f"--oem {service.oem} --psm 7"
+    assert captured["timeout"] == service.timeout
+    assert not captured["path"].exists()

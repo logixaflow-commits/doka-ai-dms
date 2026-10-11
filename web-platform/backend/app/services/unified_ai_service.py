@@ -5,6 +5,7 @@ AI is optional: local/rule-based processing remains the default.
 """
 import asyncio
 import json
+import math
 import re
 import time
 from typing import Optional, Dict, Any, List, Callable, Awaitable

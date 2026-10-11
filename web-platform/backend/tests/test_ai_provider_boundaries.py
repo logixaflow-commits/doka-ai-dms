@@ -190,7 +190,7 @@ async def test_provider_circuit_breaker_closes_after_success(monkeypatch, consen
 
 
 @pytest.mark.asyncio
-async def test_provider_circuit_breaker_allows_only_one_half_open_probe(monkeypatch):
+async def test_provider_circuit_breaker_allows_only_one_half_open_probe(monkeypatch, consent_db):
     import asyncio
     import time
 
@@ -216,12 +216,28 @@ async def test_provider_circuit_breaker_allows_only_one_half_open_probe(monkeypa
         return "ok"
 
     first = asyncio.create_task(
-        service._with_fallback("half-open-test", slow_success, ["openrouter"])
+        service._with_fallback(
+            "half-open-test",
+            slow_success,
+            ["openrouter"],
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+            subject_id="user-1",
+            purpose="document_analysis",
+            scope="document:7",
+        )
     )
     await started.wait()
 
     with pytest.raises(RuntimeError, match="All configured AI providers failed"):
-        await service._with_fallback("half-open-test", slow_success, ["openrouter"])
+        await service._with_fallback(
+            "half-open-test",
+            slow_success,
+            ["openrouter"],
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+            subject_id="user-1",
+            purpose="document_analysis",
+            scope="document:7",
+        )
 
     assert calls == 1
     assert circuit.state.value == "half_open"
@@ -231,7 +247,7 @@ async def test_provider_circuit_breaker_allows_only_one_half_open_probe(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_cancelled_recovery_probe_reopens_circuit(monkeypatch):
+async def test_cancelled_recovery_probe_reopens_circuit(monkeypatch, consent_db):
     import asyncio
     import time
 
@@ -252,7 +268,15 @@ async def test_cancelled_recovery_probe_reopens_circuit(monkeypatch):
         await asyncio.Event().wait()
 
     task = asyncio.create_task(
-        service._with_fallback("cancelled-probe-test", cancelled_call, ["openrouter"])
+        service._with_fallback(
+            "cancelled-probe-test",
+            cancelled_call,
+            ["openrouter"],
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+            subject_id="user-1",
+            purpose="document_analysis",
+            scope="document:7",
+        )
     )
     await started.wait()
     task.cancel()
