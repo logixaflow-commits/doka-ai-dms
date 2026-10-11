@@ -134,3 +134,10 @@
 - Cloudflare direct-upload session signing uses a dedicated `DOKA_STORAGE_SESSION_SECRET` Worker secret; `DOKA_SINGLE_USER_EMAIL` remains enabled for the current single-user deployment.
 - Live D1 is now provisioned, migrated and bound to the Worker. Disposable acceptance passed duplicate convergence, terminal success, retry exhaustion/dead transition and outbox terminal delivery; privacy-safe evidence is recorded at `Phase0_Evidence/train1/d1-job-runtime.json`.
 - Supabase Auth leaked-password protection remains a security-freeze blocker.
+
+
+## 2026-10-11 documentation reconciliation checkpoint
+- Re-read the active root documentation, canonical domain docs, owner checklist, Train status and Phase 7–18 execution plan; inventoried the historical/archive Markdown tree. Historical/archive plans remain reference material, not active release commitments.
+- Consolidated P0–P3 release blockers and future-train acceptance criteria in ROADMAP.md; aligned docs/PHASE_TRAIN_STATUS.md, docs/TESTING.md and docs/OWNER_LOCAL_CHECKLIST.md with current OCR thresholds, consent limitations and exact-HEAD CI rules.
+- Repository self-audit on the available checkout: 23 checks, 22 PASS, 0 structural failures, 1 NEEDS_REVIEW due to seven evidence-path references not present in this checkout. This is NEEDS_EVIDENCE, not release approval; determine whether those evidence files are intentionally external or restore/link the correct artifacts.
+- Python syntax compilation passed for the changed idempotency, OCR benchmark, unified AI service and focused tests. Focused pytest could not be run in this box because pytest is not installed. The exact current main HEAD still has no directly associated successful CI run in the evidence available at this checkpoint.
