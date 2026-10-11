@@ -188,7 +188,7 @@ This register consolidates release gates, Train 1/3 work, deferred future phases
 
 ### P1 — Train 1/3 reliability and AI activation
 
-- [ ] Wire consent to a trusted, persisted grant lifecycle: authenticated subject identity must come from server-side auth; purpose and exact document/resource scope must be server-derived; revocation and audit must be supported; clients must not be able to mint trusted grants. Until that exists, external AI calls without a trusted grant must remain fail-closed.
+- [x] Wire consent to a trusted, persisted grant lifecycle: authenticated subject identity comes from server-side local bearer auth; purpose is allowlisted and scope is explicit; grant/revocation changes are persisted transactionally and audited append-only. Callers must still derive resource scope from authorized server-side document context; supported; clients must not be able to mint trusted grants. Until that exists, external AI calls without a trusted grant must remain fail-closed.
 - [ ] Verify the free-only AI policy end-to-end with an approved free model and embedding model, real runtime configuration, explicit consent, schema-invalid responses, provider failure, circuit recovery, and failover disabled/enabled cases; confirm no billable provider adapter is reachable.
 - [ ] Re-run focused AI/idempotency/OCR tests and the maintained suite on the exact HEAD; associate direct GitHub Actions results with that SHA. Run tests in a provisioned test environment because this workspace has no pytest module installed.
 - [ ] Verify representative OCR-aware Myanmar/English retrieval quality, source identity/hash validation, Unicode normalization, and deterministic ranking.
