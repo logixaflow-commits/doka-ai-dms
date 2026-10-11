@@ -4,10 +4,10 @@ import { getAccessToken, getCurrentUser, refreshSession } from './supabaseAuth';
 // verified Cloudflare Worker unless an environment-specific origin overrides it.
 const defaultApiBase = import.meta.env.DEV ? '' : 'https://doka-ai-dms.logixaflow.workers.dev';
 const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || defaultApiBase).trim();
-const API_BASE_URL = configuredApiBase.endsWith('/')
+export const CLOUD_API_ORIGIN = configuredApiBase.endsWith('/')
   ? configuredApiBase.slice(0, -1)
   : configuredApiBase;
-const API_ROOT = `${API_BASE_URL}/api`;
+const API_ROOT = `${CLOUD_API_ORIGIN}/api`;
 const MAX_UPLOAD_BYTES = Number(import.meta.env.VITE_DOKA_MAX_UPLOAD_BYTES || 5 * 1024 * 1024 * 1024);
 
 export interface CloudDocument {

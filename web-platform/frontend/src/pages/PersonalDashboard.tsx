@@ -7,9 +7,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { getCloudDocumentDownloadUrl, listCloudDocuments, type CloudDocument } from '@/lib/cloudDocuments';
-
-const API_ORIGIN = import.meta.env.DEV ? '' : 'https://doka.logixaflow.workers.dev';
+import { CLOUD_API_ORIGIN, getCloudDocumentDownloadUrl, listCloudDocuments, type CloudDocument } from '@/lib/cloudDocuments';
 
 type ApiState = 'checking' | 'connected' | 'degraded' | 'offline';
 
@@ -40,8 +38,8 @@ export default function PersonalDashboard() {
     setError('');
     try {
       const [healthResponse, configResponse, documentResult] = await Promise.all([
-        fetch(`${API_ORIGIN}/health`, { cache: 'no-store' }),
-        fetch(`${API_ORIGIN}/api/config`, { cache: 'no-store' }),
+        fetch(`${CLOUD_API_ORIGIN}/health`, { cache: 'no-store' }),
+        fetch(`${CLOUD_API_ORIGIN}/api/config`, { cache: 'no-store' }),
         listCloudDocuments({ limit: 100, offset: 0 }),
       ]);
       if (!healthResponse.ok || !configResponse.ok) {
