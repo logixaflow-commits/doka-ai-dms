@@ -125,3 +125,29 @@ def test_checked_in_ocr_report_gate_matches_sample_metrics():
     assert quality_gate["failure_count"] == len(expected_failures)
     assert quality_gate["passed"] is expected_passed
     assert report["gate_ready"] is expected_passed
+
+def test_ocr_benchmark_mixed_sample_does_not_satisfy_required_myanmar_language(tmp_path, monkeypatch):
+    root = tmp_path / "samples"
+    root.mkdir()
+    (root / "mixed.png").write_bytes(b"fixture")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({
+        "required_languages": ["eng", "mya"],
+        "samples": [{
+            "id": "mixed-only",
+            "path": "mixed.png",
+            "language": "mya+eng",
+            "reference": "မင်္ဂလာပါ hello",
+        }],
+    }), encoding="utf-8")
+
+    report = run_ocr_benchmark(
+        root,
+        manifest,
+        ocr=lambda *_: ("မင်္ဂလာပါ hello", "mya+eng"),
+    )
+
+    assert report["scored_count"] == 1
+    assert report["missing_required_languages"] == ["eng", "mya"]
+    assert report["missing_scored_languages"] == ["eng", "mya"]
+    assert report["gate_ready"] is False
