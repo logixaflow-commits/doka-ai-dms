@@ -178,3 +178,13 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 - Latest implementation commit `06f6874aa999fec441bbb285327a17af795625c2` has **Doka Quality Checks: SUCCESS** and **CodeQL: SUCCESS**.
 - The successful Quality run included the concrete Train 1 regression tests; cloud storage contract tests also passed.
 - Remaining Train 1 exit work is live/runtime evidence and any provider/queue consumer paths that require real credentials or infrastructure. No production PASS is claimed from CI alone.
+
+
+## 2026-10-11 reconciled status
+
+- **Train 0 / Gates 3–12 remains OPEN.** Code/harness preparation is not release acceptance. Personal Local still needs a visually verified Myanmar benchmark, passing representative OCR metrics, the complete copied-office rerun (including prior timeouts), representative browser E2E, and measured real-machine recovery. Cloud still needs authenticated User A/B lifecycle/isolation, live B2 and Google Drive paths, Cloudinary application-path evidence, Supabase leaked-password protection remediation, and owner-authorized runtime/deployment verification.
+- **Train 1 code-side follow-up:** Windows local idempotency locking now has an msvcrt fallback; the OCR benchmark enforces mean CER <= 0.30 and mean WER <= 0.60 by language label; the unified AI provider/embedding boundary requires a granted subject + purpose + exact-resource-scope consent grant. These are code-side changes, not proof of complete consent persistence or trusted caller propagation.
+- **Train 1 activation remains blocked** until persistent trusted consent lifecycle/revocation/audit is wired, exact-HEAD tests pass, free-only provider behavior is verified in its intended runtime, and Myanmar/English retrieval quality is benchmarked. Missing consent must remain fail-closed.
+- **Train 3 takeover remains disabled.** Do not add lease/fencing or worker takeover until every external side effect consumes the same durable idempotency key and crash/replay tests prove one durable outcome.
+- **CI freshness rule:** run 38072383164 passed nine reported jobs on c470c260d38de59766b90b3f1d8c0ecd55d625c3; it predates later code and documentation commits. Do not call the current main HEAD CI-verified without a run tied to that exact HEAD.
+- The consolidated P0–P3 remaining-work register and owner/environment-dependent evidence list are maintained in ROADMAP.md. This checkpoint supersedes stale earlier notes in this file that describe the October 8 code state as the latest status.
