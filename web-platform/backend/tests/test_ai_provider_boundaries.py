@@ -1,10 +1,26 @@
 import json
+import tempfile
+from pathlib import Path
+
+from app.services.consent_store import set_consent
 
 import pytest
 
 from app.core.config import settings
 from app.services.train1_safety_contracts import ConsentGrant
 from app.services.unified_ai_service import UnifiedAIService, build_document_analysis_prompt
+
+
+@pytest.fixture
+def consent_db(monkeypatch):
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", root / "auth.sqlite3")
+        monkeypatch.setattr(settings, "WORKING_ROOT", root / "workspace")
+        monkeypatch.setattr(settings, "SOURCE_ROOT", None)
+        set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=True)
+        set_consent(subject_id="user-1", actor_id="user-1", purpose="embedding", scope="document:7", granted=True)
+        yield root
 
 
 def test_document_prompt_keeps_document_content_as_untrusted_data():
@@ -47,7 +63,7 @@ def test_ai_analysis_schema_rejects_invalid_provider_output(monkeypatch):
         service._parse_analysis_result('{"category":"invoice"}')
 
 
-def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatch):
+def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatch, consent_db):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     service = UnifiedAIService()
@@ -60,15 +76,18 @@ def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatc
             consent_grant=ConsentGrant("user-1", "document_analysis", "document:8", True),
             subject_id="user-1", purpose="document_analysis", scope="document:7",
         )
-    with pytest.raises(RuntimeError, match="matching, granted resource-scoped consent"):
-        service._ensure_external_ai_allowed(
-            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", False),
-            subject_id="user-1", purpose="document_analysis", scope="document:7",
-        )
+    # Caller-supplied grant objects cannot override or fabricate durable consent.
     service._ensure_external_ai_allowed(
-        consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+        consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", False),
         subject_id="user-1", purpose="document_analysis", scope="document:7",
     )
+    from app.services.consent_store import set_consent
+    set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=False)
+    with pytest.raises(RuntimeError, match="database-backed consent"):
+        service._ensure_external_ai_allowed(
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+            subject_id="user-1", purpose="document_analysis", scope="document:7",
+        )
 
 
 def test_local_similarity_is_available_without_external_provider():
@@ -82,7 +101,7 @@ def test_embedding_provider_order_is_deduplicated(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkeypatch):
+async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkeypatch, consent_db):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 2)
@@ -114,7 +133,7 @@ async def test_provider_circuit_breaker_skips_repeatedly_failing_provider(monkey
 
 
 @pytest.mark.asyncio
-async def test_provider_circuit_breaker_closes_after_success(monkeypatch):
+async def test_provider_circuit_breaker_closes_after_success(monkeypatch, consent_db):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     monkeypatch.setattr(settings, "AI_PROVIDER_FAILURE_THRESHOLD", 1)
