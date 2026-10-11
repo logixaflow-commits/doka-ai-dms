@@ -68,10 +68,11 @@ def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatc
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     service = UnifiedAIService()
 
-    # No persisted grant means no external processing, regardless of omitted caller grant.
+    # The fixture has a grant for user-1; a different subject with no persisted
+    # grant must be denied even when no caller-supplied grant is provided.
     with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
-            subject_id="user-1", purpose="document_analysis", scope="document:7"
+            subject_id="user-without-grant", purpose="document_analysis", scope="document:7"
         )
 
     set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=True)
