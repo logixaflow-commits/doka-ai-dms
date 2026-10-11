@@ -394,9 +394,16 @@ class UnifiedAIService:
         required = {"category", "confidence", "key_entities", "suspicious", "suspicious_reason"}
         if not required.issubset(result):
             raise ValueError("AI provider analysis is missing required fields.")
+        if set(result) != required:
+            raise ValueError("AI provider analysis contains unknown fields.")
         confidence = result["confidence"]
-        if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
-            raise ValueError("AI provider confidence must be between 0 and 1.")
+        if confidence is not None and (
+            isinstance(confidence, bool)
+            or not isinstance(confidence, (int, float))
+            or not math.isfinite(confidence)
+            or not 0 <= confidence <= 1
+        ):
+            raise ValueError("AI provider confidence must be a finite number between 0 and 1.")
         if not isinstance(result["key_entities"], list) or not isinstance(result["suspicious"], bool):
             raise ValueError("AI provider analysis has invalid field types.")
         if result["category"] is not None and not isinstance(result["category"], str):
