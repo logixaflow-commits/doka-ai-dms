@@ -25,11 +25,20 @@ def _is_retryable(error: BaseException) -> bool:
         return True
     response = getattr(error, "response", None)
     status = getattr(response, "status_code", 0)
-    return status == 408 or status == 429 or 500 <= status <= 599
+    if type(status) is not int:
+        return False
+    return status in {408, 425, 429} or 500 <= status <= 599
 
 
 class OutboxError(RuntimeError):
     """Safe outbox operation failure."""
+
+
+def _require_single_change(result: dict[str, Any], *, operation: str) -> None:
+    meta = result.get("meta")
+    changes = meta.get("changes") if isinstance(meta, dict) else None
+    if type(changes) is not int or changes != 1:
+        raise OutboxError(f"{operation} did not update the expected outbox state.")
 
 
 CLAIM_SQL = """
@@ -104,7 +113,8 @@ async def mark_delivered(
 ) -> None:
     if not event_id or len(event_id) > 255 or not lease_token or len(lease_token) > 64:
         raise ValueError("Invalid outbox delivery lease.")
-    await db.execute(DELIVER_SQL, (_stamp(_utc(now)), event_id, lease_token))
+    result = await db.execute(DELIVER_SQL, (_stamp(_utc(now)), event_id, lease_token))
+    _require_single_change(result, operation="Outbox delivery")
 
 
 async def mark_retry(
@@ -129,7 +139,7 @@ async def mark_retry(
     terminal = (not retryable) or attempts >= max_attempts
     delay = min(3600, 30 * (2 ** min(attempts - 1, 7)))
     status = "dead" if terminal else "pending"
-    await db.execute(
+    result = await db.execute(
         RETRY_SQL,
         (
             status,
@@ -139,6 +149,7 @@ async def mark_retry(
             lease_token,
         ),
     )
+    _require_single_change(result, operation="Outbox retry")
     return status
 
 
