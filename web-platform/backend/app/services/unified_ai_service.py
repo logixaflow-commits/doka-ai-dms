@@ -435,12 +435,14 @@ class UnifiedAIService:
     async def get_embedding(
         self, text: str, provider: Optional[str] = None, *,
         consent_grant: Optional[ConsentGrant] = None, subject_id: Optional[str] = None,
-        scope: Optional[str] = None,
+        scope: Optional[str] = None, purpose: str = "embedding",
     ) -> List[float]:
-        """Embeddings are optional and require exact-scope consent like document analysis."""
+        """Embeddings require exact-scope consent for the declared processing purpose."""
+        if purpose not in {"embedding", "duplicate_detection"}:
+            raise ValueError("Unsupported embedding consent purpose")
         self._ensure_external_ai_allowed(
             consent_grant=consent_grant, subject_id=subject_id,
-            purpose="embedding", scope=scope,
+            purpose=purpose, scope=scope,
         )
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Text is required for embedding generation.")
@@ -514,8 +516,8 @@ class UnifiedAIService:
         try:
             if not subject_id or not scope:
                 raise RuntimeError("Authenticated subject and resource scope are required for external embeddings.")
-            emb1 = await self.get_embedding(text1, consent_grant=None, subject_id=subject_id, scope=scope)
-            emb2 = await self.get_embedding(text2, consent_grant=None, subject_id=subject_id, scope=scope)
+            emb1 = await self.get_embedding(text1, consent_grant=None, subject_id=subject_id, scope=scope, purpose="duplicate_detection")
+            emb2 = await self.get_embedding(text2, consent_grant=None, subject_id=subject_id, scope=scope, purpose="duplicate_detection")
             import numpy as np
             denom = np.linalg.norm(emb1) * np.linalg.norm(emb2)
             return float(np.dot(emb1, emb2) / denom) if denom else 0.0
