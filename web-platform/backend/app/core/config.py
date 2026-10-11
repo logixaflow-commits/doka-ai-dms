@@ -79,6 +79,7 @@ class OCRConfig:
     max_pdf_pages: int = 200
     max_image_pixels: int = 50_000_000
     fallback_enabled: bool = True
+    timeout: int = 30
 
 
 @dataclass
@@ -195,6 +196,7 @@ class Settings:
         self.OCR_MAX_IMAGE_PIXELS = int(os.getenv("OCR_MAX_IMAGE_PIXELS", "50000000"))
         self.OCR_FALLBACK_ENABLED = os.getenv("OCR_FALLBACK_ENABLED", "true").lower() == "true"
         self.OCR_POPPLER_PATH = os.getenv("OCR_POPPLER_PATH", "")
+        self.OCR_TIMEOUT_SECONDS = int(os.getenv("OCR_TIMEOUT_SECONDS", "30"))
 
         # Security
         self.ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
@@ -385,6 +387,11 @@ class Settings:
             max_image_pixels=o.get("max_image_pixels", self.OCR_MAX_IMAGE_PIXELS),
             fallback_enabled=o.get("fallback_enabled", self.OCR_FALLBACK_ENABLED),
             poppler_path=o.get("poppler_path", self.OCR_POPPLER_PATH),
+            timeout=(
+                self.OCR_TIMEOUT_SECONDS
+                if "OCR_TIMEOUT_SECONDS" in os.environ
+                else o.get("timeout", 30)
+            ),
         )
 
         # Duplicate config
@@ -445,6 +452,8 @@ class Settings:
             raise ValueError("OCR max_pdf_pages must be between 1 and 1000.")
         if not 1_000_000 <= self.ocr.max_image_pixels <= 200_000_000:
             raise ValueError("OCR max_image_pixels must be between 1M and 200M pixels.")
+        if not 5 <= self.ocr.timeout <= 120:
+            raise ValueError("OCR timeout must be between 5 and 120 seconds.")
 
         # Validate storage configuration
         if self.STORAGE_TYPE == "local" and not self.MINIO_ENABLED:

@@ -1,8 +1,10 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-10-11T14:04:36.006145Z",
-  "sample_count": 3,
-  "scored_count": 3,
+  "generated_at": "2026-10-11T15:04:49.366894Z",
+  "sample_count": 5,
+  "scored_count": 5,
+  "distinct_source_document_count": 4,
+  "distinct_myanmar_source_document_count": 3,
   "error_count": 0,
   "execution_ready": true,
   "summary_by_language": {
@@ -13,13 +15,13 @@
     },
     "mya": {
       "samples": 1,
-      "mean_cer": 0.088,
-      "mean_wer": 0.19444444444444445
+      "mean_cer": 0.12,
+      "mean_wer": 0.3055555555555556
     },
     "mya+eng": {
-      "samples": 1,
-      "mean_cer": 0.043478260869565216,
-      "mean_wer": 0.16
+      "samples": 3,
+      "mean_cer": 0.33785320529370266,
+      "mean_wer": 0.534208165612421
     }
   },
   "required_languages": [
@@ -43,13 +45,44 @@
       "max_mean_wer": 0.6
     }
   },
-  "quality_failures": [],
+  "quality_failures": [
+    {
+      "language": "mya+eng",
+      "mean_cer_exceeded": true,
+      "mean_wer_exceeded": false
+    }
+  ],
   "quality_gate": {
     "max_cer": 0.1,
     "max_wer": 0.2,
-    "failures": [],
-    "failure_count": 0,
-    "passed": true
+    "failures": [
+      {
+        "sample_id": "sample-002",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-002",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-004",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-004",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-005",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-005",
+        "reason": "wer_exceeds_threshold"
+      }
+    ],
+    "failure_count": 6,
+    "passed": false
   },
   "scoring": {
     "normalization": "NFC, case-folded, whitespace-collapsed",
@@ -57,7 +90,7 @@
     "myanmar_word_tokenizer": "mmdt-tokenizer 0.1.3 grammar-based word segmentation",
     "other_word_tokenizer": "whitespace"
   },
-  "gate_ready": true,
+  "gate_ready": false,
   "toolchain": {
     "command_configured": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "version": "tesseract v5.5.3.20260724",
@@ -71,6 +104,7 @@
       "dpi": 300,
       "oem": 3,
       "psm": 11,
+      "timeout_seconds": 120,
       "preprocessing": true,
       "psm_layout_policy": "PSM 6 for width/height >= 2; configured PSM otherwise",
       "preprocessing_method": "adaptive Gaussian threshold, block size 41, C=5 for width/height >= 2 and C=10 otherwise",
@@ -79,7 +113,7 @@
   },
   "results": [
     {
-      "sample_id": "english-memo-001",
+      "sample_id": "sample-001",
       "language": "eng",
       "detected_language": "eng",
       "status": "scored",
@@ -91,28 +125,52 @@
       "wer": 0.10714285714285714
     },
     {
-      "sample_id": "undertaking-myanmar-heading-001",
+      "sample_id": "sample-002",
       "language": "mya",
       "detected_language": "mya",
       "status": "scored",
-      "character_errors": 11,
+      "character_errors": 15,
       "reference_characters": 125,
-      "cer": 0.088,
-      "word_errors": 7,
+      "cer": 0.12,
+      "word_errors": 11,
       "reference_words": 36,
-      "wer": 0.19444444444444445
+      "wer": 0.3055555555555556
     },
     {
-      "sample_id": "undertaking-mixed-page-001",
+      "sample_id": "sample-003",
       "language": "mya+eng",
       "detected_language": "mya",
       "status": "scored",
       "character_errors": 23,
       "reference_characters": 529,
       "cer": 0.043478260869565216,
-      "word_errors": 20,
+      "word_errors": 22,
       "reference_words": 125,
-      "wer": 0.16
+      "wer": 0.176
+    },
+    {
+      "sample_id": "sample-004",
+      "language": "mya+eng",
+      "detected_language": "mya",
+      "status": "scored",
+      "character_errors": 425,
+      "reference_characters": 806,
+      "cer": 0.5272952853598015,
+      "word_errors": 136,
+      "reference_words": 185,
+      "wer": 0.7351351351351352
+    },
+    {
+      "sample_id": "sample-005",
+      "language": "mya+eng",
+      "detected_language": "mya",
+      "status": "scored",
+      "character_errors": 178,
+      "reference_characters": 402,
+      "cer": 0.4427860696517413,
+      "word_errors": 65,
+      "reference_words": 94,
+      "wer": 0.6914893617021277
     }
   ],
   "privacy": {

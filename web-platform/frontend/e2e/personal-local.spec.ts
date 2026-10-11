@@ -6,6 +6,10 @@ import path from 'node:path';
 const sourceRoot = process.env.DOKA_E2E_SOURCE_DIR;
 const username = process.env.DOKA_E2E_USERNAME || 'admin';
 const password = process.env.DOKA_E2E_PASSWORD;
+const importTimeout = Number(process.env.DOKA_E2E_IMPORT_TIMEOUT_MS || 90_000);
+const scanTimeout = Number(process.env.DOKA_E2E_SCAN_TIMEOUT_MS || 30_000);
+const understandTimeout = Number(process.env.DOKA_E2E_UNDERSTAND_TIMEOUT_MS || 60_000);
+const planTimeout = Number(process.env.DOKA_E2E_PLAN_TIMEOUT_MS || 30_000);
 
 test.beforeAll(async () => {
   if (!sourceRoot) throw new Error('DOKA_E2E_SOURCE_DIR must point to a copied acceptance dataset.');
@@ -33,8 +37,10 @@ async function snapshot(root: string): Promise<Record<string, string>> {
 }
 
 test('Personal Local browser acceptance: login → import → scan → understand → review plan', async ({ page }) => {
+  test.setTimeout(Number(process.env.DOKA_E2E_TEST_TIMEOUT_MS || 120_000));
   const before = await snapshot(sourceRoot!);
-  expect(Object.keys(before).length).toBeGreaterThan(0);
+  const sourceFileCount = Object.keys(before).length;
+  expect(sourceFileCount).toBeGreaterThan(0);
 
   await page.goto('/login');
   await expect(page.getByTestId('login-username')).toBeVisible();
@@ -48,18 +54,39 @@ test('Personal Local browser acceptance: login → import → scan → understan
 
   await page.getByTestId('start-safe-import').click();
   await expect(page.getByText(/Import started\. The original source is not modified\./)).toBeVisible();
-  await expect(page.getByText('Status:')).toContainText('completed', { timeout: 90_000 });
-  await expect(page.getByText(/Verified:/)).toContainText(/\//);
-  await expect(page.getByText(/Failed:/)).toContainText('0');
+  await expect(page.getByText('Status:')).toContainText('completed', { timeout: importTimeout });
+  await expect(page.getByText(/Verified:/)).toContainText(
+    new RegExp(`${sourceFileCount}\\s*/\\s*${sourceFileCount}`),
+  );
+  await expect(page.getByText(/Failed:/)).toHaveText(/Failed:\s*0/);
 
   await page.getByTestId('scan-copy').click();
-  await expect(page.getByText('scan completed.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('scan completed.')).toBeVisible({ timeout: scanTimeout });
 
+  const understandingResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/understanding') && response.request().method() === 'GET',
+  );
   await page.getByTestId('run-ocr').click();
-  await expect(page.getByText('understand completed.')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText('understand completed.')).toBeVisible({ timeout: understandTimeout });
+  const understandingResponse = await understandingResponsePromise;
+  expect(understandingResponse.ok()).toBeTruthy();
+  const understanding = await understandingResponse.json() as {
+    analyzed_files?: number;
+    results?: Array<{ extension?: string; text_length?: number; extraction_method?: string }>;
+  };
+  expect(understanding.analyzed_files).toBe(sourceFileCount);
+  expect(understanding.results).toHaveLength(sourceFileCount);
+  const ocrExtensions = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.webp']);
+  const ocrResults = understanding.results?.filter((result) =>
+    ocrExtensions.has((result.extension || '').toLowerCase()),
+  ) || [];
+  const emptyOcrCount = ocrResults.filter((result) =>
+    result.extraction_method === 'ocr_failed' || !result.text_length,
+  ).length;
+  expect(emptyOcrCount).toBe(0);
 
   await page.getByTestId('build-review-plan').click();
-  await expect(page.getByText('plan completed.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('plan completed.')).toBeVisible({ timeout: planTimeout });
 
   const after = await snapshot(sourceRoot!);
   expect(after).toEqual(before);

@@ -319,7 +319,20 @@ class OCRService:
                 image = images[0]
                 try:
                     cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-                    page_text = self._recognize_image(cv_image, language or self.lang_string)
+                    selected_language = language or self.lang_string
+                    page_text = self._recognize_image(cv_image, selected_language)
+                    if self.preprocessing and not self._clean_text(page_text).strip():
+                        logger.info(
+                            "PDF page {} produced no text after preprocessing; retrying without preprocessing.",
+                            page_number,
+                        )
+                        unprocessed_text = self._recognize_image(
+                            cv_image,
+                            selected_language,
+                            preprocess=False,
+                        )
+                        if self._clean_text(unprocessed_text).strip():
+                            page_text = unprocessed_text
                     if page_text.strip():
                         all_text.append(f"--- Page {page_number} ---\\n{page_text}")
                 finally:
@@ -355,10 +368,17 @@ class OCRService:
             return 6, 5
         return self.psm, 10
 
-    def _recognize_image(self, image: np.ndarray, language: str) -> str:
+    def _recognize_image(
+        self,
+        image: np.ndarray,
+        language: str,
+        *,
+        preprocess: Optional[bool] = None,
+    ) -> str:
         """Recognize an image, using line segmentation for Myanmar page layouts."""
         psm, threshold_constant = self._layout_ocr_settings(image)
-        if self.preprocessing:
+        should_preprocess = self.preprocessing if preprocess is None else preprocess
+        if should_preprocess:
             image = self._preprocess_image(image, threshold_constant=threshold_constant)
 
         if self._uses_line_recognition(image, language):

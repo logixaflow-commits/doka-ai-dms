@@ -150,6 +150,7 @@ def collect_ocr_toolchain() -> dict[str, Any]:
                 "dpi": ocr_config.dpi,
                 "oem": ocr_config.oem,
                 "psm": ocr_config.psm,
+                "timeout_seconds": ocr_config.timeout,
                 "preprocessing": ocr_config.preprocessing,
                 "psm_layout_policy": "PSM 6 for width/height >= 2; configured PSM otherwise",
                 "preprocessing_method": "adaptive Gaussian threshold, block size 41, C=5 for width/height >= 2 and C=10 otherwise",
@@ -283,6 +284,24 @@ def run_ocr_benchmark(
         lang for lang in required_languages
         if str(lang).strip().lower() not in scored_language_labels
     ]
+    distinct_source_documents = {
+        sample["source_document_id"].strip()
+        for sample in samples
+        if isinstance(sample, dict)
+        and isinstance(sample.get("source_document_id"), str)
+        and sample["source_document_id"].strip()
+    }
+    distinct_myanmar_source_documents = {
+        sample["source_document_id"].strip()
+        for sample in samples
+        if isinstance(sample, dict)
+        and isinstance(sample.get("source_document_id"), str)
+        and sample["source_document_id"].strip()
+        and "mya" in {
+            part.strip().lower()
+            for part in str(sample.get("language", "")).split("+")
+        }
+    }
     error_count = sum(row["status"] == "error" for row in results)
     execution_ready = (
         toolchain["available"]
@@ -318,6 +337,8 @@ def run_ocr_benchmark(
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "sample_count": len(samples),
         "scored_count": sum(row["status"] == "scored" for row in results),
+        "distinct_source_document_count": len(distinct_source_documents),
+        "distinct_myanmar_source_document_count": len(distinct_myanmar_source_documents),
         "error_count": error_count,
         "execution_ready": execution_ready,
         "summary_by_language": summary,

@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 120_000,
+  timeout: Number(process.env.DOKA_E2E_TEST_TIMEOUT_MS || 120_000),
   expect: { timeout: 15_000 },
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

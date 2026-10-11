@@ -112,6 +112,7 @@ def test_ocr_benchmark_report_does_not_include_reference_or_recognized_text(tmp_
             "path": "page.png",
             "mime_type": "image/png",
             "language": "mya",
+            "source_document_id": "private-source-document",
             "reference": "မင်္ဂလာပါ world",
         }]
     }), encoding="utf-8")
@@ -125,6 +126,9 @@ def test_ocr_benchmark_report_does_not_include_reference_or_recognized_text(tmp_
     serialized = json.dumps(report, ensure_ascii=False)
     assert report["generated_at"].endswith("Z")
     assert report["scored_count"] == 1
+    assert report["distinct_source_document_count"] == 1
+    assert report["distinct_myanmar_source_document_count"] == 1
+    assert report["toolchain"]["settings"]["timeout_seconds"] == 30
     assert report["summary_by_language"]["mya"]["mean_cer"] == 0
     assert report["scoring"]["myanmar_word_tokenizer"] == (
         "mmdt-tokenizer 0.1.3 grammar-based word segmentation"
@@ -133,6 +137,7 @@ def test_ocr_benchmark_report_does_not_include_reference_or_recognized_text(tmp_
     assert report["privacy"]["reference_text_included"] is False
     assert "မင်္ဂလာပါ" not in serialized
     assert str(root) not in serialized
+    assert "private-source-document" not in serialized
 
 
 def test_ocr_benchmark_gate_fails_when_recognition_quality_exceeds_threshold(tmp_path):

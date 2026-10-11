@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from app.services.ocr_service import OCRService
 from app.core.config import settings
@@ -40,3 +41,82 @@ def test_ocr_rejects_symlink_input(tmp_path: Path):
 
 def test_ocr_poppler_path_is_not_hard_coded():
     assert getattr(settings.ocr, "poppler_path", "") == settings.OCR_POPPLER_PATH
+
+
+def test_ocr_timeout_is_configured_and_bounded():
+    assert settings.ocr.timeout == settings.OCR_TIMEOUT_SECONDS
+    assert 5 <= settings.ocr.timeout <= 120
+
+
+def test_pdf_retries_without_preprocessing_when_page_has_no_text(monkeypatch: pytest.MonkeyPatch):
+    class PdfPages:
+        pages = [object()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr("app.services.ocr_service.pdfplumber.open", lambda _path: PdfPages())
+    monkeypatch.setattr(
+        "app.services.ocr_service.convert_from_path",
+        lambda *_args, **_kwargs: [Image.new("RGB", (2, 2), "white")],
+    )
+
+    service = OCRService.__new__(OCRService)
+    service.max_pdf_pages = 1
+    service.dpi = 300
+    service.timeout = 120
+    service.lang_string = "eng+mya"
+    service.preprocessing = True
+    service._extract_pdf_text = lambda _path: ""
+    preprocessing_options = []
+
+    def recognize(_image, _language, *, preprocess=None):
+        preprocessing_options.append(preprocess)
+        return "\n" if preprocess is None else "Recovered text"
+
+    service._recognize_image = recognize
+    text = service._process_pdf(Path("scanned.pdf"))
+
+    assert "Recovered text" in text
+    assert preprocessing_options == [None, False]
+
+
+def test_pdf_does_not_retry_raw_image_when_preprocessing_returns_text(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    class PdfPages:
+        pages = [object()]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr("app.services.ocr_service.pdfplumber.open", lambda _path: PdfPages())
+    monkeypatch.setattr(
+        "app.services.ocr_service.convert_from_path",
+        lambda *_args, **_kwargs: [Image.new("RGB", (2, 2), "white")],
+    )
+
+    service = OCRService.__new__(OCRService)
+    service.max_pdf_pages = 1
+    service.dpi = 300
+    service.timeout = 120
+    service.lang_string = "eng+mya"
+    service.preprocessing = True
+    service._extract_pdf_text = lambda _path: ""
+    preprocessing_options = []
+
+    def recognize(_image, _language, *, preprocess=None):
+        preprocessing_options.append(preprocess)
+        return "Existing OCR text"
+
+    service._recognize_image = recognize
+    text = service._process_pdf(Path("scanned.pdf"))
+
+    assert "Existing OCR text" in text
+    assert preprocessing_options == [None]

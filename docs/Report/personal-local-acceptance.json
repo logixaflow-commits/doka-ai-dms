@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "generated_on": "2026-10-12",
+  "overall_status": "partial",
+  "release_gate_passed": false,
+  "source_copy": {
+    "file_count": 346,
+    "unchanged_after_pilot": true,
+    "unchanged_after_browser_acceptance": true
+  },
+  "full_pilot": {
+    "status": "passed",
+    "duration_seconds": 608.695,
+    "import": {
+      "total": 346,
+      "verified": 346,
+      "failed": 0
+    },
+    "scan": {
+      "total": 346,
+      "readable": 346,
+      "unreadable": 0
+    },
+    "ocr": {
+      "supported_files": 235,
+      "nonempty_results": 235,
+      "failed_results": 0,
+      "timeout_messages": 0,
+      "raw_image_retries": 4,
+      "timeout_seconds": 120,
+      "languages_detected": [
+        "eng",
+        "mya",
+        "mya+eng"
+      ]
+    },
+    "organization_plan": {
+      "proposals": 346,
+      "approval_required": true,
+      "applied": false
+    },
+    "backup_and_recovery": {
+      "backup_verified": true,
+      "recovery_verified": true,
+      "recovery_changed_active_workspace": false,
+      "backup_seconds": 28.301,
+      "restore_seconds": 14.722
+    }
+  },
+  "full_browser_acceptance": {
+    "status": "passed",
+    "browser": "chromium",
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "duration_ms": 815401,
+    "steps": [
+      "login",
+      "import",
+      "scan",
+      "understand",
+      "plan"
+    ],
+    "imported_files": 346,
+    "analyzed_files": 346,
+    "supported_ocr_files": 235,
+    "empty_or_failed_ocr_results": 0,
+    "source_sha256_unchanged": true
+  },
+  "ocr_benchmark": {
+    "status": "failed",
+    "sample_count": 5,
+    "scored_count": 5,
+    "execution_errors": 0,
+    "distinct_source_documents": 4,
+    "distinct_myanmar_source_documents": 3,
+    "strictly_failing_samples": 3,
+    "strict_thresholds": {
+      "max_cer": 0.1,
+      "max_wer": 0.2
+    },
+    "aggregate_thresholds": {
+      "max_mean_cer": 0.3,
+      "max_mean_wer": 0.6
+    },
+    "summary_by_language": {
+      "eng": {
+        "samples": 1,
+        "mean_cer": 0.02531645569620253,
+        "mean_wer": 0.10714285714285714
+      },
+      "mya": {
+        "samples": 1,
+        "mean_cer": 0.12,
+        "mean_wer": 0.3055555555555556
+      },
+      "mya+eng": {
+        "samples": 3,
+        "mean_cer": 0.33785320529370266,
+        "mean_wer": 0.534208165612421
+      }
+    },
+    "gate_ready": false
+  },
+  "myanmar_reference_verification": {
+    "distinct_documents": 3,
+    "fully_visually_verified_documents": 1,
+    "provisional_documents_requiring_line_by_line_review": 2
+  },
+  "rendering": {
+    "pdfium_used_for_two_new_benchmark_page_renders": true,
+    "missing_font_diagnostics_in_those_renders": 0,
+    "poppler_font_warnings_in_full_pilot_log": 0,
+    "poppler_fallback_fonts_replaced": false
+  },
+  "validation": {
+    "targeted_ocr_tests_passed": 23,
+    "targeted_ocr_tests_skipped": 3,
+    "frontend_build": "passed",
+    "playwright_spec_lint": "passed",
+    "playwright_discovery": "passed"
+  },
+  "ci": {
+    "current_head_github_actions": "not_run",
+    "committed": false,
+    "pushed": false
+  },
+  "private_evidence": {
+    "pilot_report": "D:\\Doka\\PFR9f60\\E\\pilot.json",
+    "browser_report": "D:\\Doka\\BR70fb7\\E\\playwright-full.json"
+  },
+  "privacy": {
+    "source_text_included": false,
+    "reference_text_included": false,
+    "recognized_text_included": false,
+    "source_filenames_included": false,
+    "credentials_included": false
+  }
+}
