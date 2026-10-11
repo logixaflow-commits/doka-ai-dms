@@ -1,6 +1,6 @@
 """Privacy-conscious OCR benchmark helpers for the Personal Local pilot.
 
-The benchmark records aggregate character/word error rates and never writes
+The benchmark records per-sample and aggregate error metrics but never writes
 recognized text or ground-truth text into its report.
 """
 from __future__ import annotations
@@ -9,13 +9,54 @@ import json
 import mimetypes
 import subprocess
 import unicodedata
+from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from collections.abc import Sequence
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from mmdt_tokenizer import MyanmarTokenizer
 
 
 def normalize_text(value: str) -> str:
     return " ".join(unicodedata.normalize("NFC", value or "").casefold().split())
+
+
+def grapheme_clusters(value: str) -> list[str]:
+    """Treat combining marks and Myanmar virama sequences as one CER unit."""
+    clusters: list[str] = []
+    for char in value:
+        category = unicodedata.category(char)
+        if clusters and (
+            category in {"Mn", "Mc", "Me"}
+            or char in {"\u200c", "\u200d"}
+            or clusters[-1].endswith(("\u1039", "\u200d"))
+        ):
+            clusters[-1] += char
+        else:
+            clusters.append(char)
+    return clusters
+
+
+def word_tokens(value: str, language: str) -> list[str]:
+    if "mya" in {part.strip().lower() for part in language.split("+")}:
+        tokens: list[str] = []
+        for segment in value.split():
+            if any("\u1000" <= char <= "\u109f" for char in segment):
+                tokenized = _myanmar_tokenizer().word_tokenize(segment)
+                tokens.extend(tokenized[0] if tokenized else [])
+            else:
+                tokens.append(segment)
+        return tokens
+    return value.split()
+
+
+@lru_cache(maxsize=1)
+def _myanmar_tokenizer() -> MyanmarTokenizer:
+    from mmdt_tokenizer import MyanmarTokenizer
+
+    return MyanmarTokenizer()
 
 
 def edit_distance(left: Sequence[str], right: Sequence[str]) -> int:
@@ -35,18 +76,26 @@ def edit_distance(left: Sequence[str], right: Sequence[str]) -> int:
     return previous[-1]
 
 
-def score_text(reference: str, prediction: str) -> dict[str, float | int]:
+def score_text(
+    reference: str,
+    prediction: str,
+    language: str = "eng",
+) -> dict[str, float | int]:
     ref = normalize_text(reference)
     pred = normalize_text(prediction)
-    ref_words = ref.split()
-    pred_words = pred.split()
+    ref_characters = grapheme_clusters(ref)
+    pred_characters = grapheme_clusters(pred)
+    ref_words = word_tokens(ref, language)
+    pred_words = word_tokens(pred, language)
+    character_errors = edit_distance(ref_characters, pred_characters)
+    word_errors = edit_distance(ref_words, pred_words)
     return {
-        "character_errors": edit_distance(ref, pred),
-        "reference_characters": len(ref),
-        "cer": edit_distance(ref, pred) / max(1, len(ref)),
-        "word_errors": edit_distance(ref_words, pred_words),
+        "character_errors": character_errors,
+        "reference_characters": len(ref_characters),
+        "cer": character_errors / max(1, len(ref_characters)),
+        "word_errors": word_errors,
         "reference_words": len(ref_words),
-        "wer": edit_distance(ref_words, pred_words) / max(1, len(ref_words)),
+        "wer": word_errors / max(1, len(ref_words)),
     }
 
 
@@ -91,11 +140,18 @@ def collect_ocr_toolchain() -> dict[str, Any]:
         )
         if lang_proc.returncode == 0:
             languages = [line.strip() for line in lang_proc.stdout.splitlines()[1:] if line.strip()]
+        ocr_config = settings.ocr
         return {
             "command_configured": command,
             "version": version_line or None,
             "languages": languages,
             "available": completed.returncode == 0,
+            "settings": {
+                "dpi": ocr_config.dpi,
+                "oem": ocr_config.oem,
+                "psm": ocr_config.psm,
+                "preprocessing": ocr_config.preprocessing,
+            },
         }
     except Exception as exc:
         return {
@@ -121,9 +177,10 @@ def run_ocr_benchmark(
     required_languages = manifest.get("required_languages", ["mya", "eng"]) if isinstance(manifest, dict) else ["mya", "eng"]
     if not isinstance(samples, list) or not samples:
         raise ValueError("Manifest must contain a non-empty 'samples' array.")
+    configured_ocr_service = None
     if ocr is None:
         from app.services.ocr_service import ocr_service
-        ocr = ocr_service.process_file
+        configured_ocr_service = ocr_service
 
     results: list[dict[str, Any]] = []
     for index, sample in enumerate(samples):
@@ -133,8 +190,17 @@ def run_ocr_benchmark(
         mime_type = str(sample.get("mime_type") or mimetypes.guess_type(path.name)[0] or "application/octet-stream")
         language = str(sample.get("language") or "mya+eng")
         try:
-            prediction, detected_language = ocr(str(path), mime_type)
-            scores = score_text(sample["reference"], prediction or "")
+            if configured_ocr_service is not None:
+                prediction, detected_language = configured_ocr_service.process_file(
+                    str(path),
+                    mime_type,
+                    language=language,
+                )
+            else:
+                if ocr is None:
+                    raise RuntimeError("OCR callback is unavailable.")
+                prediction, detected_language = ocr(str(path), mime_type)
+            scores = score_text(sample["reference"], prediction or "", language)
             results.append({
                 "sample_id": str(sample.get("id") or f"sample-{index + 1:03d}"),
                 "language": language,
@@ -214,11 +280,43 @@ def run_ocr_benchmark(
         lang for lang in required_languages
         if str(lang).strip().lower() not in scored_language_labels
     ]
+    error_count = sum(row["status"] == "error" for row in results)
+    execution_ready = (
+        toolchain["available"]
+        and not missing_tool_languages
+        and error_count == 0
+    )
+    sample_quality_gate = {
+        "max_cer": 0.10,
+        "max_wer": 0.20,
+        "failures": [
+            {"sample_id": row["sample_id"], "reason": reason}
+            for row in results
+            if row["status"] == "scored"
+            for reason, exceeded in (
+                ("cer_exceeds_threshold", float(row["cer"]) > 0.10),
+                ("wer_exceeds_threshold", float(row["wer"]) > 0.20),
+            )
+            if exceeded
+        ],
+    }
+    sample_quality_gate["failure_count"] = len(sample_quality_gate["failures"])
+    gate_ready = (
+        len(samples) >= 2
+        and not missing_required_languages
+        and not missing_scored_languages
+        and execution_ready
+        and not quality_failures
+        and sample_quality_gate["failure_count"] == 0
+    )
+    sample_quality_gate["passed"] = gate_ready
     return {
-        "schema_version": 2,
+        "schema_version": 3,
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "sample_count": len(samples),
         "scored_count": sum(row["status"] == "scored" for row in results),
-        "error_count": sum(row["status"] == "error" for row in results),
+        "error_count": error_count,
+        "execution_ready": execution_ready,
         "summary_by_language": summary,
         "required_languages": required_languages,
         "missing_required_languages": missing_required_languages,
@@ -226,15 +324,14 @@ def run_ocr_benchmark(
         "missing_scored_languages": missing_scored_languages,
         "quality_thresholds": quality_thresholds,
         "quality_failures": quality_failures,
-        "gate_ready": (
-            len(samples) >= 2
-            and not missing_required_languages
-            and not missing_tool_languages
-            and not missing_scored_languages
-            and not quality_failures
-            and not any(row["status"] == "error" for row in results)
-            and toolchain["available"]
-        ),
+        "quality_gate": sample_quality_gate,
+        "scoring": {
+            "normalization": "NFC, case-folded, whitespace-collapsed",
+            "character_unit": "Unicode grapheme cluster",
+            "myanmar_word_tokenizer": "mmdt-tokenizer 0.1.3 grammar-based word segmentation",
+            "other_word_tokenizer": "whitespace",
+        },
+        "gate_ready": gate_ready,
         "toolchain": toolchain,
         "results": results,
         "privacy": {

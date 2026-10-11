@@ -33,6 +33,8 @@ def main() -> int:
         "sample_count": report["sample_count"],
         "scored_count": report["scored_count"],
         "error_count": report["error_count"],
+        "generated_at": report["generated_at"],
+        "execution_ready": report["execution_ready"],
         "summary_by_language": report["summary_by_language"],
         "privacy": report["privacy"],
         "gate_ready": report["gate_ready"],
@@ -42,6 +44,8 @@ def main() -> int:
         "missing_scored_languages": report["missing_scored_languages"],
         "quality_thresholds": report["quality_thresholds"],
         "quality_failures": report["quality_failures"],
+        "quality_gate": report["quality_gate"],
+        "scoring": report["scoring"],
         "toolchain": report["toolchain"],
     }, ensure_ascii=False, indent=2))
     return 0 if report["gate_ready"] else 2

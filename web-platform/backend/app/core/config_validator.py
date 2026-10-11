@@ -57,7 +57,7 @@ class OCRConfigModel(BaseModel):
     preprocessing: bool = Field(default=True, description="Enable preprocessing")
     dpi: int = Field(default=300, ge=100, le=600, description="DPI for OCR")
     oem: int = Field(default=3, ge=0, le=3, description="OCR Engine Mode")
-    psm: int = Field(default=6, ge=0, le=13, description="Page Segmentation Mode")
+    psm: int = Field(default=11, ge=0, le=13, description="Page Segmentation Mode")
     fallback_enabled: bool = Field(default=True, description="Enable OCR fallback")
     timeout: int = Field(default=30, ge=5, le=120, description="OCR timeout in seconds")
 

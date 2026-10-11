@@ -1,23 +1,23 @@
 # Personal Local Acceptance Report
 
-**Date:** 2026-10-09  
-**Scope:** Read-only use of the user-confirmed office-data copy; generated workspaces, backups, OCR samples, and test evidence stayed under `D:\Doka`. The repository change for this handoff is limited to this report and the four selected JSON reports in this folder.
+**Updated:** 2026-10-11
+**Scope:** User-confirmed office-data copies were not modified. Fresh OCR images, references, manifests, and run logs stayed under `D:\Doka`; the repository contains the benchmark implementation/tests and a privacy-scrubbed metrics report.
 
 ## Result
 
-**Acceptance is not fully passed.** The local environment is ready, the copied-office import/scan and backup/recovery checks passed, and a two-image real-office sample passed both the pilot and browser workflows. The full pilot still reports OCR timeouts, the benchmark's Myanmar accuracy is poor and its reference has not been visually verified, and the browser flow against the full office copy timed out.
+**Acceptance is not fully passed.** The local environment is ready, the copied-office import/scan and backup/recovery checks passed, and a two-image real-office sample passed both the pilot and browser workflows. A fresh benchmark now includes a visually checked Myanmar-only sample and a separate `mya+eng` sample, but both Myanmar quality gates fail. The full pilot still reports OCR timeouts, and the browser flow against the full office copy timed out.
 
 ## Requested checks
 
 | Check | Result | Evidence / note |
 |---|---|---|
 | Separate office-data copy | Ready | The user confirmed `D:\Doka\DokaPilotCopy` is a copy. It contained 346 files; its source snapshot was unchanged by the pilot. |
-| OCR samples and reference manifest | Present, needs review | Five English samples and one Myanmar/English sample were benchmarked. The Myanmar reference was extracted from a text layer in the copied office PDF; a person has not checked it against the rendered scan. |
+| OCR samples and reference manifest | Updated, locally verified | The fresh 3-sample run used an English memo, a Myanmar-only crop, and the full Myanmar/English page from *Untertaking Letter for BL*. The Myanmar reference came from its matching DOCX and was visually checked against the 300-DPI PDF render. Source images and references remain under `D:\Doka`. |
 | Empty dedicated workspace and backup roots | Passed at start of each run | Separate acceptance roots were used under `D:\Doka`; the pre-existing `DokaWorkspace` and `DokaBackups` were not used. |
 | Local test login | Passed for the sample browser flow | The supplied 12-character test password was used locally and is intentionally not recorded here or in the copied reports. |
 | Tesseract `mya` and `eng` | Passed | Both language packs were detected. |
 | Local runtime preflight | Passed | Python 3.14, Node, npm, required Python modules, Tesseract, and both language packs were present. See [preflight.json](./preflight.json). |
-| OCR benchmark | **FAIL — quality gate** | 6/6 samples scored with no execution errors, but the Myanmar/English sample scored CER 79.94% and WER 171.43%. The benchmark was fixed on 2026-10-11 to enforce default per-language-label thresholds of mean CER ≤0.30 and mean WER ≤0.60; the updated privacy-scrubbed report correctly sets `gate_ready=false` and records the failing metrics without OCR/reference text. See [ocr-benchmark.json](./ocr-benchmark.json). |
+| OCR benchmark | **FAIL — strict quality gate** | Tuned run: 3/3 samples scored with 0 execution errors; Tesseract `v5.5.3.20260724`, PSM 11 and adaptive thresholding. English CER/WER were 0.0063/0.0357; Myanmar-only 0.1040/0.2222; mixed Myanmar/English 0.1928/0.2160. Aggregate language limits (0.30/0.60) pass, but both Myanmar samples still fail the unchanged per-sample limits (0.10/0.20), so `gate_ready=false`. The report includes no source or recognized text. See [ocr-benchmark.json](./ocr-benchmark.json) and [ocr-benchmark-acceptance.md](./ocr-benchmark-acceptance.md). |
 | Copied-office import and scan | Passed | 346/346 files verified on import; 346 readable and none unreadable. The source copy remained unchanged. |
 | Backup and recovery | Passed | Backup verification and recovery comparison passed; the active workspace was not changed by recovery. |
 | Full pilot OCR gate | **Failed** | 3 of 235 OCR-supported files timed out at the configured 30-second limit. Poppler was then installed under `D:\Doka`; missing-Poppler PDF errors were eliminated. The three timed-out files each succeeded when retried individually with a 120-second in-memory timeout, but the complete pilot was not rerun with that longer timeout. See [pilot-recovery.json](./pilot-recovery.json). |
@@ -27,7 +27,7 @@
 
 ## What is still needed for a full pass
 
-1. **Validate Myanmar benchmark truth and quality.** Check the Myanmar reference against the rendered sample locally. If it does not match exactly, correct it; add clear representative Myanmar and English samples with verified references. The runner now enforces default mean CER ≤0.30 and mean WER ≤0.60 per language label; set a different threshold only when explicitly justified in the manifest.
+1. **Improve and broaden Myanmar OCR evaluation.** The current Myanmar-only and mixed-script references have been checked against the source page, and both scores fail the unchanged gates. Improve OCR accuracy and add more independently verified samples; do not loosen thresholds to obtain a pass.
 2. **Resolve and rerun the full OCR pilot.** The PDF-rendering dependency is now available under `D:\Doka`, but the complete pilot still has three 30-second OCR timeouts. A 120-second retry worked for each affected file individually; the full pilot needs to be rerun with a supported longer-timeout setting or after the relevant timeout configuration is explicitly approved and implemented.
 3. **Complete full-dataset browser acceptance.** The sample-fixture browser test passed, but the full-office browser test exceeded its time limits. Run it again after addressing the long import/OCR duration, and verify the full source copy remains unchanged.
 4. **Run the named batch runner only if its repository writes are approved.** The current authorization covered this report folder, not the runner's other repository outputs (virtual environment, frontend install/build artifacts, and acceptance evidence).
@@ -36,7 +36,8 @@
 
 - [preflight.json](./preflight.json) — local tools and runtime readiness.
 - [pilot-recovery.json](./pilot-recovery.json) — copied-office import/scan, OCR gate, backup, and recovery results.
-- [ocr-benchmark.json](./ocr-benchmark.json) — aggregate bilingual OCR benchmark results. Recognized and reference text are excluded.
+- [ocr-benchmark.json](./ocr-benchmark.json) — fresh OCR metrics, language/toolchain coverage, thresholds, and gate status. Recognized and reference text are excluded.
+- [ocr-benchmark-acceptance.md](./ocr-benchmark-acceptance.md) — reference provenance, direct Tesseract PSM/language comparisons, and remaining acceptance work.
 - [browser-sample-acceptance.json](./browser-sample-acceptance.json) — successful browser workflow against the small isolated fixture.
 - [small-sample-pilot.json](./small-sample-pilot.json) and [small-sample-browser-acceptance.json](./small-sample-browser-acceptance.json) — pilot and browser evidence from the two real office scans.
 

@@ -26,6 +26,7 @@ pdf2image>=1.17.0
 Pillow>=12.3.0
 opencv-python-headless>=5.0.0.93
 pdfplumber>=0.11.10
+mmdt-tokenizer>=0.1.3,<0.2.0
 pandas>=3.0.6
 scikit-learn>=1.9.1
 numpy>=2.5.3

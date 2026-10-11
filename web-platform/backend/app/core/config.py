@@ -74,7 +74,7 @@ class OCRConfig:
     preprocessing: bool = True
     dpi: int = 300
     oem: int = 3
-    psm: int = 6
+    psm: int = 11
     max_file_bytes: int = 50 * 1024 * 1024
     max_pdf_pages: int = 200
     max_image_pixels: int = 50_000_000
@@ -302,7 +302,7 @@ class Settings:
                 "preprocessing": self.OCR_PREPROCESSING,
                 "dpi": self.OCR_DPI,
                 "oem": 3,
-                "psm": 6,
+                "psm": 11,
             },
             "duplicate": {
                 "similarity_threshold": 0.85,
@@ -379,7 +379,7 @@ class Settings:
             preprocessing=o.get("preprocessing", True),
             dpi=o.get("dpi", 300),
             oem=o.get("oem", 3),
-            psm=o.get("psm", 6),
+            psm=o.get("psm", 11),
             max_file_bytes=o.get("max_file_bytes", self.OCR_MAX_FILE_BYTES),
             max_pdf_pages=o.get("max_pdf_pages", self.OCR_MAX_PDF_PAGES),
             max_image_pixels=o.get("max_image_pixels", self.OCR_MAX_IMAGE_PIXELS),

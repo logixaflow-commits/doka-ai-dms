@@ -1,6 +1,7 @@
 """Focused safety tests for OCR input boundaries."""
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from app.core.exceptions import OCRError
@@ -56,3 +57,14 @@ def test_ocr_rejects_symlink_inputs(tmp_path: Path):
     service = OCRService()
     with pytest.raises(OCRError, match="symbolic-link"):
         service.process_file(str(link), "application/pdf")
+
+
+def test_ocr_adaptive_preprocessing_preserves_dimensions_and_binary_output():
+    service = OCRService()
+    image = np.full((100, 200, 3), 255, dtype=np.uint8)
+    image[45:55, 20:180] = 0
+
+    processed = service._preprocess_image(image)
+
+    assert processed.shape == image.shape
+    assert set(np.unique(processed)) == {0, 255}

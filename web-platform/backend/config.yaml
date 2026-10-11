@@ -15,7 +15,7 @@ ocr:
   preprocessing: true
   dpi: 300
   oem: 3
-  psm: 6
+  psm: 11
 
 duplicate:
   similarity_threshold: 0.85

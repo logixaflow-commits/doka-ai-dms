@@ -1,28 +1,79 @@
 {
-  "schema_version": 2,
-  "sample_count": 6,
-  "scored_count": 6,
+  "schema_version": 3,
+  "generated_at": "2026-10-11T12:44:10.086373Z",
+  "sample_count": 3,
+  "scored_count": 3,
   "error_count": 0,
+  "execution_ready": true,
   "summary_by_language": {
     "eng": {
-      "samples": 5,
-      "mean_cer": 0.18082227127291411,
-      "mean_wer": 0.3865432812801234
+      "samples": 1,
+      "mean_cer": 0.006329113924050633,
+      "mean_wer": 0.03571428571428571
+    },
+    "mya": {
+      "samples": 1,
+      "mean_cer": 0.104,
+      "mean_wer": 0.2222222222222222
     },
     "mya+eng": {
       "samples": 1,
-      "mean_cer": 0.7994269340974212,
-      "mean_wer": 1.7142857142857142
+      "mean_cer": 0.19281663516068054,
+      "mean_wer": 0.216
     }
   },
   "required_languages": [
     "mya",
     "eng"
   ],
-  "missing_required_languages": [
-    "mya"
-  ],
+  "missing_required_languages": [],
   "missing_tool_languages": [],
+  "missing_scored_languages": [],
+  "quality_thresholds": {
+    "eng": {
+      "max_mean_cer": 0.3,
+      "max_mean_wer": 0.6
+    },
+    "mya": {
+      "max_mean_cer": 0.3,
+      "max_mean_wer": 0.6
+    },
+    "mya+eng": {
+      "max_mean_cer": 0.3,
+      "max_mean_wer": 0.6
+    }
+  },
+  "quality_failures": [],
+  "quality_gate": {
+    "max_cer": 0.1,
+    "max_wer": 0.2,
+    "failures": [
+      {
+        "sample_id": "undertaking-myanmar-heading-001",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "undertaking-myanmar-heading-001",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "undertaking-mixed-page-001",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "undertaking-mixed-page-001",
+        "reason": "wer_exceeds_threshold"
+      }
+    ],
+    "failure_count": 4,
+    "passed": false
+  },
+  "scoring": {
+    "normalization": "NFC, case-folded, whitespace-collapsed",
+    "character_unit": "Unicode grapheme cluster",
+    "myanmar_word_tokenizer": "mmdt-tokenizer 0.1.3 grammar-based word segmentation",
+    "other_word_tokenizer": "whitespace"
+  },
   "gate_ready": false,
   "toolchain": {
     "command_configured": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
@@ -32,147 +83,55 @@
       "mya",
       "osd"
     ],
-    "available": true
+    "available": true,
+    "settings": {
+      "dpi": 300,
+      "oem": 3,
+      "psm": 11,
+      "preprocessing": true
+    }
   },
   "results": [
     {
-      "sample_id": "sample-001",
+      "sample_id": "english-memo-001",
       "language": "eng",
       "detected_language": "eng",
       "status": "scored",
-      "character_errors": 177,
-      "reference_characters": 384,
-      "cer": 0.4609375,
-      "word_errors": 54,
-      "reference_words": 57,
-      "wer": 0.9473684210526315
-    },
-    {
-      "sample_id": "sample-002",
-      "language": "eng",
-      "detected_language": "eng",
-      "status": "scored",
-      "character_errors": 78,
-      "reference_characters": 271,
-      "cer": 0.2878228782287823,
-      "word_errors": 19,
-      "reference_words": 42,
-      "wer": 0.4523809523809524
-    },
-    {
-      "sample_id": "sample-003",
-      "language": "eng",
-      "detected_language": "eng",
-      "status": "scored",
-      "character_errors": 3,
+      "character_errors": 1,
       "reference_characters": 158,
-      "cer": 0.0189873417721519,
-      "word_errors": 2,
+      "cer": 0.006329113924050633,
+      "word_errors": 1,
       "reference_words": 28,
-      "wer": 0.07142857142857142
+      "wer": 0.03571428571428571
     },
     {
-      "sample_id": "sample-004",
-      "language": "eng",
-      "detected_language": "eng",
+      "sample_id": "undertaking-myanmar-heading-001",
+      "language": "mya",
+      "detected_language": "mya",
       "status": "scored",
-      "character_errors": 5,
-      "reference_characters": 77,
-      "cer": 0.06493506493506493,
-      "word_errors": 4,
-      "reference_words": 13,
-      "wer": 0.3076923076923077
+      "character_errors": 13,
+      "reference_characters": 125,
+      "cer": 0.104,
+      "word_errors": 8,
+      "reference_words": 36,
+      "wer": 0.2222222222222222
     },
     {
-      "sample_id": "sample-005",
-      "language": "eng",
-      "detected_language": "eng",
-      "status": "scored",
-      "character_errors": 10,
-      "reference_characters": 140,
-      "cer": 0.07142857142857142,
-      "word_errors": 4,
-      "reference_words": 26,
-      "wer": 0.15384615384615385
-    },
-    {
-      "sample_id": "office-myanmar-001",
+      "sample_id": "undertaking-mixed-page-001",
       "language": "mya+eng",
-      "detected_language": "eng",
+      "detected_language": "mya",
       "status": "scored",
-      "character_errors": 279,
-      "reference_characters": 349,
-      "cer": 0.7994269340974212,
-      "word_errors": 72,
-      "reference_words": 42,
-      "wer": 1.7142857142857142
+      "character_errors": 102,
+      "reference_characters": 529,
+      "cer": 0.19281663516068054,
+      "word_errors": 27,
+      "reference_words": 125,
+      "wer": 0.216
     }
   ],
   "privacy": {
     "recognized_text_included": false,
     "reference_text_included": false,
     "source_files_modified": false
-  },
-  "missing_scored_languages": [
-    "mya"
-  ],
-  "quality_thresholds": {
-    "eng": {
-      "max_mean_cer": 0.3,
-      "max_mean_wer": 0.6
-    },
-    "mya+eng": {
-      "max_mean_cer": 0.3,
-      "max_mean_wer": 0.6
-    }
-  },
-  "quality_failures": [
-    {
-      "language": "mya",
-      "reason": "No language-specific scored sample; only a mixed mya+eng sample is present"
-    },
-    {
-      "language": "mya+eng",
-      "mean_cer_exceeded": true,
-      "mean_wer_exceeded": true
-    }
-  ],
-  "acceptance_note": "Historical scores preserved. Gate interpretation tightened: a mixed mya+eng sample does not count as a language-specific mya or eng benchmark. This report is not a new benchmark run.",
-  "execution_ready": true,
-  "quality_gate": {
-    "max_cer": 0.1,
-    "max_wer": 0.2,
-    "passed": false,
-    "failure_count": 7,
-    "failures": [
-      {
-        "sample_id": "sample-001",
-        "reason": "cer_exceeds_threshold"
-      },
-      {
-        "sample_id": "sample-001",
-        "reason": "wer_exceeds_threshold"
-      },
-      {
-        "sample_id": "sample-002",
-        "reason": "cer_exceeds_threshold"
-      },
-      {
-        "sample_id": "sample-002",
-        "reason": "wer_exceeds_threshold"
-      },
-      {
-        "sample_id": "sample-004",
-        "reason": "wer_exceeds_threshold"
-      },
-      {
-        "sample_id": "office-myanmar-001",
-        "reason": "cer_exceeds_threshold"
-      },
-      {
-        "sample_id": "office-myanmar-001",
-        "reason": "wer_exceeds_threshold"
-      }
-    ]
   }
 }

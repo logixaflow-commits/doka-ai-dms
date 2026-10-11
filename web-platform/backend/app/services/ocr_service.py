@@ -129,13 +129,20 @@ class OCRService:
             logger.warning(f"EasyOCR fallback failed: {e}")
             return ""
 
-    def process_file(self, file_path: str, mime_type: str) -> Tuple[str, Optional[str]]:
+    def process_file(
+        self,
+        file_path: str,
+        mime_type: str,
+        *,
+        language: Optional[str] = None,
+    ) -> Tuple[str, Optional[str]]:
         """
         Process a file and extract text via OCR.
 
         Args:
             file_path: Path to the file
             mime_type: MIME type of the file
+            language: Optional configured Tesseract language override for this run.
 
         Returns:
             Tuple of (extracted_text, detected_language)
@@ -157,17 +164,28 @@ class OCRService:
         if file_size > max_file_bytes:
             raise OCRError(f"OCR input exceeds the configured limit of {max_file_bytes:,} bytes.")
 
+        selected_language = self.lang_string
+        if language is not None:
+            language_parts = [part.strip() for part in language.split("+")]
+            if (
+                not language_parts
+                or any(not part or part not in self.languages for part in language_parts)
+                or len(set(language_parts)) != len(language_parts)
+            ):
+                raise OCRError("Requested OCR language is not configured.")
+            selected_language = "+".join(language_parts)
+
         logger.info(f"OCR processing: {path.name} (type: {mime_type}, bytes: {file_size})")
 
         try:
             if mime_type in self.SUPPORTED_IMAGE_TYPES:
-                text = self._process_image(path)
+                text = self._process_image(path, selected_language)
             else:
                 with path.open("rb") as source:
                     header = source.read(5)
                 if header != b"%PDF-":
                     raise OCRError("PDF input does not have a valid PDF header.")
-                text = self._process_pdf(path)
+                text = self._process_pdf(path, selected_language)
 
             detected_lang = self._detect_language(text)
             logger.info(f"OCR complete: {len(text)} chars extracted, language: {detected_lang}")
@@ -179,7 +197,7 @@ class OCRService:
             logger.error(f"OCR processing failed for {path.name}: {e}")
             raise OCRError(f"OCR processing failed: {e}") from e
 
-    def _process_image(self, image_path: Path) -> str:
+    def _process_image(self, image_path: Path, language: Optional[str] = None) -> str:
         """Process a single image file with fallback mechanism."""
         last_error = None
 
@@ -217,7 +235,7 @@ class OCRService:
             custom_config = f"--oem {self.oem} --psm {self.psm}"
             text = pytesseract.image_to_string(
                 pil_image,
-                lang=self.lang_string,
+                lang=language or self.lang_string,
                 config=custom_config,
                 timeout=self.timeout,
             )
@@ -275,7 +293,7 @@ class OCRService:
         logger.error(error_msg)
         raise OCRError(error_msg)
 
-    def _process_pdf(self, pdf_path: Path) -> str:
+    def _process_pdf(self, pdf_path: Path, language: Optional[str] = None) -> str:
         """Process a bounded PDF one page at a time to cap peak memory use."""
         all_text = []
         try:
@@ -319,7 +337,7 @@ class OCRService:
                     custom_config = f"--oem {self.oem} --psm {self.psm}"
                     page_text = pytesseract.image_to_string(
                         pil_image,
-                        lang=self.lang_string,
+                        lang=language or self.lang_string,
                         config=custom_config,
                         timeout=self.timeout,
                     )
@@ -353,71 +371,20 @@ class OCRService:
 
     def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
         """
-        Preprocess image for better OCR accuracy.
-        Steps: grayscale -> denoise -> deskew -> contrast enhancement -> thresholding
+        Apply adaptive thresholding while preserving the source image dimensions.
         """
         try:
-            # Convert to grayscale
-            if len(image.shape) == 3:
-                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            else:
-                gray = image.copy()
-
-            # Denoise
-            denoised = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
-
-            # Deskew
-            deskewed = self._deskew(denoised)
-
-            # Contrast enhancement (CLAHE)
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-            enhanced = clahe.apply(deskewed)
-
-            # Adaptive thresholding for binarization
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image.copy()
             binary = cv2.adaptiveThreshold(
-                enhanced, 255,
+                gray, 255,
                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 11, 2
+                cv2.THRESH_BINARY, 31, 10
             )
-
-            # Dilate slightly to connect broken characters (especially for Myanmar)
-            kernel = np.ones((1, 1), np.uint8)
-            processed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-
-            return cv2.cvtColor(processed, cv2.COLOR_GRAY2BGR)
+            return cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
 
         except Exception as e:
-            logger.warning(f"Image preprocessing failed: {e}. Using original image.")
+            logger.warning(f"Image preprocessing failed: {e}.")
             raise OCRPreprocessingError(f"Preprocessing failed: {e}") from e
-
-    def _deskew(self, image: np.ndarray) -> np.ndarray:
-        """Deskew an image using projection profile."""
-        try:
-            # Detect skew angle
-            coords = np.column_stack(np.where(image > 0))
-            if len(coords) < 100:
-                return image
-
-            angle = cv2.minAreaRect(coords)[-1]
-            if angle < -45:
-                angle = -(90 + angle)
-            else:
-                angle = -angle
-
-            if abs(angle) < 0.5:
-                return image
-
-            # Rotate
-            (h, w) = image.shape[:2]
-            center = (w // 2, h // 2)
-            M = cv2.getRotationMatrix2D(center, angle, 1.0)
-            rotated = cv2.warpAffine(image, M, (w, h),
-                                     flags=cv2.INTER_CUBIC,
-                                     borderMode=cv2.BORDER_REPLICATE)
-            return rotated
-
-        except Exception:
-            return image
 
     def _detect_language(self, text: str) -> Optional[str]:
         """Detect if text contains Myanmar script."""
