@@ -1,8 +1,25 @@
 import pytest
+import tempfile
+from pathlib import Path
+
+from app.services.consent_store import set_consent
 
 from app.core.config import settings
 from app.services.train1_safety_contracts import ConsentGrant
 from app.services.unified_ai_service import UnifiedAIService, build_document_analysis_prompt
+
+
+@pytest.fixture(autouse=True)
+def consent_database(monkeypatch):
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        monkeypatch.setattr(settings, "LOCAL_AUTH_STATE_PATH", root / "auth.sqlite3")
+        monkeypatch.setattr(settings, "WORKING_ROOT", root / "workspace")
+        monkeypatch.setattr(settings, "SOURCE_ROOT", None)
+        set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=True)
+        set_consent(subject_id="user-1", actor_id="user-1", purpose="embedding", scope="document:7", granted=True)
+        set_consent(subject_id="user-1", actor_id="user-1", purpose="duplicate_detection", scope="document:7", granted=True)
+        yield root
 
 
 @pytest.mark.asyncio
