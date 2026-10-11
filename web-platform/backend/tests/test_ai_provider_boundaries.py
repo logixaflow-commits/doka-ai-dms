@@ -83,7 +83,6 @@ def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatc
         consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", False),
         subject_id="user-1", purpose="document_analysis", scope="document:7",
     )
-    from app.services.consent_store import set_consent
     set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=False)
     with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
