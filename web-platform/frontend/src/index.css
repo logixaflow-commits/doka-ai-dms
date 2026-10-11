@@ -76,8 +76,12 @@
 }
 
 @layer base {
+  /*
+   * Keep Tailwind's zero-width border reset. Setting a global 1px border
+   * draws boxes around every text node and layout element in the app.
+   * Components that need borders should opt in with their border utilities.
+   */
   * {
-    border-width: 1px;
     border-color: hsl(var(--border));
   }
   body {
