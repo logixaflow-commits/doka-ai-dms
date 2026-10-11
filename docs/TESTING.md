@@ -2,7 +2,7 @@
 
 > **Owner:** How is Doka tested from code-level checks through release acceptance?
 > **Update when:** Test suites, acceptance criteria, benchmark methodology, CI evidence or release-test requirements change.
-> **Last Updated:** 2026-10-09
+> **Last Updated:** 2026-10-11
 > **Do NOT put here:** Product roadmap ownership, secrets, or deployment topology.
 
 ## Required layers
@@ -15,9 +15,9 @@
 7. Provider/recovery/isolation tests for Cloud release.
 
 ## Current recorded evidence
-Latest recorded maintained Personal Local suite: 386 passed with 11 warnings. Frontend lint/build/smoke and quality/CodeQL workflows were recorded green.
+Latest recorded maintained Personal Local suite: 386 passed with 11 warnings (historical run; not rerun on the current HEAD). Frontend lint/build/smoke and quality/CodeQL workflows were recorded green (historical evidence; not equivalent to current-HEAD CI).
 
-Targeted validation was run in a disposable Python 3.13 runtime on 2026-10-09. The maintained Personal Local backend suite passed **58 tests**; the curated Cloud storage/provider/release-gate/acceptance suite, including the D1 migration tests, passed **90 tests**. Frontend `npm ci`, production TypeScript/Vite build, smoke tests, ESLint and `npm audit --audit-level=high` all passed under Node 24.21.0; npm reported zero vulnerabilities. Playwright discovery lists one Personal Local browser acceptance test, but the actual browser acceptance was not run because authenticated pilot credentials, representative source data and Tesseract are unavailable. Local `pip-audit` JSON reports for all six backend dependency profiles plus the root `pyproject.toml` contained zero unignored vulnerability findings (the backend scan uses the workflow’s existing `PYSEC-2025-183` ignore). These are local results, not a GitHub Actions result; the connected status view still does not expose the push-triggered Doka Quality Checks run for the latest commit. A broad legacy backend test-directory collection remains non-green: five stale test modules fail collection because the legacy ORM/model stack (`app.models`, `Base` export) is intentionally not loaded by the current Personal Local entrypoint, and one test requires the separately installed Python Playwright package. This is not counted as a pass; CI deliberately runs the maintained Personal Local test list rather than that deferred legacy suite.
+Targeted validation was run in a disposable Python 3.13 runtime on 2026-10-09. The maintained Personal Local backend suite passed **58 tests**; the curated Cloud storage/provider/release-gate/acceptance suite, including the D1 migration tests, passed **90 tests**. Frontend `npm ci`, production TypeScript/Vite build, smoke tests, ESLint and `npm audit --audit-level=high` all passed under Node 24.21.0; npm reported zero vulnerabilities. Playwright discovery lists one Personal Local browser acceptance test, but the actual browser acceptance was not run because authenticated pilot credentials, representative source data and Tesseract are unavailable. Local `pip-audit` JSON reports for all six backend dependency profiles plus the root `pyproject.toml` contained zero unignored vulnerability findings (the backend scan uses the workflow’s existing `PYSEC-2025-183` ignore). These are local results, not a GitHub Actions result; GitHub Actions run 38072383164 passed nine reported jobs on commit c470c260d38de59766b90b3f1d8c0ecd55d625c3; that run predates later code/documentation commits, so current-HEAD CI remains unverified until a directly associated run succeeds. A broad legacy backend test-directory collection remains non-green: five stale test modules fail collection because the legacy ORM/model stack (`app.models`, `Base` export) is intentionally not loaded by the current Personal Local entrypoint, and one test requires the separately installed Python Playwright package. This is not counted as a pass; CI deliberately runs the maintained Personal Local test list rather than that deferred legacy suite.
 
 ## Gate 3 — OCR
 The repository contains scripts/ocr_benchmark.py and OCR regression tests. The current benchmark runner requires a copied sample directory plus a JSON manifest with reference text. The accessible test environment does not contain the required sample directory/manifest, and Tesseract is not installed there.
@@ -80,3 +80,11 @@ The production D1 authorization migration was applied only after a SQL export co
 ## Repository self-audit
 
 Run `python scripts/audit/doka_self_audit.py` to check canonical documentation, release-gate references, the current next-action marker, and referenced evidence-path presence. The script's tests run in the `repository-self-audit` GitHub Actions job. Evidence references are advisory by default; missing runtime credentials or real-world acceptance evidence must remain visible as release blockers and are not treated as passing. See [SELF_AUDIT.md](SELF_AUDIT.md).
+
+
+## 2026-10-11 exact-HEAD and AI/OCR follow-up
+
+- Windows idempotency locking now has an msvcrt fallback with a regression test; a disposable 100-way concurrent-claim smoke test passed. This is not a substitute for the maintained pytest suite on the current commit.
+- The OCR benchmark now requires scored samples for required languages and applies per-language mean CER <= 0.30 and mean WER <= 0.60 defaults. The latest six-sample report correctly fails the gate (Myanmar/English CER 79.94%, WER 171.43%). Do not weaken the gate to obtain a pass; visually verify the reference, correct it if needed, and rerun representative scans.
+- The unified AI service requires a granted consent record matching subject, purpose and exact resource scope. Persistent grant storage, trusted authenticated caller propagation, revocation/audit, and live free-only provider acceptance remain unverified; external processing must fail closed until integrated.
+- A historical successful CI run is not current-HEAD proof. The latest commit must have a directly associated successful CI result before code-side closure is claimed.
