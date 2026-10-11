@@ -20,7 +20,7 @@ Run from a clean checkout of the PR/main branch after its changes are merged. Us
 - [ ] Inspect Myanmar Unicode normalization and mixed-language output; investigate poor samples instead of averaging them away.
 - [ ] Save the report/manifest under the documented `Phase0_Evidence/` location and link it from current-state evidence.
 - [ ] Pass only if per-language mean CER <= 0.30 and mean WER <= 0.60 (current benchmark defaults) and resource bounds are met. Any override must be explicitly justified in the sample manifest; do not loosen a threshold just to pass.
-- [ ] The latest recorded six-sample result fails: Myanmar/English CER 79.94% and WER 171.43%. Visually verify the Myanmar reference against the rendered scan before correcting the reference or interpreting the score; then rerun a representative benchmark.
+- [ ] The preserved six-sample report is not a new run: English mean CER 18.08% / WER 38.65%; its one `mya+eng` sample has CER 79.94% / WER 171.43%, and there is no Myanmar-only scored sample. A mixed-language row does not count as a language-specific `mya` or `eng` result. Visually verify the Myanmar reference against the rendered scan before correcting the reference or interpreting the score; then rerun on a provisioned machine with Tesseract `mya` and `eng`.
 
 ### A3. Gate 5 — copied-office pilot and source integrity
 - [ ] Use a representative COPY of office data, never the original directory.

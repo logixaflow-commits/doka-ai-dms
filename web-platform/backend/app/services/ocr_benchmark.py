@@ -161,8 +161,19 @@ def run_ocr_benchmark(
             "mean_cer": sum(float(row["cer"]) for row in rows) / len(rows),
             "mean_wer": sum(float(row["wer"]) for row in rows) / len(rows),
         }
-    language_labels = {str(sample.get("language", "")).lower() for sample in samples if isinstance(sample, dict)}
-    missing_required_languages = [lang for lang in required_languages if not any(lang in label.split("+") for label in language_labels)]
+    # A mixed-language sample is useful as a separate mixed-script check, but it
+    # cannot stand in for a language-specific quality score. Require explicit
+    # samples labelled exactly `mya` and `eng` so a poor Myanmar result cannot be
+    # hidden inside a combined `mya+eng` aggregate.
+    language_labels = {
+        str(sample.get("language", "")).strip().lower()
+        for sample in samples
+        if isinstance(sample, dict)
+    }
+    missing_required_languages = [
+        lang for lang in required_languages
+        if str(lang).strip().lower() not in language_labels
+    ]
     toolchain = collect_ocr_toolchain()
     missing_tool_languages = [lang for lang in required_languages if lang not in toolchain.get("languages", [])]
     configured_thresholds = manifest.get("quality_thresholds", {}) if isinstance(manifest, dict) else {}
@@ -194,10 +205,14 @@ def run_ocr_benchmark(
                 "mean_wer_exceeded": metrics["mean_wer"] > max_wer,
             })
     # Every required language must have a scored sample, not merely a manifest entry.
-    scored_language_labels = {row["language"].lower() for row in results if row["status"] == "scored"}
+    scored_language_labels = {
+        str(row["language"]).strip().lower()
+        for row in results
+        if row["status"] == "scored"
+    }
     missing_scored_languages = [
         lang for lang in required_languages
-        if not any(lang in label.split("+") for label in scored_language_labels)
+        if str(lang).strip().lower() not in scored_language_labels
     ]
     return {
         "schema_version": 2,
