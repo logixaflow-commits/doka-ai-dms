@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 from pathlib import Path
 
@@ -47,3 +48,18 @@ def test_unsupported_purpose_and_empty_scope_fail_closed(consent_db):
     with pytest.raises(ValueError, match="scope"):
         set_consent(subject_id="alice", actor_id="alice", purpose="document_analysis",
                     scope=" ", granted=True)
+
+
+def test_audit_events_are_append_only(consent_db):
+    set_consent(subject_id="alice", actor_id="alice", purpose="document_analysis",
+                scope="document:123", granted=True)
+    db = sqlite3.connect(str(settings.LOCAL_AUTH_STATE_PATH))
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            db.execute("UPDATE ai_consent_audit SET action='revoked'")
+        db.rollback()
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            db.execute("DELETE FROM ai_consent_audit")
+        db.rollback()
+    finally:
+        db.close()
