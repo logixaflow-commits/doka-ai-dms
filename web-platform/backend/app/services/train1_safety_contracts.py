@@ -98,6 +98,7 @@ class CircuitBreaker:
         self.state = CircuitState.CLOSED
         self.failures = 0
         self.opened_at: Optional[float] = None
+        self._probe_in_flight = False
 
     def allow(self, now: float) -> bool:
         if self.state is CircuitState.CLOSED:
@@ -105,23 +106,51 @@ class CircuitBreaker:
         if self.state is CircuitState.OPEN and self.opened_at is not None:
             if now - self.opened_at >= self.recovery_after:
                 self.state = CircuitState.HALF_OPEN
+                self._probe_in_flight = True
                 return True
+        # Exactly one recovery probe may be in flight per process. This is a
+        # local concurrency guard, not a distributed circuit registry.
         return False
 
-    def success(self) -> None:
+    def success(self, *, probe: Optional[bool] = None) -> None:
+        # Ignore stale completions from requests admitted before the circuit
+        # opened; they must not erase the cooldown or close an open circuit.
+        is_probe = self.state is CircuitState.HALF_OPEN if probe is None else probe
         if self.state is CircuitState.HALF_OPEN:
+            if not is_probe:
+                return
             self.state = CircuitState.CLOSED
-        self.failures = 0
-        self.opened_at = None
+            self._probe_in_flight = False
+            self.failures = 0
+            self.opened_at = None
+            return
+        if self.state is CircuitState.CLOSED:
+            self.failures = 0
+            self.opened_at = None
 
-    def failure(self, now: float) -> None:
+    def failure(self, now: float, *, probe: Optional[bool] = None) -> None:
+        is_probe = self.state is CircuitState.HALF_OPEN if probe is None else probe
         if self.state is CircuitState.HALF_OPEN:
+            if not is_probe:
+                return
             self.state = CircuitState.OPEN
+            self._probe_in_flight = False
             self.opened_at = now
+            return
+        if self.state is CircuitState.OPEN:
+            # A stale request finishing after another request opened the
+            # circuit must not extend or otherwise corrupt the open interval.
             return
         self.failures += 1
         if self.failures >= self.failure_threshold:
             self.state = CircuitState.OPEN
+            self.opened_at = now
+
+    def abandon_probe(self, now: float) -> None:
+        """Re-open after a cancelled recovery probe; never leave it stuck half-open."""
+        if self.state is CircuitState.HALF_OPEN and self._probe_in_flight:
+            self.state = CircuitState.OPEN
+            self._probe_in_flight = False
             self.opened_at = now
 
 

@@ -2,7 +2,7 @@
 
 > **Owner:** How are AI providers, agents, RAG, privacy and publication safety governed?
 > **Update when:** AI provider adapters, routing, agent boundaries, RAG behavior, consent or AI security controls change.
-> **Last Updated:** 2026-10-09
+> **Last Updated:** 2026-10-10
 > **Do NOT put here:** Current release-gate status, provider secrets, deployment credentials, or generic operational runbooks.
 
 ## Default posture
@@ -11,7 +11,7 @@ AI is disabled by default. External document processing requires explicit consen
 ## Provider boundary
 Implemented provider adapters are not automatically configured, enabled, live-tested or production-approved. Unsupported providers fail closed.
 
-The current architecture includes provider routing/fallback logic and schema validation for AI document output. Embedding routing honors configured provider order and can fall back to deterministic local similarity where designed. Provider circuit state is currently process-local; this is not yet a distributed health registry or a production failover proof.
+The current architecture includes provider routing/fallback logic and schema validation for AI document output. Embedding routing honors configured provider order and can fall back to deterministic local similarity where designed. The process-local circuit breaker now permits only one half-open recovery probe at a time, ignores stale completions that could corrupt the open interval, and reopens if a recovery probe is cancelled. Provider circuit state is still process-local; this is not a distributed health registry or a production failover proof.
 
 
 ## Free-only model and billing boundary

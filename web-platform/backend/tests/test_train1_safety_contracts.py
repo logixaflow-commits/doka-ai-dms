@@ -118,3 +118,41 @@ def test_failover_requires_explicit_approval_and_healthy_alternate():
             ["primary", "secondary"], {"primary", "secondary"},
             original_provider="primary", approved_for_failover=True,
         )
+
+
+def test_half_open_allows_only_one_recovery_probe():
+    breaker = CircuitBreaker(failure_threshold=1, recovery_after=10)
+    breaker.failure(0)
+
+    assert breaker.allow(10)
+    assert breaker.state is CircuitState.HALF_OPEN
+    assert not breaker.allow(10)
+    assert not breaker.allow(11)
+
+    breaker.success(probe=True)
+    assert breaker.state is CircuitState.CLOSED
+    assert breaker.allow(12)
+
+
+def test_stale_completion_cannot_corrupt_open_circuit():
+    breaker = CircuitBreaker(failure_threshold=1, recovery_after=10)
+    assert breaker.allow(0)  # request A admitted while closed
+    breaker.failure(1, probe=False)  # request B opens the circuit
+    assert breaker.state is CircuitState.OPEN
+
+    breaker.success(probe=False)  # stale success from request A
+    assert breaker.state is CircuitState.OPEN
+    assert breaker.opened_at == 1
+    assert not breaker.allow(5)
+
+
+def test_cancelled_half_open_probe_reopens_with_new_cooldown():
+    breaker = CircuitBreaker(failure_threshold=1, recovery_after=10)
+    breaker.failure(0)
+    assert breaker.allow(10)
+
+    breaker.abandon_probe(12)
+    assert breaker.state is CircuitState.OPEN
+    assert breaker.opened_at == 12
+    assert not breaker.allow(21)
+    assert breaker.allow(22)
