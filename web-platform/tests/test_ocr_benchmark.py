@@ -126,7 +126,7 @@ def test_checked_in_ocr_report_gate_matches_sample_metrics():
     assert quality_gate["passed"] is expected_passed
     assert report["gate_ready"] is expected_passed
 
-def test_ocr_benchmark_mixed_sample_does_not_satisfy_required_myanmar_language(tmp_path, monkeypatch):
+def test_ocr_benchmark_mixed_sample_does_not_satisfy_required_myanmar_language(tmp_path):
     root = tmp_path / "samples"
     root.mkdir()
     (root / "mixed.png").write_bytes(b"fixture")
