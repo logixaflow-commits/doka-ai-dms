@@ -137,5 +137,42 @@
       "mean_wer_exceeded": true
     }
   ],
-  "acceptance_note": "Historical scores preserved. Gate interpretation tightened: a mixed mya+eng sample does not count as a language-specific mya or eng benchmark. This report is not a new benchmark run."
+  "acceptance_note": "Historical scores preserved. Gate interpretation tightened: a mixed mya+eng sample does not count as a language-specific mya or eng benchmark. This report is not a new benchmark run.",
+  "execution_ready": true,
+  "quality_gate": {
+    "max_cer": 0.1,
+    "max_wer": 0.2,
+    "passed": false,
+    "failure_count": 7,
+    "failures": [
+      {
+        "sample_id": "sample-001",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-001",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-002",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-002",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "sample-004",
+        "reason": "wer_exceeds_threshold"
+      },
+      {
+        "sample_id": "office-myanmar-001",
+        "reason": "cer_exceeds_threshold"
+      },
+      {
+        "sample_id": "office-myanmar-001",
+        "reason": "wer_exceeds_threshold"
+      }
+    ]
+  }
 }
