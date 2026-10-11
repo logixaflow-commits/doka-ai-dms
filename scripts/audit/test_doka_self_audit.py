@@ -56,6 +56,21 @@ class SelfAuditTests(unittest.TestCase):
             failed = [c["name"] for c in report["checks"] if c["status"] == "FAIL"]
             self.assertIn("roadmap-gate:12", failed)
 
+    def test_markdown_backticks_do_not_make_existing_evidence_look_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.make_repo(root)
+            evidence = root / "Phase0_Evidence" / "train1" / "runtime.json"
+            evidence.parent.mkdir(parents=True, exist_ok=True)
+            evidence.write_text("{}\n", encoding="utf-8")
+            (root / "CURRENT_STATE.md").write_text(
+                "## NEXT ACTION\nEvidence: `Phase0_Evidence/train1/runtime.json`\n",
+                encoding="utf-8",
+            )
+            report = audit_repo(root)
+            self.assertEqual(report["summary"]["status"], "PASS")
+            self.assertEqual(report["missing_evidence_references"], [])
+
     def test_missing_evidence_reference_is_advisory_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
