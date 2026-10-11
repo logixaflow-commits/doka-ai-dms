@@ -67,11 +67,11 @@ def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatc
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     service = UnifiedAIService()
-    with pytest.raises(RuntimeError, match="resource-scoped consent"):
+    with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
             subject_id="user-1", purpose="document_analysis", scope="document:7"
         )
-    with pytest.raises(RuntimeError, match="matching, granted resource-scoped consent"):
+    with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
             consent_grant=ConsentGrant("user-1", "document_analysis", "document:8", True),
             subject_id="user-1", purpose="document_analysis", scope="document:7",
