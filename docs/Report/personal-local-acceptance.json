@@ -6,7 +6,8 @@
   "source_copy": {
     "file_count": 346,
     "unchanged_after_pilot": true,
-    "unchanged_after_browser_acceptance": true
+    "unchanged_after_browser_acceptance": true,
+    "browser_tree_sha256": "54cea99339b574293646808537ebd6d9ab186994a62d540b07a0d2ad23cab2bb"
   },
   "full_pilot": {
     "status": "passed",
@@ -27,6 +28,8 @@
       "failed_results": 0,
       "timeout_messages": 0,
       "raw_image_retries": 4,
+      "pdf_files_with_nonempty_results": 211,
+      "previous_two_empty_pdf_results_superseded": true,
       "timeout_seconds": 120,
       "languages_detected": [
         "eng",
@@ -50,10 +53,13 @@
   "full_browser_acceptance": {
     "status": "passed",
     "browser": "chromium",
+    "playwright_version": "1.64.0",
+    "repository_head": "49d27378c4055e5846254cf719fd2297bf86a3ff",
+    "worktree_clean_at_run_start": true,
     "tests": 1,
     "passed": 1,
     "failed": 0,
-    "duration_ms": 815401,
+    "duration_ms": 948889,
     "steps": [
       "login",
       "import",
@@ -65,7 +71,9 @@
     "analyzed_files": 346,
     "supported_ocr_files": 235,
     "empty_or_failed_ocr_results": 0,
-    "source_sha256_unchanged": true
+    "source_sha256_unchanged": true,
+    "source_tree_sha256_before": "54cea99339b574293646808537ebd6d9ab186994a62d540b07a0d2ad23cab2bb",
+    "source_tree_sha256_after": "54cea99339b574293646808537ebd6d9ab186994a62d540b07a0d2ad23cab2bb"
   },
   "ocr_benchmark": {
     "status": "failed",
@@ -104,8 +112,48 @@
   },
   "myanmar_reference_verification": {
     "distinct_documents": 3,
-    "fully_visually_verified_documents": 1,
-    "provisional_documents_requiring_line_by_line_review": 2
+    "documents_line_checked_against_source_docx": 1,
+    "verified_nonempty_reference_lines": 7,
+    "provisional_documents": 2,
+    "provisional_line_alignment_below_95_percent": {
+      "plavix_reference_lines": 11,
+      "plavix_total_nonempty_lines": 23,
+      "cool_storage_reference_lines": 5,
+      "cool_storage_total_nonempty_lines": 16
+    }
+  },
+  "controlled_ocr_experiments": {
+    "samples_tested": 3,
+    "factors": [
+      "language",
+      "preprocessing",
+      "orientation",
+      "crop",
+      "segmentation",
+      "page_segmentation_mode",
+      "thresholding",
+      "upscaling",
+      "per_row_language_confidence",
+      "alternate_myanmar_model",
+      "per_row_page_segmentation_mode_and_scale"
+    ],
+    "stable_variant_passed_strict_thresholds": false,
+    "official_tessdata_best_model_adopted": false,
+    "best_additional_per_row_metrics": {
+      "plavix": {
+        "cer": 0.5260545905707192,
+        "wer": 0.7297297297297297
+      },
+      "cool_storage": {
+        "cer": 0.43532338308457713,
+        "wer": 0.6702127659574468
+      },
+      "myanmar_only_best_cer": 0.104,
+      "myanmar_only_best_wer": 0.25,
+      "myanmar_only_best_cer_and_wer_from_same_variant": false
+    },
+    "production_settings_changed": false,
+    "thresholds_changed": false
   },
   "rendering": {
     "pdfium_used_for_two_new_benchmark_page_renders": true,
@@ -114,8 +162,10 @@
     "poppler_fallback_fonts_replaced": false
   },
   "validation": {
-    "targeted_ocr_tests_passed": 23,
-    "targeted_ocr_tests_skipped": 3,
+    "latest_focused_ocr_tests_passed": 11,
+    "latest_focused_ocr_tests_skipped": 1,
+    "broader_ocr_tests_passed": 23,
+    "broader_ocr_tests_skipped": 3,
     "frontend_build": "passed",
     "playwright_spec_lint": "passed",
     "playwright_discovery": "passed"
@@ -127,7 +177,8 @@
   },
   "private_evidence": {
     "pilot_report": "D:\\Doka\\PFR9f60\\E\\pilot.json",
-    "browser_report": "D:\\Doka\\BR70fb7\\E\\playwright-full.json"
+    "browser_report": "D:\\Doka\\BA20261012b\\E\\playwright.json",
+    "browser_integrity_report": "D:\\Doka\\BA20261012b\\E\\browser-source-integrity.json"
   },
   "privacy": {
     "source_text_included": false,

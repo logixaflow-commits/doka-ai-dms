@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-10-11T15:04:49.366894Z",
+  "generated_at": "2026-10-11T17:33:56.890403Z",
   "sample_count": 5,
   "scored_count": 5,
   "distinct_source_document_count": 4,
@@ -57,27 +57,27 @@
     "max_wer": 0.2,
     "failures": [
       {
-        "sample_id": "sample-002",
+        "sample_id": "undertaking-myanmar-heading-001",
         "reason": "cer_exceeds_threshold"
       },
       {
-        "sample_id": "sample-002",
+        "sample_id": "undertaking-myanmar-heading-001",
         "reason": "wer_exceeds_threshold"
       },
       {
-        "sample_id": "sample-004",
+        "sample_id": "plavix-requisition-page-001",
         "reason": "cer_exceeds_threshold"
       },
       {
-        "sample_id": "sample-004",
+        "sample_id": "plavix-requisition-page-001",
         "reason": "wer_exceeds_threshold"
       },
       {
-        "sample_id": "sample-005",
+        "sample_id": "cool-storage-letter-001",
         "reason": "cer_exceeds_threshold"
       },
       {
-        "sample_id": "sample-005",
+        "sample_id": "cool-storage-letter-001",
         "reason": "wer_exceeds_threshold"
       }
     ],
@@ -113,7 +113,7 @@
   },
   "results": [
     {
-      "sample_id": "sample-001",
+      "sample_id": "english-memo-001",
       "language": "eng",
       "detected_language": "eng",
       "status": "scored",
@@ -125,7 +125,7 @@
       "wer": 0.10714285714285714
     },
     {
-      "sample_id": "sample-002",
+      "sample_id": "undertaking-myanmar-heading-001",
       "language": "mya",
       "detected_language": "mya",
       "status": "scored",
@@ -137,7 +137,7 @@
       "wer": 0.3055555555555556
     },
     {
-      "sample_id": "sample-003",
+      "sample_id": "undertaking-mixed-page-001",
       "language": "mya+eng",
       "detected_language": "mya",
       "status": "scored",
@@ -149,9 +149,9 @@
       "wer": 0.176
     },
     {
-      "sample_id": "sample-004",
+      "sample_id": "plavix-requisition-page-001",
       "language": "mya+eng",
-      "detected_language": "mya",
+      "detected_language": "mya+eng",
       "status": "scored",
       "character_errors": 425,
       "reference_characters": 806,
@@ -161,9 +161,9 @@
       "wer": 0.7351351351351352
     },
     {
-      "sample_id": "sample-005",
+      "sample_id": "cool-storage-letter-001",
       "language": "mya+eng",
-      "detected_language": "mya",
+      "detected_language": "mya+eng",
       "status": "scored",
       "character_errors": 178,
       "reference_characters": 402,
