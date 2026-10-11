@@ -141,3 +141,10 @@
 - Consolidated P0–P3 release blockers and future-train acceptance criteria in ROADMAP.md; aligned docs/PHASE_TRAIN_STATUS.md, docs/TESTING.md and docs/OWNER_LOCAL_CHECKLIST.md with current OCR thresholds, consent limitations and exact-HEAD CI rules.
 - Repository self-audit on the available checkout: 23 checks, 22 PASS, 0 structural failures, 1 NEEDS_REVIEW due to seven evidence-path references not present in this checkout. This is NEEDS_EVIDENCE, not release approval; determine whether those evidence files are intentionally external or restore/link the correct artifacts.
 - Python syntax compilation passed for the changed idempotency, OCR benchmark, unified AI service and focused tests. Focused pytest could not be run in this box because pytest is not installed. The exact current main HEAD still has no directly associated successful CI run in the evidence available at this checkpoint.
+
+## Exact-HEAD CI checkpoint — 2026-10-11
+- Commit: `1d404b18d4b927f7fde69fef0fc14116ad6f2849`.
+- GitHub Actions run #870: [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38116845434) completed with conclusion `success`.
+- All nine reported jobs passed: Cloud storage contract tests, backend dependency audit, symlink security tests, workflow configuration sanity, static analysis/SBOM, repository self-audit preflight, frontend build/smoke, backend regression tests, and root dependency audit.
+- Workflow trigger was updated so Markdown/documentation changes run the quality workflow too. This closes the missing exact-HEAD CI evidence for this checkpoint, not runtime release gates.
+- Remaining: consent is still contract-only rather than persisted/authenticated end-to-end; OCR benchmark remains below quality threshold pending reference validation and representative scans; real local/browser/recovery and live cloud two-user/provider gates remain evidence-dependent.
