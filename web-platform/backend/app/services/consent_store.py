@@ -63,6 +63,14 @@ def _connect() -> sqlite3.Connection:
               ON ai_consent_grants(subject_id, purpose, scope, revoked_at);
             CREATE INDEX IF NOT EXISTS idx_ai_consent_audit_subject
               ON ai_consent_audit(subject_id, occurred_at);
+            CREATE TRIGGER IF NOT EXISTS ai_consent_audit_no_update
+              BEFORE UPDATE ON ai_consent_audit BEGIN
+                SELECT RAISE(ABORT, 'consent audit is append-only');
+              END;
+            CREATE TRIGGER IF NOT EXISTS ai_consent_audit_no_delete
+              BEFORE DELETE ON ai_consent_audit BEGIN
+                SELECT RAISE(ABORT, 'consent audit is append-only');
+              END;
             """
         )
         return db
