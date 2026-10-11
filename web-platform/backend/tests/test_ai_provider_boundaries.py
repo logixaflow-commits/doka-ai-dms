@@ -67,22 +67,28 @@ def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatc
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     service = UnifiedAIService()
-    set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=False)
+
+    # No persisted grant means no external processing, regardless of omitted caller grant.
     with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
             subject_id="user-1", purpose="document_analysis", scope="document:7"
         )
+
     set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=True)
-    with pytest.raises(RuntimeError, match="database-backed consent"):
-        service._ensure_external_ai_allowed(
-            consent_grant=ConsentGrant("user-1", "document_analysis", "document:8", True),
-            subject_id="user-1", purpose="document_analysis", scope="document:7",
-        )
-    # Caller-supplied grant objects cannot override or fabricate durable consent.
+    # The database is authoritative; an in-memory "denied" object cannot negate
+    # a real persisted grant, and a grant for a different scope is not relevant.
     service._ensure_external_ai_allowed(
         consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", False),
         subject_id="user-1", purpose="document_analysis", scope="document:7",
     )
+    with pytest.raises(RuntimeError, match="database-backed consent"):
+        service._ensure_external_ai_allowed(
+            consent_grant=ConsentGrant("user-1", "document_analysis", "document:7", True),
+            subject_id="user-1", purpose="document_analysis", scope="document:8",
+        )
+
+    # Revocation invalidates the database grant immediately; a forged in-memory
+    # grant must not restore permission.
     set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=False)
     with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
