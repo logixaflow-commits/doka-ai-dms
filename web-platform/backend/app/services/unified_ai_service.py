@@ -11,6 +11,7 @@ import httpx
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.services.consent_store import get_consent_grant
 from app.services.train1_safety_contracts import (
     CircuitBreaker,
     ConsentGrant,
@@ -115,15 +116,21 @@ class UnifiedAIService:
             raise RuntimeError("External AI processing consent is required before sending document content to a provider.")
         if not subject_id or not purpose or not scope:
             raise RuntimeError("Explicit subject, purpose, and resource scope are required for external AI processing.")
+        # A caller-supplied dataclass is not proof of consent. Resolve the current
+        # grant from durable server-side state on every external operation so that
+        # revocation takes effect immediately and clients cannot forge grants.
         try:
+            persisted_grant = get_consent_grant(
+                subject_id=subject_id, purpose=purpose, scope=scope
+            )
             require_consent(
-                consent_grant,
+                persisted_grant,
                 subject_id=subject_id,
                 purpose=purpose,
                 scope=scope,
             )
-        except ValueError as exc:
-            raise RuntimeError("A matching, granted resource-scoped consent record is required.") from exc
+        except (ValueError, OSError, RuntimeError) as exc:
+            raise RuntimeError("A matching, active database-backed consent grant is required.") from exc
 
     def _provider_limit(self, candidate_count: int) -> int:
         configured = settings.AI_PROVIDER_MAX_ATTEMPTS
