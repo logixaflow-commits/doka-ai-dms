@@ -88,7 +88,7 @@ def audit_repo(root: Path) -> dict[str, Any]:
                 continue
     for source, text in evidence_docs.items():
         for match in EVIDENCE_REFERENCE_RE.finditer(text):
-            raw = match.group(1).rstrip(".,;:")
+            raw = match.group(1).rstrip(".,;:`")
             # Strip optional line anchors and query-like suffixes before checking.
             target = raw.split("#", 1)[0].split("?", 1)[0]
             if target and not (root / target).exists():
