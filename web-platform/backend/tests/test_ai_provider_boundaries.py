@@ -67,10 +67,12 @@ def test_external_ai_rejects_missing_or_wrong_resource_scoped_consent(monkeypatc
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", True)
     service = UnifiedAIService()
+    set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=False)
     with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
             subject_id="user-1", purpose="document_analysis", scope="document:7"
         )
+    set_consent(subject_id="user-1", actor_id="user-1", purpose="document_analysis", scope="document:7", granted=True)
     with pytest.raises(RuntimeError, match="database-backed consent"):
         service._ensure_external_ai_allowed(
             consent_grant=ConsentGrant("user-1", "document_analysis", "document:8", True),
