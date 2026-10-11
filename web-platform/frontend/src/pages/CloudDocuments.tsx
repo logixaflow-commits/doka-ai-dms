@@ -116,12 +116,11 @@ export default function CloudDocuments() {
       const result = await uploadCloudDocument(file);
       setDocuments(current => [result.document, ...current.filter(item => item.id !== result.document.id)]);
       setFile(null);
-      if (result.warnings?.length) {
-        setMessage(`Uploaded “${result.document.filename}” with storage warning: ${result.warnings.join(', ')}.`);
-      }
       const input = document.getElementById('doka-cloud-file') as HTMLInputElement | null;
       if (input) input.value = '';
-      setMessage(`Uploaded “${result.document.filename}”. SHA-256 integrity fingerprint saved.`);
+      setMessage(result.warnings?.length
+        ? `Uploaded “${result.document.filename}”, but storage reported a warning: ${result.warnings.join(', ')}.`
+        : `Uploaded “${result.document.filename}”. SHA-256 integrity fingerprint saved.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.');
     } finally { setBusy(false); }
