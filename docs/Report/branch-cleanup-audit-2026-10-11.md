@@ -1,7 +1,8 @@
 # Branch Cleanup Audit — 2026-10-11
 
 Repository: logixaflow-commits/doka-ai-dms
-Audited base: main at 6f532d07e76f40fb449fb87204d61513ecf74d4a
+Initial audit base: main at 6f532d07e76f40fb449fb87204d61513ecf74d4a
+Follow-up main commits: 885b85e0cdf54bd3cdf7367e05e700bbf8a06e60 (strict AI schema implementation), f041c558a2fe0a32b2ae6ec957d6e00358b67d30 (regression tests).
 Purpose: Preserve the useful work and unresolved gaps from PRs #27–#37 before any branch deletion.
 
 ## Important limitation
@@ -16,7 +17,7 @@ This is a GitHub source/PR metadata audit. A full local clone, full test suite, 
 | #28 | Open | Windows idempotency lock, OCR thresholds/tests, Wrangler previews | Overlaps main heavily. Do not merge blindly; verify threshold semantics and missing tests. |
 | #29 | Merged | Retryable error taxonomy and exact D1 job/outbox state transitions | Merged; core code is present in main. |
 | #30 | Merged | Circuit breaker single half-open probe and stale/cancelled completion handling | Merged; core code is present in main. |
-| #31 | Open | Strict AI analysis output schema | A specific gap remains: current main checks required keys but does not reject extra keys; finite confidence validation also needs explicit verification. |
+| #31 | Open | Strict AI analysis output schema | The missing strict-key and finite-confidence checks have now been applied directly to main with regression tests; CI/test execution on the new commits is still pending. The remaining PR is no longer needed for those exact code changes, but check any branch-only differences before deleting. |
 | #32 | Open, draft | Persisted user/purpose/document-scoped AI consent | Main contains consent-store and scoped-grant checks. Verify all provider entry points and regression tests before closing/deleting this branch. |
 | #33 | Open | OCR benchmark report/quality-gate correction | Current report says gate is not ready and correctly marks Myanmar language sample missing, but it does not contain the proposed explicit quality_gate/per-sample failure-count evidence. Review and reconcile rather than overwrite. |
 | #34 | Merged | Canonical cloud API origin in dashboard | Merged; PersonalDashboard.tsx imports CLOUD_API_ORIGIN. |
@@ -33,6 +34,7 @@ This is a GitHub source/PR metadata audit. A full local clone, full test suite, 
 - cloudflare_worker/outbox.py contains retryability classification and retry/dead transitions.
 - web-platform/backend/app/services/train1_safety_contracts.py contains retry classification and the _probe_in_flight circuit-breaker guard.
 - web-platform/backend/app/services/unified_ai_service.py imports the persisted consent store and validates scoped grants at external provider boundaries.
+- Follow-up main commit 885b85e0cdf54bd3cdf7367e05e700bbf8a06e60 rejects unknown AI analysis keys and non-finite confidence values; commit f041c558a2fe0a32b2ae6ec957d6e00358b67d30 adds regression tests for unknown keys, NaN, and Infinity. These changes were source-verified but not yet fully test-run in this environment.
 - wrangler.jsonc contains an empty previews block.
 - web-platform/frontend/src/lib/cloudDocuments.ts exports CLOUD_API_ORIGIN; PersonalDashboard.tsx reuses it.
 - web-platform/frontend/src/index.css no longer applies a global border-width: 1px.
@@ -40,7 +42,7 @@ This is a GitHub source/PR metadata audit. A full local clone, full test suite, 
 
 ## Outstanding implementation/verification checklist for main-only work
 
-1. AI output schema (#31): update _parse_analysis_result to reject unknown keys, reject non-finite confidence values (NaN/Infinity), and add regression tests for both cases. Preserve current required-field/type checks.
+1. AI output schema (#31): implemented directly on main in commits 885b85e0cdf54bd3cdf7367e05e700bbf8a06e60 and f041c558a2fe0a32b2ae6ec957d6e00358b67d30. Verify the focused tests and confirm CI is green; preserve current required-field/type checks.
 2. OCR benchmark evidence (#28/#33/#37): decide and document the authoritative CER/WER thresholds. The current service defaults observed on main are mean CER 0.30 and mean WER 0.60; PR #28 describes those values, while PR #33 describes a stricter quality gate of CER 0.10 and WER 0.20. Do not mix these contracts silently. Ensure the JSON report contains an explicit, reproducible quality-gate result and remains not-ready until a separate Myanmar sample exists and every required quality threshold passes.
 3. Windows lock (#27/#28): keep current cross-platform lock implementation; verify Windows multiprocess behavior in a Windows CI/pilot environment. This was not proven by the current source audit.
 4. Retry/DLQ (#29): merged code checks conditional state transitions; run targeted tests against current main and verify retry exhaustion / dead-letter behavior and retryable vs non-retryable status classification.
@@ -53,7 +55,8 @@ This is a GitHub source/PR metadata audit. A full local clone, full test suite, 
 ## Branch deletion guidance
 
 - Already merged PR branches: #29, #30, #34, #35, #37. Their PR changes are in main; deleting those source branches is generally safe after confirming no external workflow depends on the branch names.
-- Do not delete yet: #28, #31, #32, #33, #36. They are open and have changes or validation evidence that must be reconciled with main first.
+- Do not delete yet: #28, #32, #33, #36. They are open and have changes or validation evidence that must be reconciled with main first.
+- #31's primary implementation is now on main; before deleting its branch, compare the exact branch-only diff and verify CI for the new main commits.
 - #27 is closed without merge. Core Windows/OCR functionality is present in main, but first preserve/review its unique report artifacts and compare any remaining diff.
 - Do not force-merge old branch heads: they diverge substantially from current main. Apply only confirmed missing changes to main and test them.
 
