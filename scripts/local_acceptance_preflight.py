@@ -178,22 +178,24 @@ def validate_environment(env: dict[str, str], evidence_root: Path) -> dict[str, 
 
 
 def _safe_report_path(output: Path, env: dict[str, str], evidence_root: Path) -> bool:
-    """Prevent the generated report from overwriting or entering any input/evidence tree."""
+    """Allow reports only inside evidence and never inside/over protected inputs."""
     try:
         destination = output.expanduser().resolve()
         evidence = evidence_root.expanduser().resolve()
     except (OSError, RuntimeError):
         return False
-    protected: list[Path] = [evidence]
+    # The report belongs in the dedicated evidence directory, not beside or
+    # inside source/workspace/backup/OCR data. A strict descendant is required.
+    if destination == evidence or not _inside(destination, evidence):
+        return False
     for variable in REQUIRED_ENV:
         value = env.get(variable, "").strip()
         if not value or variable == "BOOTSTRAP_ADMIN_PASSWORD":
             continue
         try:
-            protected.append(Path(value).expanduser().resolve())
+            root = Path(value).expanduser().resolve()
         except (OSError, RuntimeError):
             return False
-    for root in protected:
         if destination == root or _inside(destination, root) or _inside(root, destination):
             return False
     return True
