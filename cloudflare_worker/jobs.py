@@ -126,7 +126,7 @@ async def create_or_get_job(
     max_attempts: int = 5,
 ) -> dict[str, Any]:
     """Atomically create a job or return the existing idempotent job."""
-    if not job_id or len(job_id) > 255:
+    if not isinstance(job_id, str) or not job_id.strip() or len(job_id) > 255:
         raise ValueError("Invalid job id.")
     job_type = _validate_job_type(job_type)
     idempotency_key = _validate_key(idempotency_key)
