@@ -44,7 +44,7 @@ def _validate_key(value: str) -> str:
     if not isinstance(value, str):
         raise ValueError("Invalid job idempotency key.")
     key = value.strip()
-    if not 1 <= len(key) <= _MAX_KEY or any(char not in _KEY_CHARS for char in key):
+    if key != value or not 1 <= len(key) <= _MAX_KEY or any(char not in _KEY_CHARS for char in key):
         raise ValueError("Invalid job idempotency key.")
     return key
 
@@ -53,7 +53,7 @@ def _validate_job_type(value: str) -> str:
     if not isinstance(value, str):
         raise ValueError("Invalid job type.")
     job_type = value.strip()
-    if not 1 <= len(job_type) <= _MAX_JOB_TYPE:
+    if job_type != value or not 1 <= len(job_type) <= _MAX_JOB_TYPE:
         raise ValueError("Invalid job type.")
     return job_type
 
@@ -62,7 +62,7 @@ def _validate_organization_id(value: str | None) -> str:
     if not isinstance(value, str):
         raise ValueError("A verified organization ID is required for durable jobs.")
     organization_id = value.strip()
-    if not organization_id or len(organization_id) > _MAX_KEY:
+    if not organization_id or organization_id != value or len(organization_id) > _MAX_KEY:
         raise ValueError("A verified organization ID is required for durable jobs.")
     return organization_id
 
