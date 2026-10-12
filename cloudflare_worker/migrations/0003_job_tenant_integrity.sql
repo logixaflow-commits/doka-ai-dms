@@ -11,6 +11,7 @@ END;
 CREATE TRIGGER jobs_require_organization_update
 BEFORE UPDATE OF organization_id ON jobs
 WHEN NEW.organization_id IS NULL OR length(trim(NEW.organization_id)) = 0
+  OR NEW.organization_id <> trim(NEW.organization_id)
 BEGIN
     SELECT RAISE(ABORT, 'durable jobs require an organization');
 END;
