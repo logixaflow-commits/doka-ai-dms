@@ -62,6 +62,7 @@ def test_create_or_get_is_idempotent_and_binds_payload():
 def test_create_or_get_rejects_key_reuse_for_different_payload():
     db = FakeD1([{
         "id": "job-1",
+        "organization_id": "org-a",
         "job_type": "ocr",
         "idempotency_key": "doc-1:ocr",
         "payload_json": '{"document_id":"doc-1"}',
@@ -176,6 +177,7 @@ def test_failure_rejects_stale_job_state_transition():
     ("organization_id", None),
     ("organization_id", ""),
     ("organization_id", "   "),
+    ("organization_id", " org-a "),
     ("job_type", None),
     ("job_type", 123),
     ("idempotency_key", None),
