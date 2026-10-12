@@ -8,7 +8,7 @@ def test_exact_match_passes_and_diff_is_equal():
     assert all(part["kind"] == "equal" for part in result["diff"])
 
 def test_changed_text_requires_review_and_highlights_difference():
-    result = compare_ocr_text("Invoice total 100", "Invoice total 700", language="eng")
+    result = compare_ocr_text("Invoice total 100", "Invoice total 700", language="eng", max_cer=0.01, max_wer=0.01)
     assert result["status"] == "REVIEW"
     assert any(part["kind"] != "equal" for part in result["diff"])
 
