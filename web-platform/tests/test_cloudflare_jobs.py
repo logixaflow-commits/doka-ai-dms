@@ -135,6 +135,14 @@ def test_success_writes_terminal_result():
     assert db.calls[0][2][0] == '{"ok":true}'
 
 
+@pytest.mark.parametrize("job_id", [None, 1, "", "   ", "j" * 256])
+def test_invalid_job_id_is_rejected(job_id):
+    with pytest.raises(ValueError, match="Invalid job id"):
+        asyncio.run(create_or_get_job(
+            FakeD1(), job_id=job_id, job_type="ocr", idempotency_key="valid-key", payload={},
+        ))
+
+
 @pytest.mark.parametrize("key", ["", "bad key", "a" * 256])
 def test_invalid_idempotency_key_is_rejected(key):
     with pytest.raises(ValueError):
