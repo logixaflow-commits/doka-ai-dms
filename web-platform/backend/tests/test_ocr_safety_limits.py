@@ -120,3 +120,22 @@ def test_pdf_does_not_retry_raw_image_when_preprocessing_returns_text(
 
     assert "Existing OCR text" in text
     assert preprocessing_options == [None]
+
+
+def test_myanmar_line_crops_are_upscaled_without_shrinking_large_text():
+    import numpy as np
+
+    service = OCRService.__new__(OCRService)
+    # Two separate, small horizontal text bands with ink on a white page.
+    image = np.full((100, 240), 255, dtype=np.uint8)
+    image[10:20, 30:180] = 0
+    image[45:80, 20:200] = 0
+
+    lines = service._text_line_images(image)
+
+    assert len(lines) == 2
+    assert lines[0].height >= 48
+    assert lines[1].height >= 48
+    # The naturally tall second crop must not be downscaled.
+    assert lines[1].height >= 50
+
