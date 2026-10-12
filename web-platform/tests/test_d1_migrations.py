@@ -114,6 +114,10 @@ def test_durable_jobs_require_a_nonblank_organization():
                    VALUES (?, ?, 'ocr', ?, '{}')""",
                 (job_id, organization_id, key),
             )
-    with pytest.raises(sqlite3.IntegrityError, match="durable jobs require an organization"):
-        connection.execute("UPDATE jobs SET organization_id = NULL WHERE id = 'job-valid'")
+    for invalid_org in (None, "", "   ", " org "):
+        with pytest.raises(sqlite3.IntegrityError, match="durable jobs require an organization"):
+            connection.execute(
+                "UPDATE jobs SET organization_id = ? WHERE id = 'job-valid'",
+                (invalid_org,),
+            )
     connection.close()
