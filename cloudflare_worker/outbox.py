@@ -128,6 +128,8 @@ async def mark_retry(
     attempts = event.get("attempts")
     max_attempts = event.get("max_attempts")
     lease_token = event.get("lease_token")
+    if type(retryable) is not bool:
+        raise ValueError("retryable must be a boolean.")
     if (
         not isinstance(event_id, str) or not event_id or len(event_id) > 255
         or type(attempts) is not int or attempts < 1
