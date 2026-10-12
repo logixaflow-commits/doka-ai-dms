@@ -259,3 +259,14 @@ def test_mark_retry_rejects_non_boolean_retry_classification(retryable):
             FakeD1(), {"id": "evt-invalid-retry", "attempts": 1, "max_attempts": 3, "lease_token": "lease"},
             retryable=retryable, now=NOW,
         ))
+
+
+@pytest.mark.parametrize(("event_id", "lease_token"), [(1, "lease"), ("evt", 7), ("", "lease"), ("evt", "")])
+def test_mark_delivered_rejects_malformed_lease_identifiers(event_id, lease_token):
+    with pytest.raises(ValueError, match="Invalid outbox delivery lease"):
+        asyncio.run(mark_delivered(FakeD1(), event_id, lease_token, now=NOW))
+
+
+def test_claim_rejects_boolean_lease_duration():
+    with pytest.raises(ValueError, match="between 5 and 900"):
+        asyncio.run(claim_next(FakeD1(), now=NOW, lease_seconds=True))
