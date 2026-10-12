@@ -139,7 +139,7 @@ async def create_or_get_job(
     max_attempts: int = 5,
 ) -> dict[str, Any]:
     """Atomically create a job or return the existing idempotent job."""
-    if not isinstance(job_id, str) or not job_id.strip() or len(job_id) > 255:
+    if not isinstance(job_id, str) or not job_id or job_id != job_id.strip() or len(job_id) > 255:
         raise ValueError("Invalid job id.")
     organization_id = _validate_organization_id(organization_id)
     job_type = _validate_job_type(job_type)
@@ -199,6 +199,8 @@ async def mark_failed(
     now: datetime | None = None,
 ) -> str:
     """Record a safe failure; retryable jobs return to pending, exhausted jobs become dead."""
+    if type(retryable) is not bool:
+        raise ValueError("retryable must be a boolean.")
     if not isinstance(error, str) or not error.strip() or len(error) > 500:
         raise ValueError("Invalid job error.")
     job_id = job.get("id")
