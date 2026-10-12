@@ -73,3 +73,12 @@ def test_preflight_rejects_manifest_path_escape(tmp_path):
     report = MODULE.validate_environment(env, evidence)
     assert report["ready"] is False
     assert any("invalid relative path" in error for error in report["errors"])
+
+
+def test_preflight_report_cannot_overwrite_manifest_or_enter_evidence(tmp_path):
+    env, evidence = _paths(tmp_path)
+    manifest = Path(env["DOKA_OCR_MANIFEST"])
+    assert MODULE._safe_report_path(tmp_path / "safe-report.json", env, evidence)
+    assert not MODULE._safe_report_path(manifest, env, evidence)
+    assert not MODULE._safe_report_path(evidence / "preflight.json", env, evidence)
+    assert not MODULE._safe_report_path(tmp_path, env, evidence)
