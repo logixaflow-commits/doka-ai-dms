@@ -196,7 +196,7 @@ def test_create_or_get_rejects_untrusted_identifier_types(field, value):
         asyncio.run(create_or_get_job(FakeD1(), **arguments))
 
 
-def test_create_or_get_normalizes_organization_id_before_persisting():
+def test_create_or_get_rejects_noncanonical_organization_id():
     db = FakeD1([{
         "id": "job-1",
         "organization_id": "org-a",
@@ -204,12 +204,12 @@ def test_create_or_get_normalizes_organization_id_before_persisting():
         "idempotency_key": "doc-1:ocr",
         "payload_json": '{"document_id":"doc-1"}',
     }])
-    asyncio.run(create_or_get_job(
-        db,
-        job_id="job-1",
-        organization_id=" org-a ",
-        job_type="ocr",
-        idempotency_key="doc-1:ocr",
-        payload={"document_id": "doc-1"},
-    ))
-    assert db.calls[0][2][1] == "org-a"
+    with pytest.raises(ValueError, match="verified organization ID"):
+        asyncio.run(create_or_get_job(
+            db,
+            job_id="job-1",
+            organization_id=" org-a ",
+            job_type="ocr",
+            idempotency_key="doc-1:ocr",
+            payload={"document_id": "doc-1"},
+        ))
