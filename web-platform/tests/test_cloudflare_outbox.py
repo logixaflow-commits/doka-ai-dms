@@ -154,3 +154,99 @@ def test_retry_rejects_stale_lease_state_transition():
     event = {"id": "evt-stale", "attempts": 1, "max_attempts": 3, "lease_token": "lease-stale"}
     with pytest.raises(OutboxError, match="expected outbox state"):
         asyncio.run(mark_retry(db, event, now=NOW))
+
+
+class SQLiteD1:
+    """Exercise the production outbox SQL against SQLite's atomic UPDATE/RETURNING."""
+
+    def __init__(self):
+        import sqlite3
+
+        self.connection = sqlite3.connect(":memory:")
+        self.connection.row_factory = sqlite3.Row
+        self.connection.execute("""
+            CREATE TABLE outbox_events (
+                id TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                aggregate_type TEXT NOT NULL,
+                aggregate_id TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                payload_json TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                attempts INTEGER NOT NULL DEFAULT 0,
+                max_attempts INTEGER NOT NULL DEFAULT 8,
+                available_at TEXT NOT NULL,
+                lease_until TEXT,
+                lease_token TEXT,
+                created_at TEXT NOT NULL,
+                delivered_at TEXT,
+                last_error TEXT
+            )
+        """)
+        self.connection.commit()
+
+    async def first(self, sql, parameters=()):
+        cursor = self.connection.execute(sql, tuple(parameters))
+        row = cursor.fetchone()
+        self.connection.commit()
+        return dict(row) if row is not None else None
+
+    async def execute(self, sql, parameters=()):
+        cursor = self.connection.execute(sql, tuple(parameters))
+        self.connection.commit()
+        return {"success": True, "meta": {"changes": cursor.rowcount}}
+
+    def insert_event(self, event_id, *, status="pending", lease_until=None, attempts=0, created_at=None):
+        stamp = created_at or "2026-10-05T11:00:00.000Z"
+        self.connection.execute(
+            """INSERT INTO outbox_events
+               (id, event_type, aggregate_type, aggregate_id, idempotency_key,
+                payload_json, status, attempts, max_attempts, available_at,
+                lease_until, created_at)
+               VALUES (?, 'document.updated', 'document', 'doc-1', ?,
+                       '{}', ?, ?, 3, '2026-10-05T11:00:00.000Z', ?, ?)""",
+            (event_id, f"idem-{event_id}", status, attempts, lease_until, stamp),
+        )
+        self.connection.commit()
+
+
+def test_sqlite_claim_is_exclusive_and_stale_lease_cannot_acknowledge():
+    db = SQLiteD1()
+    db.insert_event("evt-a", created_at="2026-10-05T11:00:00.000Z")
+    db.insert_event("evt-b", created_at="2026-10-05T11:01:00.000Z")
+
+    first = asyncio.run(claim_next(db, now=NOW, lease_seconds=60))
+    second = asyncio.run(claim_next(db, now=NOW, lease_seconds=60))
+    assert first is not None and second is not None
+    assert first["id"] != second["id"]
+
+    # A lease reclaimed after expiry gets a fresh token; the old worker cannot
+    # mark the event delivered after ownership has moved to the new worker.
+    old_token = first["lease_token"]
+    db.connection.execute(
+        "UPDATE outbox_events SET lease_until = ? WHERE id = ?",
+        ("2026-10-05T11:59:59.000Z", first["id"]),
+    )
+    db.connection.commit()
+    reclaimed = asyncio.run(claim_next(db, now=NOW, lease_seconds=60))
+    assert reclaimed is not None and reclaimed["id"] == first["id"]
+    assert reclaimed["lease_token"] != old_token
+    with pytest.raises(OutboxError, match="expected outbox state"):
+        asyncio.run(mark_delivered(db, first["id"], old_token, now=NOW))
+    asyncio.run(mark_delivered(db, reclaimed["id"], reclaimed["lease_token"], now=NOW))
+
+
+def test_sqlite_retry_exhaustion_persists_dead_letter_state():
+    db = SQLiteD1()
+    db.insert_event("evt-dead", attempts=2)
+    claimed = asyncio.run(claim_next(db, now=NOW, lease_seconds=60))
+    assert claimed is not None
+    # max_attempts is three, and claim increments attempts from two to three.
+    assert claimed["attempts"] == 3
+    status = asyncio.run(mark_retry(db, claimed, retryable=True, now=NOW))
+    assert status == "dead"
+    row = db.connection.execute(
+        "SELECT status, lease_token, lease_until, last_error FROM outbox_events WHERE id = ?",
+        ("evt-dead",),
+    ).fetchone()
+    assert tuple(row) == ("dead", None, None, "delivery_failed")
