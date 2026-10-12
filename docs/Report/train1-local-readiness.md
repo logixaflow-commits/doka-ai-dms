@@ -5,7 +5,8 @@
 ## 1. Remaining work
 
 ### Train 1
-- [x] D1 job idempotency hardened: malformed IDs rejected and cross-organization idempotency replay prevented.
+- [x] D1 job idempotency hardened: malformed IDs rejected, cross-organization idempotency replay prevented, and durable job creation fails closed unless a non-empty, canonical organization ID is supplied. Job type and idempotency key must be strings without ambiguous surrounding whitespace.
+- [ ] The required organization ID must come from verified authentication/authorization context at the future handler boundary; this primitive validation is not itself proof of tenant authorization.
 - [x] Exact-HEAD CI for 8a700a083dd049acd9b98fdb00614d40fdca8c4a: Doka Quality Checks #939, Dependency Review #82, CodeQL #320 passed; Cloud storage contracts reported 117 passed.
 - [x] Consent checks, retry taxonomy, DLQ/outbox primitives, circuit breaker/failover controls, strict structured output, and OCR-aware retrieval have implementation/contract-test coverage.
 - [ ] **Job consumer:** define supported job types, authenticated tenant/organization ownership, concrete handlers, and terminal-result contract; connect Worker entrypoint/consumer. Test duplicate delivery, lease expiry/fencing, bounded retries, exhaustion/DLQ, and recovery end to end.
