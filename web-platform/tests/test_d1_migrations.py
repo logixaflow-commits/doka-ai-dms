@@ -106,6 +106,7 @@ def test_durable_jobs_require_a_nonblank_organization():
         ("job-null", None, "key-null"),
         ("job-blank", "", "key-blank"),
         ("job-space", "   ", "key-space"),
+        ("job-padded", " org ", "key-padded"),
     ):
         with pytest.raises(sqlite3.IntegrityError, match="durable jobs require an organization"):
             connection.execute(
