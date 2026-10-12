@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -31,6 +32,7 @@ _KEY_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123
 _MAX_KEY = 255
 _MAX_JOB_TYPE = 100
 _MAX_ATTEMPTS = 20
+_SAFE_ERROR_CODE = re.compile(r"^[a-z][a-z0-9_.:-]{0,99}$")
 
 
 def _stamp(value: datetime | None = None) -> str:
@@ -201,8 +203,9 @@ async def mark_failed(
     """Record a safe failure; retryable jobs return to pending, exhausted jobs become dead."""
     if type(retryable) is not bool:
         raise ValueError("retryable must be a boolean.")
-    if not isinstance(error, str) or not error.strip() or len(error) > 500:
-        raise ValueError("Invalid job error.")
+    # Persist bounded taxonomy codes, never exception text that may contain sensitive data.
+    if not isinstance(error, str) or not _SAFE_ERROR_CODE.fullmatch(error):
+        raise ValueError("Job error must be a safe lowercase error code.")
     job_id = job.get("id")
     attempts = job.get("attempts")
     max_attempts = job.get("max_attempts")
@@ -221,7 +224,7 @@ async def mark_failed(
     available = instant if terminal else instant + timedelta(seconds=delay)
     result = await db.execute(
         FAIL_SQL,
-        (status, _stamp(available), error.strip(), _stamp(instant), job_id),
+        (status, _stamp(available), error, _stamp(instant), job_id),
     )
     _require_single_change(result, operation="Job failure")
     return status
