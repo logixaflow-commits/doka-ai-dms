@@ -140,6 +140,10 @@ async def create_or_get_job(
     row = await db.first(GET_BY_KEY_SQL, (idempotency_key,))
     if row is None:
         raise RuntimeError("Job creation did not return a durable record.")
+    if row.get("organization_id") != organization_id:
+        # Idempotency keys are globally unique in D1. Never let a caller from
+        # another tenant replay or inspect a job created under the same key.
+        raise ValueError("Idempotency key is already bound to a different organization.")
     if row.get("job_type") != job_type:
         raise ValueError("Idempotency key is already bound to a different job type.")
     if row.get("payload_json") != encoded:
