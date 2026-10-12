@@ -69,9 +69,11 @@ Use the private, verified manifest and sample images; these paths are examples o
 
 Exit code 0 means the OCR gate passed; exit code 2 means quality failure. Preserve failure evidence and investigate references/recognition without lowering thresholds.
 
-### Full local acceptance
+### Fail-closed preflight and full local acceptance
 
-scripts/run_personal_local_acceptance.sh requires DOKA_PILOT_SOURCE, DOKA_PILOT_WORKSPACE, DOKA_PILOT_BACKUPS, DOKA_OCR_ROOT, DOKA_OCR_MANIFEST, and BOOTSTRAP_ADMIN_PASSWORD. It runs OCR, copied-office pilot/recovery, frontend build, local services, and Playwright E2E. Read the script first and use an isolated shell. Never run it against originals.
+Before installing dependencies or processing any sample, both acceptance runners invoke `scripts/local_acceptance_preflight.py`. It checks the required paths and manifest, rejects symlinks/path overlap/non-empty workspace or backup roots, requires Python 3.13, Node 24.x, and Tesseract with both `eng` and `mya`, and verifies the initial run stays AI-disabled and source-read-only. The JSON report records readiness flags only, not paths, secrets, or OCR text.
+
+The runner requires `DOKA_PILOT_SOURCE`, `DOKA_PILOT_WORKSPACE`, `DOKA_PILOT_BACKUPS`, `DOKA_OCR_ROOT`, `DOKA_OCR_MANIFEST`, and `BOOTSTRAP_ADMIN_PASSWORD` (at least 16 characters). It runs OCR, copied-office pilot/recovery, frontend build, local services, and Playwright E2E. A preflight exit code of 2 is a stop condition: fix the reported prerequisites rather than bypassing the check. Read the runner first and never use original office files.
 
 ## 4. Who must supply what
 
