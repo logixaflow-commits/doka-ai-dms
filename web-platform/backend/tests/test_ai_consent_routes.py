@@ -1,7 +1,9 @@
 """End-to-end tests for authenticated, exact-scope AI consent endpoints."""
 from __future__ import annotations
 
-import pytest\n\nfrom fastapi.testclient import TestClient
+import pytest
+
+from fastapi.testclient import TestClient
 
 from app.core.config import settings
 from app.main import create_app
