@@ -74,6 +74,25 @@ def test_create_or_get_rejects_key_reuse_for_different_payload():
         ))
 
 
+def test_idempotency_key_cannot_replay_another_organization_job():
+    db = FakeD1([{
+        "id": "job-private",
+        "organization_id": "org-a",
+        "job_type": "ocr",
+        "idempotency_key": "shared-key",
+        "payload_json": '{"document_id":"doc-1"}',
+    }])
+    with pytest.raises(ValueError, match="different organization"):
+        asyncio.run(create_or_get_job(
+            db,
+            job_id="job-attacker",
+            organization_id="org-b",
+            job_type="ocr",
+            idempotency_key="shared-key",
+            payload={"document_id": "doc-1"},
+        ))
+
+
 def test_claim_uses_durable_pending_state_without_takeover():
     db = FakeD1([{
         "id": "job-2",
