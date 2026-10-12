@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-12T22:40:20+06:30",
+  "overall_status": "partial",
+  "release_gate_passed": false,
+  "tested_revision": {
+    "head": "772a05ac539355b58494e5b10f6c75e94cd1cab4",
+    "worktree_clean": false,
+    "local_code_patch_sha256": "f25f70135c792dcce363251eb3bb769bb0354a96e4495fde7df8cfc0530ee6b1",
+    "patch_files": [
+      "web-platform/backend/app/services/safe_workspace_service.py",
+      "web-platform/backend/tests/test_phase0_foundation.py",
+      "web-platform/backend/app/services/ocr_service.py",
+      "web-platform/backend/app/services/ocr_benchmark.py",
+      "web-platform/backend/tests/test_ocr_safety_limits.py",
+      "web-platform/backend/requirements.txt",
+      "web-platform/backend/requirements-local.txt",
+      "web-platform/backend/requirements-dev.txt",
+      "web-platform/frontend/e2e/personal-local.spec.ts"
+    ]
+  },
+  "environment": {
+    "os": "Windows",
+    "python": "3.12.13",
+    "tesseract": "5.5.3.20260724",
+    "tesseract_languages": [
+      "eng",
+      "mya",
+      "osd"
+    ],
+    "poppler_available": false,
+    "pdfium": "5.13.0",
+    "ocr_timeout_seconds": 120,
+    "ai_enabled": false,
+    "external_processing_consent": false,
+    "original_read_only": true,
+    "allow_source_write": false
+  },
+  "copied_office_pilot": {
+    "status": "passed",
+    "acceptance_scope": "copy import, scan, OCR execution, plan generation, backup verification, and isolated recovery; review/approval/final-copy apply not exercised",
+    "full_gate_passed": false,
+    "duration_seconds": 635.485,
+    "source_files": 346,
+    "source_unchanged": true,
+    "import": {
+      "status": "passed",
+      "verified": 346,
+      "failed": 0
+    },
+    "scan": {
+      "status": "passed",
+      "readable": 346,
+      "unreadable": 0
+    },
+    "understanding": {
+      "analyzed_files": 346,
+      "ai_used": false
+    },
+    "ocr": {
+      "status": "passed",
+      "supported_files": 235,
+      "failed_files": 0,
+      "pdfium_fallback_used": true,
+      "pdfium_max_longest_edge_pixels": 3500,
+      "languages_detected": [
+        "eng",
+        "mya",
+        "mya+eng"
+      ],
+      "gate_passed": true
+    },
+    "backup_recovery": {
+      "technical_drill_passed": true,
+      "backup_verified": true,
+      "recovery_verified": true,
+      "active_workspace_changed": false,
+      "backup_create_seconds": 62.031,
+      "backup_verify_seconds": 3.375,
+      "isolated_restore_seconds": 37.266,
+      "owner_approved_rto_target_seconds": null,
+      "owner_approved_rpo_target": null,
+      "release_gate_passed": false
+    }
+  },
+  "browser_acceptance": {
+    "status": "passed",
+    "tested_scope": "representative copied-office login, invalid-credential handling, import, scan, OCR/understand, review-plan generation, authenticated page reload, and source snapshot comparison",
+    "source_files": 346,
+    "analyzed_files": 346,
+    "ocr_supported_files": 235,
+    "ocr_failed_files": 0,
+    "organization_plan_proposals": 346,
+    "human_approval_required": true,
+    "final_copy_apply_exercised": false,
+    "post_run_source_tree_sha256": "2e8fa189902f8ef898744eb205f075e867dc1f6c2a0566f1a8fbf4e232ed9bd8",
+    "evidence_directory": "D:\\Doka\\AcceptanceBrowserPdfiumFinalBrowserErrorRestartEvidence"
+  },
+  "ocr_accuracy_benchmark": {
+    "status": "failed",
+    "sample_count": 5,
+    "scored_count": 5,
+    "execution_errors": 0,
+    "distinct_source_documents": 4,
+    "distinct_myanmar_source_documents": 3,
+    "strictly_failing_samples": 3,
+    "strict_thresholds": {
+      "max_cer": 0.1,
+      "max_wer": 0.2
+    },
+    "aggregate_thresholds": {
+      "max_mean_cer": 0.3,
+      "max_mean_wer": 0.6
+    },
+    "summary_by_language": {
+      "eng": {
+        "samples": 1,
+        "mean_cer": 0.02531645569620253,
+        "mean_wer": 0.10714285714285714
+      },
+      "mya": {
+        "samples": 1,
+        "mean_cer": 0.12,
+        "mean_wer": 0.3055555555555556
+      },
+      "mya+eng": {
+        "samples": 3,
+        "mean_cer": 0.33785320529370266,
+        "mean_wer": 0.534208165612421
+      }
+    },
+    "gate_ready": false,
+    "privacy_scrubbed_report": "ocr-benchmark.json"
+  },
+  "additional_ocr_sample_sets": {
+    "acceptance_evidence": false,
+    "strict_thresholds": {
+      "max_cer": 0.1,
+      "max_wer": 0.2
+    },
+    "sets": [
+      {
+        "set": "DokaOcrSamples",
+        "sample_count": 6,
+        "scored_count": 6,
+        "execution_errors": 0,
+        "strictly_failing_samples": 4,
+        "summary_by_language": {
+          "eng": {
+            "samples": 5,
+            "mean_cer": 0.0723,
+            "mean_wer": 0.2472
+          },
+          "mya+eng": {
+            "samples": 1,
+            "mean_cer": 0.4706,
+            "mean_wer": 1.2619
+          }
+        },
+        "reference_status": "provenance and source alignment not adjudicated"
+      },
+      {
+        "set": "OcrBenchmarkRun",
+        "sample_count": 3,
+        "scored_count": 3,
+        "execution_errors": 0,
+        "strictly_failing_samples": 0,
+        "summary_by_language": {
+          "eng": {
+            "samples": 1,
+            "mean_cer": 0.0253,
+            "mean_wer": 0.1071
+          },
+          "mya": {
+            "samples": 1,
+            "mean_cer": 0.088,
+            "mean_wer": 0.1944
+          },
+          "mya+eng": {
+            "samples": 1,
+            "mean_cer": 0.0435,
+            "mean_wer": 0.16
+          }
+        },
+        "reference_status": "provenance and source alignment not adjudicated"
+      }
+    ],
+    "deduplication": {
+      "manifest_entries_compared": 14,
+      "unique_images_by_sha256": 12,
+      "browser_sample_images": 5,
+      "browser_sample_images_with_verified_references": 0,
+      "browser_sample_images_duplicated_in_doka_ocr_samples": 5
+    },
+    "parameter_sweep": {
+      "sample_set": "DokaOcrSamples",
+      "sample_language": "mya+eng",
+      "variant_count": 418,
+      "baseline": {
+        "cer": 0.4706,
+        "wer": 1.2619
+      },
+      "best_candidate": {
+        "cer": 0.1634,
+        "wer": 0.3333,
+        "page_segmentation_mode": 11,
+        "preprocessing": "low-saturation background suppression, full text-region crop"
+      },
+      "passes_strict_thresholds": false,
+      "reference_adjudicated": true,
+      "production_configuration_changed": false
+    },
+    "reference_validation": {
+      "doka_ocr_samples": {
+        "status": "partial",
+        "source_matched_samples": 1,
+        "unverified_samples": 5,
+        "matched_sample_reference_lines": 10,
+        "matched_sample_lines_ge_95_percent": 10,
+        "matching_pdf_copies": 2,
+        "unique_matching_pdf_contents": 1,
+        "copied_text_documents_examined": 263
+      },
+      "ocr_benchmark_run": {
+        "status": "unadjudicated",
+        "source_matched_samples": 0,
+        "sample_count": 3
+      }
+    },
+    "details": "Exploratory sets are not pooled into the required five-sample gate; see ocr-benchmark-acceptance.md."
+  },
+  "latest_ocr_acceptance_rerun": {
+    "date": "2026-10-12",
+    "runner": "scripts/ocr_benchmark.py",
+    "sample_count": 5,
+    "scored_count": 5,
+    "execution_errors": 0,
+    "exit_code": 2,
+    "gate_ready": false,
+    "strict_failure_reasons": 6,
+    "summary_by_language": {
+      "eng": {
+        "samples": 1,
+        "mean_cer": 0.0253,
+        "mean_wer": 0.1071
+      },
+      "mya": {
+        "samples": 1,
+        "mean_cer": 0.12,
+        "mean_wer": 0.3056
+      },
+      "mya+eng": {
+        "samples": 3,
+        "mean_cer": 0.3379,
+        "mean_wer": 0.5342
+      }
+    },
+    "raw_output_kept_outside_repository": true
+  },
+  "validation": {
+    "focused_ocr_import_containment_tests": {
+      "passed": 23,
+      "skipped": 3,
+      "failed": 0
+    }
+  },
+  "privacy": {
+    "source_text_included": false,
+    "recognized_text_included": false,
+    "reference_text_included": false,
+    "source_filenames_included": false,
+    "credentials_included": false
+  }
+}

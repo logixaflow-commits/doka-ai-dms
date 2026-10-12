@@ -152,6 +152,7 @@ def collect_ocr_toolchain() -> dict[str, Any]:
                 "psm": ocr_config.psm,
                 "timeout_seconds": ocr_config.timeout,
                 "preprocessing": ocr_config.preprocessing,
+                "pdf_rendering_policy": "Poppler when available; PDFium fallback when Poppler is unavailable, capped at 3500 px on the longest edge",
                 "psm_layout_policy": "PSM 6 for width/height >= 2; configured PSM otherwise",
                 "preprocessing_method": "adaptive Gaussian threshold, block size 41, C=5 for width/height >= 2 and C=10 otherwise",
                 "text_line_ocr_policy": "Myanmar-containing portrait/square images: detect text rows and OCR a multipage TIFF with PSM 7; other images use layout PSM",

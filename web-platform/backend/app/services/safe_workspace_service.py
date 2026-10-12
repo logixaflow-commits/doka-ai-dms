@@ -915,8 +915,8 @@ class SafeWorkspaceService:
     @staticmethod
     def _set_working_copy_metadata(handle, source_stat) -> None:
         descriptor = handle.fileno()
-        os.chmod(descriptor, stat.S_IMODE(source_stat.st_mode))
         if os.name == "posix":
+            os.fchmod(descriptor, stat.S_IMODE(source_stat.st_mode))
             os.utime(
                 descriptor,
                 ns=(source_stat.st_atime_ns, source_stat.st_mtime_ns),
@@ -932,11 +932,27 @@ class SafeWorkspaceService:
         class FileTime(ctypes.Structure):
             _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
 
+        class FileBasicInfo(ctypes.Structure):
+            _fields_ = [
+                ("CreationTime", ctypes.c_longlong),
+                ("LastAccessTime", ctypes.c_longlong),
+                ("LastWriteTime", ctypes.c_longlong),
+                ("ChangeTime", ctypes.c_longlong),
+                ("FileAttributes", wintypes.DWORD),
+            ]
+
         def file_time(timestamp_ns):
             ticks = timestamp_ns // 100 + 116444736000000000
             return FileTime(ticks & 0xFFFFFFFF, ticks >> 32)
 
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.SetFileInformationByHandle.argtypes = (
+            wintypes.HANDLE,
+            ctypes.c_int,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+        )
+        kernel32.SetFileInformationByHandle.restype = wintypes.BOOL
         kernel32.SetFileTime.argtypes = (
             wintypes.HANDLE,
             ctypes.POINTER(FileTime),
@@ -944,10 +960,24 @@ class SafeWorkspaceService:
             ctypes.POINTER(FileTime),
         )
         kernel32.SetFileTime.restype = wintypes.BOOL
+        os_handle = msvcrt.get_osfhandle(descriptor)
+        basic_info = FileBasicInfo()
+        basic_info.FileAttributes = (
+            0x00000001
+            if not source_stat.st_mode & stat.S_IWRITE
+            else 0x00000080
+        )
+        if not kernel32.SetFileInformationByHandle(
+            os_handle,
+            0,
+            ctypes.byref(basic_info),
+            ctypes.sizeof(basic_info),
+        ):
+            raise OSError(ctypes.get_last_error(), "Cannot preserve working-copy file attributes")
         access_time = file_time(source_stat.st_atime_ns)
         modified_time = file_time(source_stat.st_mtime_ns)
         if not kernel32.SetFileTime(
-            msvcrt.get_osfhandle(descriptor),
+            os_handle,
             None,
             ctypes.byref(access_time),
             ctypes.byref(modified_time),

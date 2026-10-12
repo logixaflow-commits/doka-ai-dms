@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-10-11T17:33:56.890403Z",
+  "generated_at": "2026-10-12T16:10:20.698743Z",
   "sample_count": 5,
   "scored_count": 5,
   "distinct_source_document_count": 4,
@@ -91,6 +91,176 @@
     "other_word_tokenizer": "whitespace"
   },
   "gate_ready": false,
+  "exploratory_sample_sets": [
+    {
+      "set": "DokaOcrSamples",
+      "sample_count": 6,
+      "scored_count": 6,
+      "execution_errors": 0,
+      "strictly_failing_samples": 4,
+      "individual_threshold_violations": 7,
+      "strict_thresholds": {
+        "max_cer": 0.1,
+        "max_wer": 0.2
+      },
+      "summary_by_language": {
+        "eng": {
+          "samples": 5,
+          "mean_cer": 0.0723,
+          "mean_wer": 0.2472
+        },
+        "mya+eng": {
+          "samples": 1,
+          "mean_cer": 0.4706,
+          "mean_wer": 1.2619
+        }
+      },
+      "acceptance_evidence": false,
+      "reference_validation": {
+        "status": "partial",
+        "source_matched_samples": 1,
+        "unverified_samples": 5,
+        "matched_sample_reference_lines": 10,
+        "matched_sample_lines_ge_95_percent": 10,
+        "matching_pdf_copies": 2,
+        "unique_matching_pdf_contents": 1,
+        "copied_text_documents_examined": 263,
+        "source_text_included": false,
+        "source_paths_included": false
+      },
+      "exclusion_reason": "Five English references are unverified; the one source-matched Myanmar/English sample still fails both strict sample thresholds and this exploratory set is not the designated acceptance suite."
+    },
+    {
+      "set": "OcrBenchmarkRun",
+      "sample_count": 3,
+      "scored_count": 3,
+      "execution_errors": 0,
+      "strictly_failing_samples": 0,
+      "strict_thresholds": {
+        "max_cer": 0.1,
+        "max_wer": 0.2
+      },
+      "summary_by_language": {
+        "eng": {
+          "samples": 1,
+          "mean_cer": 0.0253,
+          "mean_wer": 0.1071
+        },
+        "mya": {
+          "samples": 1,
+          "mean_cer": 0.088,
+          "mean_wer": 0.1944
+        },
+        "mya+eng": {
+          "samples": 1,
+          "mean_cer": 0.0435,
+          "mean_wer": 0.16
+        }
+      },
+      "acceptance_evidence": false,
+      "exclusion_reason": "Exploratory direct scoring; reference provenance and source alignment have not been adjudicated."
+    }
+  ],
+  "deduplication": {
+    "manifest_entries_compared": 14,
+    "unique_images_by_sha256": 12,
+    "browser_sample_images": 5,
+    "browser_sample_images_with_verified_references": 0,
+    "browser_sample_images_duplicated_in_doka_ocr_samples": 5
+  },
+  "exploratory_parameter_sweep": {
+    "sample_set": "DokaOcrSamples",
+    "sample_language": "mya+eng",
+    "variant_count": 418,
+    "baseline": {
+      "cer": 0.4706,
+      "wer": 1.2619
+    },
+    "best_candidate": {
+      "cer": 0.1634,
+      "wer": 0.3333,
+      "page_segmentation_mode": 11,
+      "preprocessing": "low-saturation background suppression, full text-region crop"
+    },
+    "strict_thresholds": {
+      "max_cer": 0.1,
+      "max_wer": 0.2
+    },
+    "passes_strict_thresholds": false,
+    "reference_adjudicated": true,
+    "production_configuration_changed": false
+  },
+  "latest_acceptance_rerun": {
+    "date": "2026-10-12",
+    "runner": "scripts/ocr_benchmark.py",
+    "scored_count": 5,
+    "execution_errors": 0,
+    "exit_code": 2,
+    "gate_ready": false,
+    "strict_failure_reasons": 6,
+    "summary_by_language": {
+      "eng": {
+        "samples": 1,
+        "mean_cer": 0.0253,
+        "mean_wer": 0.1071
+      },
+      "mya": {
+        "samples": 1,
+        "mean_cer": 0.12,
+        "mean_wer": 0.3056
+      },
+      "mya+eng": {
+        "samples": 3,
+        "mean_cer": 0.3379,
+        "mean_wer": 0.5342
+      }
+    },
+    "raw_output_kept_outside_repository": true
+  },
+  "additional_production_pipeline_settings_sweep": {
+    "exact_existing_row_segmentation_path": true,
+    "variant_count": 45,
+    "samples": [
+      {
+        "sample_language": "mya",
+        "baseline": {
+          "cer": 0.12,
+          "wer": 0.3056
+        },
+        "best": {
+          "cer": 0.112,
+          "wer": 0.3056,
+          "psm": 11
+        },
+        "passes_strict_thresholds": false
+      },
+      {
+        "sample_language": "mya+eng",
+        "baseline": {
+          "cer": 0.5273,
+          "wer": 0.7351
+        },
+        "best": {
+          "cer": 0.5273,
+          "wer": 0.7351
+        },
+        "passes_strict_thresholds": false
+      },
+      {
+        "sample_language": "mya+eng",
+        "baseline": {
+          "cer": 0.4428,
+          "wer": 0.6915
+        },
+        "best": {
+          "cer": 0.4428,
+          "wer": 0.6915
+        },
+        "passes_strict_thresholds": false
+      }
+    ],
+    "production_configuration_changed": false
+  },
   "toolchain": {
     "command_configured": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
     "version": "tesseract v5.5.3.20260724",
@@ -106,6 +276,7 @@
       "psm": 11,
       "timeout_seconds": 120,
       "preprocessing": true,
+      "pdf_rendering_policy": "Poppler when available; PDFium fallback when Poppler is unavailable, capped at 3500 px on the longest edge",
       "psm_layout_policy": "PSM 6 for width/height >= 2; configured PSM otherwise",
       "preprocessing_method": "adaptive Gaussian threshold, block size 41, C=5 for width/height >= 2 and C=10 otherwise",
       "text_line_ocr_policy": "Myanmar-containing portrait/square images: detect text rows and OCR a multipage TIFF with PSM 7; other images use layout PSM"

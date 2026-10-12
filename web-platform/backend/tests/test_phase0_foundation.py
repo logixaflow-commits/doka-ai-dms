@@ -63,7 +63,9 @@ def test_safe_import_preserves_source_and_records_sha256(isolated_workspace):
     created = safe_workspace_service.create_import()
     completed = safe_workspace_service.run_import(created["session_id"])
 
-    assert completed["state"] in {"completed", "completed_with_errors"}
+    assert completed["state"] == "completed"
+    assert completed["files_verified"] == 2
+    assert completed["files_failed"] == 0
     manifest = json.loads(
         (workspace / "imports" / created["session_id"] / "manifest.json").read_text(
             encoding="utf-8"

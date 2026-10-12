@@ -45,6 +45,10 @@ test('Personal Local browser acceptance: login → import → scan → understan
   await page.goto('/login');
   await expect(page.getByTestId('login-username')).toBeVisible();
   await page.getByTestId('login-username').fill(username);
+  await page.getByTestId('login-password').fill(`${password!}-invalid`);
+  await page.getByTestId('login-submit').click();
+  await expect(page.getByRole('alert')).toHaveText('Invalid username or password.');
+
   await page.getByTestId('login-password').fill(password!);
   await page.getByTestId('login-submit').click();
 
@@ -87,6 +91,10 @@ test('Personal Local browser acceptance: login → import → scan → understan
 
   await page.getByTestId('build-review-plan').click();
   await expect(page.getByText('plan completed.')).toBeVisible({ timeout: planTimeout });
+
+  await page.reload();
+  await expect(page).toHaveURL(/\/admin\/workspace$/);
+  await expect(page.getByRole('heading', { name: 'Safe Workspace' })).toBeVisible();
 
   const after = await snapshot(sourceRoot!);
   expect(after).toEqual(before);
