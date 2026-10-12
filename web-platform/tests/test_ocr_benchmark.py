@@ -101,7 +101,27 @@ def test_ocr_benchmark_rejects_path_escape_and_symlinks(tmp_path, make_symlink):
         resolve_sample_path(root, "linked.txt")
 
 
-def test_ocr_benchmark_report_does_not_include_reference_or_recognized_text(tmp_path):
+def test_ocr_benchmark_report_does_not_include_reference_or_recognized_text(tmp_path, monkeypatch):
+    # Keep this report-privacy contract test deterministic: host Tesseract and
+    # local OCR settings are environment-dependent and covered by toolchain tests.
+    from app.services import ocr_benchmark
+
+    monkeypatch.setattr(ocr_benchmark, "collect_ocr_toolchain", lambda: {
+        "command_configured": "tesseract",
+        "version": "test",
+        "languages": ["eng", "mya"],
+        "available": True,
+        "settings": {
+            "dpi": 300,
+            "oem": 3,
+            "psm": 6,
+            "timeout_seconds": 30,
+            "preprocessing": True,
+            "psm_layout_policy": "test",
+            "preprocessing_method": "test",
+            "text_line_ocr_policy": "test",
+        },
+    })
     root = tmp_path / "samples"
     root.mkdir()
     (root / "page.png").write_bytes(b"fixture")
