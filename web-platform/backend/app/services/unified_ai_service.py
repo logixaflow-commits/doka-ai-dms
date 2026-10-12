@@ -462,16 +462,17 @@ class UnifiedAIService:
         """Embeddings require exact-scope consent for the declared processing purpose."""
         if purpose not in {"embedding", "duplicate_detection"}:
             raise ValueError("Unsupported embedding consent purpose")
-        self._ensure_external_ai_allowed(
-            consent_grant=consent_grant, subject_id=subject_id,
-            purpose=purpose, scope=scope,
-        )
+        # Validate input before consulting consent storage or any provider policy.
         if not isinstance(text, str) or not text.strip():
             raise ValueError("Text is required for embedding generation.")
         if len(text) > settings.AI_MAX_INPUT_CHARS:
             raise ValueError(
                 f"Text exceeds the configured AI input limit ({settings.AI_MAX_INPUT_CHARS} characters)."
             )
+        self._ensure_external_ai_allowed(
+            consent_grant=consent_grant, subject_id=subject_id,
+            purpose=purpose, scope=scope,
+        )
         providers = [provider] if provider else self._embedding_provider_order()
         errors = []
         free_embedding_models = {
