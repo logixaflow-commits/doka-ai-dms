@@ -1,7 +1,7 @@
 """End-to-end tests for authenticated, exact-scope AI consent endpoints."""
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
+import pytest\n\nfrom fastapi.testclient import TestClient
 
 from app.core.config import settings
 from app.main import create_app
@@ -103,3 +103,37 @@ def test_consent_route_rejects_unsupported_purpose(monkeypatch, tmp_path):
         json={"purpose": "anything", "scope": "document:42", "granted": True},
     )
     assert response.status_code == 422
+
+
+def test_consent_revision_and_audit_are_durable_and_append_only(monkeypatch, tmp_path):
+    import sqlite3
+
+    client = _client(monkeypatch, tmp_path)
+    headers = {"Authorization": f"Bearer {_token(client)}"}
+    payload = {"purpose": "document_analysis", "scope": "document:revision-9", "granted": True}
+
+    first = client.put("/api/ai/consent", headers=headers, json=payload)
+    repeated = client.put("/api/ai/consent", headers=headers, json=payload)
+    assert first.status_code == repeated.status_code == 200
+    assert first.json()["revision"] == repeated.json()["revision"] == 1
+
+    revoked = client.put(
+        "/api/ai/consent",
+        headers=headers,
+        json={**payload, "granted": False},
+    )
+    regranted = client.put("/api/ai/consent", headers=headers, json=payload)
+    assert revoked.status_code == regranted.status_code == 200
+    assert revoked.json()["revision"] == 2
+    assert regranted.json()["revision"] == 3
+
+    audit = client.get("/api/ai/consent/audit?limit=2", headers=headers)
+    assert audit.status_code == 200
+    assert [event["action"] for event in audit.json()["events"]] == ["granted", "revoked"]
+
+    db_path = tmp_path / "auth.sqlite3"
+    with sqlite3.connect(db_path) as db:
+        with pytest.raises(sqlite3.DatabaseError, match="append-only"):
+            db.execute("UPDATE ai_consent_audit SET action='denied' WHERE id=1")
+        with pytest.raises(sqlite3.DatabaseError, match="append-only"):
+            db.execute("DELETE FROM ai_consent_audit WHERE id=1")
