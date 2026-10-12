@@ -177,6 +177,28 @@ def validate_environment(env: dict[str, str], evidence_root: Path) -> dict[str, 
     }
 
 
+def _safe_report_path(output: Path, env: dict[str, str], evidence_root: Path) -> bool:
+    """Prevent the generated report from overwriting or entering any input/evidence tree."""
+    try:
+        destination = output.expanduser().resolve()
+        evidence = evidence_root.expanduser().resolve()
+    except (OSError, RuntimeError):
+        return False
+    protected: list[Path] = [evidence]
+    for variable in REQUIRED_ENV:
+        value = env.get(variable, "").strip()
+        if not value or variable == "BOOTSTRAP_ADMIN_PASSWORD":
+            continue
+        try:
+            protected.append(Path(value).expanduser().resolve())
+        except (OSError, RuntimeError):
+            return False
+    for root in protected:
+        if destination == root or _inside(destination, root) or _inside(root, destination):
+            return False
+    return True
+
+
 def main() -> int:
     import argparse
 
@@ -187,14 +209,11 @@ def main() -> int:
     report = validate_environment(dict(os.environ), Path(args.evidence_root))
     serialized = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
-        output = Path(args.output).expanduser().resolve()
-        for name in ("DOKA_PILOT_SOURCE", "DOKA_PILOT_WORKSPACE", "DOKA_PILOT_BACKUPS", "DOKA_OCR_ROOT"):
-            value = os.environ.get(name, "").strip()
-            if value:
-                root = Path(value).expanduser().resolve()
-                if output == root or _inside(output, root):
-                    print("Refusing to write preflight report inside an input directory.", file=sys.stderr)
-                    return 2
+        output = Path(args.output).expanduser()
+        if output.is_symlink() or not _safe_report_path(output, dict(os.environ), Path(args.evidence_root)):
+            print("Refusing to write preflight report inside or over a protected input/evidence path.", file=sys.stderr)
+            return 2
+        output = output.resolve()
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(serialized, encoding="utf-8")
     print(serialized, end="")
