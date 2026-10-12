@@ -139,7 +139,7 @@ def test_success_writes_terminal_result():
     assert db.calls[0][2][0] == '{"ok":true}'
 
 
-@pytest.mark.parametrize("job_id", [None, 1, "", "   ", "j" * 256])
+@pytest.mark.parametrize("job_id", [None, 1, "", "   ", " job-1 ", "j" * 256])
 def test_invalid_job_id_is_rejected(job_id):
     with pytest.raises(ValueError, match="Invalid job id"):
         asyncio.run(create_or_get_job(
@@ -212,4 +212,13 @@ def test_create_or_get_rejects_noncanonical_organization_id():
             job_type="ocr",
             idempotency_key="doc-1:ocr",
             payload={"document_id": "doc-1"},
+        ))
+
+
+@pytest.mark.parametrize("retryable", [None, 0, 1, "false", [], {}])
+def test_mark_failed_rejects_non_boolean_retry_classification(retryable):
+    with pytest.raises(ValueError, match="retryable must be a boolean"):
+        asyncio.run(mark_failed(
+            FakeD1(), {"id": "job-invalid-retry", "attempts": 1, "max_attempts": 3},
+            retryable=retryable, error="temporary", now=NOW,
         ))
