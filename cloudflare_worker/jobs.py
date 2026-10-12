@@ -41,17 +41,30 @@ def _stamp(value: datetime | None = None) -> str:
 
 
 def _validate_key(value: str) -> str:
-    key = str(value).strip()
+    if not isinstance(value, str):
+        raise ValueError("Invalid job idempotency key.")
+    key = value.strip()
     if not 1 <= len(key) <= _MAX_KEY or any(char not in _KEY_CHARS for char in key):
         raise ValueError("Invalid job idempotency key.")
     return key
 
 
 def _validate_job_type(value: str) -> str:
-    job_type = str(value).strip()
+    if not isinstance(value, str):
+        raise ValueError("Invalid job type.")
+    job_type = value.strip()
     if not 1 <= len(job_type) <= _MAX_JOB_TYPE:
         raise ValueError("Invalid job type.")
     return job_type
+
+
+def _validate_organization_id(value: str | None) -> str:
+    if not isinstance(value, str):
+        raise ValueError("A verified organization ID is required for durable jobs.")
+    organization_id = value.strip()
+    if not organization_id or len(organization_id) > _MAX_KEY:
+        raise ValueError("A verified organization ID is required for durable jobs.")
+    return organization_id
 
 
 def _payload_json(payload: dict[str, Any]) -> str:
@@ -128,6 +141,7 @@ async def create_or_get_job(
     """Atomically create a job or return the existing idempotent job."""
     if not isinstance(job_id, str) or not job_id.strip() or len(job_id) > 255:
         raise ValueError("Invalid job id.")
+    organization_id = _validate_organization_id(organization_id)
     job_type = _validate_job_type(job_type)
     idempotency_key = _validate_key(idempotency_key)
     if type(max_attempts) is not int or not 1 <= max_attempts <= _MAX_ATTEMPTS:
