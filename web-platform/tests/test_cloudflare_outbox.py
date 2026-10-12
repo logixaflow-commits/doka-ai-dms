@@ -250,3 +250,12 @@ def test_sqlite_retry_exhaustion_persists_dead_letter_state():
         ("evt-dead",),
     ).fetchone()
     assert tuple(row) == ("dead", None, None, "delivery_failed")
+
+
+@pytest.mark.parametrize("retryable", [None, 0, 1, "false", [], {}])
+def test_mark_retry_rejects_non_boolean_retry_classification(retryable):
+    with pytest.raises(ValueError, match="retryable must be a boolean"):
+        asyncio.run(mark_retry(
+            FakeD1(), {"id": "evt-invalid-retry", "attempts": 1, "max_attempts": 3, "lease_token": "lease"},
+            retryable=retryable, now=NOW,
+        ))
