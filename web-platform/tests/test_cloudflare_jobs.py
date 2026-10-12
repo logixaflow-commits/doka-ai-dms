@@ -222,3 +222,12 @@ def test_mark_failed_rejects_non_boolean_retry_classification(retryable):
             FakeD1(), {"id": "job-invalid-retry", "attempts": 1, "max_attempts": 3},
             retryable=retryable, error="temporary", now=NOW,
         ))
+
+
+@pytest.mark.parametrize("error", [None, "", "Temporary provider failure", "https://provider.invalid/?token=secret", "secret\\nvalue", "X-Request-ID:abc"])
+def test_mark_failed_rejects_free_form_error_text(error):
+    with pytest.raises(ValueError, match="safe lowercase error code"):
+        asyncio.run(mark_failed(
+            FakeD1(), {"id": "job-safe-error", "attempts": 1, "max_attempts": 3},
+            retryable=True, error=error, now=NOW,
+        ))
