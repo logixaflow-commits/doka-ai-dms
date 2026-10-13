@@ -44,7 +44,7 @@ jobs:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@v7
         with:
-          version: "0.9.28"
+          version: "0.12.3"
       - name: Validate deployment credentials
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN repository secret."; exit 1; }
