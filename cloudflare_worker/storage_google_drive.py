@@ -23,7 +23,7 @@ class GoogleDriveConfig:
 
 class GoogleDriveExportProvider:
     name = "google_drive"
-    MAX_INLINE_CHECKSUM_BYTES = 50 * 1024 * 1024
+    MAX_VERIFICATION_BYTES = 1024 * 1024 * 1024
 
     def __init__(self, config: GoogleDriveConfig, fetcher):
         if not all((config.client_id, config.client_secret, config.refresh_token)):
@@ -115,17 +115,17 @@ class GoogleDriveExportProvider:
         if size != expected_size:
             raise ValueError("Google Drive export failed size/SHA-256 verification")
         # Drive v3 exposes md5Checksum for binary files, not sha256Checksum. Never
-        # pretend appProperties prove the uploaded bytes: fetch and hash the actual
-        # media for bounded-size exports. Large exports fail closed rather than
-        # buffering unbounded data in a Worker.
-        if size > self.MAX_INLINE_CHECKSUM_BYTES:
-            raise ValueError("Google Drive export exceeds the 50 MiB server-side verification limit")
+        # pretend appProperties prove the uploaded bytes: fetch and incrementally
+        # hash the actual media. A hard byte cap bounds bandwidth/CPU while the
+        # Worker streams the response without buffering the whole file.
+        if size > self.MAX_VERIFICATION_BYTES:
+            raise ValueError("Google Drive export exceeds the 1 GiB server-side verification limit")
         media_status, content = await self.fetcher(
             f"https://www.googleapis.com/drive/v3/files/{safe_id}?alt=media&supportsAllDrives=true",
             method="GET",
             headers={"Authorization": f"Bearer {token}"},
             return_sha256=True,
-            max_bytes=self.MAX_INLINE_CHECKSUM_BYTES,
+            max_bytes=self.MAX_VERIFICATION_BYTES,
         )
         if media_status >= 300 or not isinstance(content, dict):
             raise RuntimeError("Google Drive export content verification failed")
