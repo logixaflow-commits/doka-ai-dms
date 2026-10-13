@@ -2,7 +2,7 @@
 
 > **Owner:** Where does Doka run and what deployment evidence is required?
 > **Update when:** Runtime topology, Worker deployment, hosting provider state, migration evidence or release prerequisites change.
-> **Last Updated:** 2026-10-13
+> **Last Updated:** 2026-10-13 (updated after deployment workflow attempts)
 > **Do NOT put here:** Application architecture detail, secrets, or detailed incident procedures.
 
 ## Active topology
@@ -20,12 +20,24 @@ Live verification on 2026-10-13:
 - Current traffic: 100% on the latest inspected deployment.
 - Latest deployment ID: `d894b59e-4aca-4fa2-86b2-9750055749eb` (created 2026-10-13T07:02:03Z).
 - Active version ID: `75e436b2-2009-4779-b659-5421bea0843a`.
-- Deployment path: `.github/workflows/cloudflare-worker-deploy.yml` is the retained pinned, dry-run, explicit-confirmation deployment path. No production deployment was triggered during this review.
+- Deployment path: `.github/workflows/cloudflare-worker-deploy.yml` retains a dry-run gate and the `[deploy-worker]` explicit release marker. Current main includes the streaming Drive checksum fix and passing quality checks, but the production deployment remains blocked: the build dry-run passed and the actual deploy call returned Cloudflare API authentication error `10000`. The active deployment is still the version listed above.
 - Live CORS contract: explicit release/preview origins only with `allow_credentials=False`; the legacy `enterprise-ai-dms.vercel.app` origin is no longer present in the live bundle.
 
 The Worker must authenticate cloud requests and must not proxy large document bytes unnecessarily. Direct upload sessions are used for provider-backed document bytes. A dedicated `DOKA_STORAGE_SESSION_SECRET` is now provisioned as a Worker secret; `DOKA_SINGLE_USER_EMAIL` remains intentionally enabled for the current single-user deployment.
 
 The per-user B2 quota is now configured as Worker secret binding `B2_QUOTA_BYTES=1073741824` (1 GiB/user). The quota evaluator warns at 80% projected usage and blocks new B2 uploads at 95%; this is configuration/deployment evidence only, not proof of a successful live B2 upload, quota rejection, or recovery test.
+
+### Deployment blocker — 2026-10-13
+
+The production workflow's dry-run now passes with `workers-py==1.17.7` and `uv==0.12.3`. The actual deploy request fails against Cloudflare API endpoints with authentication error `10000`; the new Worker version has **not** been deployed. The GitHub Actions secrets exist but the token currently used by the workflow is not accepted for the Worker deployment operation (or does not have the required account scope).
+
+Required owner action:
+1. In GitHub, open **Settings → Secrets and variables → Actions → Repository secrets**.
+2. Update `CLOUDFLARE_API_TOKEN` with a valid Cloudflare API token scoped to the same account and authorized to edit/deploy Workers scripts. Do not paste the token into chat or commit it.
+3. Confirm `CLOUDFLARE_ACCOUNT_ID` is the account that owns `doka-ai-dms`.
+4. Re-run **Cloudflare Worker Production Deploy** for the latest `main` commit after the secret is corrected. The workflow will run a dry-run, deploy, and check production health.
+
+No B2, Supabase, or Google Drive credentials were printed or changed as part of this failed deploy attempt. Wrangler config has `keep_vars: true` to preserve dashboard-managed variables.
 
 ## Vercel
 Connected Vercel project: enterprise-ai-dms.
@@ -56,7 +68,7 @@ Fresh read-only checks against the connected Cloudflare and Supabase accounts:
 - Supabase currently has two Auth users and one Storage bucket; the `doka-documents` bucket has zero objects. The three Doka metadata tables (`doka_documents`, `doka_document_versions`, `doka_audit_events`) each have zero rows.
 - Read-only RLS policy inspection shows owner-scoped authenticated policies for Doka documents, document versions, audit events, and objects under the `users/<auth.uid()>/...` path in `doka-documents`. This is policy evidence, not a substitute for live cross-user requests.
 
-A single-user live provider runner is available at `scripts/cloud_provider_acceptance.py`. It exercises an authenticated source upload/download with SHA-256 verification, version replacement/history, Google Drive export session and completion verification, lifecycle audit events, trash/restore, and cleanup. Use `--provider b2` to upload a fixture larger than 50 MiB through the B2 route; the test then replaces it with a small Supabase-backed version before Drive export to avoid uploading a second large object. Use `--provider supabase` for the Supabase source path.
+A single-user live provider runner is available at `scripts/cloud_provider_acceptance.py`; `scripts/run-cloud-provider-acceptance.ps1` prompts for the access token without echoing it and runs the selected provider acceptance (`b2`, `supabase`, or `both`) while clearing the token from the PowerShell process environment afterward. It exercises an authenticated source upload/download with SHA-256 verification, version replacement/history, Google Drive export session and completion verification, lifecycle audit events, trash/restore, and cleanup. Use `--provider b2` to upload a fixture larger than 50 MiB through the B2 route; the test then replaces it with a small Supabase-backed version before Drive export to avoid uploading a second large object. Use `--provider supabase` for the Supabase source path.
 
 The runner requires `DOKA_CLOUD_BASE_URL`, `DOKA_CLOUD_USER_TOKEN`, and an output path. Never put access tokens in source control or chat. The live run has **not** been executed because a valid user session token is not available in the connected tools. The two-user runner (`scripts/cloud_acceptance.py`) additionally requires two distinct test-user tokens and an acceptance environment that permits both users; production's single-user guard must remain enabled.
 
