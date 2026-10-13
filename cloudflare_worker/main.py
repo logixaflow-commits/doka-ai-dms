@@ -92,11 +92,34 @@ def _js_bytes(data: bytes):
     return result
 
 
-async def _fetch(request, url: str, *, method: str = "GET", headers: dict | None = None, body=None, return_headers: bool = False):
+async def _fetch(
+    request,
+    url: str,
+    *,
+    method: str = "GET",
+    headers: dict | None = None,
+    body=None,
+    return_headers: bool = False,
+    return_bytes: bool = False,
+    max_bytes: int = 50 * 1024 * 1024,
+):
     options = {"method": method, "headers": to_js(headers or {}, dict_converter=Object.fromEntries)}
     if body is not None:
         options["body"] = body
     response = await js_fetch(url, to_js(options, dict_converter=Object.fromEntries))
+    if return_bytes:
+        # Only callers with an explicit small verification limit may buffer a
+        # binary response. Check Content-Length before allocating the body, then
+        # check the actual byte count as Content-Length is not always present.
+        content_length = response.headers.get("content-length")
+        if content_length is not None and int(content_length) > max_bytes:
+            raise ValueError("Binary response exceeds the configured verification limit")
+        buffer = await response.arrayBuffer()
+        byte_view = Uint8Array.new(buffer)
+        binary = bytes(int(byte_view[index]) for index in range(int(byte_view.length)))
+        if len(binary) > max_bytes:
+            raise ValueError("Binary response exceeds the configured verification limit")
+        return int(response.status), binary
     if return_headers:
         header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
@@ -338,8 +361,26 @@ def _storage_session_secret(request) -> str:
 
 
 def _storage_fetcher(request):
-    async def fetcher(url: str, *, method: str = "GET", headers: dict | None = None, body=None, return_headers: bool = False):
-        status, payload = await _fetch(request, url, method=method, headers=headers, body=body, return_headers=return_headers)
+    async def fetcher(
+        url: str,
+        *,
+        method: str = "GET",
+        headers: dict | None = None,
+        body=None,
+        return_headers: bool = False,
+        return_bytes: bool = False,
+        max_bytes: int = 50 * 1024 * 1024,
+    ):
+        status, payload = await _fetch(
+            request,
+            url,
+            method=method,
+            headers=headers,
+            body=body,
+            return_headers=return_headers,
+            return_bytes=return_bytes,
+            max_bytes=max_bytes,
+        )
         return status, payload
     return fetcher
 
