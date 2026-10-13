@@ -42,7 +42,13 @@ def _assert_status(response: httpx.Response, expected: int | tuple[int, ...], la
 
 
 def _upload_document(
-    client: httpx.Client, token: str, payload: bytes, filename: str, content_type: str
+    client: httpx.Client,
+    token: str,
+    payload: bytes,
+    filename: str,
+    content_type: str,
+    *,
+    expected_provider: str | None = None,
 ) -> dict:
     """Upload through the signed provider URL, then verify Worker completion."""
     digest = hashlib.sha256(payload).hexdigest()
@@ -64,6 +70,10 @@ def _upload_document(
     provider = str(session.get("provider") or "")
     if provider not in {"supabase", "b2"}:
         raise AssertionError("source upload selected an unsupported storage provider")
+    if expected_provider is not None and provider != expected_provider:
+        raise AssertionError(
+            f"source upload selected {provider!r}, expected {expected_provider!r}"
+        )
     upload = session.get("upload") or {}
     upload_url = str(upload.get("url") or "")
     parsed = urlparse(upload_url)
@@ -172,7 +182,16 @@ def main() -> int:
         default=os.getenv("DOKA_CLOUD_50MIB_FILE", "").strip(),
         help="Optional exact 50 MiB fixture used for the 50 MiB acceptance boundary.",
     )
+    parser.add_argument(
+        "--require-provider",
+        choices=("supabase", "b2"),
+        default=None,
+        help="Require the upload session to select this provider; also accepts DOKA_CLOUD_EXPECTED_PROVIDER.",
+    )
     args = parser.parse_args()
+    expected_provider = args.require_provider or os.getenv("DOKA_CLOUD_EXPECTED_PROVIDER", "").strip().lower() or None
+    if expected_provider not in {None, "supabase", "b2"}:
+        raise SystemExit("DOKA_CLOUD_EXPECTED_PROVIDER must be 'supabase' or 'b2'")
 
     base_url = (args.base_url or _require("DOKA_CLOUD_BASE_URL")).rstrip("/")
     parsed_base_url = urlparse(base_url)
@@ -189,6 +208,7 @@ def main() -> int:
         "schema_version": 2,
         "privacy": {"tokens_recorded": False, "emails_recorded": False},
         "base_url_recorded": False,
+        "expected_storage_provider": expected_provider or "any_supported",
         "checks": {},
     }
     payload = b"Doka cloud acceptance fixture\n"
@@ -207,7 +227,9 @@ def main() -> int:
             _assert_status(list_a, 200, "user A document list")
             evidence["checks"]["user_a_list"] = True
 
-            document = _upload_document(client, user_a, payload, filename, "text/plain")
+            document = _upload_document(
+                client, user_a, payload, filename, "text/plain", expected_provider=expected_provider
+            )
             document_id = str(document["id"])
             created_document_ids.append(document_id)
             evidence["checks"]["user_a_upload"] = True
@@ -258,7 +280,8 @@ def main() -> int:
                 boundary_payload = _read_fifty_mib_fixture(fixture)
                 boundary_digest = hashlib.sha256(boundary_payload).hexdigest()
                 boundary = _upload_document(
-                    client, user_a, boundary_payload, fixture.name, "application/octet-stream"
+                    client, user_a, boundary_payload, fixture.name, "application/octet-stream",
+                    expected_provider=expected_provider,
                 )
                 boundary_id = str(boundary["id"])
                 created_document_ids.append(boundary_id)
