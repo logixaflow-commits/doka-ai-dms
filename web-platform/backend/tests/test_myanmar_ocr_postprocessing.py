@@ -28,7 +28,10 @@ def test_myanmar_ocr_fallback_uses_original_image_after_preprocessing():
     fallback_paths = []
     service._fallback_ocr = lambda path: fallback_paths.append(path) or {"success": True, "text": "fallback"}
 
-    with patch("app.services.myanmar_ocr.subprocess.run", return_value=SimpleNamespace(returncode=1, stderr="ocr failed", stdout="")):
+    with (
+        patch("app.core.performance.CacheManager", return_value=SimpleNamespace(get=lambda *_: None, set=lambda *_: False)),
+        patch("app.services.myanmar_ocr.subprocess.run", return_value=SimpleNamespace(returncode=1, stderr="ocr failed", stdout="")),
+    ):
         result = service.extract_text_myanmar("document.png", preprocess=True)
 
     assert result["text"] == "fallback"
