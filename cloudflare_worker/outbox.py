@@ -99,7 +99,7 @@ async def claim_next(
     now: datetime | None = None,
     lease_seconds: int = 60,
 ) -> dict[str, Any] | None:
-    if not isinstance(lease_seconds, int) or not 5 <= lease_seconds <= 900:
+    if type(lease_seconds) is not int or not 5 <= lease_seconds <= 900:
         raise ValueError("Outbox lease must be between 5 and 900 seconds.")
     instant = _utc(now)
     stamp = _stamp(instant)
@@ -111,7 +111,10 @@ async def claim_next(
 async def mark_delivered(
     db: D1Database, event_id: str, lease_token: str, *, now: datetime | None = None
 ) -> None:
-    if not event_id or len(event_id) > 255 or not lease_token or len(lease_token) > 64:
+    if (
+        not isinstance(event_id, str) or not event_id or len(event_id) > 255
+        or not isinstance(lease_token, str) or not lease_token or len(lease_token) > 64
+    ):
         raise ValueError("Invalid outbox delivery lease.")
     result = await db.execute(DELIVER_SQL, (_stamp(_utc(now)), event_id, lease_token))
     _require_single_change(result, operation="Outbox delivery")
@@ -128,6 +131,8 @@ async def mark_retry(
     attempts = event.get("attempts")
     max_attempts = event.get("max_attempts")
     lease_token = event.get("lease_token")
+    if type(retryable) is not bool:
+        raise ValueError("retryable must be a boolean.")
     if (
         not isinstance(event_id, str) or not event_id or len(event_id) > 255
         or type(attempts) is not int or attempts < 1
