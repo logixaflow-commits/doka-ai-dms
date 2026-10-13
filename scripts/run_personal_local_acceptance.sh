@@ -24,8 +24,18 @@ BACKEND="$ROOT/web-platform/backend"
 FRONTEND="$ROOT/web-platform/frontend"
 VENV="$ROOT/.acceptance-venv"
 EVIDENCE="$ROOT/Phase0_Evidence/acceptance"
-mkdir -p "$EVIDENCE"
 
+# Fail closed before dependency installation or data processing.
+export AI_ENABLED=false
+export AI_EXTERNAL_PROCESSING_CONSENT=false
+export DOKA_STORAGE_PROVIDER=disabled
+export ORIGINAL_READ_ONLY=true
+export ALLOW_SOURCE_WRITE=false
+python3 "$ROOT/scripts/local_acceptance_preflight.py" \
+  --evidence-root "$EVIDENCE" \
+  --output "$EVIDENCE/preflight.json"
+
+mkdir -p "$EVIDENCE"
 python3 -m venv "$VENV"
 "$VENV/bin/python" -m pip install --upgrade pip
 "$VENV/bin/python" -m pip install -r "$BACKEND/requirements-local.txt" -r "$BACKEND/requirements-test.txt"
