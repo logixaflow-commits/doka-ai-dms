@@ -37,6 +37,21 @@ def test_unimplemented_provider_with_a_key_does_not_activate(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_embedding_input_validation_precedes_consent_lookup(monkeypatch):
+    monkeypatch.setattr(settings, "AI_MAX_INPUT_CHARS", 4)
+    service = UnifiedAIService()
+
+    def fail_if_consent_checked(**_kwargs):
+        pytest.fail("consent lookup must not happen for invalid input")
+
+    monkeypatch.setattr(service, "_ensure_external_ai_allowed", fail_if_consent_checked)
+    with pytest.raises(ValueError, match="Text is required"):
+        await service.get_embedding("   ", subject_id="user-1", scope="document:7")
+    with pytest.raises(ValueError, match="configured AI input limit"):
+        await service.get_embedding("12345", subject_id="user-1", scope="document:7")
+
+
+@pytest.mark.asyncio
 async def test_external_ai_requires_explicit_consent(monkeypatch):
     monkeypatch.setattr(settings, "AI_ENABLED", True)
     monkeypatch.setattr(settings, "AI_EXTERNAL_PROCESSING_CONSENT", False)
