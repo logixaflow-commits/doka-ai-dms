@@ -192,9 +192,9 @@ class MyanmarOCRService:
         # Do not strip characters such as I, l, or 1 globally: they can be valid
         # English text, identifiers, list markers, or Myanmar-document values.
         cleaned = unicodedata.normalize("NFC", text)
-        cleaned = cleaned.replace("\\x0c", "").replace("\\x0b", "")
+        cleaned = cleaned.replace("\x0c", "").replace("\x0b", "")
         lines = [" ".join(line.split()) for line in cleaned.splitlines()]
-        return "\\n".join(line for line in lines if line)
+        return "\n".join(line for line in lines if line)
 
     def _estimate_confidence(self, text: str) -> float:
         """Estimate OCR confidence based on text characteristics"""
