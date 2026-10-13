@@ -101,7 +101,7 @@ class GoogleDriveExportProvider:
         )
         if status >= 300 or not isinstance(payload, dict):
             raise RuntimeError("Google Drive completion verification failed")
-        if not payload.get("ownedByMe", True):
+        if payload.get("ownedByMe") is not True:
             raise RuntimeError("Google Drive export file is not owned by the configured user")
         size = int(payload.get("size") or 0)
         app_properties = payload.get("appProperties") or {}
