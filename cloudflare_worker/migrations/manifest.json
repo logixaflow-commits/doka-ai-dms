@@ -8,5 +8,10 @@
     "number": 2,
     "name": "0002_authorization_integrity.sql",
     "git_blob_sha": "24cdbf134be9800325167ee1c200dd93bb5b5a0a"
+  },
+  {
+    "number": 3,
+    "name": "0003_job_tenant_integrity.sql",
+    "git_blob_sha": "9b26f097b0bc035b11cd204a5eaddfaa4647824f"
   }
 ]
