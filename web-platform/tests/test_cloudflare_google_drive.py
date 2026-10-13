@@ -54,3 +54,61 @@ def test_google_drive_completion_verifies_owner_size_and_sha256():
         expected_sha256="a" * 64,
     ))
     assert result.object_ref.object_key == "drive:drive-file-1"
+
+
+
+def test_google_drive_completion_fails_closed_when_ownership_is_missing():
+    async def fetcher(url, **kwargs):
+        if url.endswith("/token"):
+            return 200, {"access_token": "short-lived-access-token"}
+        return 200, {
+            "id": "drive-file-2",
+            "size": "4",
+            "mimeType": "application/pdf",
+            "appProperties": {"doka_sha256": "b" * 64},
+        }
+
+    provider = GoogleDriveExportProvider(
+        GoogleDriveConfig("client-id", "client-secret", "refresh-token"),
+        fetcher,
+    )
+    from storage_contracts_compat import StorageObjectRef
+    ref = StorageObjectRef("google_drive", "pending/owner/" + "b" * 64, "owner")
+
+    try:
+        run(provider.verify_completion(
+            ref, "drive-file-2", expected_size=4, expected_sha256="b" * 64
+        ))
+    except RuntimeError as exc:
+        assert "not owned" in str(exc)
+    else:
+        raise AssertionError("Missing ownership evidence must fail closed")
+
+
+def test_google_drive_completion_rejects_wrong_size_or_digest():
+    async def fetcher(url, **kwargs):
+        if url.endswith("/token"):
+            return 200, {"access_token": "short-lived-access-token"}
+        return 200, {
+            "id": "drive-file-3",
+            "size": "5",
+            "mimeType": "application/pdf",
+            "ownedByMe": True,
+            "appProperties": {"doka_sha256": "c" * 64},
+        }
+
+    provider = GoogleDriveExportProvider(
+        GoogleDriveConfig("client-id", "client-secret", "refresh-token"),
+        fetcher,
+    )
+    from storage_contracts_compat import StorageObjectRef
+    ref = StorageObjectRef("google_drive", "pending/owner/" + "b" * 64, "owner")
+
+    try:
+        run(provider.verify_completion(
+            ref, "drive-file-3", expected_size=4, expected_sha256="b" * 64
+        ))
+    except ValueError as exc:
+        assert "size/SHA-256" in str(exc)
+    else:
+        raise AssertionError("Mismatched size/digest must be rejected")
