@@ -85,6 +85,42 @@ def test_upload_uses_signed_provider_url_and_worker_completion():
     ]
 
 
+def test_upload_rejects_provider_mismatch_before_upload():
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.host + request.url.path)
+        assert request.url.path == "/api/storage/upload-session"
+        return httpx.Response(
+            200,
+            json={
+                "session_id": "session-1",
+                "provider": "supabase",
+                "upload": {
+                    "method": "PUT",
+                    "url": "https://storage.example/signed-upload",
+                    "headers": {},
+                },
+            },
+        )
+
+    with httpx.Client(
+        base_url="https://cloud.example", transport=httpx.MockTransport(handler)
+    ) as client:
+        with pytest.raises(AssertionError, match="expected 'b2'"):
+            _upload_document(
+                client,
+                "user-token",
+                b"provider mismatch",
+                "acceptance.txt",
+                "text/plain",
+                expected_provider="b2",
+            )
+
+    # Fail before any provider upload or completion request is attempted.
+    assert seen == ["cloud.example/api/storage/upload-session"]
+
+
 def test_download_integrity_hashes_actual_downloaded_bytes():
     payload = b"actual object bytes"
     digest = hashlib.sha256(payload).hexdigest()
