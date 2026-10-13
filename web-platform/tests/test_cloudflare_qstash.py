@@ -121,3 +121,41 @@ def test_malformed_jwt_and_wrong_algorithm_are_rejected():
             next_signing_key="next-key",
             now=1000,
         )
+
+
+def test_base64url_segments_reject_non_alphabet_characters():
+    body = b'{"id":"evt-invalid-b64"}'
+    token = make_token(body, "current-key", "https://example.test/qstash")
+    header, payload, signature = token.split(".")
+    malformed = f"{header}!{payload}.{signature}"
+    with pytest.raises(QStashSignatureError, match="invalid signature"):
+        verify_qstash_signature(
+            body=body,
+            signature=malformed,
+            expected_url="https://example.test/qstash",
+            current_signing_key="current-key",
+            next_signing_key="next-key",
+            now=1000,
+        )
+
+
+@pytest.mark.parametrize("claim_name,claim_value", [("exp", True), ("nbf", 1000.5), ("exp", "1100")])
+def test_timestamp_claims_must_be_integers_not_coercible_values(claim_name, claim_value):
+    body = b'{"id":"evt-invalid-time"}'
+    url = "https://example.test/qstash"
+    header = b64(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    claims = {
+        "iss": "Upstash", "sub": url, "exp": 1100, "nbf": 900,
+        "iat": 900, "jti": "test-jti",
+        "body": b64(hashlib.sha256(body).digest()),
+    }
+    claims[claim_name] = claim_value
+    payload = b64(json.dumps(claims, separators=(",", ":")).encode())
+    signing_input = f"{header}.{payload}".encode("ascii")
+    signature = b64(hmac.new(b"current-key", signing_input, hashlib.sha256).digest())
+    with pytest.raises(QStashSignatureError, match="invalid claims"):
+        verify_qstash_signature(
+            body=body, signature=f"{header}.{payload}.{signature}",
+            expected_url=url, current_signing_key="current-key",
+            next_signing_key="next-key", now=1000,
+        )
