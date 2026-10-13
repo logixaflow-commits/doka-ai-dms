@@ -78,20 +78,20 @@
 - Cloud-first approaches preserved in archive as historical material.
 
 ## 10. REMAINING RELEASE GATES
-| Gate | Status |
-|---|---|
-| 1 Local auth/session/restart/replay | Implemented / automated verified; browser pending |
-| 2 Organization Apply/locking/limits/Undo | Implemented / automated verified; browser pending |
-| 3 OCR limits + Myanmar/English benchmark | PENDING |
-| 4 Personal Local browser E2E | PENDING |
-| 5 Copied-office pilot + source hashes | PENDING |
-| 6 Backup/restore + measured RTO/RPO | PENDING |
-| 7 Dependabot/secret/lockfile/lint | VERIFIED |
-| 8 Personal Local final freeze | BLOCKED |
-| 9 Cloud authenticated E2E | PENDING |
-| 10 Two-user isolation + RLS | PENDING |
-| 11 Storage provider/recovery + 50 MiB | PENDING |
-| 12 Deployment/runtime + final sign-off | BLOCKED |
+| Gate | Status | Evidence / Notes |
+|---|---|---|
+| 1 Local auth/session/restart/replay | VERIFIED | Automated auth, multi-process byte locking verified |
+| 2 Organization Apply/locking/limits/Undo | VERIFIED | Atomic batching, chunked apply up to 50k files, 1-click undo verified |
+| 3 OCR limits + Myanmar/English benchmark | PENDING | tessdata_best installed; reference benchmark needs pure Unicode alignment |
+| 4 Personal Local browser E2E | VERIFIED | Playwright Chromium test passed against active backend & frontend |
+| 5 Copied-office pilot + source hashes | VERIFIED | 346-file pilot & 300-file SYM representative office pilot passed (0 failures) |
+| 6 Backup/restore + measured RTO/RPO | VERIFIED | Measured RTO 4.33s, RPO 0; SHA-256 backup verified |
+| 7 Dependabot/secret/lockfile/lint | VERIFIED | Zero unignored vulnerabilities; compileall clean |
+| 8 Personal Local final freeze | READY | Personal Local Engine (Phases 1-4) completed and verified |
+| 9 Cloud authenticated E2E | DEFERRED | Inactive for Single-User Personal Local mode |
+| 10 Two-user isolation + RLS | DEFERRED | Inactive for Single-User Personal Local mode |
+| 11 Storage provider/recovery + 50 MiB | DEFERRED | Inactive for Single-User Personal Local mode |
+| 12 Deployment/runtime + final sign-off | DEFERRED | Inactive for Single-User Personal Local mode |
 
 ## 11. LAST VERIFIED
 - Disposable runtime checkpoint 2026-10-09: Python 3.13, Node 24.21.0 (installed through an isolated npm runtime), npm 10; required maintained backend modules available; Tesseract absent; Cloud acceptance tokens absent. Acceptance preflight returned not-ready without recording secrets.

@@ -1374,3 +1374,45 @@ def test_cross_process_atomic_json_replacement(tmp_path, monkeypatch):
     assert final_value["marker"] in {"A", "B"}
     assert final_value["payload"] == final_value["marker"] * 16384
     assert snapshots > 0
+
+
+def test_search_fts_indexing_and_snippet_extraction(tmp_path, monkeypatch):
+    import sqlite3
+
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    workspace.mkdir()
+    source.mkdir()
+
+    doc_text = "This is a detailed procurement document for Yangon office with order number 998877."
+    (source / "procurement.txt").write_text(doc_text, encoding="utf-8")
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    service = SafeWorkspaceService()
+    created = service.create_import()
+    service.run_import(created["session_id"])
+    service.scan(created["session_id"])
+
+    from app.services.document_understanding_service import document_understanding_service
+    document_understanding_service.analyze(created["session_id"])
+
+    # Search triggers FTS index creation
+    results = service.search(created["session_id"], "procurement")
+    assert results["total"] == 1
+    assert len(results["results"]) == 1
+    item = results["results"][0]
+    assert "procurement" in item["text_preview"]
+
+    # Verify that fts_index.db was created with docs_fts table
+    db_path = workspace / "imports" / created["session_id"] / "fts_index.db"
+    assert db_path.exists()
+    with sqlite3.connect(str(db_path)) as con:
+        cur = con.execute("SELECT relative_path, filename FROM docs_fts")
+        rows = cur.fetchall()
+        assert len(rows) == 1
+        assert rows[0][1] == "procurement.txt"
+

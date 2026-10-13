@@ -1,0 +1,89 @@
+{
+  "gate": "passed",
+  "gate_reasons": [],
+  "session_id": "b0bd2b6ad0e442e48a35e370c8044da2",
+  "source": {
+    "file_count": 300,
+    "path_recorded": false
+  },
+  "source_unchanged": true,
+  "source_files": 300,
+  "elapsed_seconds": 1004.86,
+  "import": {
+    "state": "completed",
+    "files_total": 300,
+    "files_verified": 300,
+    "files_failed": 0
+  },
+  "scan": {
+    "files_total": 300,
+    "files_readable": 300,
+    "files_unreadable": 0,
+    "exact_duplicate_groups": 15,
+    "filename_collision_groups": 29
+  },
+  "understanding": {
+    "analyzed_files": 300,
+    "ai_used": false
+  },
+  "organization_plan": {
+    "proposals_total": 300,
+    "review_required": 229,
+    "requires_user_approval": true
+  },
+  "ocr": {
+    "available": true,
+    "executable": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "myanmar_language": "mya",
+    "english_language": "eng",
+    "languages": [
+      "eng",
+      "mya"
+    ],
+    "checks": [
+      {
+        "name": "tesseract",
+        "ok": true,
+        "detail": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+      },
+      {
+        "name": "english",
+        "ok": true,
+        "detail": "eng language data"
+      },
+      {
+        "name": "myanmar",
+        "ok": true,
+        "detail": "mya language data"
+      }
+    ],
+    "files_total": 220,
+    "files_failed": 0,
+    "languages_detected": [
+      "eng",
+      "mya+eng"
+    ],
+    "myanmar_detected": true,
+    "english_detected": true,
+    "representative_ocr_passed": true,
+    "required": true,
+    "gate_passed": true
+  },
+  "backup": {
+    "archive_filename": "workspace_20261013T173029660720Z.zip",
+    "sha256": "ed04ec46a1566c97e2f6d945d6d233c04e17eafd8a616962a1acefb6b2fdd2c4",
+    "verified": true,
+    "backup_create_seconds": 6.14,
+    "backup_verify_seconds": 0.282,
+    "restore_seconds": 4.328,
+    "rto_seconds": 4.328,
+    "recovery_verified": true,
+    "recovery_active_workspace_changed": false,
+    "rpo": {
+      "model": "zero_loss_at_backup_point",
+      "files_lost_at_verified_backup_point": 0,
+      "time_window_seconds": null
+    }
+  },
+  "apply_safe": null
+}

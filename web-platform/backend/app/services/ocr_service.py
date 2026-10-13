@@ -441,12 +441,7 @@ class OCRService:
         if should_preprocess:
             image = self._preprocess_image(image, threshold_constant=threshold_constant)
 
-        def recognize(candidate: np.ndarray) -> str:
-            if self._uses_line_recognition(candidate, language):
-                lines = self._text_line_images(candidate)
-                if 2 <= len(lines) <= 80:
-                    return self._recognize_text_lines(lines, language)
-
+        def recognize_full(candidate: np.ndarray) -> str:
             pil_image = Image.fromarray(cv2.cvtColor(candidate, cv2.COLOR_BGR2RGB))
             return pytesseract.image_to_string(
                 pil_image,
@@ -455,12 +450,24 @@ class OCRService:
                 timeout=self.timeout,
             )
 
+        def recognize(candidate: np.ndarray) -> str:
+            if self._uses_line_recognition(candidate, language):
+                lines = self._text_line_images(candidate)
+                if 2 <= len(lines) <= 80:
+                    line_text = self._recognize_text_lines(lines, language)
+                    if len(self._clean_text(line_text).strip()) > 10:
+                        return line_text
+            return recognize_full(candidate)
+
         text = recognize(image)
-        if should_preprocess and not self._clean_text(text).strip():
-            logger.info("Image OCR returned no text after preprocessing; retrying original pixels.")
+        if should_preprocess and len(self._clean_text(text).strip()) <= 10:
+            logger.info("Image OCR returned insufficient text after preprocessing; retrying original pixels.")
             original_text = recognize(original_image)
-            if self._clean_text(original_text).strip():
+            if len(self._clean_text(original_text).strip()) > len(self._clean_text(text).strip()):
                 return original_text
+            full_orig = recognize_full(original_image)
+            if len(self._clean_text(full_orig).strip()) > len(self._clean_text(text).strip()):
+                return full_orig
         return text
 
     @staticmethod

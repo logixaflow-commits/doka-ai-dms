@@ -224,3 +224,42 @@ def test_apply_rejects_final_root_that_points_at_original_source(tmp_path, monke
 
     assert source_file.read_bytes() == original
     assert list(source.iterdir()) == [source_file]
+
+
+def test_apply_in_chunks_batches_safely(tmp_path, monkeypatch):
+    workspace = tmp_path / "workspace"
+    source = tmp_path / "source"
+    final = workspace / "Final"
+    workspace.mkdir()
+    source.mkdir()
+
+    # Create 3 test files to test chunking with chunk_size=2
+    for i in range(3):
+        (source / f"Invoice ABC {i}.txt").write_text(f"Invoice ABC {i}\nPayment due", encoding="utf-8")
+
+    monkeypatch.setattr(settings, "WORKING_ROOT", workspace)
+    monkeypatch.setattr(settings, "SOURCE_ROOT", source)
+    monkeypatch.setattr(settings, "FINAL_ROOT", final)
+    monkeypatch.setattr(settings, "ORIGINAL_READ_ONLY", True)
+    monkeypatch.setattr(settings, "ALLOW_SOURCE_WRITE", False)
+
+    workspace_service = SafeWorkspaceService()
+    created = workspace_service.create_import()
+    workspace_service.run_import(created["session_id"])
+    workspace_service.scan(created["session_id"])
+    planner = OrganizationPlanner()
+    plan = planner.plan(created["session_id"])
+
+    approved = [
+        item["relative_path"]
+        for item in plan["proposals"]
+        if item["action"] == "suggest_move"
+    ]
+    assert len(approved) == 3
+
+    # Apply with chunk_size=2; should process across 2 chunks seamlessly
+    result = planner.apply_in_chunks(created["session_id"], approved, chunk_size=2)
+    assert result["approved_count"] == 3
+    assert len(result["results"]) == 3
+    assert all(item["status"] == "copied" for item in result["results"])
+

@@ -341,6 +341,40 @@ class OrganizationPlanner:
             "source_root_modified": False,
         }
 
+    def apply_in_chunks(
+        self,
+        session_id: str,
+        approved_paths: List[str],
+        chunk_size: int = 500,
+    ) -> Dict[str, Any]:
+        """Apply approved organization paths in safe chunks of <= 500.
+
+        Supports scaling to large collections (e.g. 1,600 to 30,000 files)
+        while adhering to per-operation atomic batch constraints.
+        """
+        if not approved_paths:
+            raise ValueError("No approved files were supplied.")
+        if any(not isinstance(path, str) or not path or len(path) > 1024 for path in approved_paths):
+            raise ValueError("Approved paths must be non-empty relative paths no longer than 1024 characters.")
+        if len(set(approved_paths)) != len(approved_paths):
+            raise ValueError("Duplicate approved paths are not allowed.")
+        if chunk_size < 1 or chunk_size > 500:
+            raise ValueError("chunk_size must be between 1 and 500.")
+
+        all_results = []
+        for i in range(0, len(approved_paths), chunk_size):
+            chunk = approved_paths[i : i + chunk_size]
+            chunk_result = self.apply(session_id, chunk)
+            all_results.extend(chunk_result.get("results", []))
+
+        return {
+            "session_id": session_id,
+            "approved_count": len(approved_paths),
+            "results": all_results,
+            "source_copy_preserved": True,
+            "source_root_modified": False,
+        }
+
 
     def undo(self, session_id: str) -> Dict[str, Any]:
         with safe_workspace_service._session_operation(session_id, "undo"):

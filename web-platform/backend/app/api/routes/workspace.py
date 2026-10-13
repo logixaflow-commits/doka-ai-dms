@@ -16,6 +16,12 @@ class OrganizationApplyRequest(BaseModel):
     confirm: bool = Field(default=False, description="Must be true to copy approved files into Final.")
 
 
+class OrganizationApplyBatchRequest(BaseModel):
+    approved_paths: list[str] = Field(default_factory=list, min_length=1, max_length=50000)
+    confirm: bool = Field(default=False, description="Must be true to copy approved files into Final.")
+    chunk_size: int = Field(default=500, ge=1, le=500)
+
+
 class ImportRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -115,6 +121,19 @@ def apply_organization(session_id: str, request: OrganizationApplyRequest):
     try:
         from app.services.organization_planner import organization_planner
         return organization_planner.apply(session_id, request.approved_paths)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
+
+
+@router.post("/imports/{session_id}/apply-batch")
+def apply_organization_batch(session_id: str, request: OrganizationApplyBatchRequest):
+    if request.confirm is not True:
+        raise HTTPException(status_code=400, detail="Explicit confirm=true is required.")
+    try:
+        from app.services.organization_planner import organization_planner
+        return organization_planner.apply_in_chunks(
+            session_id, request.approved_paths, chunk_size=request.chunk_size
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid request.") from exc
 

@@ -161,7 +161,12 @@ def test_pilot_paths_reject_symlinked_source_root(tmp_path):
     source = tmp_path / "source"
     source.mkdir()
     link = tmp_path / "source-link"
-    link.symlink_to(source, target_is_directory=True)
+    try:
+        link.symlink_to(source, target_is_directory=True)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Symlink creation requires elevated privilege on Windows")
+        raise
     with pytest.raises(SystemExit, match="source path must not be a symbolic link"):
         module.validate_pilot_paths(
             link, tmp_path / "workspace", tmp_path / "backups", tmp_path / "evidence.json"

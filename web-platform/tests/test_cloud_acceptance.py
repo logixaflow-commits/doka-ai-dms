@@ -165,7 +165,12 @@ def test_fifty_mib_fixture_rejects_symlinks(tmp_path):
     target = tmp_path / "target.bin"
     target.write_bytes(b"not a release fixture")
     link = tmp_path / "fixture.bin"
-    link.symlink_to(target)
+    try:
+        link.symlink_to(target)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Symlink creation requires elevated privilege on Windows")
+        raise
 
     with pytest.raises(AssertionError, match="non-symlink"):
         _read_fifty_mib_fixture(link)

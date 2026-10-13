@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import gc
 import json
 import mimetypes
 import re
+import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -91,7 +93,29 @@ class DocumentUnderstandingService:
         if not root.is_dir():
             raise ValueError("Working copy does not exist.")
 
+        # Resumability: load any existing/partial analysis results
+        existing_results_map: Dict[str, Dict[str, Any]] = {}
+        understanding_path = session / "understanding.json"
+        if understanding_path.exists():
+            try:
+                existing_data = self.workspace._read(understanding_path)
+                if isinstance(existing_data, dict):
+                    for prev in existing_data.get("results", []):
+                        if isinstance(prev, dict) and prev.get("relative_path"):
+                            existing_results_map[prev["relative_path"]] = prev
+            except Exception as exc:
+                logger.warning("Could not read previous understanding.json for resume: %s", exc)
+
+        # Hash-based deduplication cache across already analyzed files
+        sha256_cache: Dict[str, Dict[str, Any]] = {}
+        for prev in existing_results_map.values():
+            if prev.get("sha256"):
+                sha256_cache[prev["sha256"]] = prev
+
         results = []
+        batch_counter = 0
+        BATCH_FLUSH_INTERVAL = 50
+
         for relative_path, item in manifest.get("files", {}).items():
             if not item.get("verified"):
                 continue
@@ -107,7 +131,37 @@ class DocumentUnderstandingService:
             expected_hash = str(item.get("sha256", "")).lower()
             if len(expected_hash) != 64 or sha256_file(path).lower() != expected_hash:
                 raise ValueError(f"Working-copy integrity check failed: {relative_path}")
+
+            # 1. Resumability check: if already analyzed in a previous run, reuse directly
+            if relative_path in existing_results_map:
+                entry = existing_results_map[relative_path]
+                results.append(entry)
+                continue
+
+            # 2. Exact SHA-256 Deduplication: reuse extraction from identical document
+            file_sha = item.get("sha256")
+            if file_sha and file_sha in sha256_cache:
+                cached = sha256_cache[file_sha]
+                entry = {
+                    "relative_path": item["relative_path"],
+                    "filename": item["filename"],
+                    "extension": item["extension"],
+                    "sha256": item["sha256"],
+                    "extraction_method": f"{cached.get('extraction_method', 'extracted')}_dedup",
+                    "text_length": cached.get("text_length", 0),
+                    "language": cached.get("language"),
+                    "metadata": cached.get("metadata", {}),
+                    "text_preview": cached.get("text_preview", ""),
+                    "deduplicated_from": cached.get("relative_path"),
+                }
+                results.append(entry)
+                existing_results_map[relative_path] = entry
+                continue
+
+            # 3. Content extraction with Unicode NFC normalization
             text, method = self._extract_text(path)
+            if text:
+                text = unicodedata.normalize("NFC", text)
             language = method if method in {"mya", "eng", "mya+eng"} else None
             extraction_method = "ocr" if language else method
             metadata: Dict[str, Any] = {}
@@ -116,7 +170,8 @@ class DocumentUnderstandingService:
                     metadata = metadata_extractor.extract(text)
                 except Exception as exc:
                     logger.warning("Metadata extraction failed for %s: %s", path, exc)
-            results.append({
+
+            entry = {
                 "relative_path": item["relative_path"],
                 "filename": item["filename"],
                 "extension": item["extension"],
@@ -126,7 +181,24 @@ class DocumentUnderstandingService:
                 "language": language,
                 "metadata": metadata,
                 "text_preview": text[:2000],
-            })
+            }
+            results.append(entry)
+            existing_results_map[relative_path] = entry
+            if file_sha:
+                sha256_cache[file_sha] = entry
+
+            batch_counter += 1
+            if batch_counter % BATCH_FLUSH_INTERVAL == 0:
+                checkpoint_payload = {
+                    "schema_version": 1,
+                    "session_id": session_id,
+                    "analyzed_files": len(results),
+                    "analyzed_at": datetime.now(timezone.utc).isoformat(),
+                    "ai_used": False,
+                    "results": results,
+                }
+                self.workspace._write(session / "understanding.json", checkpoint_payload)
+                gc.collect()
 
         result = {
             "schema_version": 1,
@@ -137,6 +209,7 @@ class DocumentUnderstandingService:
             "results": results,
         }
         self.workspace._write(session / "understanding.json", result)
+        gc.collect()
         return {k: v for k, v in result.items() if k != "results"}
 
 

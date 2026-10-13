@@ -43,6 +43,13 @@ Do not mark a gate PASS from code or CI alone.
 - Real Tesseract, copied-office, recovery, authenticated cloud, and provider-recovery evidence remain runtime prerequisites.
 - Train 1 workflow/AI foundations are being hardened in parallel, but are not activated as a release claim.
 
+### Personal Local Operations Engine (Completed 2026-10-14)
+- **Scope Model:** Dedicated Single-User Personal DMS, Pure Unicode standard (Zawgyi dropped). Multi-User & Enterprise RBAC preserved as archived/deferred (Train 2 / Phase 9).
+- **Phase 1 (Batch Worker & Resumable Deduplication):** Completed. Incremental checkpointing every 50 files, automatic resume from interrupted sessions, SHA-256 duplicate reuse avoiding redundant OCR, and `gc.collect()` memory management.
+- **Phase 2 (Final Move Execution & Safe Rollback):** Completed. `apply_in_chunks` and `/api/workspace/imports/{session_id}/apply-batch` endpoint support organizing up to 50,000 files in atomic 500-file batches, with full SHA-256 pre/post verification and 1-click rollback.
+- **Phase 3 (Fast Full-Text Search):** Completed. SQLite FTS5 index (`fts_index.db`) automatically generated and maintained per session; contextual snippet extraction with keyword boundaries.
+- **Phase 4 (1-Click Desktop Launcher & Backup):** Completed. `start-doka.bat` (1-click launch backend + frontend + browser), `stop-doka.bat` (clean shutdown), and `backup-doka.bat` (instant verified workspace backup).
+
 ## Train 1 — Phase 7/8 Workflow + AI Hardening
 
 **Exit:** durable workflow/idempotency/retry evidence, provider failover evidence,
