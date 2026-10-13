@@ -2,7 +2,7 @@
 
 > **Owner:** How is document storage routed, isolated, verified and recovered?
 > **Update when:** Storage provider routing, object limits, integrity checks, migration/rollback rules or recovery behavior changes.
-> **Last Updated:** 2026-10-08
+> **Last Updated:** 2026-10-13
 > **Do NOT put here:** General deployment topology, database schema, or release status.
 
 ## Personal Local
@@ -26,7 +26,12 @@ Provider-level recovery was live-tested on 2026-10-08 using a disposable 22-byte
 This proves provider-level recovery behavior, not the complete Doka application adapter/release gate.
 
 ### Backblaze B2
-VERIFY/PENDING. No live B2 credential or storage connector was available in this pass. Required evidence remains a real upload/download/integrity/delete/recovery test, including an object above 50 MiB.
+Configuration evidence (2026-10-13):
+- The Cloudflare Worker `doka-ai-dms` has the `B2_QUOTA_BYTES` secret binding set to 1 GiB (1,073,741,824 bytes) per user.
+- Quota warning threshold: 80% projected usage. Upload blocking threshold: 95% projected usage.
+- The Worker deployment recorded for this configuration is `d894b59e-4aca-4fa2-86b2-9750055749eb`, active version `75e436b2-2009-4779-b659-5421bea0843a`, with 100% traffic.
+
+VERIFY/PENDING. This confirms quota configuration and deployment metadata only; it does not prove B2 credentials are valid or that live object operations work. Required evidence remains an application-path upload/download/SHA-256 integrity/delete/recovery test, quota rejection and recovery test, and an object above 50 MiB.
 
 ### Google Drive
 VERIFY/PENDING. No live Google Drive OAuth connector or disposable OAuth account was available in this pass. Required evidence remains connect -> consent -> callback -> Connected, followed by export and retrieval verification.
