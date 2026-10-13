@@ -125,14 +125,14 @@ class GoogleDriveExportProvider:
             f"https://www.googleapis.com/drive/v3/files/{safe_id}?alt=media&supportsAllDrives=true",
             method="GET",
             headers={"Authorization": f"Bearer {token}"},
-            return_bytes=True,
+            return_sha256=True,
             max_bytes=self.MAX_INLINE_CHECKSUM_BYTES,
         )
-        if media_status >= 300 or not isinstance(content, (bytes, bytearray)):
+        if media_status >= 300 or not isinstance(content, dict):
             raise RuntimeError("Google Drive export content verification failed")
-        if len(content) != expected_size:
+        if int(content.get("size_bytes") or 0) != expected_size:
             raise ValueError("Google Drive export failed size/SHA-256 verification")
-        digest = hashlib.sha256(content).hexdigest()
+        digest = str(content.get("sha256") or "").lower()
         if digest != expected_sha256.lower():
             raise ValueError("Google Drive export failed size/SHA-256 verification")
         return StoredObjectResult(
