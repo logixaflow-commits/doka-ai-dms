@@ -73,3 +73,15 @@ This is a GitHub source/PR metadata audit. A full local clone, full test suite, 
 - #35 https://github.com/logixaflow-commits/doka-ai-dms/pull/35
 - #36 https://github.com/logixaflow-commits/doka-ai-dms/pull/36
 - #37 https://github.com/logixaflow-commits/doka-ai-dms/pull/37
+
+
+## Follow-up verification — 2026-10-13
+
+- Current main head at this follow-up: `02b025c7497734d22ac2c1542a79aa3f4133543b` (`fix: declare Redis dependency for local backend`).
+- GitHub Actions run [38369055323](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38369055323) completed successfully for the cloud storage contract tests, repository self-audit preflight, workflow sanity, backend regression suite, static analysis/SBOM, backend dependency audit, symlink security tests, root dependency audit, and frontend build/smoke tests. The Vercel status returned success for this head. These results do not replace live provider acceptance.
+- Branch inventory now returns only `main`, `fix/myanmar-ocr-text-preservation`, the backend Dependabot branch, and the frontend Dependabot branch. The older PR/branch table above is historical and must not be read as a current branch inventory.
+- PR #23 (frontend dependency group) was closed on 2026-10-13 without merging. Its branch was 210 commits behind current main and changed package.json plus package-lock.json as a large batch; it should be regenerated against current main if updates are still needed.
+- PR #47 (backend dependency group) remains open and is only one commit ahead of current main, but its six requirement files include major-version jumps (including filelock, OpenCV, pandas, NumPy, Pillow, cryptography, Redis and testing tools). Do not merge until the exact PR-head checks pass and the dependency resolution/build/test matrix is verified.
+- `fix/myanmar-ocr-text-preservation` is 13 commits ahead and 47 behind main. It has a distinct regression workflow/test and OCR/Google Drive edits, but it is heavily diverged. Do not merge the whole branch; compare each remaining change with current main and cherry-pick/reimplement only a confirmed missing, tested fix.
+- OCR acceptance remains NOT READY: the checked-in report's strict target is CER <= 10% and WER <= 20%; its latest acceptance rerun has six sample-threshold violations and `gate_ready: false`. Keep this gate closed until the sample/reference evidence is valid and the required language-specific samples pass.
+- Still pending for release: authenticated B2 upload/download/checksum/delete/quota/recovery and >50 MiB boundary; real Google Drive OAuth/export/retrieval; Supabase two-user RLS acceptance; Cloudinary application-path validation; Windows multiprocess lock pilot; backup/restore; browser E2E and full UI acceptance. Do not mark these complete from source inspection or unauthenticated 401 probes.
