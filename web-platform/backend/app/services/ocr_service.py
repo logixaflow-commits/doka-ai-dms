@@ -434,24 +434,34 @@ class OCRService:
         *,
         preprocess: Optional[bool] = None,
     ) -> str:
-        """Recognize an image, using line segmentation for Myanmar page layouts."""
+        """Recognize an image, retrying original pixels if preprocessing erases text."""
+        original_image = image.copy()
         psm, threshold_constant = self._layout_ocr_settings(image)
         should_preprocess = self.preprocessing if preprocess is None else preprocess
         if should_preprocess:
             image = self._preprocess_image(image, threshold_constant=threshold_constant)
 
-        if self._uses_line_recognition(image, language):
-            lines = self._text_line_images(image)
-            if 2 <= len(lines) <= 80:
-                return self._recognize_text_lines(lines, language)
+        def recognize(candidate: np.ndarray) -> str:
+            if self._uses_line_recognition(candidate, language):
+                lines = self._text_line_images(candidate)
+                if 2 <= len(lines) <= 80:
+                    return self._recognize_text_lines(lines, language)
 
-        pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        return pytesseract.image_to_string(
-            pil_image,
-            lang=language,
-            config=f"--oem {self.oem} --psm {psm}",
-            timeout=self.timeout,
-        )
+            pil_image = Image.fromarray(cv2.cvtColor(candidate, cv2.COLOR_BGR2RGB))
+            return pytesseract.image_to_string(
+                pil_image,
+                lang=language,
+                config=f"--oem {self.oem} --psm {psm}",
+                timeout=self.timeout,
+            )
+
+        text = recognize(image)
+        if should_preprocess and not self._clean_text(text).strip():
+            logger.info("Image OCR returned no text after preprocessing; retrying original pixels.")
+            original_text = recognize(original_image)
+            if self._clean_text(original_text).strip():
+                return original_text
+        return text
 
     @staticmethod
     def _uses_line_recognition(image: np.ndarray, language: str) -> bool:
@@ -563,19 +573,24 @@ class OCRService:
         return "eng"
 
     def _clean_text(self, text: str) -> str:
-        """Clean OCR output: normalize whitespace, fix common OCR errors."""
+        """Normalize OCR text without dropping valid one-character lines or script marks."""
+        import unicodedata
+
         if not text:
             return ""
 
-        # Normalize line endings
+        text = unicodedata.normalize("NFC", text)
         text = text.replace("\r\n", "\n").replace("\r", "\n")
-
-        # Remove excessive whitespace
+        # Remove control artifacts (for example, form-feed) but preserve layout
+        # newlines and tabs until whitespace normalization below. Do not strip
+        # Unicode format characters globally: Myanmar ZWJ/ZWNJ can be meaningful.
+        text = "".join(
+            char for char in text
+            if unicodedata.category(char) != "Cc" or char in {"\n", "\t"}
+        )
         text = re.sub(r"[ \t]+", " ", text)
         text = re.sub(r"\n{3,}", "\n\n", text)
-
-        # Remove standalone noise characters
-        lines = [line.strip() for line in text.split("\n") if len(line.strip()) > 1]
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
         return "\n".join(lines)
 
     def get_tesseract_info(self) -> dict:
