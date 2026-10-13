@@ -92,6 +92,30 @@ def _js_bytes(data: bytes):
     return result
 
 
+async def _hash_response_stream(reader, max_bytes: int) -> dict[str, str | int]:
+    """Hash a JS ReadableStream reader incrementally with a strict byte cap."""
+    digest = hashlib.sha256()
+    size_bytes = 0
+    try:
+        while True:
+            chunk_result = await reader.read()
+            if bool(chunk_result.done):
+                break
+            chunk = chunk_result.value
+            chunk_length = int(chunk.length)
+            size_bytes += chunk_length
+            if size_bytes > max_bytes:
+                await reader.cancel()
+                raise ValueError("Binary response exceeds the configured verification limit")
+            digest.update(bytes(int(chunk[index]) for index in range(chunk_length)))
+        return {"size_bytes": size_bytes, "sha256": digest.hexdigest()}
+    finally:
+        try:
+            reader.releaseLock()
+        except Exception:
+            pass
+
+
 async def _fetch(
     request,
     url: str,
@@ -115,26 +139,7 @@ async def _fetch(
         if content_length is not None and int(content_length) > max_bytes:
             raise ValueError("Binary response exceeds the configured verification limit")
         reader = response.body.getReader()
-        digest = hashlib.sha256()
-        size_bytes = 0
-        try:
-            while True:
-                chunk_result = await reader.read()
-                if bool(chunk_result.done):
-                    break
-                chunk = chunk_result.value
-                chunk_length = int(chunk.length)
-                size_bytes += chunk_length
-                if size_bytes > max_bytes:
-                    await reader.cancel()
-                    raise ValueError("Binary response exceeds the configured verification limit")
-                digest.update(bytes(int(chunk[index]) for index in range(chunk_length)))
-        finally:
-            try:
-                reader.releaseLock()
-            except Exception:
-                pass
-        return int(response.status), {"size_bytes": size_bytes, "sha256": digest.hexdigest()}
+        return int(response.status), await _hash_response_stream(reader, max_bytes)
     if return_headers:
         header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
