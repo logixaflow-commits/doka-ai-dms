@@ -4,6 +4,8 @@
 
 ## A. Owner/local-machine work required before Personal Local release
 
+For the consolidated, command-by-command Train 1 + Personal Local handoff, see [Train 1 + Personal Local — execution handoff](./Report/train1-local-readiness.md). This is a preparation guide, not a release approval.
+
 Run from a clean checkout of the PR/main branch after its changes are merged. Use a dedicated test copy and never point acceptance scripts at original office files.
 
 ### A1. Prepare and report the local environment
