@@ -492,7 +492,21 @@ class OCRService:
                 continue
             left = max(0, int(active_columns[0]) - 20)
             right = min(gray.shape[1], int(active_columns[-1]) + 21)
-            line_images.append(Image.fromarray(gray[top:bottom, left:right]).convert("RGB"))
+            crop = gray[top:bottom, left:right]
+            # Tesseract's line segmentation is sensitive to small glyph height,
+            # especially Myanmar stacked marks. Normalize small line crops to a
+            # minimum glyph canvas height before PSM 7 recognition; never shrink
+            # an already large crop or alter the source image on disk.
+            target_height = 48
+            if crop.shape[0] < target_height:
+                scale = target_height / crop.shape[0]
+                target_width = max(1, int(round(crop.shape[1] * scale)))
+                crop = cv2.resize(
+                    crop,
+                    (target_width, target_height),
+                    interpolation=cv2.INTER_CUBIC,
+                )
+            line_images.append(Image.fromarray(crop).convert("RGB"))
         return line_images
 
     def _recognize_text_lines(self, lines: list[Image.Image], language: str) -> str:
