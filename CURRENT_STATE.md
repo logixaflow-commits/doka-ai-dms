@@ -12,7 +12,7 @@
 - **Enterprise:** deferred.
 - **Cloudflare Worker:** current live deployment is verified below.
 - **Vercel:** project reports `live=false`; the repository's Vercel production smoke workflow explicitly states production is intentionally paused and is manual-only. Keep Gate 12 blocked until owner-approved reactivation and final acceptance.
-- **Render:** no services were returned for the connected Render workspace; this is evidence of no accessible active Render runtime.
+- **Render:** the connected workspace service-list calls returned `null`; no service ID/configuration was available to inspect. This is a connector visibility result, not proof no service exists elsewhere.
 
 ## 4. COMPLETED
 - Phase A–E remediation work preserved as historical evidence.
@@ -31,11 +31,12 @@
 - Gate 7: quality/dependency/security workflow evidence is green.
 - Live Supabase migration head: `20261009083942_doka_trigger_function_least_privilege` — applied during the 2026-10-09 cloud follow-up and verified from the live migration list. The corresponding migration filename is reconciled on PR #24.
 - Trigger-function privilege verification after migration: `anon_can_execute=false`, `authenticated_can_execute=false`, `service_role_can_execute=true` for `public.doka_set_updated_at()`.
-- Cloudflare Worker `doka-ai-dms` is live at 100% traffic; the latest inspected deployment is version 671 (100% on version ID `14e89790-c793-4d9b-9025-c5c7f412033f`). The configured 50 MiB limit and provider bindings are present; provider application-path acceptance remains pending. Production D1 `DOKA_DB` remains provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
+- Cloudflare Worker `doka-ai-dms` is live at 100% traffic on active version `75e436b2-2009-4779-b659-5421bea0843a`, deployment `d894b59e-4aca-4fa2-86b2-9750055749eb` (2026-10-13). The 50 MiB routing limit and B2 per-user quota binding (1 GiB, warn 80%, block 95%) are configured; authenticated provider application-path acceptance remains pending. Production D1 `DOKA_DB` remains provisioned and bound; reviewed baseline migration is applied and disposable live idempotency/outbox acceptance passed.
 - Render connected workspace `My Workspace`: explicit service-list calls returned `null` on 2026-10-09; no service ID/configuration was available to inspect. This is a connector visibility result, not proof no service exists in another account/team. Railway configuration files in the repository are not proof that Railway is the active runtime.
 - Cloudinary provider-level recovery probe on 2026-10-08: 22-byte test object, SHA-256 42b68a292fea02d6220c0ee02a4489697758f19d4fb1420d9063697087583a1c; backup download returned exact payload; delete returned success; subsequent asset lookup returned a zero-byte placeholder, proving the original delivery object was removed. Tool-side duration was not exposed.
 
 ## 6. IN PROGRESS
+- 2026-10-13 follow-up: Myanmar OCR now preserves the original image path for fallback when preprocessing/Tesseract fails, with a regression test. The focused harness, Python compile checks, repository compileall, 23/23 repository self-audit checks, and frontend smoke tests passed in the available validation box. Full pytest was unavailable there; exact-HEAD GitHub backend CI and the strict OCR quality gate remain unverified/blocked. Google Drive remains single-configured-refresh-token export only; multi-account OAuth, Shared Drives, virtual classification, and approval-gated moves are explicitly pending.
 - 2026-10-09 cloud checkpoint: live Supabase security advisor still has leaked-password protection WARN; latest inspected Cloudflare Worker version is 671 at 100% traffic. Supabase least-privilege trigger-function migration is now applied and verified. Neither observation closes application acceptance gates.
 - Vercel project `enterprise-ai-dms` remains `live=false` with latest deployment `CANCELED`. The deployment API links the cancellation to the ignored-build-step setting, and `.github/workflows/vercel-production.yml` explicitly documents production as intentionally paused/manual-only. No production deploy was triggered; Gate 12 remains blocked pending owner-approved reactivation and gate evidence.
 - Train 1 checkpoint: D1 job-idempotency/outbox adapters are now live-backed and their disposable acceptance evidence is recorded; AI retry/circuit/failover and OCR-aware retrieval remain runtime/provider evidence gates.
