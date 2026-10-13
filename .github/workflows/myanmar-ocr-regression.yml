@@ -1,0 +1,54 @@
+name: Myanmar OCR Regression
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "web-platform/backend/app/services/ocr_service.py"
+      - "web-platform/backend/app/services/myanmar_ocr.py"
+      - "web-platform/backend/tests/test_ocr_safety_limits.py"
+      - "web-platform/backend/tests/test_myanmar_ocr_postprocessing.py"
+      - "web-platform/backend/requirements-local.txt"
+      - ".github/workflows/myanmar-ocr-regression.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "web-platform/backend/app/services/ocr_service.py"
+      - "web-platform/backend/app/services/myanmar_ocr.py"
+      - "web-platform/backend/tests/test_ocr_safety_limits.py"
+      - "web-platform/backend/tests/test_myanmar_ocr_postprocessing.py"
+      - "web-platform/backend/requirements-local.txt"
+      - ".github/workflows/myanmar-ocr-regression.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: myanmar-ocr-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  targeted-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web-platform/backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: web-platform/backend/requirements-local.txt
+      - name: Install backend test dependencies
+        run: python -m pip install -r requirements-local.txt
+      - name: Compile changed OCR modules and tests
+        run: |
+          python -m py_compile app/services/ocr_service.py app/services/myanmar_ocr.py
+          python -m py_compile tests/test_ocr_safety_limits.py tests/test_myanmar_ocr_postprocessing.py
+      - name: Run Myanmar OCR preservation regressions
+        run: python -m pytest -q tests/test_ocr_safety_limits.py tests/test_myanmar_ocr_postprocessing.py
