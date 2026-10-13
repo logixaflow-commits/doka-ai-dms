@@ -54,8 +54,8 @@ def test_google_drive_completion_accepts_verified_shared_drive_parent():
         if url.endswith("/token"):
             return 200, {"access_token": "short-lived-access-token"}
         if "alt=media" in url:
-            assert kwargs.get("return_bytes") is True
-            return 200, b"test document"
+            assert kwargs.get("return_sha256") is True
+            return 200, {"size_bytes": 13, "sha256": digest}
         return 200, {
             "id": "shared-file-id",
             "size": "13",
@@ -185,7 +185,7 @@ def test_google_drive_completion_hashes_downloaded_bytes_instead_of_trusting_app
         if url.endswith("/token"):
             return 200, {"access_token": "short-lived-access-token"}
         if "alt=media" in url:
-            return 200, b"changed"
+            return 200, {"size_bytes": 7, "sha256": "0" * 64}
         return 200, {
             "id": "drive-file-4",
             "size": "7",
