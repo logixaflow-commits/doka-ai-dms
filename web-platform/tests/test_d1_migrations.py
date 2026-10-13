@@ -52,6 +52,8 @@ def test_all_numbered_d1_migrations_apply_cleanly_in_sqlite():
     assert "organization_one_owner_idx" in objects
     assert "documents_owner_must_be_org_member_insert" in objects
     assert "document_permissions_scope_insert" in objects
+    assert "jobs_require_organization_insert" in objects
+    assert "jobs_require_organization_update" in objects
     connection.close()
 
 
@@ -89,4 +91,33 @@ def test_permission_recipient_and_granter_must_be_authorized():
     connection.execute(
         "INSERT INTO document_permissions (document_id, user_id, permission, granted_by) VALUES ('doc', 'owner', 'read', 'member')"
     )
+    connection.close()
+
+
+
+def test_durable_jobs_require_a_nonblank_organization():
+    connection = _database_with_migrations()
+    _seed_organization(connection)
+    connection.execute(
+        """INSERT INTO jobs (id, organization_id, job_type, idempotency_key, payload_json)
+           VALUES ('job-valid', 'org', 'ocr', 'key-valid', '{}')"""
+    )
+    for job_id, organization_id, key in (
+        ("job-null", None, "key-null"),
+        ("job-blank", "", "key-blank"),
+        ("job-space", "   ", "key-space"),
+        ("job-padded", " org ", "key-padded"),
+    ):
+        with pytest.raises(sqlite3.IntegrityError, match="durable jobs require an organization"):
+            connection.execute(
+                """INSERT INTO jobs (id, organization_id, job_type, idempotency_key, payload_json)
+                   VALUES (?, ?, 'ocr', ?, '{}')""",
+                (job_id, organization_id, key),
+            )
+    for invalid_org in (None, "", "   ", " org "):
+        with pytest.raises(sqlite3.IntegrityError, match="durable jobs require an organization"):
+            connection.execute(
+                "UPDATE jobs SET organization_id = ? WHERE id = 'job-valid'",
+                (invalid_org,),
+            )
     connection.close()

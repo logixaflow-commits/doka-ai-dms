@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -31,6 +32,7 @@ _KEY_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123
 _MAX_KEY = 255
 _MAX_JOB_TYPE = 100
 _MAX_ATTEMPTS = 20
+_SAFE_ERROR_CODE = re.compile(r"^[a-z][a-z0-9_.:-]{0,99}$")
 
 
 def _stamp(value: datetime | None = None) -> str:
@@ -41,17 +43,30 @@ def _stamp(value: datetime | None = None) -> str:
 
 
 def _validate_key(value: str) -> str:
-    key = str(value).strip()
-    if not 1 <= len(key) <= _MAX_KEY or any(char not in _KEY_CHARS for char in key):
+    if not isinstance(value, str):
+        raise ValueError("Invalid job idempotency key.")
+    key = value.strip()
+    if key != value or not 1 <= len(key) <= _MAX_KEY or any(char not in _KEY_CHARS for char in key):
         raise ValueError("Invalid job idempotency key.")
     return key
 
 
 def _validate_job_type(value: str) -> str:
-    job_type = str(value).strip()
-    if not 1 <= len(job_type) <= _MAX_JOB_TYPE:
+    if not isinstance(value, str):
+        raise ValueError("Invalid job type.")
+    job_type = value.strip()
+    if job_type != value or not 1 <= len(job_type) <= _MAX_JOB_TYPE:
         raise ValueError("Invalid job type.")
     return job_type
+
+
+def _validate_organization_id(value: str | None) -> str:
+    if not isinstance(value, str):
+        raise ValueError("A verified organization ID is required for durable jobs.")
+    organization_id = value.strip()
+    if not organization_id or organization_id != value or len(organization_id) > _MAX_KEY:
+        raise ValueError("A verified organization ID is required for durable jobs.")
+    return organization_id
 
 
 def _payload_json(payload: dict[str, Any]) -> str:
@@ -126,8 +141,9 @@ async def create_or_get_job(
     max_attempts: int = 5,
 ) -> dict[str, Any]:
     """Atomically create a job or return the existing idempotent job."""
-    if not job_id or len(job_id) > 255:
+    if not isinstance(job_id, str) or not job_id or job_id != job_id.strip() or len(job_id) > 255:
         raise ValueError("Invalid job id.")
+    organization_id = _validate_organization_id(organization_id)
     job_type = _validate_job_type(job_type)
     idempotency_key = _validate_key(idempotency_key)
     if type(max_attempts) is not int or not 1 <= max_attempts <= _MAX_ATTEMPTS:
@@ -140,6 +156,10 @@ async def create_or_get_job(
     row = await db.first(GET_BY_KEY_SQL, (idempotency_key,))
     if row is None:
         raise RuntimeError("Job creation did not return a durable record.")
+    if row.get("organization_id") != organization_id:
+        # Idempotency keys are globally unique in D1. Never let a caller from
+        # another tenant replay or inspect a job created under the same key.
+        raise ValueError("Idempotency key is already bound to a different organization.")
     if row.get("job_type") != job_type:
         raise ValueError("Idempotency key is already bound to a different job type.")
     if row.get("payload_json") != encoded:
@@ -181,8 +201,11 @@ async def mark_failed(
     now: datetime | None = None,
 ) -> str:
     """Record a safe failure; retryable jobs return to pending, exhausted jobs become dead."""
-    if not isinstance(error, str) or not error.strip() or len(error) > 500:
-        raise ValueError("Invalid job error.")
+    if type(retryable) is not bool:
+        raise ValueError("retryable must be a boolean.")
+    # Persist bounded taxonomy codes, never exception text that may contain sensitive data.
+    if not isinstance(error, str) or not _SAFE_ERROR_CODE.fullmatch(error):
+        raise ValueError("Job error must be a safe lowercase error code.")
     job_id = job.get("id")
     attempts = job.get("attempts")
     max_attempts = job.get("max_attempts")
@@ -201,7 +224,7 @@ async def mark_failed(
     available = instant if terminal else instant + timedelta(seconds=delay)
     result = await db.execute(
         FAIL_SQL,
-        (status, _stamp(available), error.strip(), _stamp(instant), job_id),
+        (status, _stamp(available), error, _stamp(instant), job_id),
     )
     _require_single_change(result, operation="Job failure")
     return status
