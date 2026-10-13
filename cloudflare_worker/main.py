@@ -108,19 +108,33 @@ async def _fetch(
         options["body"] = body
     response = await js_fetch(url, to_js(options, dict_converter=Object.fromEntries))
     if return_sha256:
-        # Web Crypto hashes the bounded ArrayBuffer without copying it into a
-        # Python bytes object or iterating over every byte in Python.
+        # Hash the provider response incrementally so large exports do not need
+        # to fit in Worker memory as a single ArrayBuffer. Enforce the configured
+        # limit even when the provider omits Content-Length.
         content_length = response.headers.get("content-length")
         if content_length is not None and int(content_length) > max_bytes:
             raise ValueError("Binary response exceeds the configured verification limit")
-        buffer = await response.arrayBuffer()
-        size_bytes = int(buffer.byteLength)
-        if size_bytes > max_bytes:
-            raise ValueError("Binary response exceeds the configured verification limit")
-        digest_buffer = await crypto.subtle.digest("SHA-256", buffer)
-        digest_view = Uint8Array.new(digest_buffer)
-        digest = "".join(f"{int(digest_view[index]):02x}" for index in range(int(digest_view.length)))
-        return int(response.status), {"size_bytes": size_bytes, "sha256": digest}
+        reader = response.body.getReader()
+        digest = hashlib.sha256()
+        size_bytes = 0
+        try:
+            while True:
+                chunk_result = await reader.read()
+                if bool(chunk_result.done):
+                    break
+                chunk = chunk_result.value
+                chunk_length = int(chunk.length)
+                size_bytes += chunk_length
+                if size_bytes > max_bytes:
+                    await reader.cancel()
+                    raise ValueError("Binary response exceeds the configured verification limit")
+                digest.update(bytes(int(chunk[index]) for index in range(chunk_length)))
+        finally:
+            try:
+                reader.releaseLock()
+            except Exception:
+                pass
+        return int(response.status), {"size_bytes": size_bytes, "sha256": digest.hexdigest()}
     if return_headers:
         header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
