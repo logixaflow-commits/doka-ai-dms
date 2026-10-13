@@ -4,6 +4,7 @@ Tesseract-based OCR with Myanmar language support, image preprocessing,
 and PDF handling via pdf2image.
 """
 import io
+import math
 import re
 import tempfile
 from pathlib import Path
@@ -11,10 +12,12 @@ from typing import Optional, Tuple
 
 import cv2
 import numpy as np
+import pypdfium2 as pdfium
 from PIL import Image
 import pytesseract
 import pdfplumber
 from pdf2image import convert_from_path
+from pdf2image.exceptions import PDFInfoNotInstalledError
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -303,36 +306,26 @@ class OCRService:
             # document as a list of page images in memory.
             poppler_path = getattr(getattr(self, "config", settings.ocr), "poppler_path", "")
             for page_number in range(1, page_count + 1):
-                images = convert_from_path(
-                    str(pdf_path),
-                    dpi=self.dpi,
-                    fmt="png",
-                    first_page=page_number,
-                    last_page=page_number,
-                    thread_count=1,
-                    timeout=self.timeout,
-                    size=3500,
-                    **({"poppler_path": poppler_path} if poppler_path else {}),
-                )
+                try:
+                    images = convert_from_path(
+                        str(pdf_path),
+                        dpi=self.dpi,
+                        fmt="png",
+                        first_page=page_number,
+                        last_page=page_number,
+                        thread_count=1,
+                        timeout=self.timeout,
+                        size=3500,
+                        **({"poppler_path": poppler_path} if poppler_path else {}),
+                    )
+                except PDFInfoNotInstalledError:
+                    logger.warning("Poppler is unavailable; using PDFium for PDF OCR.")
+                    return self._process_pdf_with_pdfium(pdf_path, page_count, language)
                 if not images:
                     continue
                 image = images[0]
                 try:
-                    cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-                    selected_language = language or self.lang_string
-                    page_text = self._recognize_image(cv_image, selected_language)
-                    if self.preprocessing and not self._clean_text(page_text).strip():
-                        logger.info(
-                            "PDF page {} produced no text after preprocessing; retrying without preprocessing.",
-                            page_number,
-                        )
-                        unprocessed_text = self._recognize_image(
-                            cv_image,
-                            selected_language,
-                            preprocess=False,
-                        )
-                        if self._clean_text(unprocessed_text).strip():
-                            page_text = unprocessed_text
+                    page_text = self._recognize_pdf_page(image, page_number, language)
                     if page_text.strip():
                         all_text.append(f"--- Page {page_number} ---\\n{page_text}")
                 finally:
@@ -346,6 +339,72 @@ class OCRService:
         except Exception as e:
             logger.error(f"PDF OCR failed for {pdf_path}: {e}")
             raise OCRError(f"PDF OCR failed: {e}") from e
+
+    def _process_pdf_with_pdfium(
+        self,
+        pdf_path: Path,
+        page_count: int,
+        language: Optional[str],
+    ) -> str:
+        """Render scanned PDF pages with PDFium when Poppler is unavailable."""
+        all_text = []
+        document = pdfium.PdfDocument(str(pdf_path))
+        try:
+            for page_number in range(1, page_count + 1):
+                page = document[page_number - 1]
+                bitmap = None
+                image = None
+                try:
+                    page_width, page_height = page.get_size()
+                    if (
+                        not math.isfinite(page_width)
+                        or not math.isfinite(page_height)
+                        or page_width <= 0
+                        or page_height <= 0
+                    ):
+                        raise OCRError("PDF page has invalid dimensions.")
+                    longest_edge = max(page_width, page_height)
+                    scale = min(self.dpi / 72, 3500 / longest_edge)
+                    bitmap = page.render(scale=scale)
+                    image = bitmap.to_pil()
+                    page_text = self._recognize_pdf_page(image, page_number, language)
+                    if page_text.strip():
+                        all_text.append(f"--- Page {page_number} ---\\n{page_text}")
+                finally:
+                    if image is not None:
+                        image.close()
+                    if bitmap is not None:
+                        bitmap.close()
+                    page.close()
+        finally:
+            document.close()
+
+        combined_text = "\\n\\n".join(all_text)
+        logger.info(f"PDFium OCR extracted {len(combined_text)} chars from {page_count} PDF pages")
+        return self._clean_text(combined_text)
+
+    def _recognize_pdf_page(
+        self,
+        image: Image.Image,
+        page_number: int,
+        language: Optional[str],
+    ) -> str:
+        cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        selected_language = language or self.lang_string
+        page_text = self._recognize_image(cv_image, selected_language)
+        if self.preprocessing and not self._clean_text(page_text).strip():
+            logger.info(
+                "PDF page {} produced no text after preprocessing; retrying without preprocessing.",
+                page_number,
+            )
+            unprocessed_text = self._recognize_image(
+                cv_image,
+                selected_language,
+                preprocess=False,
+            )
+            if self._clean_text(unprocessed_text).strip():
+                page_text = unprocessed_text
+        return page_text
 
     def _extract_pdf_text(self, pdf_path: Path) -> str:
         """Extract text directly from text-based PDF using pdfplumber."""
