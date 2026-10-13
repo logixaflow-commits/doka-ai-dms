@@ -52,9 +52,9 @@ jobs:
       - name: Install pinned Wrangler CLI
         run: npm install --global wrangler@4.64.0
       - name: Build Python Worker bundle without deploying
-        run: uvx --from workers-py==1.72.0 pywrangler deploy --dry-run --config wrangler.jsonc
+        run: uvx --from workers-py==1.17.7 pywrangler deploy --dry-run --config wrangler.jsonc
       - name: Deploy Python Worker from repository source
-        run: uvx --from workers-py==1.72.0 pywrangler deploy --yes --config wrangler.jsonc
+        run: uvx --from workers-py==1.17.7 pywrangler deploy --yes --config wrangler.jsonc
       - name: Verify production Worker health
         run: |
           python - <<'PY'
