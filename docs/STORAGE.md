@@ -34,7 +34,7 @@ Configuration evidence (2026-10-13):
 VERIFY/PENDING. This confirms quota configuration and deployment metadata only; it does not prove B2 credentials are valid or that live object operations work. Required evidence remains an application-path upload/download/SHA-256 integrity/delete/recovery test, quota rejection and recovery test, and an object above 50 MiB.
 
 ### Google Drive
-VERIFY/PENDING. No live Google Drive OAuth connector or disposable OAuth account was available in this pass. Required evidence remains connect -> consent -> callback -> Connected, followed by export and retrieval verification.
+VERIFY/PENDING. The current Worker adapter uses one configured `GOOGLE_DRIVE_REFRESH_TOKEN` and supports an export/resumable-upload path; this is not yet a multi-account connection manager. Multiple Google Accounts, Shared Drives, virtual classification without moving originals, and explicit permission/approval-gated moves remain required work. No live Google Drive OAuth connector or disposable OAuth account was available in this pass. Required evidence remains connect -> consent -> callback -> Connected for each account, enumerate My Drive and Shared Drives with pagination, verify owner/drive identity, export and retrieve with SHA-256 verification, and prove originals are not moved until an authorized approval is recorded.
 
 ## Integrity and recovery
 Provider transitions are additive and byte-read-only until target size/SHA-256 are verified. Rollback is routing rollback; never delete the original Supabase object merely because a provider transition occurred.
