@@ -25,7 +25,7 @@ export default function CloudAudit() {
   useEffect(() => { void Promise.resolve().then(refresh); }, [refresh]);
 
   return (
-    <div className="space-y-7">
+    <div className="doka-dashboard">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary"><ShieldCheck className="h-4 w-4" /> Account history</div>
@@ -35,10 +35,10 @@ export default function CloudAudit() {
         <Button variant="outline" onClick={() => void refresh()} disabled={loading} className="h-10 rounded-xl"><RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />Refresh</Button>
       </section>
       {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
-      <Card className="overflow-hidden rounded-2xl border-border/70 shadow-sm"><CardContent className="p-0">
+      <Card className="doka-panel overflow-hidden border-0 shadow-none"><CardContent className="p-0">
         {loading ? <div className="space-y-3 p-6"><div className="h-14 animate-pulse rounded-xl bg-muted" /><div className="h-14 animate-pulse rounded-xl bg-muted" /></div> :
           events.length === 0 ? <div className="px-6 py-14 text-center"><Activity className="mx-auto h-8 w-8 text-muted-foreground" /><h2 className="mt-4 font-semibold">No activity yet</h2><p className="mt-1 text-sm text-muted-foreground">Document actions will appear here after your first cloud operation.</p></div> :
-          <div className="divide-y divide-border/70">{events.map(event => <div key={event.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div className="flex min-w-0 items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Activity className="h-4 w-4" /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="capitalize">{event.action.replace('_', ' ')}</Badge><p className="break-all text-sm font-medium">{event.filename || 'Document'}</p></div><p className="mt-1 text-xs text-muted-foreground">{formatDate(event.created_at)}</p></div></div><p className="text-xs text-muted-foreground sm:max-w-[45%] sm:text-right">{event.document_id ? `Document ID: ${event.document_id}` : 'Account event'}</p></div>)}</div>}
+          <div className="divide-y divide-border/70">{events.map(event => <div key={event.id} className="doka-table-row flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div className="flex min-w-0 items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Activity className="h-4 w-4" /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="capitalize">{event.action.replace('_', ' ')}</Badge><p className="break-all text-sm font-medium">{event.filename || 'Document'}</p></div><p className="mt-1 text-xs text-muted-foreground">{formatDate(event.created_at)}</p></div></div><p className="text-xs text-muted-foreground sm:max-w-[45%] sm:text-right">{event.document_id ? `Document ID: ${event.document_id}` : 'Account event'}</p></div>)}</div>}
       </CardContent></Card>
     </div>
   );
