@@ -307,6 +307,7 @@ jobs:
         run: >-
           python -m py_compile
           scripts/cloud_acceptance.py
+          scripts/cloud_provider_acceptance.py
           scripts/release_gate_check.py
           web-platform/tests/test_cloud_acceptance.py
           web-platform/tests/test_release_gate_check.py
@@ -316,6 +317,7 @@ jobs:
             web-platform/tests/test_cloud_storage_routing.py \
             web-platform/tests/test_cloudflare_storage_direct_upload.py \
             web-platform/tests/test_cloudflare_b2_storage.py \
+            web-platform/tests/test_cloudflare_google_drive.py \
             web-platform/tests/test_cloudflare_b2_quota.py \
             web-platform/tests/test_cloudflare_cloudinary_guard.py \
             web-platform/tests/test_cloudflare_storage_router.py \
