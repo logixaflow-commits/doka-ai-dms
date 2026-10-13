@@ -1,4 +1,7 @@
-"""Bounded-memory streaming hash helpers shared by the Cloudflare Worker."""
+"""Bounded-memory streaming hash helpers shared by the Cloudflare Worker.
+
+Production release note: use this helper for Drive export checksum verification.
+"""
 from __future__ import annotations
 
 import hashlib
