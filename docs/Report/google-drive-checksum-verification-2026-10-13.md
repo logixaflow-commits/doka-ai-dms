@@ -9,8 +9,8 @@ The Drive v3 `files` resource does not provide a `sha256Checksum` field for ordi
 - Removed reliance on the unsupported `sha256Checksum` metadata field.
 - Completion verification now checks the file's configured destination/ownership and exact size, then downloads the actual Drive media through the Worker and computes SHA-256 over those bytes.
 - The Worker binary-fetch helper checks the advertised content length before buffering and checks the actual response size afterward.
-- Server-side checksum verification is capped at 50 MiB to avoid unbounded Worker memory use. Larger Drive exports fail closed with a clear internal error until a streaming hash path is implemented. This is a known limitation, not a passing test.
-- Added regression tests proving the actual downloaded bytes are hashed, mismatched content is rejected even when `appProperties` match, and oversized exports are rejected before media buffering.
+- Server-side checksum verification now streams the Drive media response in chunks and computes SHA-256 incrementally, with a hard 1 GiB verification cap. The response is not buffered as one large ArrayBuffer. The cap protects Worker CPU/bandwidth while supporting exports above 50 MiB.
+- Added regression tests proving the actual downloaded bytes are hashed, mismatched content is rejected even when `appProperties` match, and files above 50 MiB use the streaming-verification path.
 
 ## Verification
 
@@ -22,4 +22,4 @@ The Drive v3 `files` resource does not provide a `sha256Checksum` field for ordi
 
 ## Follow-up
 
-Implement bounded-memory streaming SHA-256 verification to support Drive exports larger than 50 MiB, then run authenticated live export acceptance before declaring the provider complete.
+Run authenticated live export acceptance before declaring the provider complete; the streaming implementation has a 1 GiB hard limit.
