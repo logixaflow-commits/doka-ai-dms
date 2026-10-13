@@ -85,3 +85,11 @@ This is a GitHub source/PR metadata audit. A full local clone, full test suite, 
 - `fix/myanmar-ocr-text-preservation` is 13 commits ahead and 47 behind main. It has a distinct regression workflow/test and OCR/Google Drive edits, but it is heavily diverged. Do not merge the whole branch; compare each remaining change with current main and cherry-pick/reimplement only a confirmed missing, tested fix.
 - OCR acceptance remains NOT READY: the checked-in report's strict target is CER <= 10% and WER <= 20%; its latest acceptance rerun has six sample-threshold violations and `gate_ready: false`. Keep this gate closed until the sample/reference evidence is valid and the required language-specific samples pass.
 - Still pending for release: authenticated B2 upload/download/checksum/delete/quota/recovery and >50 MiB boundary; real Google Drive OAuth/export/retrieval; Supabase two-user RLS acceptance; Cloudinary application-path validation; Windows multiprocess lock pilot; backup/restore; browser E2E and full UI acceptance. Do not mark these complete from source inspection or unauthenticated 401 probes.
+
+
+### OCR regression follow-up — 2026-10-13
+
+- Main now updates `OCRService._clean_text` to normalize Unicode to NFC, remove control artifacts while preserving newlines/tabs and Myanmar format characters, and retain valid one-character lines (including Myanmar numerals).
+- Main now retries image OCR against an untouched copy of the original pixels when preprocessing produces no usable text. It does not retry when the preprocessed image already produces text.
+- Regression tests were added for single-character line preservation, Unicode/control-artifact cleanup, raw-pixel retry, and the no-unnecessary-retry case. Commits: [implementation](https://github.com/logixaflow-commits/doka-ai-dms/commit/bbc38ba906253db0aefc17842949b6c408f7a9f6), [tests](https://github.com/logixaflow-commits/doka-ai-dms/commit/d019ca3a96df0e95dca3b3be89b8d1e6513b53fe), [source-pixel assertion](https://github.com/logixaflow-commits/doka-ai-dms/commit/52156db87b4e7758691cdc948cefced2fccb4b70).
+- The commits' combined status endpoint has not returned a GitHub Actions result yet; the only returned status before the latest test commit was Vercel success. Treat the new regression tests as **pending CI verification**, not as passed.
