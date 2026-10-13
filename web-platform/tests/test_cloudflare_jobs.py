@@ -40,6 +40,7 @@ class FakeD1:
 def test_create_or_get_is_idempotent_and_binds_payload():
     db = FakeD1([{
         "id": "job-1",
+        "organization_id": "org-a",
         "job_type": "ocr",
         "idempotency_key": "doc-1:ocr",
         "payload_json": '{"document_id":"doc-1"}',
@@ -50,6 +51,7 @@ def test_create_or_get_is_idempotent_and_binds_payload():
         job_type="ocr",
         idempotency_key="doc-1:ocr",
         payload={"document_id": "doc-1"},
+        organization_id="org-a",
         max_attempts=5,
     ))
     assert row["id"] == "job-1"
@@ -60,6 +62,7 @@ def test_create_or_get_is_idempotent_and_binds_payload():
 def test_create_or_get_rejects_key_reuse_for_different_payload():
     db = FakeD1([{
         "id": "job-1",
+        "organization_id": "org-a",
         "job_type": "ocr",
         "idempotency_key": "doc-1:ocr",
         "payload_json": '{"document_id":"doc-1"}',
@@ -71,6 +74,26 @@ def test_create_or_get_rejects_key_reuse_for_different_payload():
             job_type="ocr",
             idempotency_key="doc-1:ocr",
             payload={"document_id": "doc-2"},
+            organization_id="org-a",
+        ))
+
+
+def test_idempotency_key_cannot_replay_another_organization_job():
+    db = FakeD1([{
+        "id": "job-private",
+        "organization_id": "org-a",
+        "job_type": "ocr",
+        "idempotency_key": "shared-key",
+        "payload_json": '{"document_id":"doc-1"}',
+    }])
+    with pytest.raises(ValueError, match="different organization"):
+        asyncio.run(create_or_get_job(
+            db,
+            job_id="job-attacker",
+            organization_id="org-b",
+            job_type="ocr",
+            idempotency_key="shared-key",
+            payload={"document_id": "doc-1"},
         ))
 
 
@@ -116,11 +139,19 @@ def test_success_writes_terminal_result():
     assert db.calls[0][2][0] == '{"ok":true}'
 
 
+@pytest.mark.parametrize("job_id", [None, 1, "", "   ", " job-1 ", "j" * 256])
+def test_invalid_job_id_is_rejected(job_id):
+    with pytest.raises(ValueError, match="Invalid job id"):
+        asyncio.run(create_or_get_job(
+            FakeD1(), job_id=job_id, organization_id="org-a", job_type="ocr", idempotency_key="valid-key", payload={},
+        ))
+
+
 @pytest.mark.parametrize("key", ["", "bad key", "a" * 256])
 def test_invalid_idempotency_key_is_rejected(key):
     with pytest.raises(ValueError):
         asyncio.run(create_or_get_job(
-            FakeD1(), job_id="job", job_type="ocr", idempotency_key=key, payload={},
+            FakeD1(), job_id="job", organization_id="org-a", job_type="ocr", idempotency_key=key, payload={},
         ))
 
 
@@ -139,4 +170,64 @@ def test_failure_rejects_stale_job_state_transition():
             retryable=True,
             error="temporary",
             now=NOW,
+        ))
+
+
+@pytest.mark.parametrize("field,value", [
+    ("organization_id", None),
+    ("organization_id", ""),
+    ("organization_id", "   "),
+    ("organization_id", " org-a "),
+    ("job_type", None),
+    ("job_type", 123),
+    ("idempotency_key", None),
+    ("idempotency_key", 123),
+])
+def test_create_or_get_rejects_untrusted_identifier_types(field, value):
+    arguments = {
+        "job_id": "job-safe",
+        "organization_id": "org-a",
+        "job_type": "ocr",
+        "idempotency_key": "valid-key",
+        "payload": {},
+    }
+    arguments[field] = value
+    with pytest.raises(ValueError):
+        asyncio.run(create_or_get_job(FakeD1(), **arguments))
+
+
+def test_create_or_get_rejects_noncanonical_organization_id():
+    db = FakeD1([{
+        "id": "job-1",
+        "organization_id": "org-a",
+        "job_type": "ocr",
+        "idempotency_key": "doc-1:ocr",
+        "payload_json": '{"document_id":"doc-1"}',
+    }])
+    with pytest.raises(ValueError, match="verified organization ID"):
+        asyncio.run(create_or_get_job(
+            db,
+            job_id="job-1",
+            organization_id=" org-a ",
+            job_type="ocr",
+            idempotency_key="doc-1:ocr",
+            payload={"document_id": "doc-1"},
+        ))
+
+
+@pytest.mark.parametrize("retryable", [None, 0, 1, "false", [], {}])
+def test_mark_failed_rejects_non_boolean_retry_classification(retryable):
+    with pytest.raises(ValueError, match="retryable must be a boolean"):
+        asyncio.run(mark_failed(
+            FakeD1(), {"id": "job-invalid-retry", "attempts": 1, "max_attempts": 3},
+            retryable=retryable, error="temporary", now=NOW,
+        ))
+
+
+@pytest.mark.parametrize("error", [None, "", "Temporary provider failure", "https://provider.invalid/?token=secret", "secret\\nvalue", "X-Request-ID:abc"])
+def test_mark_failed_rejects_free_form_error_text(error):
+    with pytest.raises(ValueError, match="safe lowercase error code"):
+        asyncio.run(mark_failed(
+            FakeD1(), {"id": "job-safe-error", "attempts": 1, "max_attempts": 3},
+            retryable=True, error=error, now=NOW,
         ))
