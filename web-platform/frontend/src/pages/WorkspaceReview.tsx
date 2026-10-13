@@ -354,13 +354,13 @@ function LocalWorkspaceReview() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="doka-dashboard">
       <div>
-        <h1 className="text-2xl font-bold">Safe Workspace</h1>
-        <p className="text-sm text-slate-500">Copy → verify → understand → review → approve. Original source is never modified.</p>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Safe Workspace</h1>
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">Copy → verify → understand → review → approve. Original source is never modified.</p>
       </div>
 
-      <Card>
+      <Card className="doka-panel border-0 shadow-none">
         <CardHeader><CardTitle>1. Import a source folder</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <Input data-testid="workspace-source-input" value={source} onChange={e => setSource(e.target.value)} placeholder="Optional local source path; otherwise SOURCE_ROOT" />
@@ -371,12 +371,12 @@ function LocalWorkspaceReview() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="doka-panel border-0 shadow-none">
         <CardHeader><CardTitle>Resume an existing workspace session</CardTitle></CardHeader>
         <CardContent>
           <div className="flex gap-2 items-center">
             <select
-              className="flex-1 rounded-md border px-3 py-2 text-sm"
+              className="h-10 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
               value=""
               onChange={e => e.target.value && resumeSession(e.target.value)}
             >
@@ -394,7 +394,7 @@ function LocalWorkspaceReview() {
 
       {sessionId && (
         <>
-          <Card>
+          <Card className="doka-panel border-0 shadow-none">
             <CardHeader><CardTitle>2. Processing status</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap gap-3 text-sm">
@@ -403,7 +403,7 @@ function LocalWorkspaceReview() {
                 <span>Verified: <strong>{status?.files_verified || 0}/{status?.files_total || 0}</strong></span>
                 <span>Failed: <strong>{status?.files_failed || 0}</strong></span>
               </div>
-              <div className="h-2 rounded bg-slate-100 overflow-hidden"><div className="h-full bg-blue-600" style={{ width: `${Math.round((status?.progress || 0) * 100)}%` }} /></div>
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-[width] duration-300" style={{ width: `${Math.round((status?.progress || 0) * 100)}%` }} /></div>
               <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={showReviewOnly} onCheckedChange={(v) => setShowReviewOnly(Boolean(v))} />
             Show manual-review items only ({reviewCount})
@@ -424,7 +424,7 @@ function LocalWorkspaceReview() {
                   {backups.map(backup => {
                     const archiveName = backup.archive.split(/[\\/]/).pop() || backup.archive;
                     return (
-                      <div key={backup.archive} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2">
+                      <div key={backup.archive} className="doka-table-row flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
                         <div className="min-w-0">
                           <div className="break-all text-xs font-medium">{archiveName}</div>
                           <div className="break-all text-xs text-slate-500">{backup.created_at || ''}</div>
@@ -441,7 +441,7 @@ function LocalWorkspaceReview() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="doka-panel border-0 shadow-none">
             <CardHeader><CardTitle>Search working copy</CardTitle></CardHeader>
             <CardContent>
               <div className="grid gap-2 md:grid-cols-3">
@@ -455,7 +455,7 @@ function LocalWorkspaceReview() {
               </div>
               {searchResults.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  {searchResults.map((item) => <div key={item.relative_path} className="rounded border p-3">
+                  {searchResults.map((item) => <div key={item.relative_path} className="doka-table-row rounded-xl border p-3">
                     <div className="flex items-start justify-between gap-3"><div className="font-medium break-all">{item.relative_path}</div><div className="flex gap-1"><Button variant="outline" size="sm" onClick={() => previewFile(item.relative_path)}>Preview</Button><Button variant="outline" size="sm" onClick={() => downloadFile(item.relative_path)}>Download</Button></div></div>
                     {item.text_preview && <div className="text-xs text-slate-500 mt-1 line-clamp-2">{item.text_preview}</div>}
                   </div>)}
@@ -465,11 +465,11 @@ function LocalWorkspaceReview() {
           </Card>
 
           {ocrResults.length > 0 && (
-            <Card>
+            <Card className="doka-panel border-0 shadow-none">
               <CardHeader><CardTitle>OCR review & correction</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {ocrResults.filter(item => item.extraction_method?.startsWith('ocr') || item.language).slice(0, 20).map(item => (
-                  <div key={item.relative_path} className="rounded-md border p-3 space-y-2">
+                  <div key={item.relative_path} className="doka-panel space-y-2 rounded-xl p-4 shadow-none">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium break-all">{item.relative_path}</span>
                       <Button size="sm" variant="outline" onClick={() => { setEditingOcr(item.relative_path); setOcrDraft(item.corrected_text || item.text_preview || ''); }}>Edit OCR</Button>
@@ -492,7 +492,7 @@ function LocalWorkspaceReview() {
           )}
 
           {proposals.length > 0 && (
-            <Card>
+            <Card className="doka-panel border-0 shadow-none">
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle>3. Review organization proposals</CardTitle>
@@ -505,12 +505,12 @@ function LocalWorkspaceReview() {
                   <Button variant="outline" onClick={() => setSelected(new Set())}>Clear</Button>
                   <Button onClick={applySelected} disabled={busy || selected.size === 0}>Approve & Copy Selected</Button>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="w-full text-sm">
-                    <thead><tr className="border-b text-left"><th className="p-2">✓</th><th className="p-2">File</th><th className="p-2">Action</th><th className="p-2">Confidence</th><th className="p-2">Reason</th><th className="p-2">Target</th></tr></thead>
+                    <thead className="bg-muted/60"><tr className="border-b text-left"><th className="p-2">✓</th><th className="p-2">File</th><th className="p-2">Action</th><th className="p-2">Confidence</th><th className="p-2">Reason</th><th className="p-2">Target</th></tr></thead>
                     <tbody>
                       {visibleProposals.map(p => (
-                        <tr key={p.relative_path} className="border-b align-top">
+                        <tr key={p.relative_path} className="doka-table-row align-top">
                           <td className="p-2"><Checkbox checked={selected.has(p.relative_path)} onCheckedChange={() => toggle(p.relative_path)} /></td>
                           <td className="p-2 max-w-[260px] break-all">{p.relative_path}</td>
                           <td className="p-2"><Badge variant={p.action.startsWith('review') ? 'destructive' : 'secondary'}>{p.action}</Badge></td>
@@ -526,7 +526,7 @@ function LocalWorkspaceReview() {
             </Card>
           )}
 
-          {message && <div className="rounded border p-3 text-sm bg-slate-50">{message}</div>}
+          {message && <div className="rounded-xl border border-border bg-muted/50 p-4 text-sm">{message}</div>}
         </>
       )}
     </div>
@@ -536,15 +536,15 @@ function LocalWorkspaceReview() {
 
 function CloudWorkspaceNotice() {
   return (
-    <div className="mx-auto max-w-3xl py-8">
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 px-7 py-8 text-white sm:px-9">
+    <div className="mx-auto max-w-4xl py-4 sm:py-8">
+      <div className="doka-panel overflow-hidden border-0 shadow-none">
+        <div className="doka-hero px-7 py-9 text-white sm:px-10 sm:py-11">
           <div className="mb-4 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">LOCAL-ONLY FEATURE</div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Safe Workspace runs on your computer</h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-blue-100">Folder import, OCR, file scanning and approval workflows need access to your local files. This cloud website does not have access to your computer's filesystem.</p>
         </div>
-        <div className="space-y-4 p-7 sm:p-9">
-          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+        <div className="space-y-4 p-6 sm:p-9">
+          <div className="rounded-2xl border border-border bg-muted/50 p-5">
             <p className="text-sm font-medium">What you can do here</p>
             <p className="mt-1 text-sm text-muted-foreground">Upload and manage private cloud documents, update their review status, and download them securely.</p>
           </div>
