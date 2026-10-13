@@ -134,6 +134,24 @@ def _download_and_verify(client: httpx.Client, token: str, document_id: str, exp
         raise AssertionError("downloaded object SHA-256 mismatch")
 
 
+def _assert_cross_user_mutations_denied(
+    client: httpx.Client, token: str, document_id: str
+) -> None:
+    """Prove another account cannot mutate or delete a document it does not own."""
+    patched = _auth(
+        client, token, f"/api/documents/{document_id}", method="PATCH",
+        json={"status": "approved", "metadata": {"cross_user_probe": True}},
+    )
+    _assert_status(patched, 404, "user B cross-user metadata update")
+
+    trashed = _auth(client, token, f"/api/documents/{document_id}", method="DELETE")
+    _assert_status(trashed, 404, "user B cross-user trash")
+
+    permanently_deleted = _auth(
+        client, token, f"/api/documents/{document_id}/permanent", method="DELETE"
+    )
+    _assert_status(permanently_deleted, 404, "user B cross-user permanent delete")
+
 def _trash_and_permanently_delete(client: httpx.Client, token: str, document_id: str) -> None:
     trashed = _auth(client, token, f"/api/documents/{document_id}", method="DELETE")
     _assert_status(trashed, 200, "trash document before permanent deletion")
@@ -229,7 +247,11 @@ def main() -> int:
                 client, user_b, f"/api/documents/{document_id}/download"
             )
             _assert_status(denied_download, 404, "user B cross-user download")
-            evidence["checks"]["two_user_isolation"] = True
+            _assert_cross_user_mutations_denied(client, user_b, document_id)
+            # Confirm denied mutation attempts did not change the owner's object.
+            _download_and_verify(client, user_a, document_id, digest)
+            evidence["checks"]["two_user_read_and_mutation_isolation"] = True
+            evidence["checks"]["owner_object_integrity_after_denied_mutations"] = True
 
             if args.fifty_mib_file:
                 fixture = Path(args.fifty_mib_file)
