@@ -17,7 +17,7 @@ from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, Uploa
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
-from js import Object, Uint8Array, fetch as js_fetch
+from js import Object, Uint8Array, crypto, fetch as js_fetch
 from pyodide.ffi import to_js
 from workers import asgi, env as worker_env
 
@@ -100,26 +100,27 @@ async def _fetch(
     headers: dict | None = None,
     body=None,
     return_headers: bool = False,
-    return_bytes: bool = False,
+    return_sha256: bool = False,
     max_bytes: int = 50 * 1024 * 1024,
 ):
     options = {"method": method, "headers": to_js(headers or {}, dict_converter=Object.fromEntries)}
     if body is not None:
         options["body"] = body
     response = await js_fetch(url, to_js(options, dict_converter=Object.fromEntries))
-    if return_bytes:
-        # Only callers with an explicit small verification limit may buffer a
-        # binary response. Check Content-Length before allocating the body, then
-        # check the actual byte count as Content-Length is not always present.
+    if return_sha256:
+        # Web Crypto hashes the bounded ArrayBuffer without copying it into a
+        # Python bytes object or iterating over every byte in Python.
         content_length = response.headers.get("content-length")
         if content_length is not None and int(content_length) > max_bytes:
             raise ValueError("Binary response exceeds the configured verification limit")
         buffer = await response.arrayBuffer()
-        byte_view = Uint8Array.new(buffer)
-        binary = bytes(int(byte_view[index]) for index in range(int(byte_view.length)))
-        if len(binary) > max_bytes:
+        size_bytes = int(buffer.byteLength)
+        if size_bytes > max_bytes:
             raise ValueError("Binary response exceeds the configured verification limit")
-        return int(response.status), binary
+        digest_buffer = await crypto.subtle.digest("SHA-256", buffer)
+        digest_view = Uint8Array.new(digest_buffer)
+        digest = "".join(f"{int(digest_view[index]):02x}" for index in range(int(digest_view.length)))
+        return int(response.status), {"size_bytes": size_bytes, "sha256": digest}
     if return_headers:
         header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
@@ -368,7 +369,7 @@ def _storage_fetcher(request):
         headers: dict | None = None,
         body=None,
         return_headers: bool = False,
-        return_bytes: bool = False,
+        return_sha256: bool = False,
         max_bytes: int = 50 * 1024 * 1024,
     ):
         status, payload = await _fetch(
@@ -378,7 +379,7 @@ def _storage_fetcher(request):
             headers=headers,
             body=body,
             return_headers=return_headers,
-            return_bytes=return_bytes,
+            return_sha256=return_sha256,
             max_bytes=max_bytes,
         )
         return status, payload
