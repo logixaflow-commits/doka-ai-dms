@@ -113,6 +113,9 @@ def _upload_document(
         raise AssertionError("uploaded document size metadata mismatch")
     if document.get("storage_status") != "ready":
         raise AssertionError("uploaded document is not marked storage-ready")
+    # Keep the selected provider in privacy-safe evidence so an acceptance run
+    # can prove which backend it exercised without recording signed URLs.
+    document["_acceptance_provider"] = provider
     return document
 
 
@@ -209,6 +212,7 @@ def main() -> int:
         "privacy": {"tokens_recorded": False, "emails_recorded": False},
         "base_url_recorded": False,
         "expected_storage_provider": expected_provider or "any_supported",
+        "selected_storage_providers": [],
         "checks": {},
     }
     payload = b"Doka cloud acceptance fixture\n"
@@ -230,6 +234,7 @@ def main() -> int:
             document = _upload_document(
                 client, user_a, payload, filename, "text/plain", expected_provider=expected_provider
             )
+            evidence["selected_storage_providers"].append(document.pop("_acceptance_provider"))
             document_id = str(document["id"])
             created_document_ids.append(document_id)
             evidence["checks"]["user_a_upload"] = True
@@ -283,6 +288,7 @@ def main() -> int:
                     client, user_a, boundary_payload, fixture.name, "application/octet-stream",
                     expected_provider=expected_provider,
                 )
+                evidence["selected_storage_providers"].append(boundary.pop("_acceptance_provider"))
                 boundary_id = str(boundary["id"])
                 created_document_ids.append(boundary_id)
                 if boundary_digest != str(boundary.get("sha256") or "").lower():

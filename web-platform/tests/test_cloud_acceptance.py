@@ -78,6 +78,7 @@ def test_upload_uses_signed_provider_url_and_worker_completion():
         document = _upload_document(client, "user-token", payload, "acceptance.txt", "text/plain")
 
     assert document["id"] == "document-123"
+    assert document["_acceptance_provider"] == "supabase"
     assert seen == [
         "cloud.example/api/storage/upload-session",
         "storage.example/signed-upload",
