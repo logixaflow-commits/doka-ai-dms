@@ -58,7 +58,7 @@ def test_stream_hash_cancels_reader_when_actual_bytes_exceed_limit():
     reader = FakeReader([b"1234", b"5678"])
 
     with pytest.raises(ValueError, match="verification limit"):
-        run(_hash_response_stream(reader, max_bytes=6))
+        run(hash_response_stream(reader, max_bytes=6))
 
     assert reader.cancelled is True
     assert reader.released is True
@@ -67,6 +67,6 @@ def test_stream_hash_cancels_reader_when_actual_bytes_exceed_limit():
 def test_stream_hash_accepts_empty_body():
     reader = FakeReader([])
 
-    result = run(_hash_response_stream(reader, max_bytes=1))
+    result = run(hash_response_stream(reader, max_bytes=1))
 
     assert result == {"size_bytes": 0, "sha256": hashlib.sha256(b"").hexdigest()}
