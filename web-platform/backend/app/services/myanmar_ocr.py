@@ -90,9 +90,12 @@ class MyanmarOCRService:
         Returns:
             Dictionary with extracted text and metadata
         """
+        # Keep the untouched source path so every fallback reads the original
+        # pixels, not a thresholded/contrast-adjusted intermediate image.
+        source_image_path = image_path
         if not self.is_available:
             logger.warning("Myanmar OCR not available, falling back to basic OCR")
-            return self._fallback_ocr(image_path)
+            return self._fallback_ocr(source_image_path)
         
         try:
             # Preprocess image if requested
@@ -135,14 +138,14 @@ class MyanmarOCRService:
                 }
             else:
                 logger.error(f"Tesseract failed: {result.stderr}")
-                return self._fallback_ocr(image_path)
+                return self._fallback_ocr(source_image_path)
                 
         except subprocess.TimeoutExpired:
             logger.error("Tesseract timeout")
-            return self._fallback_ocr(image_path)
+            return self._fallback_ocr(source_image_path)
         except Exception as e:
             logger.error(f"Myanmar OCR failed: {e}")
-            return self._fallback_ocr(image_path)
+            return self._fallback_ocr(source_image_path)
     
     def _preprocess_image(self, image_path: str) -> Optional[str]:
         """Preprocess image for better OCR accuracy"""
