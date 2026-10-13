@@ -38,6 +38,15 @@ The connected `My Workspace` service-list requests returned `null` on 2026-10-09
 ## Release evidence
 Required before production sign-off: authenticated user lifecycle, two-user isolation, 50 MiB boundary, provider recovery drills, OCR benchmark, backup/recovery proof, Supabase security settings, and runtime monitoring evidence. D1 authorization-integrity migration 0002 has now been applied after a successful pre-change export/restore check; its seven expected index/trigger objects were verified in production and the affected metadata tables remain empty. The active document API still uses Supabase Postgres/Storage; D1 guard installation is not a substitute for Supabase RLS or two-user acceptance. Gate 9/10 execution uses the current direct-upload session/completion API and verifies actual downloaded bytes against SHA-256; it requires two pre-created user access tokens and an exact 50 MiB fixture for full closure. The runner must execute against a dedicated acceptance environment that allows both test users; production single-user restriction must not be weakened just to make the test pass. Gate 11 additionally requires live B2 and Google Drive recovery evidence and a real Cloudinary application-path check.
 
+### Latest live acceptance checkpoint — 2026-10-13
+A read-only query of the active Supabase project returned 0 rows in each of `public.doka_documents`, `public.doka_document_versions`, and `public.doka_audit_events`. Therefore, no document lifecycle is evidenced in these tables at this checkpoint, and authenticated upload/download, two-user isolation, version history, and audit-event acceptance remain unproven. Do not infer success from empty tables or from unauthenticated endpoints returning 401.
+
+Supabase performance advisors reported three currently unused indexes: `doka_audit_events_owner_created_idx`, `doka_documents_storage_provider_idx`, and `doka_document_versions_storage_provider_idx`. These were not removed because the document tables are empty at this checkpoint; collect representative workload evidence before considering index removal.
+
+The OCR acceptance report at `docs/Report/ocr-benchmark.json` remains `gate_ready: false`. Its strict quality gate (CER <= 10%, WER <= 20%) records six threshold violations across three samples; the threshold must not be relaxed to make the gate pass. Existing exploratory sample sets are explicitly not acceptance evidence because reference provenance/source alignment is incomplete.
+
+The latest code commit's connector-visible commit status only reported a successful Vercel check; the workflow-run lookup returned no PR-triggered runs for that SHA. This is not proof that the GitHub Actions backend suite passed. Verify the current GitHub Actions run before release sign-off.
+
 ## Database migration distinction
 Repository migration includes the reconciled least-privilege trigger migration `20261009083942_doka_trigger_function_least_privilege`.
 Last verified live Supabase head on 2026-10-09: `20261009083942_doka_trigger_function_least_privilege`.
