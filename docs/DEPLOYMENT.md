@@ -47,6 +47,19 @@ The OCR acceptance report at `docs/Report/ocr-benchmark.json` remains `gate_read
 
 The latest code commit's connector-visible commit status only reported a successful Vercel check; the workflow-run lookup returned no PR-triggered runs for that SHA. This is not proof that the GitHub Actions backend suite passed. Verify the current GitHub Actions run before release sign-off.
 
+## Authenticated provider acceptance checkpoint — 2026-10-13
+
+Fresh read-only checks against the connected Cloudflare and Supabase accounts:
+- The active Worker has secret bindings for all four B2 connection fields, the B2 quota, the dedicated storage-session signer, and all four Google Drive OAuth/folder fields. Cloudflare's API only exposes secret binding names/types here; this does not prove that B2 credentials are accepted by Backblaze or that Google OAuth refresh succeeds.
+- The Worker subdomain is enabled, and the latest inspected deployment still serves 100% traffic. The runtime retains `DOKA_SINGLE_USER_EMAIL`; do not disable this production restriction to make a two-user test pass.
+- The configured application object-size boundary is 52,428,800 bytes (50 MiB). Source uploads at or below the boundary route to Supabase; source uploads above it route to B2 and invoke the per-user quota check.
+- Supabase currently has two Auth users and one Storage bucket; the `doka-documents` bucket has zero objects. The three Doka metadata tables (`doka_documents`, `doka_document_versions`, `doka_audit_events`) each have zero rows.
+- Read-only RLS policy inspection shows owner-scoped authenticated policies for Doka documents, document versions, audit events, and objects under the `users/<auth.uid()>/...` path in `doka-documents`. This is policy evidence, not a substitute for live cross-user requests.
+
+A single-user live provider runner is available at `scripts/cloud_provider_acceptance.py`. It exercises an authenticated source upload/download with SHA-256 verification, version replacement/history, Google Drive export session and completion verification, lifecycle audit events, trash/restore, and cleanup. Use `--provider b2` to upload a fixture larger than 50 MiB through the B2 route; the test then replaces it with a small Supabase-backed version before Drive export to avoid uploading a second large object. Use `--provider supabase` for the Supabase source path.
+
+The runner requires `DOKA_CLOUD_BASE_URL`, `DOKA_CLOUD_USER_TOKEN`, and an output path. Never put access tokens in source control or chat. The live run has **not** been executed because a valid user session token is not available in the connected tools. The two-user runner (`scripts/cloud_acceptance.py`) additionally requires two distinct test-user tokens and an acceptance environment that permits both users; production's single-user guard must remain enabled.
+
 ## Database migration distinction
 Repository migration includes the reconciled least-privilege trigger migration `20261009083942_doka_trigger_function_least_privilege`.
 Last verified live Supabase head on 2026-10-09: `20261009083942_doka_trigger_function_least_privilege`.
