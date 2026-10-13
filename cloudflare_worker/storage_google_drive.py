@@ -65,7 +65,7 @@ class GoogleDriveExportProvider:
         if parents:
             drive_metadata["parents"] = parents
         status, headers = await self.fetcher(
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable",
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",
             method="POST",
             headers={
                 "Authorization": f"Bearer {token}",
@@ -95,14 +95,20 @@ class GoogleDriveExportProvider:
         token = await self._access_token()
         safe_id = quote(file_id, safe="")
         status, payload = await self.fetcher(
-            f"https://www.googleapis.com/drive/v3/files/{safe_id}?fields=id,name,size,mimeType,appProperties,sha256Checksum,md5Checksum,ownedByMe",
+            f"https://www.googleapis.com/drive/v3/files/{safe_id}?supportsAllDrives=true&fields=id,name,size,mimeType,parents,driveId,owners,appProperties,sha256Checksum,md5Checksum,ownedByMe",
             method="GET",
             headers={"Authorization": f"Bearer {token}"},
         )
         if status >= 300 or not isinstance(payload, dict):
             raise RuntimeError("Google Drive completion verification failed")
-        if payload.get("ownedByMe") is not True:
-            raise RuntimeError("Google Drive export file is not owned by the configured user")
+        if self.config.folder_id:
+            parents = payload.get("parents") or []
+            if self.config.folder_id not in parents:
+                raise RuntimeError("Google Drive export file is not in the configured destination folder")
+        elif payload.get("ownedByMe") is not True:
+            # My Drive root exports must be owned by the configured Google account.
+            # Shared Drive exports are accepted only when a configured parent folder
+            # proves the destination, because Shared Drive files have no individual owner.
         size = int(payload.get("size") or 0)
         app_properties = payload.get("appProperties") or {}
         digest = str(payload.get("sha256Checksum") or app_properties.get("doka_sha256") or "").lower()
