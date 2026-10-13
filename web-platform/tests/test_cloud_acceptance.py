@@ -17,6 +17,7 @@ DOKA_CLOUD_ACCEPTANCE = importlib.util.module_from_spec(_MODULE_SPEC)
 _MODULE_SPEC.loader.exec_module(DOKA_CLOUD_ACCEPTANCE)
 
 _download_and_verify = DOKA_CLOUD_ACCEPTANCE._download_and_verify
+_assert_cross_user_mutations_denied = DOKA_CLOUD_ACCEPTANCE._assert_cross_user_mutations_denied
 _read_fifty_mib_fixture = DOKA_CLOUD_ACCEPTANCE._read_fifty_mib_fixture
 _upload_document = DOKA_CLOUD_ACCEPTANCE._upload_document
 
@@ -139,3 +140,23 @@ def test_fifty_mib_fixture_requires_exact_size(tmp_path):
 
     with pytest.raises(AssertionError, match="exactly 52428800 bytes"):
         _read_fifty_mib_fixture(fixture)
+
+
+def test_cross_user_cannot_update_trash_or_permanently_delete_document():
+    seen: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.method, request.url.path))
+        assert request.headers.get("authorization") == "Bearer user-b-token"
+        return httpx.Response(404, json={"detail": "not_found"})
+
+    with httpx.Client(
+        base_url="https://cloud.example", transport=httpx.MockTransport(handler)
+    ) as client:
+        _assert_cross_user_mutations_denied(client, "user-b-token", "owner-doc-123")
+
+    assert seen == [
+        ("PATCH", "/api/documents/owner-doc-123"),
+        ("DELETE", "/api/documents/owner-doc-123"),
+        ("DELETE", "/api/documents/owner-doc-123/permanent"),
+    ]
