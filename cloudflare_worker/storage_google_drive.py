@@ -5,7 +5,6 @@ Document bytes are uploaded by the browser directly to the Drive session URL.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import time
 from dataclasses import dataclass
