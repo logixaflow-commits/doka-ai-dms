@@ -220,3 +220,71 @@ def test_pdf_uses_bounded_pdfium_rendering_when_poppler_is_unavailable(
         document.page.bitmap.image.getpixel((0, 0))
     assert document.page.closed
     assert document.closed
+
+def test_clean_text_preserves_single_character_myanmar_lines_and_normalizes_unicode():
+    import unicodedata
+
+    service = OCRService.__new__(OCRService)
+    decomposed = unicodedata.normalize("NFD", "မြန်မာစာ")
+
+    cleaned = service._clean_text("က\n၁\nA\n\n  " + decomposed + " \x0c\n")
+
+    assert cleaned == "က\n၁\nA\n" + unicodedata.normalize("NFC", decomposed)
+
+
+def test_image_ocr_retries_original_pixels_when_preprocessing_is_blank(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    import numpy as np
+
+    service = OCRService.__new__(OCRService)
+    service.preprocessing = True
+    service.oem = 3
+    service.timeout = 30
+    monkeypatch.setattr(service, "_layout_ocr_settings", lambda _image: (6, 10))
+    monkeypatch.setattr(service, "_uses_line_recognition", lambda _image, _language: False)
+    monkeypatch.setattr(
+        service,
+        "_preprocess_image",
+        lambda image, *, threshold_constant: np.zeros_like(image),
+    )
+    calls = []
+
+    def recognize(_image, **_kwargs):
+        calls.append(1)
+        return "" if len(calls) == 1 else "မြန်မာစာ"
+
+    monkeypatch.setattr("app.services.ocr_service.pytesseract.image_to_string", recognize)
+    text = service._recognize_image(np.zeros((12, 12, 3), dtype=np.uint8), "mya+eng")
+
+    assert text == "မြန်မာစာ"
+    assert len(calls) == 2
+
+
+def test_image_ocr_does_not_retry_original_when_preprocessing_has_text(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    import numpy as np
+
+    service = OCRService.__new__(OCRService)
+    service.preprocessing = True
+    service.oem = 3
+    service.timeout = 30
+    monkeypatch.setattr(service, "_layout_ocr_settings", lambda _image: (6, 10))
+    monkeypatch.setattr(service, "_uses_line_recognition", lambda _image, _language: False)
+    monkeypatch.setattr(
+        service,
+        "_preprocess_image",
+        lambda image, *, threshold_constant: np.zeros_like(image),
+    )
+    calls = []
+
+    def recognize(_image, **_kwargs):
+        calls.append(1)
+        return "Detected text"
+
+    monkeypatch.setattr("app.services.ocr_service.pytesseract.image_to_string", recognize)
+    text = service._recognize_image(np.zeros((12, 12, 3), dtype=np.uint8), "mya+eng")
+
+    assert text == "Detected text"
+    assert len(calls) == 1
