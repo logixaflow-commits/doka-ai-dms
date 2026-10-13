@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from cloudflare_worker.main import _hash_response_stream
+from stream_hash import hash_response_stream
 
 
 class FakeUint8Array:
@@ -44,7 +44,7 @@ def test_stream_hash_matches_sha256_across_multiple_chunks():
     chunks = [b"document ", b"payload", b" plus a tail"]
     reader = FakeReader(chunks)
 
-    result = run(_hash_response_stream(reader, max_bytes=1024))
+    result = run(hash_response_stream(reader, max_bytes=1024))
 
     assert result == {
         "size_bytes": sum(map(len, chunks)),
