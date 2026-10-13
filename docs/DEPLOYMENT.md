@@ -2,7 +2,7 @@
 
 > **Owner:** Where does Doka run and what deployment evidence is required?
 > **Update when:** Runtime topology, Worker deployment, hosting provider state, migration evidence or release prerequisites change.
-> **Last Updated:** 2026-10-09
+> **Last Updated:** 2026-10-13
 > **Do NOT put here:** Application architecture detail, secrets, or detailed incident procedures.
 
 ## Active topology
@@ -15,7 +15,7 @@
 ## Cloudflare Worker
 Current URL: https://doka-ai-dms.logixaflow.workers.dev.
 
-Live verification on 2026-10-09:
+Live verification on 2026-10-13:
 - Worker: doka-ai-dms
 - Current traffic: 100% on the latest inspected deployment.
 - Latest deployment ID: `d894b59e-4aca-4fa2-86b2-9750055749eb` (created 2026-10-13T07:02:03Z).
