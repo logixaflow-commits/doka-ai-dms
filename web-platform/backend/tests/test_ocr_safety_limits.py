@@ -49,6 +49,23 @@ def test_ocr_timeout_is_configured_and_bounded():
     assert 5 <= settings.ocr.timeout <= 120
 
 
+
+def test_myanmar_line_crops_are_upscaled_without_shrinking_large_text():
+    import numpy as np
+
+    service = OCRService.__new__(OCRService)
+    # Two separate, small horizontal text bands with ink on a white page.
+    image = np.full((100, 240), 255, dtype=np.uint8)
+    image[10:20, 30:180] = 0
+    image[45:80, 20:200] = 0
+
+    lines = service._text_line_images(image)
+
+    assert len(lines) == 2
+    assert lines[0].height >= 48
+    assert lines[1].height >= 48
+    # The naturally tall second crop must not be downscaled.
+    assert lines[1].height >= 50
 def test_pdf_retries_without_preprocessing_when_page_has_no_text(monkeypatch: pytest.MonkeyPatch):
     class PdfPages:
         pages = [object()]
@@ -203,21 +220,3 @@ def test_pdf_uses_bounded_pdfium_rendering_when_poppler_is_unavailable(
         document.page.bitmap.image.getpixel((0, 0))
     assert document.page.closed
     assert document.closed
-
-def test_myanmar_line_crops_are_upscaled_without_shrinking_large_text():
-    import numpy as np
-
-    service = OCRService.__new__(OCRService)
-    # Two separate, small horizontal text bands with ink on a white page.
-    image = np.full((100, 240), 255, dtype=np.uint8)
-    image[10:20, 30:180] = 0
-    image[45:80, 20:200] = 0
-
-    lines = service._text_line_images(image)
-
-    assert len(lines) == 2
-    assert lines[0].height >= 48
-    assert lines[1].height >= 48
-    # The naturally tall second crop must not be downscaled.
-    assert lines[1].height >= 50
-
