@@ -251,7 +251,7 @@ def test_image_ocr_retries_original_pixels_when_preprocessing_is_blank(
     seen_pixels = []
 
     def recognize(image, **_kwargs):
-        seen_pixels.append(int(image.mean()))
+        seen_pixels.append(int(np.asarray(image).mean()))
         return "" if len(seen_pixels) == 1 else "မြန်မာစာ"
 
     monkeypatch.setattr("app.services.ocr_service.pytesseract.image_to_string", recognize)
