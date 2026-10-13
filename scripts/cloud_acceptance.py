@@ -140,7 +140,7 @@ def _assert_cross_user_mutations_denied(
     """Prove another account cannot mutate or delete a document it does not own."""
     patched = _auth(
         client, token, f"/api/documents/{document_id}", method="PATCH",
-        json={"status": "approved", "metadata": {"cross_user_probe": True}},
+        json={"status": "review", "metadata": {"cross_user_probe": True}},
     )
     _assert_status(patched, 404, "user B cross-user metadata update")
 
