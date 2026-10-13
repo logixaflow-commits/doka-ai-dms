@@ -210,13 +210,21 @@ def test_google_drive_completion_hashes_downloaded_bytes_instead_of_trusting_app
 
 
 
-def test_google_drive_completion_rejects_large_file_before_buffering_media():
+def test_google_drive_completion_stream_verifies_large_file_without_inline_size_cap():
+    large_size = 50 * 1024 * 1024 + 1
+    calls = []
+
     async def fetcher(url, **kwargs):
+        calls.append((url, kwargs))
         if url.endswith("/token"):
             return 200, {"access_token": "short-lived-access-token"}
+        if "alt=media" in url:
+            assert kwargs.get("return_sha256") is True
+            assert kwargs.get("max_bytes") == 1024 * 1024 * 1024
+            return 200, {"size_bytes": large_size, "sha256": "a" * 64}
         return 200, {
             "id": "large-file",
-            "size": str(50 * 1024 * 1024 + 1),
+            "size": str(large_size),
             "mimeType": "application/octet-stream",
             "ownedByMe": True,
         }
@@ -225,12 +233,13 @@ def test_google_drive_completion_rejects_large_file_before_buffering_media():
         GoogleDriveConfig("client-id", "client-secret", "refresh-token"),
         fetcher,
     )
-    with pytest.raises(ValueError, match="50 MiB"):
-        run(
-            provider.verify_completion(
-                StorageObjectRef("google_drive", "pending/owner/digest", "owner"),
-                "large-file",
-                expected_size=50 * 1024 * 1024 + 1,
-                expected_sha256="a" * 64,
-            )
+    result = run(
+        provider.verify_completion(
+            StorageObjectRef("google_drive", "pending/owner/digest", "owner"),
+            "large-file",
+            expected_size=large_size,
+            expected_sha256="a" * 64,
         )
+    )
+    assert result.size_bytes == large_size
+    assert result.sha256 == "a" * 64
