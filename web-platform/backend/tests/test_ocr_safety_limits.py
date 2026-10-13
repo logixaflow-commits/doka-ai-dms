@@ -248,17 +248,18 @@ def test_image_ocr_retries_original_pixels_when_preprocessing_is_blank(
         "_preprocess_image",
         lambda image, *, threshold_constant: np.zeros_like(image),
     )
-    calls = []
+    seen_pixels = []
 
-    def recognize(_image, **_kwargs):
-        calls.append(1)
-        return "" if len(calls) == 1 else "မြန်မာစာ"
+    def recognize(image, **_kwargs):
+        seen_pixels.append(int(image.mean()))
+        return "" if len(seen_pixels) == 1 else "မြန်မာစာ"
 
     monkeypatch.setattr("app.services.ocr_service.pytesseract.image_to_string", recognize)
-    text = service._recognize_image(np.zeros((12, 12, 3), dtype=np.uint8), "mya+eng")
+    source_image = np.full((12, 12, 3), 127, dtype=np.uint8)
+    text = service._recognize_image(source_image, "mya+eng")
 
     assert text == "မြန်မာစာ"
-    assert len(calls) == 2
+    assert seen_pixels == [0, 127]
 
 
 def test_image_ocr_does_not_retry_original_when_preprocessing_has_text(
