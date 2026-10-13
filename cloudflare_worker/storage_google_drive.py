@@ -109,6 +109,7 @@ class GoogleDriveExportProvider:
             # My Drive root exports must be owned by the configured Google account.
             # Shared Drive exports are accepted only when a configured parent folder
             # proves the destination, because Shared Drive files have no individual owner.
+            raise RuntimeError("Google Drive export file is not owned by the configured user")
         size = int(payload.get("size") or 0)
         app_properties = payload.get("appProperties") or {}
         digest = str(payload.get("sha256Checksum") or app_properties.get("doka_sha256") or "").lower()
