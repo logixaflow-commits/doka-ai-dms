@@ -17,13 +17,15 @@ Current URL: https://doka-ai-dms.logixaflow.workers.dev.
 
 Live verification on 2026-10-09:
 - Worker: doka-ai-dms
-- Current traffic: 100%
-- Version number: 671
-- Version ID: 14e89790-c793-4d9b-9025-c5c7f412033f
+- Current traffic: 100% on the latest inspected deployment.
+- Latest deployment ID: `d894b59e-4aca-4fa2-86b2-9750055749eb` (created 2026-10-13T07:02:03Z).
+- Active version ID: `75e436b2-2009-4779-b659-5421bea0843a`.
 - Deployment path: `.github/workflows/cloudflare-worker-deploy.yml` is the retained pinned, dry-run, explicit-confirmation deployment path. No production deployment was triggered during this review.
 - Live CORS contract: explicit release/preview origins only with `allow_credentials=False`; the legacy `enterprise-ai-dms.vercel.app` origin is no longer present in the live bundle.
 
 The Worker must authenticate cloud requests and must not proxy large document bytes unnecessarily. Direct upload sessions are used for provider-backed document bytes. A dedicated `DOKA_STORAGE_SESSION_SECRET` is now provisioned as a Worker secret; `DOKA_SINGLE_USER_EMAIL` remains intentionally enabled for the current single-user deployment.
+
+The per-user B2 quota is now configured as Worker secret binding `B2_QUOTA_BYTES=1073741824` (1 GiB/user). The quota evaluator warns at 80% projected usage and blocks new B2 uploads at 95%; this is configuration/deployment evidence only, not proof of a successful live B2 upload, quota rejection, or recovery test.
 
 ## Vercel
 Connected Vercel project: enterprise-ai-dms.
