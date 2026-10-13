@@ -10,6 +10,7 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import time
 from typing import Any
 
@@ -21,11 +22,15 @@ class QStashSignatureError(ValueError):
 def _b64url_decode(value: str) -> bytes:
     if not isinstance(value, str) or not value:
         raise QStashSignatureError("invalid signature")
-    if "=" in value:
-        # QStash JWT segments are base64url without padding.
+    # JWT segments use unpadded base64url only. Python's decoder is otherwise
+    # permissive about invalid characters, which can create ambiguous tokens.
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", value):
         raise QStashSignatureError("invalid signature")
     try:
-        return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+        decoded = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+        if base64.urlsafe_b64encode(decoded).rstrip(b"=").decode("ascii") != value:
+            raise QStashSignatureError("invalid signature")
+        return decoded
     except (ValueError, TypeError) as exc:
         raise QStashSignatureError("invalid signature") from exc
 
@@ -93,9 +98,15 @@ def verify_qstash_signature(
         raise QStashSignatureError("invalid claims")
 
     try:
-        exp = int(claims["exp"])
-        nbf = int(claims["nbf"])
+        exp_value = claims["exp"]
+        nbf_value = claims["nbf"]
         body_claim = claims["body"]
+        # Reject booleans, floats, and numeric strings rather than coercing
+        # attacker-controlled claim types into timestamps.
+        if type(exp_value) is not int or type(nbf_value) is not int:
+            raise TypeError("timestamps must be integers")
+        exp = exp_value
+        nbf = nbf_value
     except (KeyError, TypeError, ValueError) as exc:
         raise QStashSignatureError("invalid claims") from exc
     if not isinstance(body_claim, str) or not body_claim:
