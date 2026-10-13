@@ -5,6 +5,7 @@ Document bytes are uploaded by the browser directly to the Drive session URL.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ class GoogleDriveConfig:
 
 class GoogleDriveExportProvider:
     name = "google_drive"
+    MAX_INLINE_CHECKSUM_BYTES = 50 * 1024 * 1024
 
     def __init__(self, config: GoogleDriveConfig, fetcher):
         if not all((config.client_id, config.client_secret, config.refresh_token)):
@@ -95,7 +97,7 @@ class GoogleDriveExportProvider:
         token = await self._access_token()
         safe_id = quote(file_id, safe="")
         status, payload = await self.fetcher(
-            f"https://www.googleapis.com/drive/v3/files/{safe_id}?supportsAllDrives=true&fields=id,name,size,mimeType,parents,driveId,owners,appProperties,sha256Checksum,md5Checksum,ownedByMe",
+            f"https://www.googleapis.com/drive/v3/files/{safe_id}?supportsAllDrives=true&fields=id,name,size,mimeType,parents,driveId,owners,appProperties,md5Checksum,ownedByMe",
             method="GET",
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -111,13 +113,27 @@ class GoogleDriveExportProvider:
             # proves the destination, because Shared Drive files have no individual owner.
             raise RuntimeError("Google Drive export file is not owned by the configured user")
         size = int(payload.get("size") or 0)
-        digest = str(payload.get("sha256Checksum") or "").lower()
-        if not digest:
-            # appProperties are written by Doka before upload and therefore do not
-            # prove that Google Drive stored the same bytes. Require the provider's
-            # actual checksum rather than treating metadata as integrity evidence.
-            raise ValueError("Google Drive export did not provide a verifiable SHA-256 checksum")
-        if size != expected_size or digest != expected_sha256.lower():
+        if size != expected_size:
+            raise ValueError("Google Drive export failed size/SHA-256 verification")
+        # Drive v3 exposes md5Checksum for binary files, not sha256Checksum. Never
+        # pretend appProperties prove the uploaded bytes: fetch and hash the actual
+        # media for bounded-size exports. Large exports fail closed rather than
+        # buffering unbounded data in a Worker.
+        if size > self.MAX_INLINE_CHECKSUM_BYTES:
+            raise ValueError("Google Drive export exceeds the 50 MiB server-side verification limit")
+        media_status, content = await self.fetcher(
+            f"https://www.googleapis.com/drive/v3/files/{safe_id}?alt=media&supportsAllDrives=true",
+            method="GET",
+            headers={"Authorization": f"Bearer {token}"},
+            return_bytes=True,
+            max_bytes=self.MAX_INLINE_CHECKSUM_BYTES,
+        )
+        if media_status >= 300 or not isinstance(content, (bytes, bytearray)):
+            raise RuntimeError("Google Drive export content verification failed")
+        if len(content) != expected_size:
+            raise ValueError("Google Drive export failed size/SHA-256 verification")
+        digest = hashlib.sha256(content).hexdigest()
+        if digest != expected_sha256.lower():
             raise ValueError("Google Drive export failed size/SHA-256 verification")
         return StoredObjectResult(
             StorageObjectRef(self.name, f"drive:{file_id}", object_ref.owner_id),
