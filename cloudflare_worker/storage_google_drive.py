@@ -111,8 +111,12 @@ class GoogleDriveExportProvider:
             # proves the destination, because Shared Drive files have no individual owner.
             raise RuntimeError("Google Drive export file is not owned by the configured user")
         size = int(payload.get("size") or 0)
-        app_properties = payload.get("appProperties") or {}
-        digest = str(payload.get("sha256Checksum") or app_properties.get("doka_sha256") or "").lower()
+        digest = str(payload.get("sha256Checksum") or "").lower()
+        if not digest:
+            # appProperties are written by Doka before upload and therefore do not
+            # prove that Google Drive stored the same bytes. Require the provider's
+            # actual checksum rather than treating metadata as integrity evidence.
+            raise ValueError("Google Drive export did not provide a verifiable SHA-256 checksum")
         if size != expected_size or digest != expected_sha256.lower():
             raise ValueError("Google Drive export failed size/SHA-256 verification")
         return StoredObjectResult(
