@@ -227,7 +227,10 @@ def main() -> int:
     }
     created_id: str | None = None
     started = time.monotonic()
-    payload_v1 = b"Doka live provider acceptance v1\n"
+    # B2 routing starts strictly above the 50 MiB Supabase boundary. Use one
+    # >50 MiB object to exercise B2, then a small replacement version to exercise
+    # the cross-provider version transition without uploading a second large blob.
+    payload_v1 = (b"B" * (50 * 1024 * 1024 + 1)) if args.provider == "b2" else b"Doka live provider acceptance v1\n"
     payload_v2 = b"Doka live provider acceptance v2 - version check\n"
     try:
         with httpx.Client(base_url=base_url, timeout=120.0, follow_redirects=False) as client:
@@ -251,8 +254,9 @@ def main() -> int:
 
             second = upload_bytes(
                 client, token, payload=payload_v2, filename="doka-provider-acceptance.txt",
-                content_type="text/plain", expected_provider=args.provider, document_id=created_id,
+                content_type="text/plain", expected_provider="supabase", document_id=created_id,
             )
+            evidence["version_provider_selected"] = second.get("storage_provider")
             if str(second.get("sha256") or "").lower() != hashlib.sha256(payload_v2).hexdigest():
                 raise AssertionError("new document version SHA-256 metadata mismatch")
             versions = auth_request(client, token, f"/api/documents/{created_id}/versions")
