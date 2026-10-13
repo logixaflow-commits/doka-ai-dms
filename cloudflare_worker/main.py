@@ -26,6 +26,7 @@ from storage_runtime import build_google_drive_provider, build_storage_router, s
 from storage_b2 import B2PartReceipt, MultipartUpload
 from b2_quota import evaluate_b2_quota
 from storage_contracts_compat import SignedUpload, StorageObjectRef
+from stream_hash import hash_response_stream
 
 
 bearer = HTTPBearer(auto_error=False)
@@ -92,30 +93,6 @@ def _js_bytes(data: bytes):
     return result
 
 
-async def _hash_response_stream(reader, max_bytes: int) -> dict[str, str | int]:
-    """Hash a JS ReadableStream reader incrementally with a strict byte cap."""
-    digest = hashlib.sha256()
-    size_bytes = 0
-    try:
-        while True:
-            chunk_result = await reader.read()
-            if bool(chunk_result.done):
-                break
-            chunk = chunk_result.value
-            chunk_length = int(chunk.length)
-            size_bytes += chunk_length
-            if size_bytes > max_bytes:
-                await reader.cancel()
-                raise ValueError("Binary response exceeds the configured verification limit")
-            digest.update(bytes(int(chunk[index]) for index in range(chunk_length)))
-        return {"size_bytes": size_bytes, "sha256": digest.hexdigest()}
-    finally:
-        try:
-            reader.releaseLock()
-        except Exception:
-            pass
-
-
 async def _fetch(
     request,
     url: str,
@@ -139,7 +116,7 @@ async def _fetch(
         if content_length is not None and int(content_length) > max_bytes:
             raise ValueError("Binary response exceeds the configured verification limit")
         reader = response.body.getReader()
-        return int(response.status), await _hash_response_stream(reader, max_bytes)
+        return int(response.status), await hash_response_stream(reader, max_bytes)
     if return_headers:
         header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
