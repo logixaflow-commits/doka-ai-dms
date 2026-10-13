@@ -53,6 +53,9 @@ def test_google_drive_completion_accepts_verified_shared_drive_parent():
         calls.append((url, kwargs))
         if url.endswith("/token"):
             return 200, {"access_token": "short-lived-access-token"}
+        if "alt=media" in url:
+            assert kwargs.get("return_bytes") is True
+            return 200, b"test document"
         return 200, {
             "id": "shared-file-id",
             "size": "13",
@@ -82,6 +85,7 @@ def test_google_drive_completion_accepts_verified_shared_drive_parent():
     assert result.sha256 == digest
     assert "supportsAllDrives=true" in calls[1][0]
     assert "parents" in calls[1][0]
+    assert any("alt=media" in url for url, _ in calls)
 
 
 def test_google_drive_completion_rejects_file_outside_configured_folder():
@@ -174,12 +178,14 @@ def test_google_drive_completion_rejects_wrong_size_or_digest():
 
 
 
-def test_google_drive_completion_does_not_trust_app_properties_as_checksum():
+def test_google_drive_completion_hashes_downloaded_bytes_instead_of_trusting_app_properties():
     digest = hashlib.sha256(b"correct").hexdigest()
 
     async def fetcher(url, **kwargs):
         if url.endswith("/token"):
             return 200, {"access_token": "short-lived-access-token"}
+        if "alt=media" in url:
+            return 200, b"changed"
         return 200, {
             "id": "drive-file-4",
             "size": "7",
@@ -192,12 +198,39 @@ def test_google_drive_completion_does_not_trust_app_properties_as_checksum():
         GoogleDriveConfig("client-id", "client-secret", "refresh-token"),
         fetcher,
     )
-    with pytest.raises(ValueError, match="verifiable SHA-256 checksum"):
+    with pytest.raises(ValueError, match="size/SHA-256"):
         run(
             provider.verify_completion(
                 StorageObjectRef("google_drive", "pending/owner/digest", "owner"),
                 "drive-file-4",
                 expected_size=7,
                 expected_sha256=digest,
+            )
+        )
+
+
+
+def test_google_drive_completion_rejects_large_file_before_buffering_media():
+    async def fetcher(url, **kwargs):
+        if url.endswith("/token"):
+            return 200, {"access_token": "short-lived-access-token"}
+        return 200, {
+            "id": "large-file",
+            "size": str(50 * 1024 * 1024 + 1),
+            "mimeType": "application/octet-stream",
+            "ownedByMe": True,
+        }
+
+    provider = GoogleDriveExportProvider(
+        GoogleDriveConfig("client-id", "client-secret", "refresh-token"),
+        fetcher,
+    )
+    with pytest.raises(ValueError, match="50 MiB"):
+        run(
+            provider.verify_completion(
+                StorageObjectRef("google_drive", "pending/owner/digest", "owner"),
+                "large-file",
+                expected_size=50 * 1024 * 1024 + 1,
+                expected_sha256="a" * 64,
             )
         )
