@@ -4,6 +4,7 @@ Enhanced OCR support for Myanmar language documents
 """
 import os
 import subprocess
+import unicodedata
 from pathlib import Path
 from typing import Optional, Dict, Any
 from loguru import logger
@@ -184,27 +185,17 @@ class MyanmarOCRService:
             return None
     
     def _post_process_myanmar(self, text: str) -> str:
-        """Post-process Myanmar text for better readability"""
-        # Remove common OCR artifacts
-        artifacts = [
-            '|', 'I', 'l', '1',  # Common confusion
-            '\x0c',  # Form feed
-            '\x0b',  # Vertical tab
-        ]
-        
-        cleaned = text
-        for artifact in artifacts:
-            cleaned = cleaned.replace(artifact, '')
-        
-        # Normalize Myanmar characters
-        # (This is a simplified version - full normalization would require myanmar-tools)
-        myanmar_vowels = ['ါ', 'ာ', 'ိ', 'ီ', 'ု', 'ူ', 'ေ', 'ဲ', 'ဳ', 'ဴ', 'ဵ', 'ံ', '့', 'း', '္']
-        
-        # Remove extra whitespace
-        cleaned = ' '.join(cleaned.split())
-        
-        return cleaned
-    
+        """Normalize OCR text without deleting potentially meaningful characters."""
+        if not text:
+            return ""
+
+        # Do not strip characters such as I, l, or 1 globally: they can be valid
+        # English text, identifiers, list markers, or Myanmar-document values.
+        cleaned = unicodedata.normalize("NFC", text)
+        cleaned = cleaned.replace("\\x0c", "").replace("\\x0b", "")
+        lines = [" ".join(line.split()) for line in cleaned.splitlines()]
+        return "\\n".join(line for line in lines if line)
+
     def _estimate_confidence(self, text: str) -> float:
         """Estimate OCR confidence based on text characteristics"""
         if not text:
