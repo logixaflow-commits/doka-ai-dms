@@ -155,6 +155,7 @@ def test_google_drive_completion_rejects_wrong_size_or_digest():
             "mimeType": "application/pdf",
             "ownedByMe": True,
             "appProperties": {"doka_sha256": "c" * 64},
+            "sha256Checksum": "c" * 64,
         }
 
     provider = GoogleDriveExportProvider(
@@ -167,6 +168,36 @@ def test_google_drive_completion_rejects_wrong_size_or_digest():
                 StorageObjectRef("google_drive", "pending/owner/digest", "owner"),
                 "drive-file-3",
                 expected_size=4,
+                expected_sha256=digest,
+            )
+        )
+
+
+
+def test_google_drive_completion_does_not_trust_app_properties_as_checksum():
+    digest = hashlib.sha256(b"correct").hexdigest()
+
+    async def fetcher(url, **kwargs):
+        if url.endswith("/token"):
+            return 200, {"access_token": "short-lived-access-token"}
+        return 200, {
+            "id": "drive-file-4",
+            "size": "7",
+            "mimeType": "text/plain",
+            "ownedByMe": True,
+            "appProperties": {"doka_sha256": digest},
+        }
+
+    provider = GoogleDriveExportProvider(
+        GoogleDriveConfig("client-id", "client-secret", "refresh-token"),
+        fetcher,
+    )
+    with pytest.raises(ValueError, match="verifiable SHA-256 checksum"):
+        run(
+            provider.verify_completion(
+                StorageObjectRef("google_drive", "pending/owner/digest", "owner"),
+                "drive-file-4",
+                expected_size=7,
                 expected_sha256=digest,
             )
         )
