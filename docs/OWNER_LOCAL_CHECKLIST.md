@@ -33,15 +33,16 @@ Run from a clean checkout of the PR/main branch after its changes are merged. Us
 
 ### A4. Gate 4 — real browser end-to-end acceptance
 - [x] Start the local frontend/backend using documented commands and a dedicated local admin/test account.
-- [x] Run the real browser flow with the same representative copied-office dataset: login, import, scan/OCR, understand, review, approval boundary, and final-copy workflow.
-- [x] Save Playwright/browser logs, screenshots or traces where privacy-safe, source hashes, commit SHA, and environment metadata. (`personal-local.spec.ts` passed in Chromium).
-- [x] A synthetic text-file smoke test alone is insufficient; verify realistic scanned Myanmar/English documents and error/restart paths.
+- [x] Run the real browser flow through login, import, scan/OCR, understand and plan review with the representative copied-office dataset. The documented 346-file run reached plan review.
+- [ ] Complete and evidence the full browser flow: review → human approval → final copy/apply → backup → isolated restore → undo.
+- [ ] Save one privacy-safe evidence bundle tying the full flow, source hashes, commit SHA and environment metadata together. The earlier Chromium run is not evidence for the full flow.
+- [ ] Verify error/restart paths and representative Myanmar/English scans as part of the full acceptance run.
 
 ### A5. Gate 6 — measured backup/restore and recovery
-- [x] Run a real-machine backup and isolated restore drill using the copied test dataset.
-- [x] Record backup, verification, restore and recovery times; document the measured RTO/RPO and the chosen acceptable targets. (Measured Backup 6.14s, Restore 4.33s, RTO 4.33s, RPO 0).
-- [x] Verify hashes/data integrity, restore isolation, no source mutation, and rollback/undo behavior.
-- [x] Repeat after a failed/interrupted operation if the documented drill calls for it.
+- [ ] Link and reconcile the reproducible real-machine backup/restore evidence artifact to the release commit and copied dataset.
+- [ ] Confirm the reported measurements (Backup 6.14s, Restore 4.33s, RTO 4.33s, RPO 0), including measurement method and integrity checks; retain them as provisional until the evidence is reconciled.
+- [ ] Verify hashes/data integrity, restore isolation, no source mutation, and rollback/undo behavior in the same documented drill.
+- [ ] Repeat after a failed/interrupted operation if required by the recovery acceptance plan.
 
 ### A6. Gate 7/8 — final local security/quality and freeze
 - [x] Re-run the documented tests, frontend build/lint/smoke/audit, backend suites, dependency audit, secret scan, lockfile checks, and self-audit on the final candidate commit. (All suites passing: 56 passed, 0 failed).
@@ -209,3 +210,15 @@ This section records the connected-service state actually inspected during the c
 - [ ] Current CI evidence is stale relative to later code/docs commits: run 38072383164 passed nine reported jobs on c470c260d38de59766b90b3f1d8c0ecd55d625c3, not the current main HEAD. Verify a new directly associated successful run before code-side closure.
 - [x] Consent grant/revocation/audit lifecycle is persisted and authenticated via the local bearer identity; external AI checks the active database grant on each call. Verify deployment uses the intended LOCAL_AUTH_STATE_PATH and AI_EXTERNAL_PROCESSING_CONSENT remains false until explicit operational approval. Confirm each caller derives resource scope from authorized server-side document context. Do not provide a client-supplied grant as the authority and do not enable external processing without the trusted grant path.
 - [ ] If local OCR/browser/cloud evidence is unavailable to the repository runtime, keep the gate pending and record the exact missing artifact/input; do not manufacture evidence or mark the release ready.
+
+
+## Status reconciliation — 2026-10-14 (overrides conflicting checkbox claims above)
+
+The owner checklist has historical checkbox notes that overstate the current evidence when read beside docs/TESTING.md. Use the following status until the linked evidence is reconciled:
+
+- **A4 / Gate 4: PARTIAL, not complete.** Chromium acceptance imported/analyzed 346 files and reached plan review. The run does not establish approval/apply, final copy, backup, isolated restore and undo as one complete browser flow. Keep those steps unchecked until a new trace/evidence proves them.
+- **A5 / Gate 6: EVIDENCE RECONCILIATION REQUIRED.** The checklist reports Backup 6.14 s, Restore/RTO 4.33 s, RPO 0, but link the reproducible report and confirm commit, dataset, and measurement method before marking the gate closed. Do not discard the reported values; treat them as provisional until reconciled.
+- **A6 / Gate 7–8: exact-SHA CI is required.** The latest listed main commit is 7aacce61a4291e24c6988938aad98c0bb4cad7d3; Actions run #870 is for 1d404b18d4b927f7fde69fef0fc14116ad6f2849. A later documentation/code commit needs its own associated successful run before the final freeze is claimed.
+- **Gate 3 OCR remains blocked** by the recorded benchmark; visually validate the Myanmar reference and rerun representative language-specific mya and eng samples without weakening thresholds.
+- **Cloud owner work is the immediate priority:** prepare two disposable users/tokens locally in environment variables/secret storage, then run the documented acceptance commands. Do not share tokens in chat, Git, shell history or logs. Cloud Gates 9–11 remain pending until real evidence is recorded.
+- The leaked-password-protection setting remains deferred under the current owner decision; it is not an active action in this handoff unless that decision changes.
