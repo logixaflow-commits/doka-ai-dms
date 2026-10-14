@@ -23,10 +23,10 @@ const toastIcons = {
 };
 
 const toastStyles = {
-  success: 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300',
-  error: 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300',
-  info: 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300',
-  warning: 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300',
+  success: 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-[#081812] dark:border-emerald-500/30 dark:text-emerald-300',
+  error: 'bg-red-50 border-red-200 text-red-800 dark:bg-[#1e0a12] dark:border-rose-500/30 dark:text-rose-300',
+  info: 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-[#0f1626] dark:border-cyan-500/30 dark:text-cyan-300',
+  warning: 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-[#1a1408] dark:border-amber-500/30 dark:text-amber-300',
 };
 
 function ToastItem({ toast, onClose }: ToastProps) {
