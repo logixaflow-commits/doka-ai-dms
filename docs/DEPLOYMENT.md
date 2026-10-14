@@ -15,6 +15,16 @@
 ## Cloudflare Worker
 Current URL: https://doka-ai-dms.logixaflow.workers.dev.
 
+### Live checkpoint — 2026-10-14 (read-only)
+
+- `GET /health` and `GET /api/config` both returned HTTP 200. The public config reports Supabase Auth and the document bucket as configured; this is readiness evidence, not a provider transaction.
+- Unauthenticated requests to `/api/documents`, `/api/folders`, and `/api/audit` returned HTTP 401. A deliberately invalid bearer token also returned HTTP 401 on all three routes. No document data was created or changed.
+- CORS preflight returned HTTP 200 for the two existing release/preview origins, but HTTP 400 `Disallowed CORS origin` for the owner-provided `https://enterprise-ai-b3vo95b6b-logixaflow-9859.vercel.app` origin.
+- PR #48 adds that exact origin to the Worker's explicit fallback allowlist and was merged as `65436a2309c9f2e63214841fc7ad41e944f87579`. Doka Quality Checks and CodeQL passed on that merge SHA.
+- The latest live Worker deployment remains `d894b59e-4aca-4fa2-86b2-9750055749eb`, version `75e436b2-2009-4779-b659-5421bea0843a`, at 100% traffic (created 2026-10-13T07:02:03Z). The new CORS allowlist change is **not live yet**; the merge's production-deploy workflow was skipped because no explicit `[deploy-worker]` release marker was supplied.
+- Production deployment remains gated. The previous deploy attempt failed Cloudflare API authentication (`10000`); the owner must correct the GitHub `CLOUDFLARE_API_TOKEN`/account scope and explicitly authorize the gated deployment before the live preflight can be re-tested. Do not weaken the production single-user restriction to complete test gates.
+
+
 Live verification on 2026-10-13:
 - Worker: doka-ai-dms
 - Current traffic: 100% on the latest inspected deployment.
