@@ -1,3 +1,11 @@
+> **Exact-HEAD reconciliation — 2026-10-14**
+>
+> Candidate SHA: `960923a656ffaf2739b21c7cebdb48c83456fef1`. Exact-SHA checks passed: [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142421), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561144243), and [Myanmar OCR Regression](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142780). Dependabot PR #47 was merged after its own checks passed.
+>
+> Passing CI does **not** close live acceptance: Gate 3 OCR remains failing/pending under unchanged thresholds; browser evidence stops at plan review; Cloud Gate 9–11 require disposable authenticated users and actual provider-path/recovery evidence. Never infer live provider success from unit/contract tests. Supabase leaked-password protection is deferred by current owner decision, not represented as fixed.
+
+---
+
 # Doka Testing
 
 > **Owner:** How is Doka tested from code-level checks through release acceptance?
