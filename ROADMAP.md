@@ -1,3 +1,14 @@
+> **Current execution order — 2026-10-14 (authoritative over older phase ordering below)**
+>
+> 1. **Cloud first:** Gate 9 authenticated lifecycle → Gate 10 real two-user isolation → Gate 11 provider recovery/boundary checks. Use disposable users and test objects only; no production data or deployment changes.
+> 2. **In parallel, repository-side:** keep CI green on exact `main` SHA, review remaining stale branches/PRs, and preserve UI Track A/B work without activating production.
+> 3. **Local when owner environment is available:** Gate 3 Myanmar/English OCR benchmark, full copied-office browser flow through approval/final copy/backup/restore/undo, then measured recovery drill.
+> 4. **Final freeze:** only after required gates have reproducible evidence; Gate 12 remains blocked while Vercel production is intentionally paused and until owner approval.
+>
+> Current candidate `960923a656ffaf2739b21c7cebdb48c83456fef1` has passing exact-SHA Doka Quality Checks, CodeQL, and Myanmar OCR Regression. This is CI evidence only. Gate 9–11 live acceptance and Local OCR/browser/recovery evidence remain pending. Supabase leaked-password protection remains deferred under the current owner decision unless that decision changes.
+
+---
+
 # Doka Roadmap
 
 ## Final goal
