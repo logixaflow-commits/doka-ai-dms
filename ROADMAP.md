@@ -221,3 +221,33 @@ The following need a real authorized environment or operator action: visual OCR 
 ### Exact-HEAD CI rule
 
 Run 38072383164 passed its nine reported jobs on commit c470c260d38de59766b90b3f1d8c0ecd55d625c3; it is not evidence for later commits. The current main history must have a directly associated successful CI run before this register can mark the latest code as CI-verified.
+
+
+## Plan reconciliation — 2026-10-14 (supersedes stale status above where they conflict)
+
+This is a **plan/status update only**. It does not claim that code or runtime configuration was changed.
+
+### Execution order
+1. **Cloud-first work that can be completed with connected cloud/repository access:** reconcile the live Worker and acceptance contract; verify the current exact-HEAD CI; run or prepare authorized disposable-user/provider acceptance without exposing secrets; close B2, Cloudinary application-path, Google Drive export/recovery, and tenant-isolation evidence where access permits. Keep Gate 12 blocked until Gates 9–11 and owner-approved production activation are evidenced.
+2. **Parallel planning/UI track:** keep the Track A + Track B redesign and its acceptance checklist active in parallel; do not treat a PR, mock, or build as a deployed UI acceptance result.
+3. **Owner/local track when the machine and approved copied dataset are available:** validate the Myanmar reference against the rendered scan, rerun representative mya and eng OCR with unchanged thresholds, resolve the remaining OCR timeout/quality failures, complete the approval → final-copy → backup → isolated-restore → undo browser flow, and retain source-hash evidence.
+4. **Release close-out:** reconcile recovery timings to their reproducible evidence files; run quality/security checks on the exact release SHA; then sign off only the gates with direct evidence.
+
+### Reconciled status (source of truth for the next execution pass)
+- **Personal Local engine Phases 1–4:** implementation/operational tooling is recorded as completed by commit [7aacce61](https://github.com/logixaflow-commits/doka-ai-dms/commit/7aacce61a4291e24c6988938aad98c0bb4cad7d3). This does not mean the entire Personal Local release is approved.
+- **Gate 3 OCR:** BLOCKED. Current recorded representative results fail the unchanged per-language CER/WER gate; the Myanmar reference and representative samples need validation and rerun. Do not lower thresholds.
+- **Gate 4 browser E2E:** PARTIAL. The documented 346-file Chromium run reached plan review; the complete approval/final-copy/backup/restore/undo path is not established by that run.
+- **Gate 5 copied-office pilot/source integrity:** pilot/hash evidence is recorded for 346-file and 300-file copies. Keep any unresolved OCR timeout and evidence-reconciliation items visible; do not rerun a completed stage without a specific failure or missing artifact.
+- **Gate 6 recovery:** owner checklist reports backup 6.14 s, restore/RTO 4.33 s and RPO 0, but the plan must link and reconcile the underlying reproducible evidence before treating the gate as closed.
+- **Gate 7 quality/freeze:** latest listed main commit is 7aacce61a4291e24c6988938aad98c0bb4cad7d3; the cited successful Actions run #870 belongs to 1d404b18d4b927f7fde69fef0fc14116ad6f2849, so exact-HEAD CI for the latest commit remains unverified unless a run directly tied to 7aacce61 is found.
+- **Cloud Gates 9–11:** PENDING live authenticated lifecycle, distinct-user isolation, and real provider/recovery evidence. Worker deployment/quota configuration and provider unit tests do not close these gates.
+- **Gate 12:** BLOCKED by Gates 9–11, runtime/rollback evidence and owner-approved go-live. Vercel production remains paused until that approval.
+- **Google Drive scope:** basic single-configured-refresh-token export/recovery is the current release-gate concern. Multi-account OAuth, Shared Drives, full inventory/incremental sync, virtual classification and approval-gated move are a separate future feature train, not prerequisites to falsely mark the current connector as complete.
+- **Supabase leaked-password-protection warning:** retain as an explicitly deferred platform-setting item under the current owner decision; do not let it silently re-enter the active execution queue. Revisit only if the owner changes that decision or the deployment environment changes.
+
+### Remaining work by priority
+- **P0 Cloud (first):** exact-HEAD CI; User A lifecycle + exact 50 MiB boundary; User A/B cross-access denial across API/RLS/Storage/RPC; B2 live upload/download/delete/recovery and quota boundary; Cloudinary application-path; Google Drive live export/recovery; deployment/runtime smoke and rollback evidence. Use dedicated test users and never place tokens in Git, logs, shell history, or chat.
+- **P0 Local (queue for local machine):** Myanmar reference visual validation; language-specific mya/eng benchmark under CER ≤ 0.30 and WER ≤ 0.60; resolve remaining OCR timeouts; complete browser approval/final-copy flow; reconcile backup/restore timings and evidence; exact-SHA security freeze.
+- **P1 Train 1:** verify trusted persisted consent and resource-scope propagation, free-only model/embedding runtime and fail-closed behavior; retry/DLQ, signed QStash, duplicate delivery, approval/resume/completion and scheduled-boundary integration evidence. Keep distributed takeover/leases disabled until idempotency and side-effect safety are proven.
+- **P2 integration:** RAG ingest→embed→search, persisted observability/alerts, chat restore/export/retention/purge/transfer audit, cancellable search and isolated backend test database.
+- **P3 future trains:** Phases 9–18 remain deferred until each train has a scoped design, threat model, migration/rollback, capacity baseline and acceptance evidence.
