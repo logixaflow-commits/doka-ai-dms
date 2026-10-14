@@ -1,3 +1,13 @@
+> **Current handoff order — 2026-10-14**
+>
+> Work cloud-side first where possible: run Gate 9 authenticated lifecycle, Gate 10 two-user isolation, and Gate 11 provider recovery using disposable test identities and objects. Do not paste tokens into chat, command history, logs, or Git. Render service discovery still returns no service in the connected workspace; confirm the intended runtime in the owner's dashboard rather than creating a replacement service.
+>
+> Current candidate `960923a656ffaf2739b21c7cebdb48c83456fef1` has passing exact-SHA Doka Quality Checks, CodeQL, and Myanmar OCR Regression. This does not substitute for real-user/provider acceptance. Local OCR/browser/recovery tasks should be queued for the authorized local machine. Vercel production remains intentionally paused; do not reactivate without explicit approval. Supabase leaked-password protection remains deferred under the current owner decision unless changed.
+>
+> This current handoff overrides contradictory historical checkbox/status entries below; preserve historical evidence, but do not treat old checkboxes as proof of a new release candidate.
+
+---
+
 # Doka Owner-Run Local Checklist and Remaining Work
 
 **Purpose:** Keep every step that cannot be truthfully completed from repository/connected-service access visible in one place. This is a checklist, not a claim that the release is approved. Do not mark a gate complete without recording reproducible evidence. The consolidated P0–P3 release and future-train inventory lives in [ROADMAP.md](../ROADMAP.md); this file is the owner/environment execution checklist. The current exact-HEAD CI state and blockers are in [CURRENT_STATE.md](../CURRENT_STATE.md).
