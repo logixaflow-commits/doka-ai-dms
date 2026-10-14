@@ -195,3 +195,16 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 - **Train 3 takeover remains disabled.** Do not add lease/fencing or worker takeover until every external side effect consumes the same durable idempotency key and crash/replay tests prove one durable outcome.
 - **CI freshness rule:** run 38072383164 passed nine reported jobs on c470c260d38de59766b90b3f1d8c0ecd55d625c3; it predates later code and documentation commits. Do not call the current main HEAD CI-verified without a run tied to that exact HEAD.
 - The consolidated P0–P3 remaining-work register and owner/environment-dependent evidence list are maintained in ROADMAP.md. This checkpoint supersedes stale earlier notes in this file that describe the October 8 code state as the latest status.
+
+
+## Execution plan reconciliation — 2026-10-14
+
+The latest listed main commit records Personal Local Phases 1–4 as implemented, but Train 0 release evidence is not fully closed. Execute in this order:
+
+1. **Cloud first:** exact-HEAD CI; authenticated User A lifecycle and 50 MiB boundary; User A/B API/RLS/Storage/RPC isolation; B2, Cloudinary application-path, and Google Drive basic export/recovery; runtime/rollback evidence. Keep Gate 12 blocked until Gates 9–11 and owner-approved go-live are proven.
+2. **Parallel UI planning:** Track A + Track B redesign acceptance can progress without being treated as release evidence until merged/deployed and browser-verified.
+3. **Local acceptance when available:** OCR visual-reference validation and mya/eng benchmark (CER ≤ 0.30, WER ≤ 0.60); resolve remaining timeouts; finish browser approval → final copy → backup → isolated restore → undo; reconcile recovery timing evidence; final exact-SHA security freeze.
+4. **Train 1 only after evidence readiness:** live free-only AI/embedding policy, trusted persisted consent/resource scope, fail-closed output/schema handling, retry/DLQ/QStash and workflow completion tests. Keep Train 3 worker takeover/leases disabled until durable idempotency and external-side-effect safety are proven.
+5. **Future trains:** Phases 9–18 remain deferred and must not be described as active functionality.
+
+Status corrections: the 346-file browser run reached plan review only, so Gate 4 is partial; reported recovery timings require their evidence artifact to be linked/reconciled before Gate 6 is closed; Actions run #870 is tied to commit 1d404b18d4b927f7fde69fef0fc14116ad6f2849, not the latest listed commit 7aacce61a4291e24c6988938aad98c0bb4cad7d3.
