@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles, Search, ChevronRight } from 'lucide-react';
+import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles, Search, ChevronRight, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -13,6 +13,7 @@ const baseMenuItems = [
   { title: 'Overview', description: 'Your workspace', url: '/admin/dashboard', icon: LayoutDashboard },
   { title: 'Documents', description: 'Files and folders', url: '/admin/cloud-documents', icon: Cloud },
   { title: 'Activity', description: 'Security and history', url: '/admin/activity', icon: Activity },
+  { title: 'AI Usage', description: 'Models & quota health', url: '/admin/usage', icon: Cpu },
 ];
 const localMenuItem = { title: 'Safe Workspace', description: 'On-device tools', url: '/admin/workspace', icon: FolderKanban };
 
