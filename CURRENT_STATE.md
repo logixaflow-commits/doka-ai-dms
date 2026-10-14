@@ -150,3 +150,13 @@
 - All nine reported jobs passed: Cloud storage contract tests, backend dependency audit, symlink security tests, workflow configuration sanity, static analysis/SBOM, repository self-audit preflight, frontend build/smoke, backend regression tests, and root dependency audit.
 - Workflow trigger was updated so Markdown/documentation changes run the quality workflow too. This closes the missing exact-HEAD CI evidence for this checkpoint, not runtime release gates.
 - Consent lifecycle now includes authenticated local bearer endpoints, SQLite persistence, revocation, append-only audit, and DB-backed checks at the external AI boundary; exact-HEAD CI is pending for this change. Remaining: OCR benchmark is below quality threshold pending reference validation and representative scans; real local/browser/recovery and live cloud two-user/provider gates remain evidence-dependent.
+
+
+## Reconciled execution state — 2026-10-14
+
+- Plan priority is **Cloud-first**, while the Track A/Track B UI planning stream can proceed in parallel; local-machine acceptance remains queued until the owner has the approved local environment/data available.
+- The latest listed main commit is 7aacce61a4291e24c6988938aad98c0bb4cad7d3 (Personal Local 4-phase engine/docs). The known successful Actions run #870 is tied to 1d404b18d4b927f7fde69fef0fc14116ad6f2849; do not call the latest commit CI-verified without a run tied to that SHA.
+- Personal Local Phases 1–4 are recorded as implemented, but this is not release approval. OCR Gate 3 remains blocked by strict benchmark results. Gate 4 is partial: the 346-file browser run reached plan review, not the complete approval/final-copy/backup/restore/undo journey. Pilot/source-hash evidence exists for copied datasets; recovery timings reported in the owner checklist must be reconciled to reproducible evidence before closing Gate 6.
+- Cloud Gates 9–11 remain pending live authenticated lifecycle, two-user authorization, and B2/Cloudinary/Google Drive application-path recovery evidence. Gate 12 remains blocked; Vercel production stays paused until explicit owner approval.
+- Google Drive multi-account/Shared Drive/virtual-classification work is future scope; do not confuse it with the current basic export/recovery gate. Supabase leaked-password-protection remains deferred under the current owner decision.
+- This checkpoint changes planning/status documentation only; it does not claim new code changes, successful live tests, or fabricated evidence.
