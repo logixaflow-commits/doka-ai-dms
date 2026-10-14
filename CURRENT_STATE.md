@@ -1,3 +1,16 @@
+> **Authoritative reconciliation — 2026-10-14, after dependency PR #47 merge**
+>
+> - Current `main` candidate: `960923a656ffaf2739b21c7cebdb48c83456fef1` (dependency-only merge). [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142421), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561144243), and [Myanmar OCR Regression](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142780) all passed on this exact SHA. This closes the exact-HEAD CI requirement for this candidate, not the real-environment release gates.
+> - **Cloud-first next actions:** Gate 9 authenticated lifecycle; Gate 10 two-user isolation; Gate 11 real B2/Cloudinary/Google Drive application-path recovery. These remain pending because disposable authenticated sessions and provider runtime evidence are not present in this environment. Supabase tables and the `doka-documents` bucket currently have zero rows/objects; no customer content was read or modified.
+> - **Local gates remain separate:** Gate 3 OCR still fails the recorded strict benchmark; Gate 4 browser evidence stops at plan review; Gate 5/6 pilot and recovery measurements require reconciled evidence. Do not upgrade them from historical checkbox claims alone.
+> - **Gate 12 remains blocked:** Vercel production is intentionally paused/manual-only; no deployment or traffic change was made. Do not reactivate without explicit owner approval and Gates 8–11 evidence.
+> - **Supabase leaked-password protection:** advisor still reports WARN, but this is deferred under the current owner decision and is not an action item in this handoff unless that decision changes. Do not treat it as fixed; do not change the setting through this workflow.
+> - Dependency PR [#47](https://github.com/logixaflow-commits/doka-ai-dms/pull/47) was merged after its backend regression, cloud storage contracts, frontend build/smoke, dependency audit, CodeQL, and OCR regression checks passed. The main-branch CI above validates the merge SHA.
+>
+> This block overrides conflicting historical statuses below. Historical records are retained for traceability.
+
+---
+
 # Doka Current State
 
 ## 1. Current Release
