@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import ai_consent, local_auth, workspace, workspace_files
+from app.api.routes import ai_consent, local_auth, workspace, workspace_files, telegram
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.observability import init_observability
@@ -94,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(ai_consent.router)
     app.include_router(workspace.router)
     app.include_router(workspace_files.router)
+    app.include_router(telegram.router)
 
     @app.get("/health", tags=["System"])
     async def health():
@@ -114,6 +115,13 @@ def create_app() -> FastAPI:
             "source_read_only": bool(settings.ORIGINAL_READ_ONLY and not settings.ALLOW_SOURCE_WRITE),
             "workspace_root_configured": bool(settings.WORKING_ROOT),
         }
+
+    @app.get("/api/ai/usage", tags=["System"])
+    async def ai_usage():
+        """Consolidated endpoint for AI key usage, status, and active provider chains."""
+        from app.services.ai_usage_tracker import get_ai_usage_summary
+        return get_ai_usage_summary("Doka-AI-DMS")
+
 
     @app.on_event("startup")
     async def startup_event():

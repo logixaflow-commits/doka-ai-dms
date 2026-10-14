@@ -225,6 +225,13 @@ class Settings:
         # Optional one-time bootstrap. Never ship a usable default password.
         self.BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
 
+        # Telegram Bot Configuration
+        self.TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+        self.TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+        topic_id_val = os.getenv("TELEGRAM_TOPIC_ID", "")
+        self.TELEGRAM_TOPIC_ID = int(topic_id_val) if topic_id_val.isdigit() else None
+        self.TELEGRAM_ENABLED = os.getenv("TELEGRAM_ENABLED", "false").lower() == "true"
+
         # AI Services Configuration
         self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
         self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
