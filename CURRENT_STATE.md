@@ -1,3 +1,15 @@
+> **Follow-up verification — 2026-10-14 (read-only cloud + branch review)**
+>
+> - Documentation HEAD `4401eba153b13167aa7e552f1b3eec56ab7d1d02` now has a successful [Doka Quality Checks run](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561399407).
+> - Read-only Supabase inspection confirms RLS is enabled on `public.doka_documents`, `public.doka_document_versions`, `public.doka_audit_events`, and `storage.objects`. Owner-scoped policies exist for document reads/writes, version reads/inserts, audit reads/inserts, and the private `doka-documents` bucket's `users/{auth.uid()}/...` object paths. The bucket is private and configured for a 52,428,800-byte (50 MiB) maximum. This is **policy configuration evidence only**; real two-user JWT isolation is still pending. Tables and bucket were empty during inspection.
+> - Cloudflare Worker `doka-ai-dms` is deployed with 100% traffic on its latest listed version (deployment created 2026-10-13 07:02 UTC); provider secret bindings for B2, Cloudinary, Google Drive and Supabase are configured. Binding presence does not prove values are valid or provider flows work. No deploy/config mutation was performed.
+> - Compared `fix/myanmar-ocr-text-preservation` to current `main`: it is diverged, 13 commits ahead and 120 behind. The branch has older OCR service/safety-test and Google Drive contract-test files than `main`; current `main` already contains the character-preservation post-processing and regression workflow. Do **not** merge the whole stale branch. Reuse only a demonstrably missing fix after targeted diff/test review.
+> - Connected Render workspace returned no services. Do not create a replacement service or guess the intended service; owner must confirm the target workspace/service in the Render dashboard if a Render-hosted runtime is still expected.
+>
+> This supplements the handoff above; it does not close Cloud Gates 9–11 or local OCR/browser/recovery gates.
+
+---
+
 > **Authoritative reconciliation — 2026-10-14, after dependency PR #47 merge**
 >
 > - Current `main` candidate: `960923a656ffaf2739b21c7cebdb48c83456fef1` (dependency-only merge). [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142421), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561144243), and [Myanmar OCR Regression](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142780) all passed on this exact SHA. This closes the exact-HEAD CI requirement for this candidate, not the real-environment release gates.
