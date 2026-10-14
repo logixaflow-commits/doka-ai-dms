@@ -12,6 +12,7 @@ import {
   restoreCloudDocument, restoreCloudDocumentVersion, trashCloudDocument,
   updateCloudDocument, uploadCloudDocument, type CloudDocument, type CloudDocumentVersion,
 } from '@/lib/cloudDocuments';
+import { success, error as showError } from '@/components/Toast';
 
 const MAX_FILE_BYTES = Number(import.meta.env.VITE_DOKA_MAX_UPLOAD_BYTES || 5 * 1024 * 1024 * 1024);
 type BatchUploadItem = { id: string; file: File; status: 'queued' | 'uploading' | 'complete' | 'failed'; error?: string };
@@ -118,11 +119,15 @@ export default function CloudDocuments() {
       setFile(null);
       const input = document.getElementById('doka-cloud-file') as HTMLInputElement | null;
       if (input) input.value = '';
-      setMessage(result.warnings?.length
+      const msg = result.warnings?.length
         ? `Uploaded “${result.document.filename}”, but storage reported a warning: ${result.warnings.join(', ')}.`
-        : `Uploaded “${result.document.filename}”. SHA-256 integrity fingerprint saved.`);
+        : `Uploaded “${result.document.filename}”. SHA-256 integrity fingerprint saved.`;
+      setMessage(msg);
+      success(msg);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed.');
+      const errTxt = err instanceof Error ? err.message : 'Upload failed.';
+      setError(errTxt);
+      showError(errTxt);
     } finally { setBusy(false); }
   }
 
@@ -314,9 +319,13 @@ export default function CloudDocuments() {
     try {
       await trashCloudDocument(item.id);
       setDocuments(current => current.filter(row => row.id !== item.id));
-      setMessage(`Moved “${item.filename}” to Trash. You can restore it later.`);
+      const msg = `Moved “${item.filename}” to Trash. You can restore it later.`;
+      setMessage(msg);
+      success(msg);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to move document to Trash.');
+      const errTxt = err instanceof Error ? err.message : 'Unable to move document to Trash.';
+      setError(errTxt);
+      showError(errTxt);
     } finally { setBusy(false); }
   }
 
@@ -325,9 +334,13 @@ export default function CloudDocuments() {
     try {
       const result = await restoreCloudDocument(item.id);
       setDocuments(current => current.filter(row => row.id !== item.id));
-      setMessage(`Restored “${result.document.filename}”.`);
+      const msg = `Restored “${result.document.filename}”.`;
+      setMessage(msg);
+      success(msg);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to restore document.');
+      const errTxt = err instanceof Error ? err.message : 'Unable to restore document.';
+      setError(errTxt);
+      showError(errTxt);
     } finally { setBusy(false); }
   }
 
