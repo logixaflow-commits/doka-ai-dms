@@ -1,3 +1,15 @@
+> **Authoritative phase handoff — 2026-10-14**
+>
+> - Current candidate `960923a656ffaf2739b21c7cebdb48c83456fef1`: exact-SHA Doka Quality Checks, CodeQL, and Myanmar OCR Regression passed.
+> - Execute **Cloud Gates 9–11 first**, as owner preference: authenticated lifecycle, two-user isolation, then B2/Cloudinary/Google Drive recovery. These remain pending until real disposable-user/provider evidence is available.
+> - Local Gates 3–6 remain separate and pending/partial: OCR benchmark fails the strict recorded threshold; browser flow has only reached plan review in recorded acceptance; copied-office and recovery evidence must be reconciled to the tested SHA/dataset/method.
+> - Gate 12 remains blocked while Vercel production is intentionally paused and until explicit owner approval. Do not trigger a production deploy as part of this handoff.
+> - Supabase leaked-password-protection WARN is deferred under the current owner decision unless the decision changes.
+>
+> This note supersedes older entries that imply Local release gates must precede all Cloud work or that historical checkboxes alone prove release acceptance.
+
+---
+
 # Doka Phase Train Status
 
 This is the operational sequence after the Personal Local + Cloud acceptance
