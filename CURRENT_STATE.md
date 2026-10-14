@@ -1,3 +1,28 @@
+> **Follow-up verification — 2026-10-14 (read-only cloud + branch review)**
+>
+> - Documentation HEAD `4401eba153b13167aa7e552f1b3eec56ab7d1d02` now has a successful [Doka Quality Checks run](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561399407).
+> - Read-only Supabase inspection confirms RLS is enabled on `public.doka_documents`, `public.doka_document_versions`, `public.doka_audit_events`, and `storage.objects`. Owner-scoped policies exist for document reads/writes, version reads/inserts, audit reads/inserts, and the private `doka-documents` bucket's `users/{auth.uid()}/...` object paths. The bucket is private and configured for a 52,428,800-byte (50 MiB) maximum. This is **policy configuration evidence only**; real two-user JWT isolation is still pending. Tables and bucket were empty during inspection.
+> - Cloudflare Worker `doka-ai-dms` is deployed with 100% traffic on its latest listed version (deployment created 2026-10-13 07:02 UTC); provider secret bindings for B2, Cloudinary, Google Drive and Supabase are configured. Binding presence does not prove values are valid or provider flows work. No deploy/config mutation was performed.
+> - Compared `fix/myanmar-ocr-text-preservation` to current `main`: it is diverged, 13 commits ahead and 120 behind. The branch has older OCR service/safety-test and Google Drive contract-test files than `main`; current `main` already contains the character-preservation post-processing and regression workflow. Do **not** merge the whole stale branch. Reuse only a demonstrably missing fix after targeted diff/test review.
+> - Connected Render workspace returned no services. Do not create a replacement service or guess the intended service; owner must confirm the target workspace/service in the Render dashboard if a Render-hosted runtime is still expected.
+>
+> This supplements the handoff above; it does not close Cloud Gates 9–11 or local OCR/browser/recovery gates.
+
+---
+
+> **Authoritative reconciliation — 2026-10-14, after dependency PR #47 merge**
+>
+> - Current `main` candidate: `960923a656ffaf2739b21c7cebdb48c83456fef1` (dependency-only merge). [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142421), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561144243), and [Myanmar OCR Regression](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142780) all passed on this exact SHA. This closes the exact-HEAD CI requirement for this candidate, not the real-environment release gates.
+> - **Cloud-first next actions:** Gate 9 authenticated lifecycle; Gate 10 two-user isolation; Gate 11 real B2/Cloudinary/Google Drive application-path recovery. These remain pending because disposable authenticated sessions and provider runtime evidence are not present in this environment. Supabase tables and the `doka-documents` bucket currently have zero rows/objects; no customer content was read or modified.
+> - **Local gates remain separate:** Gate 3 OCR still fails the recorded strict benchmark; Gate 4 browser evidence stops at plan review; Gate 5/6 pilot and recovery measurements require reconciled evidence. Do not upgrade them from historical checkbox claims alone.
+> - **Gate 12 remains blocked:** Vercel production is intentionally paused/manual-only; no deployment or traffic change was made. Do not reactivate without explicit owner approval and Gates 8–11 evidence.
+> - **Supabase leaked-password protection:** advisor still reports WARN, but this is deferred under the current owner decision and is not an action item in this handoff unless that decision changes. Do not treat it as fixed; do not change the setting through this workflow.
+> - Dependency PR [#47](https://github.com/logixaflow-commits/doka-ai-dms/pull/47) was merged after its backend regression, cloud storage contracts, frontend build/smoke, dependency audit, CodeQL, and OCR regression checks passed. The main-branch CI above validates the merge SHA.
+>
+> This block overrides conflicting historical statuses below. Historical records are retained for traceability.
+
+---
+
 # Doka Current State
 
 ## 1. Current Release
@@ -150,3 +175,13 @@
 - All nine reported jobs passed: Cloud storage contract tests, backend dependency audit, symlink security tests, workflow configuration sanity, static analysis/SBOM, repository self-audit preflight, frontend build/smoke, backend regression tests, and root dependency audit.
 - Workflow trigger was updated so Markdown/documentation changes run the quality workflow too. This closes the missing exact-HEAD CI evidence for this checkpoint, not runtime release gates.
 - Consent lifecycle now includes authenticated local bearer endpoints, SQLite persistence, revocation, append-only audit, and DB-backed checks at the external AI boundary; exact-HEAD CI is pending for this change. Remaining: OCR benchmark is below quality threshold pending reference validation and representative scans; real local/browser/recovery and live cloud two-user/provider gates remain evidence-dependent.
+
+
+## Reconciled execution state — 2026-10-14
+
+- Plan priority is **Cloud-first**, while the Track A/Track B UI planning stream can proceed in parallel; local-machine acceptance remains queued until the owner has the approved local environment/data available.
+- The latest implementation commit from last night's work was 7aacce61a4291e24c6988938aad98c0bb4cad7d3; the subsequent commits in this reconciliation are documentation-only (Personal Local 4-phase engine/docs). The known successful Actions run #870 is tied to 1d404b18d4b927f7fde69fef0fc14116ad6f2849; do not call the latest commit CI-verified without a run tied to that SHA.
+- Personal Local Phases 1–4 are recorded as implemented, but this is not release approval. OCR Gate 3 remains blocked by strict benchmark results. Gate 4 is partial: the 346-file browser run reached plan review, not the complete approval/final-copy/backup/restore/undo journey. Pilot/source-hash evidence exists for copied datasets; recovery timings reported in the owner checklist must be reconciled to reproducible evidence before closing Gate 6.
+- Cloud Gates 9–11 remain pending live authenticated lifecycle, two-user authorization, and B2/Cloudinary/Google Drive application-path recovery evidence. Gate 12 remains blocked; Vercel production stays paused until explicit owner approval.
+- Google Drive multi-account/Shared Drive/virtual-classification work is future scope; do not confuse it with the current basic export/recovery gate. Supabase leaked-password-protection remains deferred under the current owner decision.
+- This checkpoint changes planning/status documentation only; it does not claim new code changes, successful live tests, or fabricated evidence.

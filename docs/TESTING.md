@@ -1,3 +1,11 @@
+> **Exact-HEAD reconciliation — 2026-10-14**
+>
+> Candidate SHA: `960923a656ffaf2739b21c7cebdb48c83456fef1`. Exact-SHA checks passed: [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142421), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561144243), and [Myanmar OCR Regression](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142780). Dependabot PR #47 was merged after its own checks passed.
+>
+> Passing CI does **not** close live acceptance: Gate 3 OCR remains failing/pending under unchanged thresholds; browser evidence stops at plan review; Cloud Gate 9–11 require disposable authenticated users and actual provider-path/recovery evidence. Never infer live provider success from unit/contract tests. Supabase leaked-password protection is deferred by current owner decision, not represented as fixed.
+
+---
+
 # Doka Testing
 
 > **Owner:** How is Doka tested from code-level checks through release acceptance?
@@ -94,3 +102,12 @@ Run `python scripts/audit/doka_self_audit.py` to check canonical documentation, 
 - The OCR benchmark now requires scored samples for required languages and applies per-language mean CER <= 0.30 and mean WER <= 0.60 defaults. The latest six-sample report correctly fails the gate (Myanmar/English CER 79.94%, WER 171.43%). Do not weaken the gate to obtain a pass; visually verify the reference, correct it if needed, and rerun representative scans.
 - The unified AI service requires a granted consent record matching subject, purpose and exact resource scope. Persistent grant storage, trusted authenticated caller propagation, revocation/audit, and live free-only provider acceptance remain unverified; external processing must fail closed until integrated.
 - Exact-HEAD CI checkpoint: commit `1d404b18d4b927f7fde69fef0fc14116ad6f2849`, GitHub Actions run [#870](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38116845434), completed successfully with all nine reported jobs passing. This closes the CI-evidence gap for that commit only; subsequent code changes require their own successful run. Runtime/local/cloud release gates remain separate.
+
+
+## Status reconciliation — 2026-10-14
+
+- Latest implementation commit from last night's work: 7aacce61a4291e24c6988938aad98c0bb4cad7d3; the subsequent commits in this reconciliation are documentation-only. The successful Actions run #870 documented above is tied to 1d404b18d4b927f7fde69fef0fc14116ad6f2849; do not treat it as CI evidence for the later commit.
+- OCR Gate 3 remains blocked: the current recorded sample set fails the unchanged strict threshold. Reference-image validation and representative language-specific mya/eng runs remain required.
+- Browser Gate 4 is partial: the documented 346-file run reached plan review and does not prove the full approval → final copy → backup → isolated restore → undo sequence.
+- Copied-office source-hash evidence exists. Recovery timings in the owner checklist (backup 6.14 s, restore/RTO 4.33 s, RPO 0) need a reproducible evidence artifact linked and reconciled before Gate 6 is closed.
+- Cloud lifecycle, two-user isolation, and B2/Cloudinary/Google Drive application-path evidence remain live acceptance requirements; code/unit tests alone do not close them.
