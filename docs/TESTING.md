@@ -98,7 +98,7 @@ Run `python scripts/audit/doka_self_audit.py` to check canonical documentation, 
 
 ## Status reconciliation — 2026-10-14
 
-- Latest listed main commit: 7aacce61a4291e24c6988938aad98c0bb4cad7d3. The successful Actions run #870 documented above is tied to 1d404b18d4b927f7fde69fef0fc14116ad6f2849; do not treat it as CI evidence for the later commit.
+- Latest implementation commit from last night's work: 7aacce61a4291e24c6988938aad98c0bb4cad7d3; the subsequent commits in this reconciliation are documentation-only. The successful Actions run #870 documented above is tied to 1d404b18d4b927f7fde69fef0fc14116ad6f2849; do not treat it as CI evidence for the later commit.
 - OCR Gate 3 remains blocked: the current recorded sample set fails the unchanged strict threshold. Reference-image validation and representative language-specific mya/eng runs remain required.
 - Browser Gate 4 is partial: the documented 346-file run reached plan review and does not prove the full approval → final copy → backup → isolated restore → undo sequence.
 - Copied-office source-hash evidence exists. Recovery timings in the owner checklist (backup 6.14 s, restore/RTO 4.33 s, RPO 0) need a reproducible evidence artifact linked and reconciled before Gate 6 is closed.
