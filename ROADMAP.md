@@ -1,3 +1,13 @@
+> **Additional evidence — 2026-10-14**
+>
+> - Exact documentation HEAD `4401eba153b13167aa7e552f1b3eec56ab7d1d02` now passes [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561399407).
+> - Supabase RLS policy configuration is present and the `doka-documents` bucket is private with a 50 MiB limit. This does not replace User A/B live-token verification.
+> - Cloudflare Worker latest listed deployment is 100% traffic and has provider bindings configured; do not infer provider health from configuration. No deployment/config changes were made.
+> - OCR branch `fix/myanmar-ocr-text-preservation` is 13 commits ahead/120 behind and carries older variants of some service/test files. Keep it unmerged; current `main` already contains the key text-preservation tests/workflow. Do not bulk-merge a diverged branch.
+> - Render service discovery returned no services in the connected workspace; resolve the intended workspace/service with the owner rather than creating one.
+
+---
+
 > **Current execution order — 2026-10-14 (authoritative over older phase ordering below)**
 >
 > 1. **Cloud first:** Gate 9 authenticated lifecycle → Gate 10 real two-user isolation → Gate 11 provider recovery/boundary checks. Use disposable users and test objects only; no production data or deployment changes.
