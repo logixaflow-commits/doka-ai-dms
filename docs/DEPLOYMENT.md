@@ -1,3 +1,14 @@
+> **Production checkpoint — 2026-10-15 08:32 UTC (latest verification)**
+>
+> - Repository HEAD: `5e068b370a1564a8eb42945a6cbd4579334779eb`.
+> - Cloudflare Worker Production Deploy [run 38706138555](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138555): **success**. Production `/health` and `/api/config` checks passed.
+> - Live Infrastructure Smoke [run 38706261696](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706261696): **success**. `/health` HTTP 200; `/api/config` HTTP 200 with Supabase Auth, Storage and single-user readiness; unauthenticated document list HTTP 401; trusted CORS origins allowed and untrusted origin denied.
+> - Doka Quality Checks [run 38706138461](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138461) and CodeQL [run 38706138536](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138536): **success** on the same HEAD.
+> - Vercel project `enterprise-ai-dms` still reports `live=false`; its latest production deployment (commit `5e068b3`) is `CANCELED`. An older production deployment from `1dd3ace` is `READY`, but does not prove that the current frontend source is live. Vercel go-live remains blocked until cancellation/ignored-build configuration is reconciled and the canonical production alias passes the smoke workflow.
+> - Full cloud release is still **not signed off**: authenticated lifecycle, two-user isolation, real provider recovery (B2 / Google Drive / Cloudinary app path), and the strict Myanmar/English OCR benchmark need direct acceptance evidence. Use disposable accounts and the dedicated acceptance environment; never disable `DOKA_SINGLE_USER_EMAIL` on production to make two-user tests pass.
+>
+> ---
+>
 > **Cloudflare deployment follow-up — 2026-10-15**
 >
 > Direct deployment/version API confirms latest listed Worker deployment `d894b59e-4aca-4fa2-86b2-9750055749eb`, version 724 (`75e436b2-2009-4779-b659-5421bea0843a`), at 100% traffic. The account currently lists zero zones and no custom Worker domains. This verifies the deployment traffic assignment only; it does not verify external health, custom-domain routing, secrets, CORS in a real browser, or provider application-path recovery.
