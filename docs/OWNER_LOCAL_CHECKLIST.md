@@ -1,3 +1,14 @@
+> **Repository and provider reconciliation — 2026-10-15**
+>
+> - Latest observed `main` SHA is `6c1fe995c807382cbe3c1000e893e678d621f83b`; verify exact-SHA CI rather than reusing earlier green runs.
+> - Vercel production remains inactive/canceled; do not reactivate without owner approval and all release gates.
+> - Render returned no services in the connected workspace; owner must confirm the intended workspace/service.
+> - Supabase is healthy and its latest listed migration is reconciled, but two-user isolation remains pending.
+> - Cloudflare currently lists zero zones; Worker script exists but route/deployment metadata needs reconciliation.
+> - See [docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md](REPOSITORY_INFRA_AUDIT_2026-10-15.md) for the complete prioritized checklist. Use disposable users/objects; never share tokens or secrets.
+
+---
+
 > **Current handoff order — 2026-10-14**
 >
 > Work cloud-side first where possible: run Gate 9 authenticated lifecycle, Gate 10 two-user isolation, and Gate 11 provider recovery using disposable test identities and objects. Do not paste tokens into chat, command history, logs, or Git. Render service discovery still returns no service in the connected workspace; confirm the intended runtime in the owner's dashboard rather than creating a replacement service.
