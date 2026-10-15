@@ -1,24 +1,22 @@
 # Repository Structure — Doka AI DMS
 
-> **Inventory type:** Exact tracked-file and directory tree from the GitHub Git tree API.  
 > **Repository:** [logixaflow-commits/doka-ai-dms](https://github.com/logixaflow-commits/doka-ai-dms)  
-> **Branch/ref inspected:** `main`  
-> **Root tree SHA:** `7663d47da5484a5eb9b5d1330e28362729619421`  
-> **Inventory generated:** 2026-10-15  
-> **Scope:** All paths returned by the repository's recursive Git tree for this ref. This is the Git-tracked repository snapshot, not a listing of local ignored/untracked files, runtime-created files, secrets, or deployment-provider resources.
+> **Branch inspected:** `main`  
+> **Generated:** 2026-10-15  
+> **Inventory scope:** Git-tracked paths in the GitHub `main` tree, including hidden, archived, legacy, test, evidence, workflow, and documentation paths.
 
-## Completeness and interpretation
+## What this document guarantees
 
-This document records the full path tree returned by GitHub for the inspected `main` tree. Directory entries are included even where Git represents directories implicitly through their descendants. The tree below is generated from the API response rather than manually reconstructed.
+The directory tree below is generated from GitHub's recursive Git tree API, not manually guessed. The API response used for the source inventory was not truncated. This document is included in the displayed tree as well.
 
-- **Tracked files:** 703
-- **Directories (explicit plus inferred from tracked paths):** 87
-- **GitHub tree response truncated:** No
-- **Tree SHA:** `7663d47da5484a5eb9b5d1330e28362729619421`
+- **Tracked file paths listed:** 704
+- **Directories represented:** 87
+- **Local ignored/untracked files:** Not included; GitHub's committed tree cannot show files that exist only on someone's computer.
+- **Runtime or provider-side resources:** Not included unless represented by tracked repository files.
 
-A file's presence in this inventory confirms only that the path exists in this Git tree. It does not, by itself, prove that the file is used in production or describe every internal behavior. Archived and legacy paths are listed as they exist; do not assume they are active runtime components.
+A path's presence proves that it exists in the inspected Git tree; it does not prove that it is currently imported, deployed, or used at runtime. Archived and legacy content is retained in this inventory for completeness.
 
-## Full repository tree
+## Complete repository tree
 
 ```text
 doka-ai-dms/
@@ -212,6 +210,7 @@ doka-ai-dms/
 │   ├── PHASE_7_18_EXECUTION_PLAN.md
 │   ├── PHASE_TRAIN_STATUS.md
 │   ├── REPOSITORY_INFRA_AUDIT_2026-10-15.md
+│   ├── REPOSITORY_STRUCTURE.md
 │   ├── RUNTIME_EVIDENCE.md
 │   ├── SELF_AUDIT.md
 │   ├── STORAGE.md
@@ -814,6 +813,6 @@ doka-ai-dms/
 └── wrangler.jsonc
 ```
 
-## How to keep this record exact
+## Updating this inventory
 
-Regenerate this inventory whenever paths are added, removed, renamed, or moved. The inventory should be refreshed from the target branch's recursive Git tree and the recorded tree SHA/date updated together. Do not manually omit archived, hidden, test, evidence, generated-but-tracked, or legacy paths. Local-only ignored files are outside the scope of a Git-tracked tree and should be documented separately only if a local-workspace inventory is explicitly required.
+Refresh this file after any path addition, deletion, rename, or move. Regenerate the recursive tree from the target branch rather than editing the listing by hand. Include hidden files and all tracked subdirectories; do not filter by extension or assume that archived, test, evidence, or generated-but-tracked paths are irrelevant. The document's own path should remain in the tree.
