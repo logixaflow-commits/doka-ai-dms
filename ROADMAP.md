@@ -1,3 +1,14 @@
+> **Latest status follow-up — 2026-10-15 (supersedes older exact-HEAD notes below)**
+>
+> - CI fixes merged in [PR #49](https://github.com/logixaflow-commits/doka-ai-dms/pull/49), commit `1dd3ace0cb187f3d3980cc181c58937906716ae4`. PR-head Doka Quality Checks passed; main push Doka Quality Checks run [38688397237](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38688397237) and CodeQL run [38688397293](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38688397293) were still running at this snapshot.
+> - Last Myanmar OCR Regression pass is [run 38687155113](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38687155113) on prior SHA `d6de507ad6e901a33fb516130af27465101cefb5`; OCR source was not changed by PR #49.
+> - Supabase password leak protection remains disabled by the recorded owner decision; advisor also reports three unused indexes. Do not change auth settings or drop indexes without explicit review.
+> - Vercel production attempts remain canceled/ignored-build-step; Render runtime remains unconfirmed; Cloud Gates 9–11 and local OCR/browser/recovery evidence remain pending.
+>
+> **Next:** confirm exact-main CI/CodeQL, then continue only with disposable cloud identities and test objects. Do not activate production or lower OCR thresholds to force a pass.
+
+---
+
 > **Provider re-audit — 2026-10-15 (read-only)**
 >
 > - Latest observed `main` SHA is `6c1fe995c807382cbe3c1000e893e678d621f83b`; exact-SHA CI is **VERIFY**, not inherited from older commits.
