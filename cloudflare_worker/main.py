@@ -1240,6 +1240,7 @@ def _cors_origins() -> list[str]:
     # Keep known release/preview origins available until deployment configuration
     # explicitly replaces them. Bearer-token auth does not require cookies.
     return [
+        "https://enterprise-ai-dms.vercel.app",
         "https://enterprise-ai-dms-logixaflow-9859.vercel.app",
         "https://enterprise-ai-dms-git-main-logixaflow-9859.vercel.app",
         "https://enterprise-ai-b3vo95b6b-logixaflow-9859.vercel.app",
