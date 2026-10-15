@@ -1,3 +1,11 @@
+> **Cloudflare follow-up — 2026-10-15**
+>
+> A direct read of the Worker deployment/version APIs resolves part of the earlier uncertainty: Worker `doka-ai-dms` has latest listed deployment `d894b59e-4aca-4fa2-86b2-9750055749eb` with version `75e436b2-2009-4779-b659-5421bea0843a` (version number 724) assigned **100% traffic**, created 2026-10-13 07:02 UTC. The Worker Domains endpoint returns no custom Worker domains, and the account has zero zones. This confirms a 100%-traffic deployment in Cloudflare's deployment API, but does not prove external health, custom-domain routing, valid secrets or provider application-path success. Keep those checks open.
+>
+> GitHub combined status for the latest observed code SHA `6c1fe995c807382cbe3c1000e893e678d621f83b` exposes only a successful Vercel context, not Doka Quality Checks/CodeQL/OCR Regression. Exact-SHA CI remains **unverified**. The latest documentation commits likewise expose only the Vercel status context in the checked combined-status API.
+
+---
+
 # Repository and Infrastructure Re-audit — 2026-10-15
 
 ## Scope and method
