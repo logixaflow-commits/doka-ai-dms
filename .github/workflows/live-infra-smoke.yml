@@ -1,0 +1,85 @@
+name: Live Infrastructure Smoke
+
+on:
+  workflow_run:
+    workflows:
+      - Cloudflare Worker Production Deploy
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check live Cloudflare Worker and CORS
+        shell: bash
+        run: |
+          set -uo pipefail
+          BASE="https://doka-ai-dms.logixaflow.workers.dev"
+          fail=0
+
+          echo "== Worker health =="
+          health_code="$(curl -sS --max-time 15 -o /tmp/health.json -w '%{http_code}' "$BASE/health" || true)"
+          echo "HTTP $health_code"
+          cat /tmp/health.json 2>/dev/null || true
+          if [[ "$health_code" != "200" ]] || ! grep -q '"status":"healthy"' /tmp/health.json; then
+            echo "::error::Worker health endpoint did not return healthy JSON"
+            fail=1
+          fi
+
+          echo
+          echo "== Public configuration readiness =="
+          config_code="$(curl -sS --max-time 15 -o /tmp/config.json -w '%{http_code}' "$BASE/api/config" || true)"
+          echo "HTTP $config_code"
+          cat /tmp/config.json 2>/dev/null || true
+          if [[ "$config_code" != "200" ]] || ! grep -q '"supabase_auth_configured":true' /tmp/config.json || ! grep -q '"storage_bucket_configured":true' /tmp/config.json; then
+            echo "::error::Worker configuration readiness check failed"
+            fail=1
+          fi
+
+          echo
+          echo "== Authentication gate =="
+          auth_code="$(curl -sS --max-time 15 -o /tmp/auth.json -w '%{http_code}' "$BASE/api/documents" || true)"
+          echo "HTTP $auth_code"
+          cat /tmp/auth.json 2>/dev/null || true
+          if [[ "$auth_code" != "401" ]]; then
+            echo "::error::Unauthenticated document listing should be rejected with 401"
+            fail=1
+          fi
+
+          check_cors() {
+            local origin="$1"
+            local expected="$2"
+            local output="/tmp/cors-$expected.txt"
+            local code
+            code="$(curl -sS --max-time 15 -D "$output" -o /dev/null -w '%{http_code}' -X OPTIONS "$BASE/api/documents" \
+              -H "Origin: $origin" \
+              -H 'Access-Control-Request-Method: GET' \
+              -H 'Access-Control-Request-Headers: authorization,content-type' || true)"
+            local allow
+            allow="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-origin:/ {gsub("\\r",""); sub(/^[^:]*:[[:space:]]*/,""); print}' "$output" | tail -n 1)"
+            echo "origin=$origin status=$code allow-origin=${allow:-<missing>}"
+            if [[ "$expected" == "allow" && "$allow" != "$origin" ]]; then
+              echo "::error::Expected CORS allow-origin for $origin"
+              fail=1
+            elif [[ "$expected" == "deny" && "$allow" == "$origin" ]]; then
+              echo "::error::Untrusted origin was reflected by CORS"
+              fail=1
+            fi
+          }
+
+          echo
+          echo "== CORS preflight =="
+          check_cors "https://enterprise-ai-dms.vercel.app" "allow"
+          check_cors "https://enterprise-ai-dms-logixaflow-9859.vercel.app" "allow"
+          check_cors "https://evil.example" "deny"
+
+          exit "$fail"
