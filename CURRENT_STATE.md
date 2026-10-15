@@ -1,3 +1,15 @@
+> **Production release checkpoint — 2026-10-15 08:32 UTC (latest; supersedes older status snapshots below where they conflict)**
+>
+> - Current `main` HEAD at checkpoint: `5e068b370a1564a8eb42945a6cbd4579334779eb`.
+> - Cloudflare Worker Production Deploy: [run 38706138555](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138555) **completed successfully**. The Worker bundle built and deployed; the workflow's `/health` and `/api/config` readiness checks passed.
+> - Live Infrastructure Smoke: [run 38706261696](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706261696) **passed**. Live evidence: `GET /health` = HTTP 200 with `status=healthy`; `GET /api/config` = HTTP 200 with Supabase Auth, Storage bucket and single-user readiness true; unauthenticated `GET /api/documents` = HTTP 401; allowed Vercel origins passed CORS preflight; `https://evil.example` was not allowed.
+> - Exact-HEAD quality and security workflows: [Doka Quality Checks run 38706138461](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138461) and [CodeQL run 38706138536](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138536) both **passed** for the same HEAD.
+> - Vercel is **not live**: current project API reports `live=false`; latest production deployment for this HEAD is `CANCELED`. A prior deployment from commit `1dd3ace0cb187f3d3980cc181c58937906716ae4` is `READY`, but that does not make the project live or prove the latest UI is published. Keep frontend go-live blocked until the Vercel ignored-build/cancellation cause is resolved and the canonical alias is verified.
+> - **Release remains partial, not full go-live.** Authenticated document upload/download/version/audit lifecycle, cross-user isolation, real B2/Google Drive/Cloudinary application-path recovery and the strict Myanmar/English OCR benchmark are not proven by the smoke test. The cloud acceptance scripts require dedicated test-user tokens and live provider credentials; no credentials were read or changed. Do not weaken the production single-user restriction to force acceptance.
+> - Next safe steps: fix/confirm Vercel production build configuration and run the manual production smoke; run `scripts/cloud_acceptance.py` only against a dedicated acceptance environment with two disposable test-user tokens and the exact 50 MiB fixture; run `scripts/cloud_provider_acceptance.py` with authorized provider credentials; then close OCR and recovery gates with privacy-safe evidence. Keep the project single-user until the owner explicitly approves a multi-user launch.
+>
+> ---
+>
 > **Cloudflare deployment follow-up — 2026-10-15**
 >
 > - Direct deployment API confirms Worker `doka-ai-dms` latest listed deployment `d894b59e-4aca-4fa2-86b2-9750055749eb`, version 724 (`75e436b2-2009-4779-b659-5421bea0843a`), assigned 100% traffic. The account has zero zones and no custom Worker domains listed; provider-path/health checks remain separate.
