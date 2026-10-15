@@ -1,3 +1,16 @@
+> **Repository/provider re-audit — 2026-10-15 (read-only; supersedes older provider snapshots where they conflict)**
+>
+> - Latest observed `main` SHA at audit time: `6c1fe995c807382cbe3c1000e893e678d621f83b` (UI toast notifications). Exact-SHA CI for this SHA must be checked before claiming current-HEAD CI is green; older successful runs are not transferable to this commit.
+> - Vercel `enterprise-ai-dms`: `live=false`; latest production deployment for this SHA is `CANCELED`. Keep production paused/manual-only; no deployment or traffic mutation was performed.
+> - Render `My Workspace` service listing returned `null` even with previews enabled. This is connector/workspace visibility only. Owner must confirm the intended workspace/service; do not create a replacement.
+> - Supabase `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`) reports `ACTIVE_HEALTHY`, region `ap-southeast-1`, Postgres 17. Live migration listing includes `20261009083942_doka_trigger_function_least_privilege` as latest. Policy configuration is not two-user isolation evidence; Gates 9–11 remain open.
+> - Cloudflare account API returned zero zones. Worker script `doka-ai-dms` exists, but script-list metadata returned `routes: null` and an empty `deployment_id`; reconcile deployment/version/route state with the prior deployment evidence before claiming current routing is fully verified. No secrets were read or changed.
+> - Detailed findings and prioritized work inventory: [docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md](docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md).
+>
+> **Next action:** verify exact-SHA CI on `6c1fe995c807382cbe3c1000e893e678d621f83b`, then run disposable authenticated Cloud Gates 9–11; separately confirm the intended Render service and reconcile Cloudflare routes. Keep Vercel production paused until owner approval and all required gates pass.
+
+---
+
 > **Follow-up verification — 2026-10-14 (read-only cloud + branch review)**
 >
 > - Documentation HEAD `4401eba153b13167aa7e552f1b3eec56ab7d1d02` now has a successful [Doka Quality Checks run](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561399407).
