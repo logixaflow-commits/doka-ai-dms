@@ -49,12 +49,32 @@ export default function AiUsage() {
   };
 
   useEffect(() => {
-    void fetchUsage();
+    const controller = new AbortController();
+    const loadUsage = async () => {
+      try {
+        const res = await fetch(`${CLOUD_API_ORIGIN}/api/ai/usage`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch usage`);
+        const json = await res.json();
+        setData(json);
+        setError(null);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        console.error(err);
+        setError(err instanceof Error ? err.message : 'Failed to connect to AI usage endpoint');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    void loadUsage();
+    return () => controller.abort();
   }, []);
 
   const providers = data?.providers ? Object.entries(data.providers) : [];
-  const activeCount = providers.filter(([_, p]) => p.status === 'active').length;
-  const errorCount = providers.reduce((sum, [_, p]) => sum + (p.errors_today || 0), 0);
+  const activeCount = providers.filter(([, p]) => p.status === 'active').length;
+  const errorCount = providers.reduce((sum, [, p]) => sum + (p.errors_today || 0), 0);
 
   return (
     <div className="doka-dashboard">
