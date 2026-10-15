@@ -7,28 +7,28 @@ on:
   push:
     branches: [main]
     paths:
-      - "web-platform/backend/**"
-      - "web-platform/frontend/**"
-      - "cloudflare_worker/**"
+      - "apps/web-platform/backend/**"
+      - "apps/web-platform/frontend/**"
+      - "apps/web-platform/backend/cloudflare_worker/**"
       - "scripts/**"
       - "shared/**"
-      - "supabase/**"
+      - "apps/web-platform/backend/supabase/**"
       - "pyproject.toml"
-      - "web-platform/backend/requirements*.txt"
-      - "web-platform/frontend/package*.json"
+      - "apps/web-platform/backend/requirements*.txt"
+      - "apps/web-platform/frontend/package*.json"
       - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths:
-      - "web-platform/backend/**"
-      - "web-platform/frontend/**"
-      - "cloudflare_worker/**"
+      - "apps/web-platform/backend/**"
+      - "apps/web-platform/frontend/**"
+      - "apps/web-platform/backend/cloudflare_worker/**"
       - "scripts/**"
       - "shared/**"
-      - "supabase/**"
+      - "apps/web-platform/backend/supabase/**"
       - "pyproject.toml"
-      - "web-platform/backend/requirements*.txt"
-      - "web-platform/frontend/package*.json"
+      - "apps/web-platform/backend/requirements*.txt"
+      - "apps/web-platform/frontend/package*.json"
       - ".github/workflows/**"
   workflow_dispatch:
 

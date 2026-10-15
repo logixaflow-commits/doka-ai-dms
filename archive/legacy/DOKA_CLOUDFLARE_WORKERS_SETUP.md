@@ -1,7 +1,7 @@
 # Doka Cloudflare Workers deployment
 
 This repository contains a dedicated Cloudflare Python Worker entry point at
-`cloudflare_worker/main.py`. It exposes only the stateless Supabase-backed Cloud
+`apps/web-platform/backend/cloudflare_worker/main.py`. It exposes only the stateless Supabase-backed Cloud
 Documents API. The Personal Local Edition, local filesystem, OCR, and backup
 features remain on the user's own computer.
 
@@ -43,7 +43,7 @@ On the Cloudflare "Set up your application" screen:
 - **Advanced settings:** Keep the Root directory at `/` (repository root).
 
 The Wrangler configuration uses the existing Worker name `doka`, points to
-`cloudflare_worker/main.py`, enables Python Workers, and keeps dashboard
+`apps/web-platform/backend/cloudflare_worker/main.py`, enables Python Workers, and keeps dashboard
 secrets during deploys.
 
 ## Required Worker variables

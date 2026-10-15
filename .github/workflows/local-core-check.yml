@@ -21,7 +21,7 @@ jobs:
           python-version: "3.12"
       - name: Compile Python sources
         run: |
-          python -m compileall -q web-platform/backend
+          python -m compileall -q apps/web-platform/backend
           python -m py_compile scripts/doka_pilot_check.py scripts/ocr_benchmark.py
 
   backend-tests:
@@ -33,14 +33,14 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: web-platform/backend/requirements-local.txt
+          cache-dependency-path: apps/web-platform/backend/requirements-local.txt
       - name: Install Personal Local dependencies
-        run: pip install -r web-platform/backend/requirements-local.txt
+        run: pip install -r apps/web-platform/backend/requirements-local.txt
       - name: Run local safety regression tests
         env:
           ENVIRONMENT: development
           DEBUG: "false"
           SECRET_KEY: doka-local-core-ci-secret-key-32-bytes-minimum
-          PYTHONPATH: web-platform/backend
+          PYTHONPATH: apps/web-platform/backend
         run: |
-          pytest -q web-platform/tests/test_safe_workspace_service.py web-platform/tests/test_workspace_backup_service.py web-platform/tests/test_organization_planner.py web-platform/tests/test_workspace_security.py web-platform/tests/test_document_understanding.py web-platform/tests/test_local_auth.py web-platform/tests/test_unified_ai_fallback.py web-platform/tests/test_observability.py web-platform/tests/test_hardening.py web-platform/tests/test_doka_pilot.py web-platform/tests/test_ocr_benchmark.py web-platform/tests/test_cloud_storage.py
+          pytest -q apps/web-platform/tests/test_safe_workspace_service.py apps/web-platform/tests/test_workspace_backup_service.py apps/web-platform/tests/test_organization_planner.py apps/web-platform/tests/test_workspace_security.py apps/web-platform/tests/test_document_understanding.py apps/web-platform/tests/test_local_auth.py apps/web-platform/tests/test_unified_ai_fallback.py apps/web-platform/tests/test_observability.py apps/web-platform/tests/test_hardening.py apps/web-platform/tests/test_doka_pilot.py apps/web-platform/tests/test_ocr_benchmark.py apps/web-platform/tests/test_cloud_storage.py

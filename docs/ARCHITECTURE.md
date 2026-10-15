@@ -74,15 +74,15 @@ An optional legacy `agents/` pipeline remains separate from the canonical workfl
 
 ## Repository boundaries
 
-- `web-platform/backend/`: FastAPI runtime and services.
-- `web-platform/frontend/`: React/Vite UI.
-- `web-platform/tests/`: maintained application regression tests.
-- `cloudflare_worker/`: active cloud API.
-- `supabase/migrations/`: cloud schema migrations.
+- `apps/web-platform/backend/`: FastAPI runtime and services.
+- `apps/web-platform/frontend/`: React/Vite UI.
+- `apps/web-platform/tests/`: maintained application regression tests.
+- `apps/web-platform/backend/cloudflare_worker/`: active cloud API.
+- `apps/web-platform/backend/supabase/migrations/`: cloud schema migrations.
 - `scripts/`: validation, benchmark and pilot utilities.
 - `docs/`: active domain documentation.
 - `archive/legacy/`: preserved historical material.
-- `infrastructure/` and `mobile/`: deferred/preserved areas.
+- `infrastructure/` and `apps/mobile/`: deferred/preserved areas.
 
 ## Deployment topology
 

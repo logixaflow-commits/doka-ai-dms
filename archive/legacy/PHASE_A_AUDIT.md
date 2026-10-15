@@ -5,7 +5,7 @@
 
 ## Current structure
 
-The repository has a clear active application boundary under `web-platform/`, with the React/Vite frontend, FastAPI backend, and Personal Local regression tests grouped together. Repository-wide scripts, documentation, GitHub workflows, optional Supabase migrations, and deferred legacy/mobile/infrastructure areas are kept outside that active runtime.
+The repository has a clear active application boundary under `apps/web-platform/`, with the React/Vite frontend, FastAPI backend, and Personal Local regression tests grouped together. Repository-wide scripts, documentation, GitHub workflows, optional Supabase migrations, and deferred legacy/apps/mobile/infrastructure areas are kept outside that active runtime.
 
 The root also retains historical launchers and deployment configuration. These are intentionally preserved for now; moving or deleting them without tracing every consumer could break local startup or deployment.
 

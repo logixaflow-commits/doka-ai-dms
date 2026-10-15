@@ -14,13 +14,13 @@
 ## Local development
 Backend:
 ```sh
-cd web-platform/backend
+cd apps/web-platform/backend
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Frontend:
 ```sh
-cd web-platform/frontend
+cd apps/web-platform/frontend
 npm ci
 npm run dev
 ```

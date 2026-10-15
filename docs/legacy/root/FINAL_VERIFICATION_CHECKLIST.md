@@ -174,8 +174,8 @@
 - [x] app/tsconfig.json - TypeScript config
 
 ### Mobile Configuration
-- [x] mobile/package.json - Dependencies
-- [x] mobile/babel.config.js - Babel config
+- [x] apps/mobile/package.json - Dependencies
+- [x] apps/mobile/babel.config.js - Babel config
 
 ### Monitoring Configuration
 - [x] monitoring/docker-compose.monitoring.yml - Monitoring stack
@@ -224,12 +224,12 @@
 - [x] dms/tests/conftest.py - Test configuration
 
 ### Mobile Screens (6 screens)
-- [x] mobile/src/screens/LoginScreen.js
-- [x] mobile/src/screens/DashboardScreen.js
-- [x] mobile/src/screens/DocumentsScreen.js
-- [x] mobile/src/screens/UploadScreen.js
-- [x] mobile/src/screens/ProfileScreen.js
-- [x] mobile/src/screens/DocumentDetailScreen.js
+- [x] apps/mobile/src/screens/LoginScreen.js
+- [x] apps/mobile/src/screens/DashboardScreen.js
+- [x] apps/mobile/src/screens/DocumentsScreen.js
+- [x] apps/mobile/src/screens/UploadScreen.js
+- [x] apps/mobile/src/screens/ProfileScreen.js
+- [x] apps/mobile/src/screens/DocumentDetailScreen.js
 
 ## ✅ Git Repository Verification
 

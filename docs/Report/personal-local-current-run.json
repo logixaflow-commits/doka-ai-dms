@@ -8,15 +8,15 @@
     "worktree_clean": false,
     "local_code_patch_sha256": "f25f70135c792dcce363251eb3bb769bb0354a96e4495fde7df8cfc0530ee6b1",
     "patch_files": [
-      "web-platform/backend/app/services/safe_workspace_service.py",
-      "web-platform/backend/tests/test_phase0_foundation.py",
-      "web-platform/backend/app/services/ocr_service.py",
-      "web-platform/backend/app/services/ocr_benchmark.py",
-      "web-platform/backend/tests/test_ocr_safety_limits.py",
-      "web-platform/backend/requirements.txt",
-      "web-platform/backend/requirements-local.txt",
-      "web-platform/backend/requirements-dev.txt",
-      "web-platform/frontend/e2e/personal-local.spec.ts"
+      "apps/web-platform/backend/app/services/safe_workspace_service.py",
+      "apps/web-platform/backend/tests/test_phase0_foundation.py",
+      "apps/web-platform/backend/app/services/ocr_service.py",
+      "apps/web-platform/backend/app/services/ocr_benchmark.py",
+      "apps/web-platform/backend/tests/test_ocr_safety_limits.py",
+      "apps/web-platform/backend/requirements.txt",
+      "apps/web-platform/backend/requirements-local.txt",
+      "apps/web-platform/backend/requirements-dev.txt",
+      "apps/web-platform/frontend/e2e/personal-local.spec.ts"
     ]
   },
   "environment": {

@@ -22,14 +22,12 @@ dev = [
 build = "cloudflare_worker.build:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["apps/web-platform/backend"]
 include = ["cloudflare_worker*", "shared*"]
 exclude = [
-    "mobile*",
     "archive*",
     "supabase*",
     "infrastructure*",
-    "web-platform*",
     "docs*",
     "tests*",
 ]

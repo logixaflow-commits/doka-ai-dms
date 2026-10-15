@@ -55,7 +55,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--directory",
-        default="cloudflare_worker/migrations",
+        default="apps/web-platform/backend/cloudflare_worker/migrations",
         type=Path,
     )
     parser.add_argument("--manifest", type=Path)

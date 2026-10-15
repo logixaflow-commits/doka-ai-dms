@@ -78,13 +78,13 @@ doka-ai-dms/
 │   │   ├── SECURITY.md
 │   │   ├── TOOLS.md
 │   │   ├── UI.md
-│   │   ├── web-platform-backend-LOCAL_TESTING_GUIDE.md
-│   │   ├── web-platform-backend-README.md
-│   │   ├── web-platform-backend-tests-README.md
-│   │   ├── web-platform-docs-README.md
-│   │   ├── web-platform-frontend-README.md
-│   │   ├── web-platform-README.md
-│   │   └── web-platform-tests-README.md
+│   │   ├── apps/web-platform-backend-LOCAL_TESTING_GUIDE.md
+│   │   ├── apps/web-platform-backend-README.md
+│   │   ├── apps/web-platform-backend-tests-README.md
+│   │   ├── apps/web-platform-docs-README.md
+│   │   ├── apps/web-platform-frontend-README.md
+│   │   ├── apps/web-platform-README.md
+│   │   └── apps/web-platform-tests-README.md
 │   └── legacy-enterprise/
 │       ├── backend/
 │       │   ├── config.yaml
@@ -115,7 +115,7 @@ doka-ai-dms/
 │       │   ├── setup.bat
 │       │   └── setup.sh
 │       └── README.md
-├── cloudflare_worker/
+├── apps/web-platform/backend/cloudflare_worker/
 │   ├── migrations/
 │   │   ├── 0001_doka_cloud_baseline.sql
 │   │   ├── 0002_authorization_integrity.sql
@@ -245,7 +245,7 @@ doka-ai-dms/
 │       ├── railway.env
 │       ├── railway.toml
 │       └── start_railway.py
-├── mobile/
+├── apps/mobile/
 │   ├── src/
 │   │   ├── context/
 │   │   │   ├── ApiContext.js
@@ -298,7 +298,7 @@ doka-ai-dms/
 │   ├── run-cloud-provider-acceptance.ps1
 │   ├── test_search.py
 │   └── verify_d1_migrations.py
-├── supabase/
+├── apps/web-platform/backend/supabase/
 │   └── migrations/
 │       ├── 20261001075215_doka_documents.sql
 │       ├── 20261001075218_doka_storage_policies.sql
@@ -329,7 +329,7 @@ doka-ai-dms/
 │       ├── 20261005113151_doka_storage_provider_metadata.sql
 │       ├── 20261005113241_doka_audit_export_backup_actions.sql
 │       └── 20261009083942_doka_trigger_function_least_privilege.sql
-├── web-platform/
+├── apps/web-platform/
 │   ├── backend/
 │   │   ├── alembic/
 │   │   │   ├── versions/

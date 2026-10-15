@@ -262,7 +262,7 @@ text
 
 ### 3.3 Repository Layout
 enterprise-ai-dms/
-├── web-platform/ # ACTIVE runtime
+├── apps/web-platform/ # ACTIVE runtime
 │ ├── backend/
 │ │ ├── app/
 │ │ │ ├── main.py
@@ -276,10 +276,10 @@ enterprise-ai-dms/
 │ │ ├── pages/
 │ │ └── legacy/ # Not routed
 │ └── package.json
-├── cloudflare_worker/ # Active cloud API
-├── supabase/ # DB + RLS + Storage
+├── apps/web-platform/backend/cloudflare_worker/ # Active cloud API
+├── apps/web-platform/backend/supabase/ # DB + RLS + Storage
 ├── infrastructure/ # 💤 Deferred (Docker/K8s)
-├── mobile/ # 💤 Deferred
+├── apps/mobile/ # 💤 Deferred
 ├── archive/
 │ └── legacy-enterprise/ # 💤 Preserved
 ├── docs/ # Documentation
@@ -401,7 +401,7 @@ text
 | Social Media Ingestion | 💤 Dormant | archive/legacy-enterprise/ |
 | External API Integration | 💤 Dormant | archive/legacy-enterprise/ |
 | Monitoring | 💤 Dormant | infrastructure/ |
-| Mobile (native) | 💤 Dormant | mobile/ |
+| Mobile (native) | 💤 Dormant | apps/mobile/ |
 | Cloud Deployment | 💤 Dormant | infrastructure/ |
 
 **🔒 ENTERPRISE — DORMANT UNTIL FUNDED**
@@ -572,7 +572,7 @@ archive/legacy-enterprise/backend/	Enterprise FastAPI routes
 archive/legacy-enterprise/frontend/	Legacy React pages
 archive/legacy-enterprise/config.yaml	Old config
 infrastructure/	Docker, K8s, Terraform
-mobile/	Mobile app
+apps/mobile/	Mobile app
 6.2 Archived Feature Groups
 Multi-User & Access Control: RBAC, folder permissions, 2FA, SSO
 

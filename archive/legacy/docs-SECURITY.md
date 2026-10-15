@@ -3,7 +3,7 @@
 ## Current Personal Local Edition
 
 - Never commit `.env` files, API keys, passwords, private keys, or real document data.
-- The local runtime uses `web-platform/backend/.env`; the committed template is `web-platform/backend/.env.example`.
+- The local runtime uses `apps/web-platform/backend/.env`; the committed template is `apps/web-platform/backend/.env.example`.
 - Keep `ORIGINAL_READ_ONLY=true` and `ALLOW_SOURCE_WRITE=false`.
 - Use a strong `BOOTSTRAP_ADMIN_PASSWORD` locally; no usable password is stored in the repository.
 - Keep the real source drive outside the writable workspace.

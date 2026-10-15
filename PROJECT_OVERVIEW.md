@@ -44,15 +44,15 @@ Supabase Auth supplies identity. The Worker derives ownership from the verified 
 Storage routing is defined in `docs/STORAGE.md`: source objects <=50 MiB use Supabase, >50 MiB use B2 when configured, derivatives prefer Cloudinary when configured and healthy, and Google Drive is a configuration-gated export/archive path.
 
 ## Repository boundaries
-- `web-platform/backend/`: FastAPI Personal Local runtime and supporting services.
-- `web-platform/frontend/`: React/Vite UI.
-- `web-platform/tests/`: maintained application regression tests.
-- `cloudflare_worker/`: active Cloudflare Worker cloud API.
-- `supabase/migrations/`: cloud schema migrations.
+- `apps/web-platform/backend/`: FastAPI Personal Local runtime and supporting services.
+- `apps/web-platform/frontend/`: React/Vite UI.
+- `apps/web-platform/tests/`: maintained application regression tests.
+- `apps/web-platform/backend/cloudflare_worker/`: active Cloudflare Worker cloud API.
+- `apps/web-platform/backend/supabase/migrations/`: cloud schema migrations.
 - `scripts/`: repository validation and pilot/benchmark utilities.
 - `docs/`: active domain documentation.
 - `archive/legacy/`: preserved historical documentation and retired material.
-- `infrastructure/`, `mobile/`: preserved/deferred areas.
+- `infrastructure/`, `apps/mobile/`: preserved/deferred areas.
 
 ## Runtime boundaries
 Personal Local is a local data-plane application. Personal Cloud is authenticated and provider-backed. Enterprise, mobile, multi-region, distributed job infrastructure, and advanced intelligence are deferred feature trains and must not become implicit dependencies of the Personal Local runtime.

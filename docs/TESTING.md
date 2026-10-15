@@ -44,7 +44,7 @@ The browser test stops at plan review. It does not approve/apply organization pr
 Required scenario: login -> import -> scan/OCR -> review -> approve -> Final copy -> backup -> isolated restore -> undo, with source SHA-256 unchanged before/after.
 
 ## Repo-side Personal Local preflight
-The pilot harness now rejects overlapping source/workspace/backup/evidence paths, symlink roots, source trees containing symlinks, non-empty dedicated workspace/backup roots, and evidence targets that are not regular-file paths. It validates the source before creating mutable pilot roots. The maintained backend workflow explicitly includes `web-platform/tests/test_doka_pilot.py`, so these guardrails are checked in CI when the workflow runs.
+The pilot harness now rejects overlapping source/workspace/backup/evidence paths, symlink roots, source trees containing symlinks, non-empty dedicated workspace/backup roots, and evidence targets that are not regular-file paths. It validates the source before creating mutable pilot roots. The maintained backend workflow explicitly includes `apps/web-platform/tests/test_doka_pilot.py`, so these guardrails are checked in CI when the workflow runs.
 
 Local validation on 2026-10-09: the maintained Personal Local safety subset plus pilot/idempotency tests passed **71 tests**; frontend TypeScript/build/smoke/lint checks passed. The actual Playwright browser acceptance and representative OCR/copied-office pilot remain separate, pending release gates.
 
@@ -85,7 +85,7 @@ The runner is disposable and privacy-safe: it verifies duplicate idempotency con
 
 
 ## D1 migration integrity
-`python scripts/verify_d1_migrations.py --manifest cloudflare_worker/migrations/manifest.json` verifies that the numbered migration sequence and reviewed Git-blob hashes match. `web-platform/tests/test_d1_migrations.py` applies the numbered SQL files to a disposable SQLite database and verifies the organization-owner, document-owner-membership, permission-recipient and permission-granter guards. This does not apply migrations to production.
+`python scripts/verify_d1_migrations.py --manifest apps/web-platform/backend/cloudflare_worker/migrations/manifest.json` verifies that the numbered migration sequence and reviewed Git-blob hashes match. `apps/web-platform/tests/test_d1_migrations.py` applies the numbered SQL files to a disposable SQLite database and verifies the organization-owner, document-owner-membership, permission-recipient and permission-granter guards. This does not apply migrations to production.
 
 
 The production D1 authorization migration was applied only after a SQL export completed, the export restored in disposable SQLite, the affected metadata tables were confirmed empty, and all four migration guard tests passed. The post-apply read-only query confirmed the unique-owner index and six integrity triggers; see `Phase0_Evidence/train1/d1-authorization-migration-2026-10-09.json`.

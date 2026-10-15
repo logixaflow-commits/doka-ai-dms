@@ -147,7 +147,7 @@ Recommended provider roles and task-specific fallback chains are documented in `
 4. Close gates 7–8 and freeze Personal Local.
 5. Run gates 9–11 for Cloud.
 6. Close gate 12 and issue final sign-off.
-7. Only then evaluate deferred enterprise/mobile/advanced AI/scale work.
+7. Only then evaluate deferred enterprise/apps/mobile/advanced AI/scale work.
 
 Detailed issue IDs, architecture backlog and deferred work remain in `docs/DOKA_UNIFIED_REMEDIATION_ROADMAP.md`.
 

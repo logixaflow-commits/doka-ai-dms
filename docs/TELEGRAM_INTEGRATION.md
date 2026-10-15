@@ -29,7 +29,7 @@ Users can also verify or re-route documents using Telegram buttons.
 
 ## 3. Environment Variables
 
-Configure these variables in `web-platform/backend/.env` or in Cloud/Worker environment settings:
+Configure these variables in `apps/web-platform/backend/.env` or in Cloud/Worker environment settings:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
@@ -42,9 +42,9 @@ Configure these variables in `web-platform/backend/.env` or in Cloud/Worker envi
 
 ## 4. Code Architecture
 
-* **Service Module:** `web-platform/backend/app/services/telegram.py`
-* **Configuration:** `web-platform/backend/app/core/config.py` (`Settings.TELEGRAM_*`)
-* **Template:** `web-platform/backend/.env.example`
+* **Service Module:** `apps/web-platform/backend/app/services/telegram.py`
+* **Configuration:** `apps/web-platform/backend/app/core/config.py` (`Settings.TELEGRAM_*`)
+* **Template:** `apps/web-platform/backend/.env.example`
 
 ---
 
@@ -104,7 +104,7 @@ await notify_backup_status(
 
 ## 6. Cloud / Local Deployment Checklist
 
-1. In Local mode: Add the variables into `web-platform/backend/.env`.
+1. In Local mode: Add the variables into `apps/web-platform/backend/.env`.
 2. In Cloud mode (Render / Cloudflare Worker): Add the keys to your project's Environment Secrets.
 3. Set `TELEGRAM_ENABLED=true` to go live.
 

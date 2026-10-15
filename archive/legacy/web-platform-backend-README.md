@@ -2,7 +2,7 @@
 
 The supported backend here is the Doka Personal Local FastAPI application. Follow the repository [QUICKSTART](../../QUICKSTART.md) and [Personal Local runbook](../../docs/PERSONAL_LOCAL_RUNBOOK.md); this file is not a separate setup path.
 
-Use Python 3.12, an isolated `web-platform/backend/.venv`, and `requirements-local.txt`. For tests, lint/build, and smoke checks see [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md). No PostgreSQL, Redis, MinIO, Supabase, or default account is required for local development. Set a private `BOOTSTRAP_ADMIN_PASSWORD` in your untracked `.env` before signing in.
+Use Python 3.12, an isolated `apps/web-platform/backend/.venv`, and `requirements-local.txt`. For tests, lint/build, and smoke checks see [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md). No PostgreSQL, Redis, MinIO, Supabase, or default account is required for local development. Set a private `BOOTSTRAP_ADMIN_PASSWORD` in your untracked `.env` before signing in.
 
 The remainder of this README describes retained Enterprise code and is historical reference only. Its old API, Docker, environment, and storage instructions do not describe or start the active Personal Local product.
 
@@ -27,7 +27,7 @@ The remainder of this README describes retained Enterprise code and is historica
 
 From the repository root, use `start_application.bat` on Windows or `./run.sh` on macOS/Linux. These launchers use the local Python profile, require Node.js 24.x, bind the services to loopback, and never start the deferred Enterprise Docker stack.
 
-For a manual backend test setup, create `web-platform/backend/.venv` with Python 3.12, install `web-platform/backend/requirements-local.txt` into that environment, then follow the commands in [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md). Do not use `requirements-dev.txt` for Personal Local; it is the legacy Enterprise profile.
+For a manual backend test setup, create `apps/web-platform/backend/.venv` with Python 3.12, install `apps/web-platform/backend/requirements-local.txt` into that environment, then follow the commands in [LOCAL_TESTING_GUIDE.md](LOCAL_TESTING_GUIDE.md). Do not use `requirements-dev.txt` for Personal Local; it is the legacy Enterprise profile.
 
 ---
 

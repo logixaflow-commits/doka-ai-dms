@@ -12,22 +12,22 @@ if [ "$NODE_MAJOR" != "24" ]; then
   exit 1
 fi
 
-if [ ! -x "web-platform/backend/.venv/bin/python" ]; then
-  python3 -m venv web-platform/backend/.venv
+if [ ! -x "apps/web-platform/backend/.venv/bin/python" ]; then
+  python3 -m venv apps/web-platform/backend/.venv
 fi
 
-if [ ! -f "web-platform/backend/.env" ]; then
-  cp web-platform/backend/.env.example web-platform/backend/.env
-  echo "Created web-platform/backend/.env. Set BOOTSTRAP_ADMIN_PASSWORD before login."
+if [ ! -f "apps/web-platform/backend/.env" ]; then
+  cp apps/web-platform/backend/.env.example apps/web-platform/backend/.env
+  echo "Created apps/web-platform/backend/.env. Set BOOTSTRAP_ADMIN_PASSWORD before login."
 fi
 
-web-platform/backend/.venv/bin/python -m pip install -r web-platform/backend/requirements-local.txt
+apps/web-platform/backend/.venv/bin/python -m pip install -r apps/web-platform/backend/requirements-local.txt
 
-if [ ! -d "web-platform/frontend/node_modules" ]; then
-  (cd web-platform/frontend && npm ci)
+if [ ! -d "apps/web-platform/frontend/node_modules" ]; then
+  (cd apps/web-platform/frontend && npm ci)
 fi
 
 trap 'kill 0' EXIT
-(cd web-platform/backend && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload) &
-(cd web-platform/frontend && npm run dev) &
+(cd apps/web-platform/backend && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload) &
+(cd apps/web-platform/frontend && npm run dev) &
 wait

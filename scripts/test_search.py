@@ -3,7 +3,7 @@ import os
 import json
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "web-platform" / "backend"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "apps/web-platform" / "backend"))
 
 from app.services.safe_workspace_service import safe_workspace_service
 

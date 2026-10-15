@@ -27,17 +27,17 @@ This is a GitHub source/PR metadata audit. A full local clone, full test suite, 
 
 ## Verified on current main
 
-- web-platform/backend/app/services/job_idempotency.py contains POSIX fcntl and Windows msvcrt locking paths.
-- web-platform/backend/app/services/ocr_benchmark.py contains CER/WER threshold checks and computes gate_ready.
-- web-platform/tests/test_ocr_benchmark.py exists and checks a not-ready report case.
-- cloudflare_worker/jobs.py contains JobStateConflict and guards expected row transitions.
-- cloudflare_worker/outbox.py contains retryability classification and retry/dead transitions.
-- web-platform/backend/app/services/train1_safety_contracts.py contains retry classification and the _probe_in_flight circuit-breaker guard.
-- web-platform/backend/app/services/unified_ai_service.py imports the persisted consent store and validates scoped grants at external provider boundaries.
+- apps/web-platform/backend/app/services/job_idempotency.py contains POSIX fcntl and Windows msvcrt locking paths.
+- apps/web-platform/backend/app/services/ocr_benchmark.py contains CER/WER threshold checks and computes gate_ready.
+- apps/web-platform/tests/test_ocr_benchmark.py exists and checks a not-ready report case.
+- apps/web-platform/backend/cloudflare_worker/jobs.py contains JobStateConflict and guards expected row transitions.
+- apps/web-platform/backend/cloudflare_worker/outbox.py contains retryability classification and retry/dead transitions.
+- apps/web-platform/backend/app/services/train1_safety_contracts.py contains retry classification and the _probe_in_flight circuit-breaker guard.
+- apps/web-platform/backend/app/services/unified_ai_service.py imports the persisted consent store and validates scoped grants at external provider boundaries.
 - Follow-up main commit 885b85e0cdf54bd3cdf7367e05e700bbf8a06e60 rejects unknown AI analysis keys and non-finite confidence values; commit f041c558a2fe0a32b2ae6ec957d6e00358b67d30 adds regression tests for unknown keys, NaN, and Infinity. These changes were source-verified but not yet fully test-run in this environment.
 - wrangler.jsonc contains an empty previews block.
-- web-platform/frontend/src/lib/cloudDocuments.ts exports CLOUD_API_ORIGIN; PersonalDashboard.tsx reuses it.
-- web-platform/frontend/src/index.css no longer applies a global border-width: 1px.
+- apps/web-platform/frontend/src/lib/cloudDocuments.ts exports CLOUD_API_ORIGIN; PersonalDashboard.tsx reuses it.
+- apps/web-platform/frontend/src/index.css no longer applies a global border-width: 1px.
 - OCR report docs/Report/ocr-benchmark.json has gate_ready: false, lists required languages mya and eng, and says mya is missing because the existing Myanmar-related sample is mixed mya+eng.
 
 ## Outstanding implementation/verification checklist for main-only work

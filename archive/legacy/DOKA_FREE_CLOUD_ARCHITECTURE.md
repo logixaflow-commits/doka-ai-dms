@@ -171,7 +171,7 @@ This avoids locking Doka into a fragile free filesystem while keeping the applic
 
 ## Code-side cloud storage foundation (implemented)
 The backend now contains a provider-neutral object-storage boundary at
-`web-platform/backend/app/services/cloud_storage.py`.
+`apps/web-platform/backend/app/services/cloud_storage.py`.
 
 Implemented adapters:
 - Supabase Storage adapter using the authenticated user's Supabase access token.

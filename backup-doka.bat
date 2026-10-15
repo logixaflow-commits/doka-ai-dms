@@ -4,7 +4,7 @@ title Doka AI DMS - Workspace Backup
 
 set "ROOT=%~dp0"
 set "ROOT=%ROOT:~0,-1%"
-set "BACKEND=%ROOT%\web-platform\backend"
+set "BACKEND=%ROOT%\apps/web-platform\backend"
 set "PYTHON=%BACKEND%\.venv\Scripts\python.exe"
 
 echo ===================================================

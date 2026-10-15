@@ -135,7 +135,7 @@ These are future product trains, not prerequisites to claim the current gates pa
 - [ ] Provider cost/quality routing, feedback, experiment assignment and statistical analysis.
 - [ ] Durable RAG metrics/alert history, quality feedback and human-approved agent workflows.
 
-### Phase 12 — enterprise/mobile/multi-region
+### Phase 12 — enterprise/apps/mobile/multi-region
 - [ ] Team governance and production mobile.
 - [ ] Resumable/offline uploads.
 - [ ] Data residency and multi-region recovery with independent acceptance evidence.

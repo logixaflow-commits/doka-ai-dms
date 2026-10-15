@@ -24,4 +24,4 @@ Internal AI callers must propagate the verified subject ID and an explicit scope
 
 ## Verification
 
-Regression coverage is in `web-platform/backend/tests/test_consent_store.py` and `web-platform/backend/tests/test_ai_provider_boundaries.py`. It covers exact subject/purpose/scope matching, persisted grant lookup, revocation, retained audit history, and ignoring forged in-memory grant objects.
+Regression coverage is in `apps/web-platform/backend/tests/test_consent_store.py` and `apps/web-platform/backend/tests/test_ai_provider_boundaries.py`. It covers exact subject/purpose/scope matching, persisted grant lookup, revocation, retained audit history, and ignoring forged in-memory grant objects.

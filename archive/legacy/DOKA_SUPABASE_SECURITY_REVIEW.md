@@ -1,7 +1,7 @@
 # Doka Supabase Security Review — Source-Level Findings
 
 Review date: 2026-10-03  
-Scope: repository migration source under `supabase/migrations/` and the Cloudflare Worker data-access contract.  
+Scope: repository migration source under `apps/web-platform/backend/supabase/migrations/` and the Cloudflare Worker data-access contract.
 Status: **source review only**. This document does not prove that migrations are applied to a live Supabase project, that effective grants match the repository, or that cross-user tests have passed.
 
 ## Observed controls in migration order

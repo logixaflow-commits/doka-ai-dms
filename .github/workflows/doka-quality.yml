@@ -4,15 +4,15 @@ on:
   push:
     branches: [main]
     paths:
-      - "web-platform/backend/**"
-      - "web-platform/tests/**"
-      - "web-platform/frontend/**"
-      - "cloudflare_worker/**"
+      - "apps/web-platform/backend/**"
+      - "apps/web-platform/tests/**"
+      - "apps/web-platform/frontend/**"
+      - "apps/web-platform/backend/cloudflare_worker/**"
       - "scripts/**"
       - "shared/**"
-      - "supabase/**"
+      - "apps/web-platform/backend/supabase/**"
       - "pyproject.toml"
-      - "web-platform/backend/requirements*.txt"
+      - "apps/web-platform/backend/requirements*.txt"
       - ".github/dependabot.yml"
       - ".gitignore"
       - ".dockerignore"
@@ -24,15 +24,15 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "web-platform/backend/**"
-      - "web-platform/tests/**"
-      - "web-platform/frontend/**"
-      - "cloudflare_worker/**"
+      - "apps/web-platform/backend/**"
+      - "apps/web-platform/tests/**"
+      - "apps/web-platform/frontend/**"
+      - "apps/web-platform/backend/cloudflare_worker/**"
       - "scripts/**"
       - "shared/**"
-      - "supabase/**"
+      - "apps/web-platform/backend/supabase/**"
       - "pyproject.toml"
-      - "web-platform/backend/requirements*.txt"
+      - "apps/web-platform/backend/requirements*.txt"
       - ".github/dependabot.yml"
       - ".gitignore"
       - ".dockerignore"
@@ -117,8 +117,8 @@ jobs:
           )
           for profile in "${profiles[@]}"; do
             report="backend-${profile%.txt}-audit.json"
-            echo "Auditing web-platform/backend/$profile"
-            pip-audit -r "web-platform/backend/$profile" --ignore-vuln PYSEC-2025-183 --format=json > "$report" || status=$?
+            echo "Auditing apps/web-platform/backend/$profile"
+            pip-audit -r "apps/web-platform/backend/$profile" --ignore-vuln PYSEC-2025-183 --format=json > "$report" || status=$?
             status=${status:-0}
             if [ "$status" -gt 1 ]; then
               echo "pip-audit failed operationally for $profile (exit $status)." >&2
@@ -237,7 +237,7 @@ jobs:
           test -s .github/dependabot.yml
           test -s .github/workflows/dependency-review.yml
           test -s .github/workflows/codeql.yml
-          test -s web-platform/frontend/package-lock.json
+          test -s apps/web-platform/frontend/package-lock.json
           python - <<'PY'
           import tomllib
           from pathlib import Path
@@ -257,13 +257,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: web-platform/backend/requirements-local.txt
+          cache-dependency-path: apps/web-platform/backend/requirements-local.txt
       - name: Install backend test dependencies
-        working-directory: web-platform/backend
+        working-directory: apps/web-platform/backend
         run: python -m pip install -r requirements-local.txt
       - name: Compile backend and pilot utilities
         run: |
-          python -m compileall -q web-platform/backend
+          python -m compileall -q apps/web-platform/backend
           python -m py_compile \
             scripts/doka_pilot_check.py \
             scripts/ocr_benchmark.py \
@@ -271,22 +271,22 @@ jobs:
             scripts/d1_job_runtime_acceptance.py \
             scripts/release_gate_check.py
       - name: Verify D1 migration manifest
-        run: python scripts/verify_d1_migrations.py --manifest cloudflare_worker/migrations/manifest.json
+        run: python scripts/verify_d1_migrations.py --manifest apps/web-platform/backend/cloudflare_worker/migrations/manifest.json
       - name: Run maintained Personal Local regression suite
-        working-directory: web-platform/backend
+        working-directory: apps/web-platform/backend
         run: |
-          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest -q             tests/test_ai_provider_boundaries.py             tests/test_job_idempotency.py             ../tests/test_unified_ai_fallback.py             tests/test_consent_store.py             tests/test_ai_consent_routes.py             tests/test_train1_safety_contracts.py             tests/test_h1_local_auth_boundary.py             tests/test_h2_source_containment.py             tests/test_h3_unicode_passwords.py             tests/test_myanmar_ocr_postprocessing.py             tests/test_ocr_safety_limits.py             tests/test_ocr_benchmark.py             ../tests/test_ocr_benchmark.py             tests/test_local_acceptance_preflight.py             tests/test_workspace_backup_boundaries.py             tests/test_workspace_backup_routes.py             tests/test_symlink_safety.py             ../tests/test_doka_pilot.py             --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml
+          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/apps/web-platform/backend" python -m pytest -q             tests/test_ai_provider_boundaries.py             tests/test_job_idempotency.py             ../tests/test_unified_ai_fallback.py             tests/test_consent_store.py             tests/test_ai_consent_routes.py             tests/test_train1_safety_contracts.py             tests/test_h1_local_auth_boundary.py             tests/test_h2_source_containment.py             tests/test_h3_unicode_passwords.py             tests/test_myanmar_ocr_postprocessing.py             tests/test_ocr_safety_limits.py             tests/test_ocr_benchmark.py             ../tests/test_ocr_benchmark.py             tests/test_local_acceptance_preflight.py             tests/test_workspace_backup_boundaries.py             tests/test_workspace_backup_routes.py             tests/test_symlink_safety.py             ../tests/test_doka_pilot.py             --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml
       - name: Export Cloud API OpenAPI contract
-        working-directory: web-platform/backend
-        run: python ../../scripts/export_cloud_openapi.py artifacts/cloud-openapi.json
+        working-directory: apps/web-platform/backend
+        run: python ../../../scripts/export_cloud_openapi.py artifacts/cloud-openapi.json
       - name: Upload backend coverage and OpenAPI artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: backend-coverage-and-openapi
           path: |
-            web-platform/backend/coverage.xml
-            web-platform/backend/artifacts/cloud-openapi.json
+            apps/web-platform/backend/coverage.xml
+            apps/web-platform/backend/artifacts/cloud-openapi.json
           if-no-files-found: ignore
           retention-days: 7
 
@@ -300,36 +300,36 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install cloud runtime and test dependencies
-        run: python -m pip install -r web-platform/backend/requirements-local.txt
+        run: python -m pip install -r apps/web-platform/backend/requirements-local.txt
       - name: Compile Cloudflare Worker and shared contracts
-        run: python -m compileall -q cloudflare_worker
+        run: python -m compileall -q apps/web-platform/backend/cloudflare_worker
       - name: Compile acceptance runners and regression tests
         run: >-
           python -m py_compile
           scripts/cloud_acceptance.py
           scripts/cloud_provider_acceptance.py
           scripts/release_gate_check.py
-          web-platform/tests/test_cloud_acceptance.py
-          web-platform/tests/test_release_gate_check.py
+          apps/web-platform/tests/test_cloud_acceptance.py
+          apps/web-platform/tests/test_release_gate_check.py
       - name: Run cloud storage provider contracts
         run: |
-          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/web-platform/backend" python -m pytest -q \
-            web-platform/tests/test_cloud_storage_routing.py \
-            web-platform/tests/test_cloudflare_storage_direct_upload.py \
-            web-platform/tests/test_cloudflare_b2_storage.py \
-            web-platform/tests/test_cloudflare_google_drive.py \
-            web-platform/tests/test_cloudflare_b2_quota.py \
-            web-platform/tests/test_cloudflare_cloudinary_guard.py \
-            web-platform/tests/test_cloudflare_storage_router.py \
-            web-platform/tests/test_doka_storage_metadata_migration.py \
-            web-platform/tests/test_cloud_storage.py \
-            web-platform/tests/test_cloudflare_jobs.py \
-            web-platform/tests/test_cloudflare_outbox.py \
-            web-platform/tests/test_unified_ai_fallback.py \
-            web-platform/tests/test_vector_search_ocr.py \
-            web-platform/tests/test_release_gate_check.py \
-            web-platform/tests/test_cloud_acceptance.py \
-            web-platform/tests/test_d1_migrations.py
+          PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/apps/web-platform/backend" python -m pytest -q \
+            apps/web-platform/tests/test_cloud_storage_routing.py \
+            apps/web-platform/tests/test_cloudflare_storage_direct_upload.py \
+            apps/web-platform/tests/test_cloudflare_b2_storage.py \
+            apps/web-platform/tests/test_cloudflare_google_drive.py \
+            apps/web-platform/tests/test_cloudflare_b2_quota.py \
+            apps/web-platform/tests/test_cloudflare_cloudinary_guard.py \
+            apps/web-platform/tests/test_cloudflare_storage_router.py \
+            apps/web-platform/tests/test_doka_storage_metadata_migration.py \
+            apps/web-platform/tests/test_cloud_storage.py \
+            apps/web-platform/tests/test_cloudflare_jobs.py \
+            apps/web-platform/tests/test_cloudflare_outbox.py \
+            apps/web-platform/tests/test_unified_ai_fallback.py \
+            apps/web-platform/tests/test_vector_search_ocr.py \
+            apps/web-platform/tests/test_release_gate_check.py \
+            apps/web-platform/tests/test_cloud_acceptance.py \
+            apps/web-platform/tests/test_d1_migrations.py
 
   symlink-security:
     name: Symlink security tests
@@ -340,10 +340,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install backend runtime and test dependencies
-        working-directory: web-platform/backend
+        working-directory: apps/web-platform/backend
         run: python -m pip install -r requirements-local.txt
       - name: Run symlink security tests
-        working-directory: web-platform/backend
+        working-directory: apps/web-platform/backend
         run: pytest tests/test_symlink_safety.py -v -o addopts=""
 
   frontend-checks:
@@ -356,14 +356,14 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: web-platform/frontend/package-lock.json
+          cache-dependency-path: apps/web-platform/frontend/package-lock.json
       - name: Install frontend dependencies
-        working-directory: web-platform/frontend
+        working-directory: apps/web-platform/frontend
         run: npm ci --no-audit --no-fund
       - name: Audit frontend dependencies
         id: frontend_audit
         continue-on-error: true
-        working-directory: web-platform/frontend
+        working-directory: apps/web-platform/frontend
         run: |
           npm audit --json > npm-audit.json || true
           node - <<'NODE'
@@ -382,18 +382,18 @@ jobs:
           if (counts.total > 0) process.exit(1);
           NODE
       - name: Enforce frontend lint
-        working-directory: web-platform/frontend
+        working-directory: apps/web-platform/frontend
         run: npm run lint
       - name: Report frontend lint baseline
-        working-directory: web-platform/frontend
+        working-directory: apps/web-platform/frontend
         run: |
           ./node_modules/.bin/eslint . --format json > eslint-report.json || true
           node -e 'const fs=require("node:fs"); const r=JSON.parse(fs.readFileSync("eslint-report.json","utf8")); const totals=r.reduce((a,f)=>({errors:a.errors+f.errorCount,warnings:a.warnings+f.warningCount,files:a.files+(f.errorCount+f.warningCount>0?1:0)}),{errors:0,warnings:0,files:0}); const rules={}; for (const f of r) for (const m of f.messages) if(m.ruleId) rules[m.ruleId]=(rules[m.ruleId]||0)+1; console.log(JSON.stringify({...totals,topRules:Object.entries(rules).sort((a,b)=>b[1]-a[1]).slice(0,10)},null,2));'
       - name: Build frontend
-        working-directory: web-platform/frontend
+        working-directory: apps/web-platform/frontend
         run: npm run build
       - name: Run frontend smoke tests
-        working-directory: web-platform/frontend
+        working-directory: apps/web-platform/frontend
         run: npm test
       - name: Upload dependency and lint reports
         if: always()
@@ -401,9 +401,9 @@ jobs:
         with:
           name: frontend-security-remediation-candidate
           path: |
-            web-platform/frontend/npm-audit.json
-            web-platform/frontend/eslint-report.json
-            web-platform/frontend/package-lock.json
+            apps/web-platform/frontend/npm-audit.json
+            apps/web-platform/frontend/eslint-report.json
+            apps/web-platform/frontend/package-lock.json
           if-no-files-found: ignore
           retention-days: 7
       - name: Enforce frontend dependency audit result

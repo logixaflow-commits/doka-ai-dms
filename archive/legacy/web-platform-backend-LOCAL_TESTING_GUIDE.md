@@ -20,9 +20,9 @@ npm --version
 
 ## Repository paths
 
-- `web-platform/backend/` — FastAPI backend and retained legacy Enterprise tests
-- `web-platform/tests/` — cross-cutting Personal Local regression tests
-- `web-platform/frontend/` — React + Vite frontend
+- `apps/web-platform/backend/` — FastAPI backend and retained legacy Enterprise tests
+- `apps/web-platform/tests/` — cross-cutting Personal Local regression tests
+- `apps/web-platform/frontend/` — React + Vite frontend
 - `scripts/doka_pilot_check.py` — copied-data pilot gate (real office pilot အတွက်သာ)
 
 ## Backend setup and tests
@@ -32,9 +32,9 @@ Repository root မှ run ပါ:
 ### Windows PowerShell
 
 ```powershell
-py -3.12 -m venv web-platform/backend/.venv
-web-platform/backend/.venv/Scripts/python.exe -m pip install -r web-platform/backend/requirements-local.txt
-Set-Location web-platform/backend
+py -3.12 -m venv apps/web-platform/backend/.venv
+apps/web-platform/backend/.venv/Scripts/python.exe -m pip install -r apps/web-platform/backend/requirements-local.txt
+Set-Location apps/web-platform/backend
 .venv/Scripts/python.exe -m pytest --cov=app --cov-report=term-missing
 Set-Location ../..
 ```
@@ -42,9 +42,9 @@ Set-Location ../..
 ### Linux / macOS
 
 ```sh
-python3.12 -m venv web-platform/backend/.venv
-web-platform/backend/.venv/bin/python -m pip install -r web-platform/backend/requirements-local.txt
-cd web-platform/backend
+python3.12 -m venv apps/web-platform/backend/.venv
+apps/web-platform/backend/.venv/bin/python -m pip install -r apps/web-platform/backend/requirements-local.txt
+cd apps/web-platform/backend
 .venv/bin/python -m pytest --cov=app --cov-report=term-missing
 cd ../..
 ```
@@ -64,7 +64,7 @@ Windows တွင် `.venv/Scripts/python.exe` ကို အသုံးပြ�
 ## Frontend checks
 
 ```sh
-cd web-platform/frontend
+cd apps/web-platform/frontend
 npm ci
 npm run lint
 npm run build
@@ -87,7 +87,7 @@ Repository root မှ:
 
 Launcher သည် Node.js 24.x ကို လိုအပ်သည်။ ပထမဆုံးစတင်ချိန်တွင် backend virtual environment / dependencies နှင့် frontend dependencies များကို ပြင်ဆင်နိုင်သည်။ Backend ကို `127.0.0.1:8000`၊ frontend ကို `127.0.0.1:3000` တွင် ဖွင့်ရန် ရည်ရွယ်ထားသည်။
 
-Local login မလုပ်မီ `web-platform/backend/.env` ထဲတွင် ကိုယ်ပိုင် `BOOTSTRAP_ADMIN_PASSWORD` သတ်မှတ်ပါ။ မျှဝေသုံးနိုင်သော password သို့မဟုတ် production secret ကို မသုံးပါနှင့်။ Personal Local mode အတွက် Supabase credential များကို မထည့်ပါနှင့်။
+Local login မလုပ်မီ `apps/web-platform/backend/.env` ထဲတွင် ကိုယ်ပိုင် `BOOTSTRAP_ADMIN_PASSWORD` သတ်မှတ်ပါ။ မျှဝေသုံးနိုင်သော password သို့မဟုတ် production secret ကို မသုံးပါနှင့်။ Personal Local mode အတွက် Supabase credential များကို မထည့်ပါနှင့်။
 
 ## Safety rules for manual verification
 

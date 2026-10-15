@@ -4,7 +4,7 @@
 - Owner-controlled Vercel state is authoritative. Do not reactivate it, reconnect it, trigger a deployment, or change deployment settings unless the owner explicitly asks.
 - Vercel rate-limit failures are operational constraints and are not a reason to weaken security or repeatedly trigger builds.
 - The repository must not add a vercel.json override for framework/install/build/output settings.
-- Frontend root is web-platform/frontend and is a Vite application.
+- Frontend root is apps/web-platform/frontend and is a Vite application.
 - A Vercel build failure is not a reason to change application security or architecture.
 
 ## Secret handling

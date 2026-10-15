@@ -175,7 +175,7 @@
 
 
 ## 13. TRAIN 1 CONCRETE INTEGRATION CHECKPOINT — 2026-10-08
-- Durable D1 job adapter: implemented in cloudflare_worker/jobs.py against the existing jobs table schema (unique idempotency_key, bounded attempts, terminal success/dead states). No lease takeover is enabled.
+- Durable D1 job adapter: implemented in apps/web-platform/backend/cloudflare_worker/jobs.py against the existing jobs table schema (unique idempotency_key, bounded attempts, terminal success/dead states). No lease takeover is enabled.
 - Outbox: actual delivery failures now use a conservative retry taxonomy; permanent failures dead-letter immediately and transient failures use bounded backoff.
 - AI: unified_ai_service now uses the Train 1 circuit breaker and retry taxonomy; provider failover is opt-in via AI_PROVIDER_FAILOVER_APPROVED and structured/non-retryable failures fail closed.
 - Retrieval: vector_search now canonicalizes OCR text to Unicode NFC, validates mya/eng identity + SHA-256, scopes ranking by language, and uses deterministic local ranking for Myanmar OCR instead of the English-centric embedding model.

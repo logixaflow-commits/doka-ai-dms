@@ -1,10 +1,10 @@
 # Retained Legacy Enterprise-Era Tests
 
 This directory contains the retained Enterprise-era backend tests. They are not included
-in the current automatic CI test discovery: `web-platform/backend/pytest.ini` selects
-`../tests`, and the automatic workflow runs pytest from `web-platform/backend` without
+in the current automatic CI test discovery: `apps/web-platform/backend/pytest.ini` selects
+`../tests`, and the automatic workflow runs pytest from `apps/web-platform/backend` without
 overriding those configured test paths. The current Personal Local regression suite is
-in `web-platform/tests/`.
+in `apps/web-platform/tests/`.
 
 ## Overview
 Historical Enterprise test suite notes: unit, integration, and end-to-end tests.

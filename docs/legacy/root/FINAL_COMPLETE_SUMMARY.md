@@ -163,12 +163,12 @@ The Enterprise AI Document Management System has been fully implemented with all
 - `dms/tests/conftest.py` - Test configuration
 
 ### **Mobile Application (6 screens)**
-- `mobile/src/screens/LoginScreen.js` - Login screen
-- `mobile/src/screens/DashboardScreen.js` - Dashboard screen
-- `mobile/src/screens/DocumentsScreen.js` - Documents list screen
-- `mobile/src/screens/UploadScreen.js` - Document upload screen
-- `mobile/src/screens/ProfileScreen.js` - User profile screen
-- `mobile/src/screens/DocumentDetailScreen.js` - Document detail screen
+- `apps/mobile/src/screens/LoginScreen.js` - Login screen
+- `apps/mobile/src/screens/DashboardScreen.js` - Dashboard screen
+- `apps/mobile/src/screens/DocumentsScreen.js` - Documents list screen
+- `apps/mobile/src/screens/UploadScreen.js` - Document upload screen
+- `apps/mobile/src/screens/ProfileScreen.js` - User profile screen
+- `apps/mobile/src/screens/DocumentDetailScreen.js` - Document detail screen
 
 ### **Documentation (10 comprehensive docs)**
 - `README.md` - Complete system overview
@@ -295,7 +295,7 @@ Before deployment, update the following configuration files:
 2. **Frontend Environment** (`app/.env.local`)
    - VITE_API_URL
 
-3. **Mobile Configuration** (`mobile/src/context/ApiContext.js`)
+3. **Mobile Configuration** (`apps/mobile/src/context/ApiContext.js`)
    - API_BASE_URL
 
 ---

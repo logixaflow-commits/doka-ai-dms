@@ -20,8 +20,8 @@ set -euo pipefail
 : "${BOOTSTRAP_ADMIN_PASSWORD:?Set BOOTSTRAP_ADMIN_PASSWORD for this acceptance run}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BACKEND="$ROOT/web-platform/backend"
-FRONTEND="$ROOT/web-platform/frontend"
+BACKEND="$ROOT/apps/web-platform/backend"
+FRONTEND="$ROOT/apps/web-platform/frontend"
 VENV="$ROOT/.acceptance-venv"
 EVIDENCE="$ROOT/Phase0_Evidence/acceptance"
 

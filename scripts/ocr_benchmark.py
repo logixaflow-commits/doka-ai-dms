@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BACKEND_ROOT = REPO_ROOT / "web-platform" / "backend"
+BACKEND_ROOT = REPO_ROOT / "apps/web-platform" / "backend"
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.services.ocr_benchmark import run_ocr_benchmark  # noqa: E402

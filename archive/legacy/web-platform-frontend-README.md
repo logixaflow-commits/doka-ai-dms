@@ -12,12 +12,12 @@ React 19 + TypeScript + Vite frontend for the Doka Document Management System. T
 From the repository root:
 
 ```sh
-cd web-platform/frontend
+cd apps/web-platform/frontend
 npm ci
 npm run dev
 ```
 
-Vite listens on `127.0.0.1:3000` by default. The development server proxies `/api` and `/health` to the local FastAPI backend at `127.0.0.1:8000`. Start the backend separately from `web-platform/backend`, or use the root launcher (`run.sh` / `start_application.bat`).
+Vite listens on `127.0.0.1:3000` by default. The development server proxies `/api` and `/health` to the local FastAPI backend at `127.0.0.1:8000`. Start the backend separately from `apps/web-platform/backend`, or use the root launcher (`run.sh` / `start_application.bat`).
 
 ## Edition configuration
 

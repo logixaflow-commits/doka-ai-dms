@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "doka-ai-dms",
-  "main": "cloudflare_worker/main.py",
+  "main": "apps/web-platform/backend/cloudflare_worker/main.py",
   "compatibility_date": "2026-10-02",
   "compatibility_flags": ["python_workers"],
   "keep_vars": true,

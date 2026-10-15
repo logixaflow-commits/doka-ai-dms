@@ -194,10 +194,10 @@ Each later phase retains the same activation sequence: contract → implementati
 
 
 ### Concrete integration checkpoint — 2026-10-08
-- cloudflare_worker/jobs.py: durable D1 job/idempotency adapter over the existing jobs table.
-- cloudflare_worker/outbox.py: retry taxonomy is now applied at the actual delivery boundary; non-retryable failures dead-letter immediately.
-- web-platform/backend/app/services/unified_ai_service.py: retry classification + circuit breaker + explicit failover approval are enforced in provider routing; structured/provider errors fail closed.
-- web-platform/backend/app/services/vector_search.py: OCR-aware Unicode NFC normalization, language-scoped retrieval and Myanmar-safe local ranking are enforced before result ranking.
+- apps/web-platform/backend/cloudflare_worker/jobs.py: durable D1 job/idempotency adapter over the existing jobs table.
+- apps/web-platform/backend/cloudflare_worker/outbox.py: retry taxonomy is now applied at the actual delivery boundary; non-retryable failures dead-letter immediately.
+- apps/web-platform/backend/app/services/unified_ai_service.py: retry classification + circuit breaker + explicit failover approval are enforced in provider routing; structured/provider errors fail closed.
+- apps/web-platform/backend/app/services/vector_search.py: OCR-aware Unicode NFC normalization, language-scoped retrieval and Myanmar-safe local ranking are enforced before result ranking.
 - Tests were added for the D1 job adapter, non-retryable outbox delivery, AI fail-closed/failover approval, and OCR-aware retrieval. Runtime execution remains evidence-gated.
 
 

@@ -2,14 +2,14 @@
   "config": {
     "argv": [
       "D:\\Programs\\nodejs\\node.exe",
-      "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\web-platform\\frontend\\node_modules\\@playwright\\test\\cli.js",
+      "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\apps/web-platform\\frontend\\node_modules\\@playwright\\test\\cli.js",
       "test",
       "--output",
       "D:\\Doka\\AcceptanceSmallSample\\BrowserEvidence\\playwright-artifacts",
       "--retries=0"
     ],
-    "configFile": "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\web-platform\\frontend\\playwright.config.ts",
-    "rootDir": "D:/Project/logixaflow@gmail.com/doka-ai-dms/web-platform/frontend/e2e",
+    "configFile": "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\apps/web-platform\\frontend\\playwright.config.ts",
+    "rootDir": "D:/Project/logixaflow@gmail.com/doka-ai-dms/apps/web-platform/frontend/e2e",
     "failOnFlakyTests": false,
     "forbidOnly": false,
     "fullyParallel": false,
@@ -33,7 +33,7 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "D:/Project/logixaflow@gmail.com/doka-ai-dms/web-platform/frontend/e2e",
+        "testDir": "D:/Project/logixaflow@gmail.com/doka-ai-dms/apps/web-platform/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -52,8 +52,8 @@
           "actualWorkers": 1
         },
         "name": "chromium",
-        "testDir": "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\web-platform\\frontend\\e2e",
-        "snapshotDir": "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\web-platform\\frontend\\e2e",
+        "testDir": "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\apps/web-platform\\frontend\\e2e",
+        "snapshotDir": "D:\\Project\\logixaflow@gmail.com\\doka-ai-dms\\apps/web-platform\\frontend\\e2e",
         "testIgnore": [],
         "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
         "timeout": 120000,

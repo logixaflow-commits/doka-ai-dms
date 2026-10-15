@@ -6,8 +6,8 @@ services:
     region: singapore
     branch: main
     autoDeploy: true
-    buildCommand: pip install -r web-platform/backend/requirements-cloud.txt
-    startCommand: cd web-platform/backend && uvicorn app.cloud_main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r apps/web-platform/backend/requirements-cloud.txt
+    startCommand: cd apps/web-platform/backend && uvicorn app.cloud_main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION

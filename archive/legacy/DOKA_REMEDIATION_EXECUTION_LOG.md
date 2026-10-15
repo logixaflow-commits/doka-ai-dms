@@ -11,7 +11,7 @@ Date: 2026-10-03
 
 ## Regression test coverage
 
-- Expanded the backend test command to run both `web-platform/backend` and `web-platform/tests`.
+- Expanded the backend test command to run both `apps/web-platform/backend` and `apps/web-platform/tests`.
 - This includes cross-cutting security, pilot, OCR, and backup helper tests rather than only the backend-local directory.
 - Tests remain unverified until a runner can actually execute them.
 
@@ -29,21 +29,21 @@ Date: 2026-10-03
 
 ## Prior SEC-014 implementation
 
-- Added structural PostgreSQL URL parsing and shell-free `pg_dump` invocation in `web-platform/backend/app/core/backup_utils.py`.
-- Updated legacy Celery database backup task and added parser tests in `web-platform/tests/test_backup_utils.py`.
+- Added structural PostgreSQL URL parsing and shell-free `pg_dump` invocation in `apps/web-platform/backend/app/core/backup_utils.py`.
+- Updated legacy Celery database backup task and added parser tests in `apps/web-platform/tests/test_backup_utils.py`.
 - This hardens the legacy database backup path; Personal Local workspace archives still use `WorkspaceBackupService`.
 - Tests have not been executed.
 ## Workspace backup destination isolation
 
 - Review found that the workspace backup service resolved and created `BACKUP_ROOT` without rejecting overlap with the source or active workspace, and without rejecting a symlink at the configured backup root.
 - Updated `_backup_root()` to reject symlink roots and any ancestor/descendant overlap with `SOURCE_ROOT` or `WORKING_ROOT` before creating the directory.
-- Added regression coverage for nested paths, ancestor paths, safe external paths, and symlink roots in `web-platform/tests/test_workspace_backup_safety.py`.
+- Added regression coverage for nested paths, ancestor paths, safe external paths, and symlink roots in `apps/web-platform/tests/test_workspace_backup_safety.py`.
 - Tests have not been executed; CI remains skipped while hosted runners are unavailable. No runtime or office-pilot verification is claimed.
 ## Personal Local / Cloud API boundary
 
 - Review found that the Personal Local FastAPI entry point imported and mounted the optional Supabase-backed `/api/storage` and `/api/documents` routers even though a separate `app.cloud_main` entry point exists for the Cloud API.
 - Removed those cloud router registrations and imports from `app.main`; the cloud routes remain available through the dedicated cloud entry point only.
-- Added `web-platform/tests/test_personal_local_entrypoint.py` to assert local auth/workspace routes remain and cloud routes are absent.
+- Added `apps/web-platform/tests/test_personal_local_entrypoint.py` to assert local auth/workspace routes remain and cloud routes are absent.
 - This is an entry-point isolation change only; no cloud deployment was enabled. Tests have not been executed while CI is paused.
 ## Local authentication state file permissions
 
@@ -82,12 +82,12 @@ Date: 2026-10-03
 
 - Compared the frontend `package.json` dependency declarations with the root package metadata in `package-lock.json`: lockfile version is 3, and declared dependency names/ranges match exactly (no missing, extra, or mismatched root declarations).
 - This is a manifest/lockfile consistency check only. It is **not** an npm vulnerability audit and does not establish that Dependabot/npm audit findings are cleared.
-- Rewrote `web-platform/backend/LOCAL_TESTING_GUIDE.md` to use the current repository paths, Python 3.12 CI baseline, Node.js 24.x frontend engine, current backend + repository regression command, and frontend lint/build/smoke commands.
+- Rewrote `apps/web-platform/backend/LOCAL_TESTING_GUIDE.md` to use the current repository paths, Python 3.12 CI baseline, Node.js 24.x frontend engine, current backend + repository regression command, and frontend lint/build/smoke commands.
 - Added explicit copied-fixture/source-read-only/isolated-restore safety instructions and clarified that real-office pilot evidence must use a separate copy.
 - No tests, lint, build, npm audit or office pilot were executed in this documentation/metadata review batch.
 - Dependabot alert inventory remains unavailable through the connected GitHub capabilities; no individual alert has been declared fixed or accepted.
 
-- Replaced the generic Vite-template `web-platform/frontend/README.md` with Doka-specific setup, edition flag, proxy, quality-command and source-data boundary guidance. No frontend source or dependency versions were changed.
+- Replaced the generic Vite-template `apps/web-platform/frontend/README.md` with Doka-specific setup, edition flag, proxy, quality-command and source-data boundary guidance. No frontend source or dependency versions were changed.
 
 ## Phase 0–3 remediation code batch — 2026-10-03
 
@@ -139,11 +139,11 @@ Date: 2026-10-03
 
 Environment and boundaries:
 - Node.js 24.20.0 / npm 11.19.0; repository-local backend environment uses Python 3.12.13. The system Python is 3.14.5. The legacy Expo app remains SDK 50 / React Native 0.73 without a committed mobile lockfile.
-- Frontend dependencies were installed with `npm ci` from the committed lockfile. Backend dependencies were installed in `web-platform/backend/.venv` from the local development requirements profile. No dependency manifest or lockfile was changed.
+- Frontend dependencies were installed with `npm ci` from the committed lockfile. Backend dependencies were installed in `apps/web-platform/backend/.venv` from the local development requirements profile. No dependency manifest or lockfile was changed.
 - `ORIGINAL_READ_ONLY=true` and `ALLOW_SOURCE_WRITE=false` were preserved. The interactive smoke used only a synthetic text fixture and disposable temp roots; its source SHA-256 was `4904B0500240FB28CA33A367D1CD65E8A67978228B5F51E7B878208C10FA1F7E`, and all 28 working copies matched. No original/office data was used.
 
 Verification:
-- Backend Personal Local suite: from `web-platform/backend`, `.venv\Scripts\python.exe -m pytest ..\tests -q` — **154 passed, 8 skipped, 10 warnings**, exit code 0. Skips include Windows symlink privilege limitations; warnings are FastAPI `on_event` and legacy `datetime.utcnow` deprecations. The configured suite intentionally does not collect the separate legacy Enterprise backend test tree.
+- Backend Personal Local suite: from `apps/web-platform/backend`, `.venv\Scripts\python.exe -m pytest ..\tests -q` — **154 passed, 8 skipped, 10 warnings**, exit code 0. Skips include Windows symlink privilege limitations; warnings are FastAPI `on_event` and legacy `datetime.utcnow` deprecations. The configured suite intentionally does not collect the separate legacy Enterprise backend test tree.
 - Earlier in this session: frontend `npm ci`, `npm run lint`, `npm test`, and `npm run build` passed; mobile utility `npm test` passed 9/9. These do not constitute a native mobile build.
 - `npm audit` remains non-zero with five high findings. No blind upgrade/override was applied; resolution requires compatibility review (including the Tailwind major-version boundary).
 - A disposable loopback UI smoke exposed concurrent status/list reads and `status.json` atomic replacement on Windows: observed `WinError 5` and one HTTP 500 on a polled status request. The interactive attempt issued 28 import POSTs; the cause of the repetition is unconfirmed. The source remained unchanged, but the complete browser workflow was not verified.

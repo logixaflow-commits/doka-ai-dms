@@ -19,8 +19,8 @@ Use the repository `logixaflow-commits/enterprise-ai-dms`, branch `main`, and re
 - Runtime: Python
 - Region: Singapore (or nearest available region)
 - Plan: Free for a no-cost pilot only
-- Build command: `pip install -r web-platform/backend/requirements-cloud.txt`
-- Start command: `cd web-platform/backend && uvicorn app.cloud_main:app --host 0.0.0.0 --port $PORT`
+- Build command: `pip install -r apps/web-platform/backend/requirements-cloud.txt`
+- Start command: `cd apps/web-platform/backend && uvicorn app.cloud_main:app --host 0.0.0.0 --port $PORT`
 - Health check path: `/health`
 
 Free instances can spin down when idle and have ephemeral filesystems. Cold starts are expected. Do not store user documents, SQLite databases, workspace imports, or backups on this service. Use Supabase for durable cloud data. Local OCR and filesystem workflows continue to run on the user's own machine.

@@ -5,7 +5,7 @@ The current readiness target is the **Personal Local Edition**. It uses a React 
 ## Prerequisites
 
 - Python 3.12 recommended.
-- Node.js 24.x for the Vite frontend (matches the `engines` field in `web-platform/frontend/package.json`).
+- Node.js 24.x for the Vite frontend (matches the `engines` field in `apps/web-platform/frontend/package.json`).
 - Tesseract OCR is optional for the first smoke test, but required for Myanmar/English OCR. On Windows, install Tesseract and make sure `tesseract --list-langs` includes `eng` and `mya`.
 - Git.
 
@@ -19,19 +19,19 @@ From the repository root:
 start_application.bat
 ```
 
-The script creates `web-platform\\backend\\.venv`, installs the smaller Personal Local dependency set, creates `web-platform\\backend\\.env` from the template, and starts:
+The script creates `apps/web-platform\\backend\\.venv`, installs the smaller Personal Local dependency set, creates `apps/web-platform\\backend\\.env` from the template, and starts:
 
 - Backend: `http://127.0.0.1:8000`
 - Frontend: `http://127.0.0.1:3000`
 
-Before login, set a strong `BOOTSTRAP_ADMIN_PASSWORD` (at least 12 characters) in `web-platform\\backend\\.env`. The default username is `admin`; change it with `LOCAL_ADMIN_USERNAME` if needed. In local development, the frontend uses the backend's local login and does not require Supabase credentials.
+Before login, set a strong `BOOTSTRAP_ADMIN_PASSWORD` (at least 12 characters) in `apps/web-platform\\backend\\.env`. The default username is `admin`; change it with `LOCAL_ADMIN_USERNAME` if needed. In local development, the frontend uses the backend's local login and does not require Supabase credentials.
 
 ## Manual start
 
 ### Backend
 
 ```bat
-cd web-platform\\backend
+cd apps/web-platform\\backend
 .venv\\Scripts\\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -40,7 +40,7 @@ cd web-platform\\backend
 In another terminal:
 
 ```bat
-cd web-platform\\frontend
+cd apps/web-platform\\frontend
 npm ci
 npm run dev
 ```

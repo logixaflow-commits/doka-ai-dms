@@ -3,7 +3,7 @@
 **Date:** 2026-10-13  
 **Repository Branch:** `main` (commit `afadd8f`)  
 **Host Environment:** Windows 11 (win32, x64)  
-**Python Runtime:** Python 3.12.13 (`web-platform\backend\.venv\Scripts\python.exe`)  
+**Python Runtime:** Python 3.12.13 (`apps/web-platform\backend\.venv\Scripts\python.exe`)
 **Node / npm:** Node.js v24.20.0, npm 11.19.0  
 **Tesseract OCR:** v5.5.3.20260724 with language packs `eng`, `mya`, `osd` (`C:\Program Files\Tesseract-OCR\tesseract.exe`)  
 **Browser Engine:** Playwright 1.64.0 (Chromium)  
@@ -30,7 +30,7 @@
 ### A. Python Syntax & Compilation Checks
 - **Command:**
   ```powershell
-  python -m compileall -q web-platform/backend cloudflare_worker
+  python -m compileall -q apps/web-platform/backend cloudflare_worker
   python -m py_compile scripts/doka_pilot_check.py scripts/ocr_benchmark.py scripts/cloud_acceptance.py scripts/cloud_provider_acceptance.py scripts/release_gate_check.py scripts/d1_job_runtime_acceptance.py scripts/verify_d1_migrations.py
   ```
 - **Result:** Exit code 0, 0 syntax/compilation errors.
@@ -38,12 +38,12 @@
 ### B. Python Unit and Regression Test Suites
 - **Commands:**
   ```powershell
-  pytest -q web-platform/backend/tests/test_ai_provider_boundaries.py web-platform/backend/tests/test_job_idempotency.py web-platform/tests/test_unified_ai_fallback.py web-platform/backend/tests/test_consent_store.py web-platform/backend/tests/test_ai_consent_routes.py web-platform/backend/tests/test_train1_safety_contracts.py web-platform/backend/tests/test_h1_local_auth_boundary.py web-platform/backend/tests/test_h2_source_containment.py web-platform/backend/tests/test_h3_unicode_passwords.py web-platform/backend/tests/test_myanmar_ocr_postprocessing.py web-platform/backend/tests/test_ocr_safety_limits.py web-platform/backend/tests/test_ocr_benchmark.py web-platform/tests/test_ocr_benchmark.py web-platform/backend/tests/test_local_acceptance_preflight.py web-platform/backend/tests/test_workspace_backup_boundaries.py web-platform/backend/tests/test_workspace_backup_routes.py web-platform/tests/test_doka_pilot.py
+  pytest -q apps/web-platform/backend/tests/test_ai_provider_boundaries.py apps/web-platform/backend/tests/test_job_idempotency.py apps/web-platform/tests/test_unified_ai_fallback.py apps/web-platform/backend/tests/test_consent_store.py apps/web-platform/backend/tests/test_ai_consent_routes.py apps/web-platform/backend/tests/test_train1_safety_contracts.py apps/web-platform/backend/tests/test_h1_local_auth_boundary.py apps/web-platform/backend/tests/test_h2_source_containment.py apps/web-platform/backend/tests/test_h3_unicode_passwords.py apps/web-platform/backend/tests/test_myanmar_ocr_postprocessing.py apps/web-platform/backend/tests/test_ocr_safety_limits.py apps/web-platform/backend/tests/test_ocr_benchmark.py apps/web-platform/tests/test_ocr_benchmark.py apps/web-platform/backend/tests/test_local_acceptance_preflight.py apps/web-platform/backend/tests/test_workspace_backup_boundaries.py apps/web-platform/backend/tests/test_workspace_backup_routes.py apps/web-platform/tests/test_doka_pilot.py
   ```
   **Result:** 128 passed, 6 skipped, 0 failed in 20.57s.
   
   ```powershell
-  pytest -q web-platform/tests/test_cloud_storage_routing.py web-platform/tests/test_cloudflare_storage_direct_upload.py web-platform/tests/test_cloudflare_b2_storage.py web-platform/tests/test_cloudflare_google_drive.py web-platform/tests/test_cloudflare_b2_quota.py web-platform/tests/test_cloudflare_cloudinary_guard.py web-platform/tests/test_cloudflare_storage_router.py web-platform/tests/test_doka_storage_metadata_migration.py web-platform/tests/test_cloud_storage.py web-platform/tests/test_cloudflare_jobs.py web-platform/tests/test_cloudflare_outbox.py web-platform/tests/test_unified_ai_fallback.py web-platform/tests/test_vector_search_ocr.py web-platform/tests/test_release_gate_check.py web-platform/tests/test_cloud_acceptance.py web-platform/tests/test_d1_migrations.py
+  pytest -q apps/web-platform/tests/test_cloud_storage_routing.py apps/web-platform/tests/test_cloudflare_storage_direct_upload.py apps/web-platform/tests/test_cloudflare_b2_storage.py apps/web-platform/tests/test_cloudflare_google_drive.py apps/web-platform/tests/test_cloudflare_b2_quota.py apps/web-platform/tests/test_cloudflare_cloudinary_guard.py apps/web-platform/tests/test_cloudflare_storage_router.py apps/web-platform/tests/test_doka_storage_metadata_migration.py apps/web-platform/tests/test_cloud_storage.py apps/web-platform/tests/test_cloudflare_jobs.py apps/web-platform/tests/test_cloudflare_outbox.py apps/web-platform/tests/test_unified_ai_fallback.py apps/web-platform/tests/test_vector_search_ocr.py apps/web-platform/tests/test_release_gate_check.py apps/web-platform/tests/test_cloud_acceptance.py apps/web-platform/tests/test_d1_migrations.py
   ```
   **Result:** 160 passed, 1 skipped, 0 failed in 7.40s.
 - **Combined Total:** 288 passed, 7 skipped, 0 failures.
@@ -114,7 +114,7 @@
 
 ### Defect 1: Virtual Environment Missing Declared Dependencies
 - **Issue:** Running pytest initially threw `ModuleNotFoundError: No module named 'bcrypt'` and `ModuleNotFoundError: No module named 'redis'`.
-- **Root Cause:** Dependencies declared in `web-platform/backend/requirements-local.txt` and `requirements-test.txt` were not yet installed in `.venv`.
+- **Root Cause:** Dependencies declared in `apps/web-platform/backend/requirements-local.txt` and `requirements-test.txt` were not yet installed in `.venv`.
 - **Fix:** Installed declared project requirements (`bcrypt>=5.0.0`, `redis>=8.1.0`, `argon2-cffi>=25.1.0`, `pytest-mock>=3.16.0`, `pytest-xdist>=3.8.0`).
 - **Retest Evidence:** `pytest` subsequently ran without collection errors.
 
@@ -123,8 +123,8 @@
 - **Root Cause:** Tests directly attempted to create symlinks on Windows without checking for OS privilege availability.
 - **Fix:** Added graceful exception handling to check for `exc.winerror == 1314` and invoke `pytest.skip("Symlink creation requires elevated privilege on Windows")`.
 - **Files Modified:**
-  - `web-platform/tests/test_doka_pilot.py`
-  - `web-platform/tests/test_cloud_acceptance.py`
+  - `apps/web-platform/tests/test_doka_pilot.py`
+  - `apps/web-platform/tests/test_cloud_acceptance.py`
  raid-free, preserving all path validation logic.
 - **Retest Evidence:**
   - `test_doka_pilot.py`: Passed cleanly (symlink privilege skipped gracefully on Windows).
@@ -177,7 +177,7 @@
 - **Dataset Origin:** Proportional stratified sample from `D:\Doka\NEW Sample Ofiice\2 SYM SHEM CO.,LTD` (1,621 office files) covering:
   - 160 PDFs, 60 Images (.jpg/.png), 50 Word documents (.docx/.doc), 30 Excel sheets (.xlsx).
   - All major department folders represented: `1 CHEMICAL` (121), `2 COMPLETED (BONDED)` (64), `3 STILL IN PROGRESS ( BONDED)` (48), `3 STILL IN PROGRESS (DRAFT LICENCE)` (41), `1 KBA ANALYSIS REPORT` (11), `AMEND Trade net` (5), `HS CODE` (3), `LICENCE` (2), `FDA` (1), `Auction Cancel` (1), Root (3).
-- **OCR Engine & Model:** Official `tessdata_best` Myanmar model (`14,971,060 bytes`) installed in repository `web-platform/backend/tessdata/mya.traineddata` (original backed up to `.bak`).
+- **OCR Engine & Model:** Official `tessdata_best` Myanmar model (`14,971,060 bytes`) installed in repository `apps/web-platform/backend/tessdata/mya.traineddata` (original backed up to `.bak`).
 - **OCR Fallback Enhancement:** Added automatic fallback ladder in `OCRService._recognize_image`: if horizontal line segmentation or binarization yields insufficient text ($\le 10$ characters), the engine automatically falls back to full-page layout OCR and retries the raw image, ensuring valid text in stamps, vouchers, certificates, and low-contrast scanned receipts is never discarded.
 - **Workflow Execution Command:**
   ```powershell

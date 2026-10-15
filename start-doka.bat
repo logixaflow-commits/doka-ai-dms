@@ -4,8 +4,8 @@ title Doka AI DMS - Personal Local
 
 set "ROOT=%~dp0"
 set "ROOT=%ROOT:~0,-1%"
-set "BACKEND=%ROOT%\web-platform\backend"
-set "FRONTEND=%ROOT%\web-platform\frontend"
+set "BACKEND=%ROOT%\apps/web-platform\backend"
+set "FRONTEND=%ROOT%\apps/web-platform\frontend"
 set "PYTHON=%BACKEND%\.venv\Scripts\python.exe"
 
 echo ===================================================

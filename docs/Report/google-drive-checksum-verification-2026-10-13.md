@@ -14,9 +14,9 @@ The Drive v3 `files` resource does not provide a `sha256Checksum` field for ordi
 
 ## Verification
 
-- Python compile: `cloudflare_worker/main.py`, `cloudflare_worker/storage_google_drive.py`, and `web-platform/tests/test_cloudflare_google_drive.py` — passed.
+- Python compile: `apps/web-platform/backend/cloudflare_worker/main.py`, `apps/web-platform/backend/cloudflare_worker/storage_google_drive.py`, and `apps/web-platform/tests/test_cloudflare_google_drive.py` — passed.
 - Targeted Drive provider + streaming-hash tests — 10 passed.
-- Cloudflare provider/contract regression set (`web-platform/tests/test_cloudflare_*.py`) — 171 passed.
+- Cloudflare provider/contract regression set (`apps/web-platform/tests/test_cloudflare_*.py`) — 171 passed.
 - `git diff --check` — passed.
 - Full repository Doka Quality Checks passed on commit `d32342469591dcd689711fc1ef74f4774343b885` (run: https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38419720821).
 - Worker dry-run succeeded after the stream-hash change.

@@ -1,6 +1,6 @@
 """Get Supabase connection string from Project Settings > Database > URI.
 
-Run from web-platform/backend with TEST_DATABASE_URL set:
+Run from apps/web-platform/backend with TEST_DATABASE_URL set:
     pytest tests/integration/test_db_auth.py -v
 """
 

@@ -22,7 +22,7 @@ def log(msg: str) -> None:
 
 def get_backend_dir() -> Path:
     repo_root = Path(__file__).resolve().parent.parent
-    backend_dir = repo_root / "web-platform" / "backend"
+    backend_dir = repo_root / "apps/web-platform" / "backend"
     if not (backend_dir / "alembic.ini").exists():
         log(f"ERROR: alembic.ini not found in expected path: {backend_dir}")
         sys.exit(1)
@@ -69,7 +69,7 @@ def wait_for_database(max_retries: int = 15, delay: float = 2.0) -> bool:
 
 
 def run_alembic_upgrade() -> bool:
-    """Executes alembic upgrade head in the web-platform/backend context."""
+    """Executes alembic upgrade head in the apps/web-platform/backend context."""
     backend_dir = get_backend_dir()
     log("Applying schema migrations via `alembic upgrade head`...")
     cmd = [sys.executable, "-m", "alembic", "upgrade", "head"]

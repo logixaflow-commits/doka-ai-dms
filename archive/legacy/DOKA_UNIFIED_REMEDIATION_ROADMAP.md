@@ -14,7 +14,7 @@ Personal Local is final only when the running target-machine browser workflow pa
 ### Cloud release sign-off
 Cloud is final only after authenticated lifecycle E2E, two-user isolation, 50 MiB boundary testing, real provider recovery drills, backup/SHA-256 recovery proof, Supabase security settings verification and the remaining deployment/runtime checks pass. Vercel remains owner-paused unless explicitly reopened.
 
-### Enterprise/mobile/advanced AI
+### Enterprise/apps/mobile/advanced AI
 These are not part of the Personal Local release gate. They remain deferred until their dependencies, ownership, cost, rollback and verification requirements are explicitly approved.
 
 ## Canonical execution order from now to final
@@ -58,7 +58,7 @@ No item is marked complete merely because a sample snippet or proposed architect
 
 ### 2026-10-05 — Supabase version-RPC hardening made reproducible
 
-- Added repository migration `supabase/migrations/20261005090000_doka_version_rpc_execute_hardening.sql` so fresh environments also revoke `PUBLIC`, `anon`, and `authenticated` execution on the two `SECURITY DEFINER` version RPCs while retaining `service_role` execution.
+- Added repository migration `apps/web-platform/backend/supabase/migrations/20261005090000_doka_version_rpc_execute_hardening.sql` so fresh environments also revoke `PUBLIC`, `anon`, and `authenticated` execution on the two `SECURITY DEFINER` version RPCs while retaining `service_role` execution.
 - Applied the equivalent hardening to the live project and verified the resulting PostgreSQL ACLs: only `postgres` (owner) and `service_role` retain EXECUTE.
 - Re-ran the Supabase security advisor after the DDL change. The RPC finding remains cleared; the only remaining security warning is the project-level leaked-password-protection setting.
 
@@ -95,7 +95,7 @@ Work:
 - Keep the local test guide aligned with the current Python 3.12 / Node.js 24.x toolchain and the exact backend, frontend lint/build/smoke commands; distinguish code-level tests from real-office copied-data pilot evidence.
 - Retrieve and classify the full Dependabot alert inventory when repository permissions expose it; the earlier audit could only confirm the user's approximate count, not each alert.
 - Reduce the recorded ESLint baseline in small batches (unused imports/variables first, then unsafe any, effect dependencies/state-in-effect, React Refresh and immutability findings); only make lint blocking after the baseline is genuinely clean.
-- Review root-level launchers/configs before moving anything; preserve consumers and keep active runtime under `web-platform/`.
+- Review root-level launchers/configs before moving anything; preserve consumers and keep active runtime under `apps/web-platform/`.
 - Keep root Windows/POSIX launchers aligned with the frontend Node.js `24.x` engine and stop early with an actionable prerequisite error.
 - Keep automatic CI consolidated and report-only where a known baseline is intentionally being burned down.
 
@@ -355,15 +355,15 @@ A skipped/unavailable test is recorded as **not run**, never as passed. A deploy
 ### 2026-10-03 — Phase 1 security/configuration batch
 
 Implemented in the repository:
-- **SEC-002:** `web-platform/backend/app/main.py` now parses CORS as an explicit HTTP/HTTPS origin allowlist, rejects wildcard origins, credentials embedded in origins, paths, query strings, fragments, invalid ports and empty allowlists, and removes duplicate origins.
-- Added focused CORS regression cases in `web-platform/tests/test_cors_config.py`.
-- **Local auth boundary:** expanded `web-platform/tests/test_local_auth.py` to assert that refresh, identity (`/me`) and logout endpoints are denied in production, `prod` and staging environments, complementing the existing login/workspace denial coverage.
-- **Personal Local build contract:** documented `VITE_DOKA_EDITION=personal-local` for production-built local frontend, the backend `ENVIRONMENT=local|development` requirement, and the Supabase/local-auth separation in `web-platform/frontend/.env.example` and `web-platform/README.md`.
+- **SEC-002:** `apps/web-platform/backend/app/main.py` now parses CORS as an explicit HTTP/HTTPS origin allowlist, rejects wildcard origins, credentials embedded in origins, paths, query strings, fragments, invalid ports and empty allowlists, and removes duplicate origins.
+- Added focused CORS regression cases in `apps/web-platform/tests/test_cors_config.py`.
+- **Local auth boundary:** expanded `apps/web-platform/tests/test_local_auth.py` to assert that refresh, identity (`/me`) and logout endpoints are denied in production, `prod` and staging environments, complementing the existing login/workspace denial coverage.
+- **Personal Local build contract:** documented `VITE_DOKA_EDITION=personal-local` for production-built local frontend, the backend `ENVIRONMENT=local|development` requirement, and the Supabase/local-auth separation in `apps/web-platform/frontend/.env.example` and `apps/web-platform/README.md`.
 - **FE-008 / workflow state:** `WorkspaceReview.tsx` now clears prior search/OCR results, drafts, proposals and approvals before scan/OCR/plan requests; starting a new import also clears previous session search results. Frontend smoke assertions cover these reset boundaries.
 - **Organization/OCR concurrency:** planning, document understanding and OCR correction writes now use the same per-session lock as scan, apply and undo, preventing those session mutations from racing each other in the local process.
 - Local bootstrap-password verification now uses constant-time comparison.
-- **OCR test/runtime dependencies:** added `numpy` and `opencv-python-headless` to `web-platform/backend/requirements-local.txt`, because the active OCR module imports both at module load and the backend test workflow installs this local profile.
-- **SEC-013 / Service Worker privacy:** `web-platform/frontend/public/sw.js` now bypasses caching for non-GET requests, requests with Authorization, cross-origin requests, all query-string URLs, and `/api`/`/auth` paths; only app-shell and same-origin `/assets/` requests are cacheable. Added frontend smoke assertions for these boundaries. Test execution remains pending.
+- **OCR test/runtime dependencies:** added `numpy` and `opencv-python-headless` to `apps/web-platform/backend/requirements-local.txt`, because the active OCR module imports both at module load and the backend test workflow installs this local profile.
+- **SEC-013 / Service Worker privacy:** `apps/web-platform/frontend/public/sw.js` now bypasses caching for non-GET requests, requests with Authorization, cross-origin requests, all query-string URLs, and `/api`/`/auth` paths; only app-shell and same-origin `/assets/` requests are cacheable. Added frontend smoke assertions for these boundaries. Test execution remains pending.
 - **SEC-003 / SEC-004 audit note:** active Personal Local `Settings._validate()` already enforces explicit production `SECRET_KEY`, minimum 32-byte signing key, and source read-only flags at settings initialization; `/api/config` exposes only edition/boolean configuration and no filesystem paths. This is code inspection, not a runtime test.
 - **SEC-003 / production alias correction:** `ENVIRONMENT=prod` is now normalized to `production` before validation, production/staging default `DEBUG` to false, and explicit `DEBUG=true` is rejected in production. Added focused unit tests; execution remains pending.
 - **OCR result schema:** document understanding now records `extraction_method="ocr"` separately from detected `language` (`mya`, `eng`, `mya+eng`); a focused regression test was added. This aligns pilot reporting with the actual output schema.
@@ -390,9 +390,9 @@ Next Phase 1 work:
 ### 2026-10-03 — SEC-014 legacy backup command hardening
 
 Implemented in the repository:
-- **SEC-014:** extracted PostgreSQL backup argument construction into `web-platform/backend/app/core/backup_utils.py`. It parses PostgreSQL URLs structurally (including percent-encoded credentials, IPv6 hosts and explicit ports), validates required connection fields, supplies passwords only through the child-process environment, and builds an argument array for `pg_dump` without shell interpolation.
+- **SEC-014:** extracted PostgreSQL backup argument construction into `apps/web-platform/backend/app/core/backup_utils.py`. It parses PostgreSQL URLs structurally (including percent-encoded credentials, IPv6 hosts and explicit ports), validates required connection fields, supplies passwords only through the child-process environment, and builds an argument array for `pg_dump` without shell interpolation.
 - Updated the legacy Celery `backup_database` task to use the helper and invoke `pg_dump` with `--no-password`, captured output and no shell.
-- Added focused parser/argument tests in `web-platform/tests/test_backup_utils.py`.
+- Added focused parser/argument tests in `apps/web-platform/tests/test_backup_utils.py`.
 
 Scope and evidence boundary:
 - The Personal Local FastAPI entry point does not register the legacy admin/Celery backup route; Personal Local workspace backups remain handled by `WorkspaceBackupService`. This SEC-014 change hardens the retained legacy database-backup task, not the active Personal Local workspace archive flow.
@@ -427,7 +427,7 @@ Evidence boundary:
 
 ### 2026-10-03 — Mobile prototype audit and bounded fixes
 
-- **MOB-005:** added purpose-specific iOS camera/photo-library permission descriptions and Android camera/image permission declarations in mobile/app.json; generated native manifests and actual device prompts still need iOS/Android builds and real-device verification.
+- **MOB-005:** added purpose-specific iOS camera/photo-library permission descriptions and Android camera/image permission declarations in apps/mobile/app.json; generated native manifests and actual device prompts still need iOS/Android builds and real-device verification.
 - Fixed the missing useEffect import and unsafe startup session flicker in the mobile AuthContext; added best-effort remote logout before local SecureStore cleanup.
 - Corrected Expo picker result normalization and React Native multipart file descriptors; added MIME inference for legacy single-asset picker results and aligned upload result shape with the screen. Axios client is memoized and the API base is configurable through EXPO_PUBLIC_API_BASE_URL.
 - Added pure Node tests for picker normalization and app permission declarations. An isolated Node 22.16 harness for the nine assertions passed; this does not verify Expo bundling, native builds or device upload behavior.
@@ -461,7 +461,7 @@ Evidence boundary:
 - The smoke exposed concurrent status/list reads during `status.json` replacement on Windows: `Path.replace` raised `WinError 5`, and one polled status request returned HTTP 500. The smoke also issued 28 import POSTs; why the repeated requests occurred is unconfirmed. The full browser workflow was not completed.
 - **BE-009 (Personal Local):** status, list, search, inventory, and understanding JSON reads now share the existing per-session lock with mutations. Added concurrent-reader regression cases for all five service paths. This is an in-process synchronization fix; multi-process locking and crash recovery remain unverified.
 - After the fix, a controlled FastAPI TestClient HTTP walkthrough passed health, import/status/list, scan, local understanding, plan, explicitly confirmed apply, backup/verification, isolated Recovery restore, and undo using a synthetic fixture. The fixture source hash remained unchanged. This used a test-only auth dependency override; it is not real-browser or local-login acceptance.
-- Verification: `.venv\Scripts\python.exe -m pytest ..\tests -q` from `web-platform\backend` — **154 passed, 8 skipped**, exit code 0. Ten warnings were deprecations (FastAPI `on_event` and legacy `datetime.utcnow`); no test failures.
+- Verification: `.venv\Scripts\python.exe -m pytest ..\tests -q` from `apps/web-platform\backend` — **154 passed, 8 skipped**, exit code 0. Ten warnings were deprecations (FastAPI `on_event` and legacy `datetime.utcnow`); no test failures.
 - The active Personal Local real-browser/login acceptance gate remains pending; the API-level workflow passed after a test-only dependency override. Frontend checks and mobile utility tests passed earlier in this local session; `npm audit` still reports five high findings and no dependency upgrade was made.
 - Source was unchanged by the smoke test; the fixture and temporary workspace were isolated under the OS temp directory. No commit, push, deployment, or manual GitHub Actions run was made.
 
@@ -518,7 +518,7 @@ Exit evidence:
 - no advanced AI feature can bypass Reader → Planner → Human Approval → Executor;
 - distributed workflows have idempotency and recovery evidence;
 - multilingual retrieval has measured benchmark results;
-- mobile/multi-region are separate release tracks, not hidden dependencies of the core edition.
+- apps/mobile/multi-region are separate release tracks, not hidden dependencies of the core edition.
 
 
 ### 2026-10-07 — Phase 5 supply-chain evidence run

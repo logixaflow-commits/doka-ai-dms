@@ -61,7 +61,7 @@ Service inspection is **not yet performed** because the Render connector require
 
 ## Local .env
 
-The repository contains only templates. The real `web-platform/backend/.env` is intentionally not committed.
+The repository contains only templates. The real `apps/web-platform/backend/.env` is intentionally not committed.
 
 Therefore:
 

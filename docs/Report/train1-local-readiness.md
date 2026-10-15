@@ -30,12 +30,12 @@
 
 - [ ] Clean checkout of intended branch/commit; clean working tree; exact-HEAD CI green.
 - [ ] Python 3.13, isolated virtual environment, and backend requirements-local.txt + requirements-test.txt installed.
-- [ ] Node.js 24.x and npm; run npm ci in web-platform/frontend.
+- [ ] Node.js 24.x and npm; run npm ci in apps/web-platform/frontend.
 - [ ] Tesseract OCR 5.5.3.20260724 (or record actual version) with both eng and mya language packs; verify PDF/OCR tooling is callable.
 - [ ] Privacy-approved COPY of representative office files and separate OCR sample directory with a verified manifest. Include Myanmar-only, English-only, mixed-script, scanned PDF/image, and relevant office formats. Keep source documents and raw OCR/reference text out of Git and chat.
 - [ ] Dedicated, empty, non-overlapping paths for source copy, workspace, backup, OCR samples, and evidence. Never pilot against original office files.
 - [ ] Temporary strong BOOTSTRAP_ADMIN_PASSWORD and generated SECRET_KEY stored locally only.
-- [ ] Local web-platform/backend/.env based on .env.example. For initial local run verify AI_ENABLED=false, AI_EXTERNAL_PROCESSING_CONSENT=false, DOKA_STORAGE_PROVIDER=disabled, ORIGINAL_READ_ONLY=true, ALLOW_SOURCE_WRITE=false. Leave cloud/provider credentials blank unless a separately approved test needs them.
+- [ ] Local apps/web-platform/backend/.env based on .env.example. For initial local run verify AI_ENABLED=false, AI_EXTERNAL_PROCESSING_CONSENT=false, DOKA_STORAGE_PROVIDER=disabled, ORIGINAL_READ_ONLY=true, ALLOW_SOURCE_WRITE=false. Leave cloud/provider credentials blank unless a separately approved test needs them.
 - [ ] Sufficient disk space for copies, OCR renders, workspace, backups, and browser artifacts. Store private evidence outside source/workspace paths.
 
 ## 3. Local preparation commands (PowerShell, from repository root)
@@ -50,11 +50,11 @@ Do not run the full acceptance script until all paths point to a dedicated COPY 
     tesseract --version
     tesseract --list-langs
 
-    py -3.13 -m venv web-platform/backend/.venv
-    web-platform/backend/.venv/Scripts/python.exe -m pip install --upgrade pip
-    web-platform/backend/.venv/Scripts/python.exe -m pip install -r web-platform/backend/requirements-local.txt -r web-platform/backend/requirements-test.txt
+    py -3.13 -m venv apps/web-platform/backend/.venv
+    apps/web-platform/backend/.venv/Scripts/python.exe -m pip install --upgrade pip
+    apps/web-platform/backend/.venv/Scripts/python.exe -m pip install -r apps/web-platform/backend/requirements-local.txt -r apps/web-platform/backend/requirements-test.txt
 
-    Set-Location web-platform/frontend
+    Set-Location apps/web-platform/frontend
     npm ci
     npm run build
     npm run lint
@@ -68,7 +68,7 @@ Confirm tesseract --list-langs includes eng and mya. Missing either language is 
 Use the private, verified manifest and sample images; these paths are examples only. Keep JSON output private and outside the samples directory.
 
     $env:OCR_TIMEOUT_SECONDS = '120'
-    web-platform/backend/.venv/Scripts/python.exe scripts/ocr_benchmark.py --root 'D:\DokaPilotCopy\ocr-samples' --manifest 'D:\DokaPilotCopy\manifest.verified-private.json' --output 'D:\DokaEvidence\train1-ocr.json'
+    apps/web-platform/backend/.venv/Scripts/python.exe scripts/ocr_benchmark.py --root 'D:\DokaPilotCopy\ocr-samples' --manifest 'D:\DokaPilotCopy\manifest.verified-private.json' --output 'D:\DokaEvidence\train1-ocr.json'
 
 Exit code 0 means the OCR gate passed; exit code 2 means quality failure. Preserve failure evidence and investigate references/recognition without lowering thresholds.
 

@@ -25,25 +25,25 @@ if not "%NODE_MAJOR%"=="24" (
   exit /b 1
 )
 
-if not exist "web-platform\backend\.venv\Scripts\python.exe" (
+if not exist "apps/web-platform\backend\.venv\Scripts\python.exe" (
   echo Creating Python virtual environment...
-  python -m venv web-platform\backend\.venv
+  python -m venv apps/web-platform\backend\.venv
   if errorlevel 1 exit /b 1
 )
 
-if not exist "web-platform\backend\.env" (
-  copy /Y "web-platform\backend\.env.example" "web-platform\backend\.env" >nul
-  echo Created web-platform\backend\.env from the template.
-  echo IMPORTANT: Set BOOTSTRAP_ADMIN_PASSWORD in web-platform\backend\.env before login.
+if not exist "apps/web-platform\backend\.env" (
+  copy /Y "apps/web-platform\backend\.env.example" "apps/web-platform\backend\.env" >nul
+  echo Created apps/web-platform\backend\.env from the template.
+  echo IMPORTANT: Set BOOTSTRAP_ADMIN_PASSWORD in apps/web-platform\backend\.env before login.
 )
 
 echo Installing local Python dependencies...
-"web-platform\backend\.venv\Scripts\python.exe" -m pip install -r web-platform\backend\requirements-local.txt
+"apps/web-platform\backend\.venv\Scripts\python.exe" -m pip install -r apps/web-platform\backend\requirements-local.txt
 if errorlevel 1 exit /b 1
 
-if not exist "web-platform\frontend\node_modules" (
+if not exist "apps/web-platform\frontend\node_modules" (
   echo Installing frontend dependencies...
-  cd web-platform\frontend
+  cd apps/web-platform\frontend
   npm ci
   if errorlevel 1 exit /b 1
   cd ..
@@ -51,12 +51,12 @@ if not exist "web-platform\frontend\node_modules" (
 
 echo.
 echo Starting backend on http://127.0.0.1:8000 ...
-start "Personal DMS Backend" /D "%~dp0web-platform\backend" "%~dp0web-platform\backend\.venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+start "Personal DMS Backend" /D "%~dp0apps/web-platform\backend" "%~dp0apps/web-platform\backend\.venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 timeout /t 2 /nobreak >nul
 
 echo Starting frontend on http://127.0.0.1:3000 ...
-start "Personal DMS Frontend" /D "%~dp0web-platform\frontend" cmd /k "npm run dev"
+start "Personal DMS Frontend" /D "%~dp0apps/web-platform\frontend" cmd /k "npm run dev"
 
 echo.
 echo Backend:  http://127.0.0.1:8000/health

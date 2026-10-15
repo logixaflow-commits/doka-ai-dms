@@ -39,7 +39,7 @@ Spec: docs/superpowers/specs/2026-10-05-cloud-storage-architecture-design.md
 - B2 quota calculations must be fail-safe: stale/unknown usage cannot silently authorize a new B2 upload above the configured safety threshold.
 
 ### Task 0: Local mock mode and backward-compatible routing foundation
-Files: create `web-platform/backend/app/services/storage_mock.py`; modify `web-platform/backend/app/services/storage_router.py`; tests in `web-platform/tests/test_storage_mock_mode.py`.
+Files: create `apps/web-platform/backend/app/services/storage_mock.py`; modify `apps/web-platform/backend/app/services/storage_router.py`; tests in `apps/web-platform/tests/test_storage_mock_mode.py`.
 Interfaces: `MockStorageProvider`; `StorageRouter(provider_mode)` with `mock`, `hybrid`, and Supabase-only fallback modes.
 - [ ] Write failing tests proving `STORAGE_PROVIDER=mock` uses in-memory metadata plus local filesystem bytes and requires no real credentials.
 - [ ] Implement mock providers with deterministic signed-upload/session behavior suitable for local and CI tests.
@@ -47,14 +47,14 @@ Interfaces: `MockStorageProvider`; `StorageRouter(provider_mode)` with `mock`, `
 - [ ] Run focused tests and commit: `feat: add local mock and hybrid storage modes`.
 
 ### Task 1: Provider-neutral contracts and routing
-Files: web-platform/backend/app/services/cloud_storage.py; create web-platform/backend/app/services/storage_router.py; tests in web-platform/tests/test_cloud_storage_routing.py and existing test_cloud_storage.py.
+Files: apps/web-platform/backend/app/services/cloud_storage.py; create apps/web-platform/backend/app/services/storage_router.py; tests in apps/web-platform/tests/test_cloud_storage_routing.py and existing test_cloud_storage.py.
 Interfaces: StorageObjectRef(provider, object_key, owner_id); UploadMetadata(filename, content_type, size_bytes, sha256, owner_id, artifact_type); UploadSession(provider, object_ref, expires_at, upload, warnings); StorageProvider methods create_upload_session, complete_upload, get_signed_download, delete, head, initiateMultipartUpload, uploadPart, completeMultipartUpload, abortMultipartUpload; StorageRouter.route(metadata).
 - [ ] Write failing tests for <=50 MiB source -> Supabase, >50 MiB source -> B2, <10 MB preview -> Cloudinary, and invalid sizes.
 - [ ] Implement provider-neutral contracts, size constants, artifact classification, SHA-256 validation, and owner-scoped object keys.
 - [ ] Run focused tests and commit: feat: add provider-neutral cloud storage routing.
 
 ### Task 2: Supabase direct signed-upload provider
-Files: cloudflare_worker/main.py; create cloudflare_worker/storage_supabase.py; tests/test_cloudflare_storage_direct_upload.py and worker contract tests.
+Files: apps/web-platform/backend/cloudflare_worker/main.py; create apps/web-platform/backend/cloudflare_worker/storage_supabase.py; tests/test_cloudflare_storage_direct_upload.py and worker contract tests.
 Interfaces: SupabaseStorageProvider.create_upload_session, complete_upload, get_signed_download.
 - [ ] Test signed upload creation, no Worker file-body read, completion size/checksum/ownership/idempotency.
 - [ ] Implement short-lived Supabase signed upload sessions and owner-scoped paths.
@@ -62,7 +62,7 @@ Interfaces: SupabaseStorageProvider.create_upload_session, complete_upload, get_
 - [ ] Run focused tests and commit: feat: add direct Supabase storage uploads.
 
 ### Task 3: Backblaze B2 direct uploads and multipart
-Files: create cloudflare_worker/storage_b2.py; modify cloudflare_worker/main.py; tests/test_cloudflare_b2_storage.py and worker contract tests.
+Files: create apps/web-platform/backend/cloudflare_worker/storage_b2.py; modify apps/web-platform/backend/cloudflare_worker/main.py; tests/test_cloudflare_b2_storage.py and worker contract tests.
 Interfaces: B2StorageProvider.create_upload_session, initiateMultipartUpload, uploadPart, completeMultipartUpload, abortMultipartUpload, get_signed_download.
 - [ ] Test direct signed upload, multipart lifecycle, >5 GB behavior, and absence of full-object buffering.
 - [ ] Implement B2 S3-compatible SigV4 presigned requests with server-side credentials.
@@ -71,7 +71,7 @@ Interfaces: B2StorageProvider.create_upload_session, initiateMultipartUpload, up
 - [ ] Run focused tests and commit: feat: add direct Backblaze B2 storage and multipart uploads.
 
 ### Task 4: Cloudinary derivative provider and credit guard
-Files: create cloudflare_worker/storage_cloudinary.py; modify cloudflare_worker/main.py; tests/test_cloudflare_cloudinary_guard.py.
+Files: create apps/web-platform/backend/cloudflare_worker/storage_cloudinary.py; modify apps/web-platform/backend/cloudflare_worker/main.py; tests/test_cloudflare_cloudinary_guard.py.
 Interfaces: CloudinaryStorageProvider.create_upload_session, get_signed_download; CloudinaryCreditGuard.check.
 - [ ] Test healthy credits -> Cloudinary and low/unknown credits -> Supabase fallback with warning cloudinary_credit_fallback.
 - [ ] Assert API secret, raw usage payload, and credentials never appear in responses.
@@ -80,7 +80,7 @@ Interfaces: CloudinaryStorageProvider.create_upload_session, get_signed_download
 - [ ] Run focused tests and commit: feat: add Cloudinary derivative routing and credit guard.
 
 ### Task 5: Backward-compatible metadata migration and lazy migration
-Files: create `supabase/migrations/20261005120000_doka_storage_provider_metadata.sql`; test `web-platform/tests/test_doka_storage_metadata_migration.py`; create `docs/DOKA_STORAGE_MIGRATION_ROLLBACK.md`.
+Files: create `apps/web-platform/backend/supabase/migrations/20261005120000_doka_storage_provider_metadata.sql`; test `apps/web-platform/tests/test_doka_storage_metadata_migration.py`; create `docs/DOKA_STORAGE_MIGRATION_ROLLBACK.md`.
 - [ ] Add `storage_provider` with default `supabase` plus provider/object/status/region/preview/export/backup fields while preserving owner/RLS columns.
 - [ ] Keep the first migration phase read-only: no existing object bytes are copied or rewritten by the migration itself.
 - [ ] Define lazy migration-on-access for existing rows and prove reads remain Supabase-backed until a successful provider transition is recorded.
@@ -88,7 +88,7 @@ Files: create `supabase/migrations/20261005120000_doka_storage_provider_metadata
 - [ ] Run migration/rollback contract tests and commit: `feat: add backward-compatible storage metadata migration`.
 
 ### Task 6: B2 quota guard and emergency fallback
-Files: create `cloudflare_worker/b2_quota.py`; modify `cloudflare_worker/main.py`; tests `web-platform/tests/test_cloudflare_b2_quota.py`.
+Files: create `apps/web-platform/backend/cloudflare_worker/b2_quota.py`; modify `apps/web-platform/backend/cloudflare_worker/main.py`; tests `apps/web-platform/tests/test_cloudflare_b2_quota.py`.
 Interfaces: `B2QuotaGuard.get_usage`, `B2QuotaGuard.evaluate`, `QuotaDecision`; configuration `DOKA_B2_WARNING_PERCENT=80`, `DOKA_B2_BLOCK_PERCENT=95`, optional `DOKA_B2_QUOTA_FALLBACK=google_drive`.
 - [ ] Write failing tests for <80% normal, >=80% warning, >=95% block, unknown/stale usage fail-safe, and explicit Google Drive fallback.
 - [ ] Implement usage monitoring without exposing B2 credentials; return only stable quota state/warning codes to the UI.
@@ -97,13 +97,13 @@ Interfaces: `B2QuotaGuard.get_usage`, `B2QuotaGuard.evaluate`, `QuotaDecision`; 
 - [ ] Run focused quota tests and commit: `feat: add B2 quota guard and emergency fallback`.
 
 ### Task 7: Supabase metadata migration
-Files: create supabase/migrations/20261005120000_doka_storage_provider_metadata.sql; test web-platform/tests/test_doka_storage_metadata_migration.py.
+Files: create apps/web-platform/backend/supabase/migrations/20261005120000_doka_storage_provider_metadata.sql; test apps/web-platform/tests/test_doka_storage_metadata_migration.py.
 - [ ] Add provider/object/status/region/preview/export/backup fields while preserving owner/RLS columns.
 - [ ] Add constraints for supported providers and non-negative sizes.
 - [ ] Run migration contract tests and commit: feat: add cloud storage metadata schema.
 
 ### Task 8: Cloud API upload-session/completion/download endpoints
-Files: cloudflare_worker/main.py; frontend DocumentUpload.tsx and cloudDocuments.ts; tests for API and frontend upload contracts.
+Files: apps/web-platform/backend/cloudflare_worker/main.py; frontend DocumentUpload.tsx and cloudDocuments.ts; tests for API and frontend upload contracts.
 Interfaces: POST /api/storage/upload-sessions; POST /api/storage/uploads/{session_id}/complete; POST /api/storage/multipart; POST /api/storage/multipart/{upload_id}/parts/{part_number}; POST /api/storage/multipart/{upload_id}/complete; POST /api/storage/multipart/{upload_id}/abort; POST /api/storage/download-url.
 - [ ] Test authentication, ownership, expiry, provider-neutral signed instructions, completion, download URLs, and multipart.
 - [ ] Implement endpoints using require_user and the provider-neutral router.
@@ -111,7 +111,7 @@ Interfaces: POST /api/storage/upload-sessions; POST /api/storage/uploads/{sessio
 - [ ] Run focused backend/frontend tests and commit: feat: expose direct cloud storage upload workflow.
 
 ### Task 9: Google Drive export/backup adapter
-Files: create web-platform/backend/app/services/google_drive_storage.py; tests/test_google_drive_storage.py; create docs/DOKA_GOOGLE_DRIVE_EXPORT.md.
+Files: create apps/web-platform/backend/app/services/google_drive_storage.py; tests/test_google_drive_storage.py; create docs/DOKA_GOOGLE_DRIVE_EXPORT.md.
 Interfaces: GoogleDriveExporter.export_document, create_backup_manifest, restore_manifest.
 - [ ] Test idempotent export/backup, checksum recording, remote references, and secret redaction.
 - [ ] Implement server-side OAuth handling and Drive REST operations without exposing refresh tokens.
@@ -120,7 +120,7 @@ Interfaces: GoogleDriveExporter.export_document, create_backup_manifest, restore
 - [ ] Run focused tests and commit: feat: add Google Drive export and backup adapter.
 
 ### Task 10: Version, restore, and integrity integration
-Files: new migration if required; cloudflare_worker/main.py; tests/test_document_versioning_safety.py and test_cloud_storage_integrity.py.
+Files: new migration if required; apps/web-platform/backend/cloudflare_worker/main.py; tests/test_document_versioning_safety.py and test_cloud_storage_integrity.py.
 - [ ] Test provider/object/checksum preservation through version creation and restore.
 - [ ] Test checksum mismatch, owner mismatch, provider failure, and idempotent completion.
 - [ ] Ensure failed uploads remain non-ready/quarantined.

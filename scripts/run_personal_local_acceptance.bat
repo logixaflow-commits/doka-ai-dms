@@ -32,8 +32,8 @@ if not defined BOOTSTRAP_ADMIN_PASSWORD (
 
 set "ROOT=%~dp0.."
 for %%I in ("%ROOT%") do set "ROOT=%%~fI"
-set "BACKEND=%ROOT%\web-platform\backend"
-set "FRONTEND=%ROOT%\web-platform\frontend"
+set "BACKEND=%ROOT%\apps/web-platform\backend"
+set "FRONTEND=%ROOT%\apps/web-platform\frontend"
 set "VENV=%ROOT%\.acceptance-venv"
 set "EVIDENCE=%ROOT%\Phase0_Evidence\acceptance"
 

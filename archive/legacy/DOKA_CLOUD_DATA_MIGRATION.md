@@ -29,9 +29,9 @@ has passed.
 
 ## D1 schema
 
-The prepared-statement runtime adapter is implemented in cloudflare_worker/d1.py. It resolves the D1 binding from the Worker ASGI scope, uses parameter binding for all values, and exposes row, first-row, write and atomic-batch operations. It is not imported by the active Supabase-backed entry point yet.
+The prepared-statement runtime adapter is implemented in apps/web-platform/backend/cloudflare_worker/d1.py. It resolves the D1 binding from the Worker ASGI scope, uses parameter binding for all values, and exposes row, first-row, write and atomic-batch operations. It is not imported by the active Supabase-backed entry point yet.
 
-The migration at cloudflare_worker/migrations/0001_doka_cloud_baseline.sql creates:
+The migration at apps/web-platform/backend/cloudflare_worker/migrations/0001_doka_cloud_baseline.sql creates:
 
 - users, organizations and organization membership roles;
 - owner- and organization-scoped documents, versions and explicit document permissions;
@@ -56,8 +56,8 @@ then create its idempotency receipt table. After the database is provisioned,
 the two SQL files can be applied sequentially with:
 
 ```sh
-turso db shell doka-secondary < cloudflare_worker/migrations/0001_doka_cloud_baseline.sql
-turso db shell doka-secondary < cloudflare_worker/turso_migrations/0001_sync_receipts.sql
+turso db shell doka-secondary < apps/web-platform/backend/cloudflare_worker/migrations/0001_doka_cloud_baseline.sql
+turso db shell doka-secondary < apps/web-platform/backend/cloudflare_worker/turso_migrations/0001_sync_receipts.sql
 ```
 
 The consumer must insert event_id into sync_receipts inside the same Turso
@@ -66,7 +66,7 @@ event as successfully applied. Only after Turso commits may the consumer mark
 the D1 outbox event delivered. This covers redelivery after a consumer crash
 between the Turso commit and the D1 acknowledgement.
 
-The D1 outbox dispatcher is implemented in `cloudflare_worker/outbox.py`.
+The D1 outbox dispatcher is implemented in `apps/web-platform/backend/cloudflare_worker/outbox.py`.
 It atomically leases one pending (or expired-lease) event using a conditional
 UPDATE/RETURNING statement, increments the attempt count, and recovers abandoned
 processing leases. Each claim receives a unique fencing token; acknowledgements
@@ -107,7 +107,7 @@ redelivery tests remain required.
 Run from the repository root:
 
 ```sh
-python -m pytest web-platform/tests/test_cloudflare_d1_schema.py -q
+python -m pytest apps/web-platform/tests/test_cloudflare_d1_schema.py -q
 ```
 
 These tests execute the SQL using Python's SQLite engine and exercise the D1

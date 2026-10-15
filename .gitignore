@@ -33,6 +33,7 @@ venv/
 env/
 ENV/
 .venv
+**/.venv/
 
 # IDE
 .vscode/
@@ -99,6 +100,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Browser test output (recreated by Playwright)
+apps/web-platform/frontend/test-results/
+apps/web-platform/frontend/playwright-report/
+
 # Docker
 .dockerignore
 !/.dockerignore
@@ -108,13 +113,17 @@ Thumbs.db
 Desktop.ini
 
 # Project specific
-web-platform/backend/processing_workspace/
-web-platform/backend/uploads/
+apps/web-platform/backend/processing_workspace/
+apps/web-platform/backend/uploads/
 storage/
 backups/
 Office_DMS/
-web-platform/backend/app/static/uploads/
-web-platform/backend/app/static/storage/
+apps/web-platform/backend/Office_DMS/
+apps/web-platform/backend/app/static/uploads/
+apps/web-platform/backend/app/static/storage/
+
+# Local pre-migration runtime snapshot (not application source)
+archive/local-runtime-backup-*/
 
 # AI/ML models
 models/
@@ -131,10 +140,10 @@ minio-data/
 dump.rdb
 
 # Mobile
-mobile/.expo/
-mobile/node_modules/
-mobile/.env.local
-mobile/dist/
+apps/mobile/.expo/
+apps/mobile/node_modules/
+apps/mobile/.env.local
+apps/mobile/dist/
 
 # Monitoring
 infrastructure/monitoring/prometheus/data/

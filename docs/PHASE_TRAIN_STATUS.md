@@ -186,7 +186,7 @@ rollback rehearsal, quarterly recovery evidence, signed release evidence.
 
 
 ### 2026-10-08 Train 1 concrete-integration checkpoint
-- D1 durable job adapter added at `cloudflare_worker/jobs.py`, using the existing authoritative `jobs.idempotency_key` uniqueness and bounded attempt fields. It supports create-or-converge, pending claim, success, retryable failure, non-retryable failure and exhaustion → dead transitions. It does not implement lease takeover.
+- D1 durable job adapter added at `apps/web-platform/backend/cloudflare_worker/jobs.py`, using the existing authoritative `jobs.idempotency_key` uniqueness and bounded attempt fields. It supports create-or-converge, pending claim, success, retryable failure, non-retryable failure and exhaustion → dead transitions. It does not implement lease takeover.
 - D1 outbox delivery now distinguishes transient failures from permanent/schema failures; permanent failures go directly to `dead` and transient failures retain bounded exponential backoff.
 - Unified AI provider routing now uses the Train 1 retry taxonomy and circuit-breaker state machine. Provider failover is explicitly opt-in through `AI_PROVIDER_FAILOVER_APPROVED=true`; without it, a provider outage does not silently broaden external data processing.
 - Retrieval now canonicalizes OCR text to Unicode NFC, records SHA-256 retrieval identity, validates supported `mya`/`eng` language metadata, scopes ranking by language, and avoids the English-centric embedding path for Myanmar OCR.

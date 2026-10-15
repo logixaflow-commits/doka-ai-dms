@@ -75,7 +75,7 @@ Key deployed services:
 | `/admin/activity` | CloudAudit | Owner-scoped upload/download/preview/update/trash/restore/permanent-delete/version activity |
 | `/admin/workspace` | WorkspaceReview | Local workspace route; development/local boundary only, not a hosted cloud workspace |
 
-The active router in `web-platform/frontend/src/App.tsx` currently mounts only these authenticated application pages. The production sidebar exposes Overview, Cloud documents and Activity; local workspace is intentionally hidden in production.
+The active router in `apps/web-platform/frontend/src/App.tsx` currently mounts only these authenticated application pages. The production sidebar exposes Overview, Cloud documents and Activity; local workspace is intentionally hidden in production.
 
 ### 4.2 Cloud API actually deployed to Cloudflare
 
@@ -142,7 +142,7 @@ These must not be mistaken for production-ready cloud pages:
 
 | Area | Status | Evidence / remaining proof |
 |---|---|---|
-| Git repository structure | Implemented | Active code grouped under `web-platform/`; historical code under `archive/` |
+| Git repository structure | Implemented | Active code grouped under `apps/web-platform/`; historical code under `archive/` |
 | Local security foundation | Implemented + regression-covered | Still needs real-machine pilot evidence |
 | Local OCR/extraction | Implemented in code | Myanmar/English representative quality test remains |
 | Local organization workflow | Implemented in code | Browser/real-folder acceptance test remains |
@@ -303,7 +303,7 @@ Do not show these as enabled controls until the backend endpoints and permission
 - Add database migration checks and backup/restore drills.
 - Add service/storage quota visibility and alerts that do not require paid add-ons.
 - Keep secrets out of Git and browser bundles.
-- Keep root directory clean; application code remains under `web-platform/`, current documentation under `docs/`, legacy under `archive/`.
+- Keep root directory clean; application code remains under `apps/web-platform/`, current documentation under `docs/`, legacy under `archive/`.
 
 ## 9. Immediate next actions
 

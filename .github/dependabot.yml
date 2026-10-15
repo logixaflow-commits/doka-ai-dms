@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /web-platform/frontend
+    directory: /apps/web-platform/frontend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -10,7 +10,7 @@ updates:
         patterns:
           - "*"
   - package-ecosystem: pip
-    directory: /web-platform/backend
+    directory: /apps/web-platform/backend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

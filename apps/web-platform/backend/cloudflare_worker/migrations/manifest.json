@@ -2,16 +2,16 @@
   {
     "number": 1,
     "name": "0001_doka_cloud_baseline.sql",
-    "git_blob_sha": "b189edd6eee6ea13b1f28c47310344b5f1894801"
+    "git_blob_sha": "611087b1b547b19ed9b0365e7e286c17c61e3bf4"
   },
   {
     "number": 2,
     "name": "0002_authorization_integrity.sql",
-    "git_blob_sha": "24cdbf134be9800325167ee1c200dd93bb5b5a0a"
+    "git_blob_sha": "789a92909a738f759c3fe58222dcfa57904d13ca"
   },
   {
     "number": 3,
     "name": "0003_job_tenant_integrity.sql",
-    "git_blob_sha": "9b26f097b0bc035b11cd204a5eaddfaa4647824f"
+    "git_blob_sha": "d3ef4643f12e2e30dad98fbaefc575448cc71337"
   }
 ]
