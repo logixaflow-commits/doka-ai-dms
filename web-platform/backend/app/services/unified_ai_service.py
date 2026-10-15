@@ -89,21 +89,7 @@ class UnifiedAIService:
         elif settings.OPENROUTER_API_KEY:
             logger.warning("OpenRouter model is not on the Doka free-chat allowlist; external AI remains unavailable")
 
-        # Groq (Ultra-fast metadata extraction, 14,400 req/day free)
-        if settings.GROQ_API_KEY and not settings.GROQ_API_KEY.startswith("your_"):
-            self.providers["groq"] = {
-                "api_key": settings.GROQ_API_KEY,
-                "model": getattr(settings, "GROQ_MODEL", "") or "qwen/qwen3.8-27b",
-                "enabled": True,
-            }
-
-        # Gemini (High Burmese fluency, 1,500 req/day free)
-        if settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("your_"):
-            self.providers["gemini"] = {
-                "api_key": settings.GEMINI_API_KEY,
-                "model": getattr(settings, "GEMINI_MODEL", "") or "gemini-2.5-flash",
-                "enabled": True,
-            }
+        # Other provider keys are intentionally ignored by this free-only service.
         if self.providers:
             logger.info("AI providers configured: %s", self.get_available_providers())
         else:
