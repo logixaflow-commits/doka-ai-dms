@@ -8,7 +8,12 @@ from sqlalchemy import engine_from_config, pool
 # Ensure backend root is in sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.core.config import settings
-from app.models.database import Base
+try:
+    from app.models.database import Base
+    target_metadata = Base.metadata
+except ImportError:
+    from sqlalchemy import MetaData
+    target_metadata = MetaData()
 
 config = context.config
 
@@ -21,8 +26,6 @@ else:
 
 if config.config_file_name:
     fileConfig(config.config_file_name)
-
-target_metadata = Base.metadata
 
 def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")
