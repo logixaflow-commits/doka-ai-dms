@@ -1,3 +1,16 @@
+> **Latest status follow-up — 2026-10-15 (supersedes older exact-HEAD notes below)**
+>
+> - CI fix merged as PR [#49](https://github.com/logixaflow-commits/doka-ai-dms/pull/49), commit `1dd3ace0cb187f3d3980cc181c58937906716ae4`: UnifiedAIService now registers only allowlisted OpenRouter free-chat models; frontend lint failures in AdminLayout/AiUsage were fixed.
+> - PR-head Doka Quality Checks passed: [run 38688221794](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38688221794). Main-branch Doka Quality Checks [run 38688397237](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38688397237) and CodeQL [run 38688397293](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38688397293) were still running at this snapshot; do not mark exact-main CI complete until those runs finish.
+> - Myanmar OCR Regression last passed on `d6de507ad6e901a33fb516130af27465101cefb5` in [run 38687155113](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38687155113). The CI fix did not modify OCR files, but this is not a run on the new exact main SHA.
+> - OCR branch `fix/myanmar-ocr-text-preservation` remains diverged (13 ahead / 143 behind). File/test review found main already has more complete OCR and Google Drive contract coverage; do not bulk-merge. Its changes appear superseded, but branch deletion is still pending owner action.
+> - Current Supabase advisors: security WARN `auth_leaked_password_protection` remains disabled per the existing owner decision; performance INFO reports three unused indexes. Do not silently toggle auth settings or drop indexes.
+> - Vercel production deployment attempts are canceled with an ignored-build-step reason; no new production deployment was made. Keep production manual-only pending owner approval and cloud gates.
+> - Render service discovery returned `null` in the connected workspace. Owner must confirm whether Render is an expected runtime and which workspace/service is intended; do not create a replacement.
+> - Cloud Gates 9–11, real two-user isolation/provider recovery, and local Myanmar OCR/browser/recovery acceptance remain open.
+
+---
+
 > **Cloudflare deployment follow-up — 2026-10-15**
 >
 > - Direct deployment API confirms Worker `doka-ai-dms` latest listed deployment `d894b59e-4aca-4fa2-86b2-9750055749eb`, version 724 (`75e436b2-2009-4779-b659-5421bea0843a`), assigned 100% traffic. The account has zero zones and no custom Worker domains listed; provider-path/health checks remain separate.
