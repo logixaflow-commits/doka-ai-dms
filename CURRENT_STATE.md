@@ -1,3 +1,11 @@
+> **Cloudflare deployment follow-up — 2026-10-15**
+>
+> - Direct deployment API confirms Worker `doka-ai-dms` latest listed deployment `d894b59e-4aca-4fa2-86b2-9750055749eb`, version 724 (`75e436b2-2009-4779-b659-5421bea0843a`), assigned 100% traffic. The account has zero zones and no custom Worker domains listed; provider-path/health checks remain separate.
+> - GitHub combined status for code SHA `6c1fe995c807382cbe3c1000e893e678d621f83b` shows only a successful Vercel context; Doka Quality Checks, CodeQL and Myanmar OCR Regression are not evidenced for that exact SHA by this check. Exact-SHA CI remains **VERIFY**.
+> - Updated detailed record: [docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md](docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md).
+
+---
+
 > **Repository/provider re-audit — 2026-10-15 (read-only; supersedes older provider snapshots where they conflict)**
 >
 > - Latest observed `main` SHA at audit time: `6c1fe995c807382cbe3c1000e893e678d621f83b` (UI toast notifications). Exact-SHA CI for this SHA must be checked before claiming current-HEAD CI is green; older successful runs are not transferable to this commit.
