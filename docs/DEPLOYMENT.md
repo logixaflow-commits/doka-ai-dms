@@ -1,3 +1,9 @@
+> **Cloudflare deployment follow-up — 2026-10-15**
+>
+> Direct deployment/version API confirms latest listed Worker deployment `d894b59e-4aca-4fa2-86b2-9750055749eb`, version 724 (`75e436b2-2009-4779-b659-5421bea0843a`), at 100% traffic. The account currently lists zero zones and no custom Worker domains. This verifies the deployment traffic assignment only; it does not verify external health, custom-domain routing, secrets, CORS in a real browser, or provider application-path recovery.
+
+---
+
 > **Live provider inventory — 2026-10-15 (read-only API inspection)**
 >
 > - GitHub `main` latest observed SHA: `6c1fe995c807382cbe3c1000e893e678d621f83b`; confirm CI against this exact SHA.
