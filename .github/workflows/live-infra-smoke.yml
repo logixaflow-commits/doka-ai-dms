@@ -3,6 +3,7 @@ name: Live Infrastructure Smoke
 on:
   push:
     branches:
+      - main
       - ops/live-infra-smoke-20261015
   workflow_dispatch:
 
