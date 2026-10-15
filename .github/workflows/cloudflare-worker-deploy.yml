@@ -59,18 +59,29 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from urllib.error import HTTPError, URLError
           from urllib.request import urlopen
 
-          with urlopen("https://doka-ai-dms.logixaflow.workers.dev/health", timeout=20) as response:
-              if response.status != 200:
-                  raise SystemExit(f"Worker health returned HTTP {response.status}")
-              payload = json.load(response)
-          if payload.get("status") != "healthy":
-              raise SystemExit(f"Unexpected Worker health payload: {payload!r}")
-          with urlopen("https://doka-ai-dms.logixaflow.workers.dev/api/config", timeout=20) as response:
-              if response.status != 200:
-                  raise SystemExit(f"Worker config returned HTTP {response.status}")
-              config = json.load(response)
+          def get_json(url, label):
+              try:
+                  with urlopen(url, timeout=20) as response:
+                      payload = json.load(response)
+                      if response.status != 200:
+                          raise SystemExit(f"{label} returned HTTP {response.status}")
+                      return payload
+              except HTTPError as exc:
+                  body = exc.read(2000).decode("utf-8", errors="replace")
+                  print(f"{label} returned HTTP {exc.code}")
+                  print(f"Response headers: {dict(exc.headers)}")
+                  print(f"Response body (first 2000 chars): {body}")
+                  raise SystemExit(f"{label} endpoint rejected verification with HTTP {exc.code}") from exc
+              except URLError as exc:
+                  raise SystemExit(f"{label} endpoint could not be reached: {exc}") from exc
+
+          health = get_json("https://doka-ai-dms.logixaflow.workers.dev/health", "Worker health")
+          if health.get("status") != "healthy":
+              raise SystemExit(f"Unexpected Worker health payload: {health!r}")
+          config = get_json("https://doka-ai-dms.logixaflow.workers.dev/api/config", "Worker config")
           if not config.get("single_user_configured"):
               raise SystemExit("Single-user production gate is not configured; refusing deployment verification.")
           print("Production Worker health and single-user readiness checks passed.")
