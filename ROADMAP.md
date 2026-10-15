@@ -1,3 +1,16 @@
+> **Provider re-audit — 2026-10-15 (read-only)**
+>
+> - Latest observed `main` SHA is `6c1fe995c807382cbe3c1000e893e678d621f83b`; exact-SHA CI is **VERIFY**, not inherited from older commits.
+> - Vercel project remains `live=false` and latest production deployment is `CANCELED`; keep production paused/manual-only.
+> - Render service list returned `null` in connected `My Workspace`; owner confirmation is required before assuming a Render runtime or creating a service.
+> - Supabase project is `ACTIVE_HEALTHY`; latest listed migration is `20261009083942_doka_trigger_function_least_privilege`. RLS policy configuration does not close authenticated two-user isolation.
+> - Cloudflare account currently lists zero zones; Worker script exists but script metadata reports no routes and an empty deployment ID. Reconcile live deployment/version/route evidence with earlier notes.
+> - Full provider evidence and remaining-work checklist: [docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md](docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md).
+>
+> **Execution order remains:** (1) exact-HEAD CI, (2) Cloud Gate 9 authenticated lifecycle + exact 50 MiB boundary, (3) Gate 10 two-user API/RLS/Storage/RPC isolation, (4) Gate 11 B2/Cloudinary/Drive application-path recovery and Cloudflare route verification, (5) Personal Local OCR/browser/recovery evidence, (6) final freeze. Do not deploy to production or lower OCR thresholds to force a pass.
+
+---
+
 > **Additional evidence — 2026-10-14**
 >
 > - Exact documentation HEAD `4401eba153b13167aa7e552f1b3eec56ab7d1d02` now passes [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561399407).
