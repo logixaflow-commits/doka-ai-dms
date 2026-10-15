@@ -1,11 +1,10 @@
-> **Production checkpoint — 2026-10-15 08:32 UTC (latest verification)**
+> **Production checkpoint — 2026-10-15 10:10 UTC (fresh verification)**
 >
-> - Repository HEAD: `5e068b370a1564a8eb42945a6cbd4579334779eb`.
-> - Cloudflare Worker Production Deploy [run 38706138555](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138555): **success**. Production `/health` and `/api/config` checks passed.
-> - Live Infrastructure Smoke [run 38706261696](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706261696): **success**. `/health` HTTP 200; `/api/config` HTTP 200 with Supabase Auth, Storage and single-user readiness; unauthenticated document list HTTP 401; trusted CORS origins allowed and untrusted origin denied.
-> - Doka Quality Checks [run 38706138461](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138461) and CodeQL [run 38706138536](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138536): **success** on the same HEAD.
-> - Vercel project `enterprise-ai-dms` still reports `live=false`; its latest production deployment (commit `5e068b3`) is `CANCELED`. An older production deployment from `1dd3ace` is `READY`, but does not prove that the current frontend source is live. Vercel go-live remains blocked until cancellation/ignored-build configuration is reconciled and the canonical production alias passes the smoke workflow.
-> - Full cloud release is still **not signed off**: authenticated lifecycle, two-user isolation, real provider recovery (B2 / Google Drive / Cloudinary app path), and the strict Myanmar/English OCR benchmark need direct acceptance evidence. Use disposable accounts and the dedicated acceptance environment; never disable `DOKA_SINGLE_USER_EMAIL` on production to make two-user tests pass.
+> - Cloudflare Worker deploy [run 38706138555](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138555) and live infrastructure smoke [run 38706261696](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706261696): **success**. Health/config return HTTP 200, unauthenticated document listing returns HTTP 401, trusted CORS passes and an untrusted origin is denied.
+> - Doka Quality Checks on the latest docs HEAD [run 38707844647](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38707844647): **success**. CodeQL also passed on the Worker release commit.
+> - Canonical Vercel alias https://enterprise-ai-dms.vercel.app returned HTTP 200 and the expected `Doka — Secure Document Workspace` title on 2026-10-15. This confirms basic page availability only.
+> - Vercel project `enterprise-ai-dms` reports `live=false`. Its latest production deployment (commit `4ce4036`) is `CANCELED`; the deployment API points to the **Ignored Build Step** configuration. The workflow explicitly says Vercel production is paused/manual-only. Do not silently change that setting or promote a deployment; owner must explicitly approve re-enabling production deployments. Latest READY deployment remains commit `1dd3ace`, so current frontend source publication is not yet proven.
+> - Full cloud release is **not signed off**: authenticated upload/download/version/audit lifecycle, two-user isolation, real B2 / Google Drive / Cloudinary recovery, strict Myanmar/English OCR benchmark and recovery evidence remain open. Use disposable users and a dedicated acceptance environment; never disable `DOKA_SINGLE_USER_EMAIL` on production to make tests pass.
 >
 > ---
 >
