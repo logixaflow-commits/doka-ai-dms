@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles, Search, ChevronRight, Cpu } from 'lucide-react';
+import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles, ChevronRight, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
