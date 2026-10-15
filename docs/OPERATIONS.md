@@ -1,3 +1,12 @@
+> **Latest operations snapshot — 2026-10-15 (supersedes older exact-HEAD notes below)**
+>
+> - CI fix merged at `1dd3ace0cb187f3d3980cc181c58937906716ae4`; PR-head Doka Quality Checks passed. Main push Doka Quality Checks and CodeQL were still running at snapshot time.
+> - Supabase is `ACTIVE_HEALTHY`; latest listed migration remains `20261009083942_doka_trigger_function_least_privilege`. Advisor findings: leaked-password protection disabled (WARN, deferred by existing owner decision) and three unused indexes (INFO). No setting/index changes were made.
+> - Vercel production deployment attempts were canceled by the ignored-build-step mechanism; no production deployment was made. Render runtime is not verified because service discovery returned `null`.
+> - Cloud Gates 9–11 and local OCR/browser/recovery evidence remain pending. Use disposable users/test objects and keep secrets out of logs, Git and chat.
+
+---
+
 > **Provider readiness snapshot — 2026-10-15**
 >
 > - Vercel `enterprise-ai-dms`: `live=false`, latest production deployment `CANCELED`. Keep paused/manual-only.
