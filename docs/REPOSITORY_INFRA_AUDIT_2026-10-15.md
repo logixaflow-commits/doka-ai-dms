@@ -1,3 +1,15 @@
+> **Latest status follow-up — 2026-10-15 (read-only; supersedes older exact-HEAD notes below)**
+>
+> - PR #49 was merged as `1dd3ace0cb187f3d3980cc181c58937906716ae4` after its Doka Quality Checks passed. It enforces the documented OpenRouter free-only classification provider policy and fixes frontend lint failures.
+> - Main push Doka Quality Checks [run 38688397237](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38688397237) and CodeQL [run 38688397293](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38688397293) were still running at the time of this note. The last Myanmar OCR Regression pass is [run 38687155113](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38687155113) on prior SHA `d6de507ad6e901a33fb516130af27465101cefb5`; PR #49 did not change OCR files.
+> - Rechecked OCR branch: `fix/myanmar-ocr-text-preservation` is diverged, 13 ahead / 143 behind. Main has newer/more complete implementations and test coverage for the reviewed OCR/Google Drive paths. Do not bulk-merge; cleanup/delete is not performed by this audit.
+> - Supabase advisors currently report leaked-password protection disabled (WARN, still deferred by prior owner decision) and three unused indexes (INFO). Do not silently change Auth configuration or remove indexes.
+> - Vercel latest production attempts are canceled with an ignored-build-step reason; this does not prove the live alias is unhealthy, but no new production deployment was created. Render service listing is still `null` in the connected workspace. Owner confirmation is required before assuming a Render runtime or creating a service.
+>
+> Open gates remain: authenticated lifecycle (Gate 9), two-user API/RLS/Storage/RPC isolation (Gate 10), real provider recovery and routing/health evidence (Gate 11), local Myanmar/English OCR benchmark, full browser flow and measured recovery evidence.
+
+---
+
 > **Cloudflare follow-up — 2026-10-15**
 >
 > A direct read of the Worker deployment/version APIs resolves part of the earlier uncertainty: Worker `doka-ai-dms` has latest listed deployment `d894b59e-4aca-4fa2-86b2-9750055749eb` with version `75e436b2-2009-4779-b659-5421bea0843a` (version number 724) assigned **100% traffic**, created 2026-10-13 07:02 UTC. The Worker Domains endpoint returns no custom Worker domains, and the account has zero zones. This confirms a 100%-traffic deployment in Cloudflare's deployment API, but does not prove external health, custom-domain routing, valid secrets or provider application-path success. Keep those checks open.
