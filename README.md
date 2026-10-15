@@ -36,7 +36,7 @@ Personal Local development requires a strong `BOOTSTRAP_ADMIN_PASSWORD`; no usab
 | `docs/OWNER_LOCAL_CHECKLIST.md` | owner/local-only acceptance tasks and full future-work inventory |
 | `UI_DESIGN_SYSTEM.md` | implemented UI/design/accessibility contract |
 | `TOOL.md` | working, evidence and documentation protocol |
-| `docs/SELF_AUDIT.md` | repository-local structural/evidence preflight |
+| `docs/SELF_AUDIT.md` | repository-local structural/evidence preflight |\n| `docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md` | dated GitHub/Vercel/Render/Supabase/Cloudflare findings and remaining-work checklist |
 | `SECURITY.md` | security boundaries and verification rules |
 | `docs/ARCHITECTURE.md` | detailed architecture reference |
 | `docs/DEVELOPMENT.md` | development setup and contribution workflow |
