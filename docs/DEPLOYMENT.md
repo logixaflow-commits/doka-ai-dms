@@ -1,3 +1,12 @@
+> **Latest deployment status — 2026-10-15 (supersedes older exact-HEAD notes below)**
+>
+> - CI fix PR #49 merged as `1dd3ace0cb187f3d3980cc181c58937906716ae4`; PR-head quality workflow passed. Main push quality and CodeQL runs were still in progress when recorded. No production deployment was requested or performed.
+> - Vercel production deployment attempts were canceled with an ignored-build-step reason. Treat this as deployment automation state, not proof of a broken live alias; keep production manual-only until owner approval and cloud gates are complete.
+> - Cloudflare Worker deployment API previously reported version 724 at 100% traffic, while account zone/custom-domain listing is empty. Deployment traffic assignment is not equivalent to route, CORS, provider-path or external health acceptance.
+> - Render service discovery returned `null`; confirm intended workspace/service with the owner before any provisioning.
+
+---
+
 > **Cloudflare deployment follow-up — 2026-10-15**
 >
 > Direct deployment/version API confirms latest listed Worker deployment `d894b59e-4aca-4fa2-86b2-9750055749eb`, version 724 (`75e436b2-2009-4779-b659-5421bea0843a`), at 100% traffic. The account currently lists zero zones and no custom Worker domains. This verifies the deployment traffic assignment only; it does not verify external health, custom-domain routing, secrets, CORS in a real browser, or provider application-path recovery.
