@@ -1,3 +1,14 @@
+> **Live provider inventory — 2026-10-15 (read-only API inspection)**
+>
+> - GitHub `main` latest observed SHA: `6c1fe995c807382cbe3c1000e893e678d621f83b`; confirm CI against this exact SHA.
+> - Vercel `enterprise-ai-dms`: `live=false`; latest production deployment for this SHA is `CANCELED`. Production remains paused/manual-only pending explicit owner approval and gates 9–11.
+> - Render `My Workspace` service listing returned `null`, including previews. This is not proof that no service exists in other workspaces/accounts. Owner must confirm the target; do not create a guessed replacement.
+> - Supabase `Enterprise AI DMS` ref `jkobgssaqifzrqfirdfu`: `ACTIVE_HEALTHY`, `ap-southeast-1`, Postgres 17. Latest listed migration: `20261009083942_doka_trigger_function_least_privilege`. Two-user API/Storage acceptance remains open.
+> - Cloudflare account lists zero zones. Worker script `doka-ai-dms` exists, but the script-list endpoint returned `routes: null` and empty `deployment_id`. Inspect current deployments, versions, routes/custom domain and health before relying on older 100%-traffic notes.
+> - No deployment, traffic, DNS, secrets, database schema or data mutation was performed. Detailed inventory: [REPOSITORY_INFRA_AUDIT_2026-10-15.md](REPOSITORY_INFRA_AUDIT_2026-10-15.md).
+
+---
+
 # Doka Deployment
 
 > **Owner:** Where does Doka run and what deployment evidence is required?
