@@ -104,11 +104,31 @@ def test_ocr_pilot_requires_real_myanmar_and_english_samples():
     assert report["representative_ocr_passed"] is True
     assert report["myanmar_detected"] is True
     assert report["english_detected"] is True
+    assert report["representative_pdf_passed"] is True
+    assert report["representative_image_passed"] is True
 
     incomplete = module.inspect_ocr_results([
         {"relative_path": "myanmar.png", "extension": ".png", "text_length": 40, "language": "mya"},
     ])
     assert incomplete["representative_ocr_passed"] is False
+
+
+def test_ocr_pilot_allows_blank_nonrepresentative_files_but_reports_them():
+    module = _load_pilot_module()
+    report = module.inspect_ocr_results([
+        {"relative_path": "myanmar.png", "extension": ".png", "text_length": 40, "language": "mya"},
+        {"relative_path": "english.pdf", "extension": ".pdf", "text_length": 55, "language": "eng"},
+        {
+            "relative_path": "blank-signature.jpg",
+            "extension": ".jpg",
+            "text_length": 0,
+            "extraction_method": "ocr_failed",
+        },
+    ])
+
+    assert report["representative_ocr_passed"] is True
+    assert report["files_failed"] == 1
+    assert report["files_succeeded"] == 2
 
 
 

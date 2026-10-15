@@ -429,6 +429,255 @@ export default function AdminDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ─── Brain Soul + Chat with PDF ─────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Brain Soul Status */}
+        <BrainSoulPanel />
+        {/* Chat with PDF */}
+        <ChatWithPdfPanel />
+      </div>
     </div>
   );
 }
+
+// ─── Pastel constants ─────────────────────────────────────────────
+const BP = {
+  blue: "#7eb8d4",
+  green: "#7ec4a0",
+  lav: "#b4a4cc",
+  amber: "#c9a96a",
+  border: "rgba(255,255,255,0.08)",
+  bg: "rgba(22,25,34,0.9)",
+};
+
+function fmtDate(iso: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+// ─── Brain Soul Panel ─────────────────────────────────────────────
+interface BrainSoulData {
+  soul_file_entries?: number;
+  total_syntheses?: number;
+  latest_synthesis_period?: string;
+  latest_synthesis_at?: string;
+  approved_memories?: number;
+  synthesis_tokens_today?: number;
+  latest_synthesis_snippet?: string;
+}
+
+function BrainSoulPanel() {
+  const [data, setData] = useState<BrainSoulData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [synthesizing, setSynthesizing] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch(`${API_BASE}/brain/soul/status`)
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  async function synthesize() {
+    setSynthesizing(true);
+    setMsg(null);
+    try {
+      const r = await apiFetch(`${API_BASE}/brain/soul/synthesize`, { method: "POST" });
+      setMsg(r.ok ? "Synthesis started." : "Synthesis failed.");
+    } catch { setMsg("Request error."); }
+    finally { setSynthesizing(false); }
+  }
+
+  return (
+    <Card style={{ background: BP.bg, border: `1px solid ${BP.border}` }}>
+      <CardHeader style={{ paddingBottom: 8 }}>
+        <CardTitle style={{ fontSize: 16, color: "#f8fafc", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: BP.lav, display: "inline-block", animation: "breathe 4s ease-in-out infinite" }} />
+          Brain Soul
+        </CardTitle>
+        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+          Context entries · synthesis · memory
+        </p>
+      </CardHeader>
+      <CardContent style={{ paddingTop: 0 }}>
+        <style>{`@keyframes breathe{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
+        {loading ? (
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>Loading…</div>
+        ) : data ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              {[
+                { label: "Soul Entries", value: data.soul_file_entries ?? 0, color: BP.blue },
+                { label: "Syntheses", value: data.total_syntheses ?? 0, color: BP.green },
+                { label: "Memories", value: data.approved_memories ?? 0, color: BP.lav },
+                { label: "Tokens Today", value: (data.synthesis_tokens_today ?? 0).toLocaleString(), color: BP.amber },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${BP.border}`, borderRadius: 8, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>{label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color }}>{value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>
+              <span style={{ color: BP.lav, marginRight: 4 }}>Last Synthesis:</span>
+              {fmtDate(data.latest_synthesis_at ?? null)}
+              {data.latest_synthesis_period && (
+                <span style={{ marginLeft: 8, color: "rgba(255,255,255,0.4)" }}>({data.latest_synthesis_period})</span>
+              )}
+            </div>
+            {data.latest_synthesis_snippet && (
+              <div style={{ fontSize: 11, color: "#94a3b8", borderLeft: `2px solid ${BP.lav}`, paddingLeft: 10, marginBottom: 14, lineHeight: 1.6 }}>
+                {data.latest_synthesis_snippet.slice(0, 200)}{data.latest_synthesis_snippet.length > 200 ? "…" : ""}
+              </div>
+            )}
+            {msg && (
+              <div style={{ fontSize: 11, color: BP.green, marginBottom: 10 }}>{msg}</div>
+            )}
+            <button
+              onClick={synthesize}
+              disabled={synthesizing}
+              style={{ fontSize: 12, color: BP.green, background: "transparent", border: `1px solid ${BP.green}`, borderRadius: 6, padding: "5px 14px", cursor: synthesizing ? "not-allowed" : "pointer", opacity: synthesizing ? 0.5 : 1 }}
+            >
+              {synthesizing ? "Running…" : "Synthesize Now"}
+            </button>
+          </>
+        ) : (
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>Brain status unavailable.</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Chat with PDF Panel ──────────────────────────────────────────
+interface ChatMsg {
+  role: "user" | "ai";
+  text: string;
+}
+
+function ChatWithPdfPanel() {
+  const [docIds, setDocIds] = useState("");
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [chatAvailable, setChatAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/docs/chat/status`)
+      .then((r) => r.json())
+      .then((d) => setChatAvailable(d.chat_available ?? false))
+      .catch(() => setChatAvailable(false));
+  }, []);
+
+  async function ask() {
+    if (!question.trim()) return;
+    const ids = docIds.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+    if (!ids.length) return;
+    const q = question;
+    setMessages((m) => [...m, { role: "user", text: q }]);
+    setQuestion("");
+    setLoading(true);
+    try {
+      const r = await apiFetch(`${API_BASE}/docs/chat`, {
+        method: "POST",
+        body: JSON.stringify({ document_ids: ids, question: q }),
+      });
+      const d = await r.json();
+      setMessages((m) => [...m, { role: "ai", text: d.answer ?? "No answer returned." }]);
+    } catch {
+      setMessages((m) => [...m, { role: "ai", text: "Request failed. Please try again." }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Card style={{ background: BP.bg, border: `1px solid ${BP.border}` }}>
+      <CardHeader style={{ paddingBottom: 8 }}>
+        <CardTitle style={{ fontSize: 16, color: "#f8fafc", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: BP.blue, display: "inline-block", animation: "breathe 4s ease-in-out infinite" }} />
+          Chat with PDF
+          {chatAvailable === false && (
+            <Badge variant="destructive" style={{ fontSize: 10 }}>pymupdf not installed</Badge>
+          )}
+        </CardTitle>
+        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+          Ask questions from your documents (v1 — full-text extract)
+        </p>
+      </CardHeader>
+      <CardContent style={{ paddingTop: 0 }}>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", display: "block", marginBottom: 4 }}>
+            Document IDs (comma-separated)
+          </label>
+          <input
+            value={docIds}
+            onChange={(e) => setDocIds(e.target.value)}
+            placeholder="e.g. 1, 2, 5"
+            style={{ width: "100%", padding: "7px 10px", borderRadius: 7, border: `1px solid ${BP.border}`, background: "rgba(255,255,255,0.04)", color: "#f8fafc", fontSize: 12 }}
+          />
+        </div>
+
+        {/* Message history */}
+        <div
+          style={{
+            minHeight: 120,
+            maxHeight: 200,
+            overflowY: "auto",
+            background: "rgba(0,0,0,0.2)",
+            borderRadius: 8,
+            padding: "10px 12px",
+            marginBottom: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          {messages.length === 0 ? (
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", textAlign: "center", marginTop: 20 }}>
+              Enter document IDs and ask a question.
+            </div>
+          ) : messages.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: 12,
+                color: m.role === "user" ? BP.blue : "#cbd5e1",
+                background: m.role === "user" ? "rgba(126,184,212,0.07)" : "rgba(255,255,255,0.03)",
+                borderRadius: 6,
+                padding: "6px 10px",
+                alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                maxWidth: "90%",
+                lineHeight: 1.5,
+              }}
+            >
+              {m.text}
+            </div>
+          ))}
+          {loading && (
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", alignSelf: "flex-start" }}>Thinking…</div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void ask(); } }}
+            placeholder="Ask a question about the documents…"
+            style={{ flex: 1, padding: "7px 10px", borderRadius: 7, border: `1px solid ${BP.border}`, background: "rgba(255,255,255,0.04)", color: "#f8fafc", fontSize: 12 }}
+          />
+          <button
+            onClick={ask}
+            disabled={loading || !question.trim() || !docIds.trim()}
+            style={{ fontSize: 12, color: BP.blue, background: "transparent", border: `1px solid ${BP.blue}`, borderRadius: 6, padding: "5px 14px", cursor: "pointer", whiteSpace: "nowrap" }}
+          >
+            Ask
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

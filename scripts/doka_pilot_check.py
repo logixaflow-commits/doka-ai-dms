@@ -94,24 +94,42 @@ def workspace_backup_snapshot(root: Path) -> dict[str, str]:
 def inspect_ocr_results(results: list[dict]) -> dict:
     supported = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
     ocr_files = [item for item in results if str(item.get("extension", "")).lower() in supported]
+    successful = [
+        item
+        for item in ocr_files
+        if item.get("extraction_method") not in {"ocr_failed", "ocr_failed_dedup"}
+        and int(item.get("text_length") or 0) > 0
+    ]
     failed_count = sum(
         item.get("extraction_method") == "ocr_failed" or int(item.get("text_length") or 0) <= 0
         for item in ocr_files
     )
     languages = {
         str(item.get("language") or "")
-        for item in ocr_files
+        for item in successful
         if item.get("language")
     }
     has_myanmar = bool(languages & {"mya", "mya+eng"})
     has_english = bool(languages & {"eng", "mya+eng"})
+    successful_pdf = any(str(item.get("extension", "")).lower() == ".pdf" for item in successful)
+    successful_image = any(
+        str(item.get("extension", "")).lower() != ".pdf" for item in successful
+    )
     return {
         "files_total": len(ocr_files),
         "files_failed": failed_count,
+        "files_succeeded": len(successful),
         "languages_detected": sorted(languages),
         "myanmar_detected": has_myanmar,
         "english_detected": has_english,
-        "representative_ocr_passed": bool(ocr_files) and failed_count == 0 and has_myanmar and has_english,
+        "representative_pdf_passed": successful_pdf,
+        "representative_image_passed": successful_image,
+        # Some valid office files are intentionally blank (for example signatures,
+        # stamps, and separator pages).  They remain visible in files_failed, but
+        # must not invalidate a gate that asks for representative OCR proof.
+        "representative_ocr_passed": (
+            successful_pdf and successful_image and has_myanmar and has_english
+        ),
     }
 
 
