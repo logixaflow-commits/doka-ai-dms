@@ -1,3 +1,14 @@
+> **Provider readiness snapshot — 2026-10-15**
+>
+> - Vercel `enterprise-ai-dms`: `live=false`, latest production deployment `CANCELED`. Keep paused/manual-only.
+> - Render service discovery returned `null` for connected `My Workspace`; owner confirmation needed before treating Render as an active runtime.
+> - Supabase `Enterprise AI DMS` is `ACTIVE_HEALTHY`; latest listed migration is `20261009083942_doka_trigger_function_least_privilege`. This does not prove authenticated isolation.
+> - Cloudflare account has zero listed zones. Worker script `doka-ai-dms` exists, but current script-list metadata has no route and empty deployment ID; reconcile with the deployment/route APIs.
+> - Latest observed repository SHA is `6c1fe995c807382cbe3c1000e893e678d621f83b`; exact-SHA CI needs confirmation.
+> - Full findings/action inventory: [REPOSITORY_INFRA_AUDIT_2026-10-15.md](REPOSITORY_INFRA_AUDIT_2026-10-15.md).
+
+---
+
 # Doka Operations
 
 > **Owner:** How is Doka operated, monitored and kept within its security/recovery boundaries?
