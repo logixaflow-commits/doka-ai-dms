@@ -26,6 +26,16 @@ For Windows, the local launcher is `start_application.bat`.
 
 Personal Local development requires a strong `BOOTSTRAP_ADMIN_PASSWORD`; no usable default password is shipped.
 
+## Repository layout
+
+- `apps/web-platform/frontend/` — React/Vite browser application.
+- `apps/web-platform/backend/` — FastAPI Personal Local runtime, Cloudflare Worker and Supabase assets.
+- `apps/web-platform/tests/` — maintained regression tests.
+- `apps/mobile/` — preserved/deferred mobile surface; it is not a current production mobile release.
+- A desktop/native installer surface does not yet exist; it will be introduced as `apps/desktop/` only when implementation starts.
+
+See [docs/REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md) for placement rules.
+
 ## Documentation map
 
 | Document | Purpose |
