@@ -6,7 +6,7 @@ import pyotp
 import qrcode
 import io
 import base64
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from datetime import datetime, timedelta
 from loguru import logger
 from app.core.config import settings
