@@ -38,6 +38,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r apps/web-platform/backend/requirements-local.txt
           pip install flake8 pytest
+          # The Personal Local runtime intentionally omits ORM dependencies, but this
+          # CI job explicitly exercises the Alembic migration runner.
+          pip install "SQLAlchemy>=2.0,<3.0" "alembic>=1.13,<2.0"
 
       - name: Syntax & Lint Verification
         run: |
