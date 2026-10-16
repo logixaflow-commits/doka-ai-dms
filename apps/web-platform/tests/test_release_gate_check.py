@@ -5,7 +5,7 @@ from pathlib import Path
 
 _MODULE_SPEC = importlib.util.spec_from_file_location(
     "doka_release_gate_check",
-    Path(__file__).resolve().parents[2] / "scripts" / "release_gate_check.py",
+    Path(__file__).resolve().parents[3] / "scripts" / "release_gate_check.py",
 )
 assert _MODULE_SPEC is not None and _MODULE_SPEC.loader is not None
 DOKA_RELEASE_GATE_CHECK = importlib.util.module_from_spec(_MODULE_SPEC)
