@@ -1,3 +1,14 @@
+> **Connected-account recheck — 2026-10-16 (latest)**
+>
+> - Supabase inventory confirms production `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`) and staging `doka-ai-dms-staging` (`gzxybtqquzycogaowdbj`) both report `ACTIVE_HEALTHY`. Production was not modified.
+> - Cloudflare inventory confirms D1 staging exists and its read-only `sqlite_master` query shows 10 application tables plus internal `_cf_KV`, 13 indexes, and 10 triggers. All 10 application tables have zero rows. The only deployed Worker is production `doka-ai-dms`; staging Worker deployment remains pending.
+> - Render `My Workspace` has no services. Render remains deferred because Cloudflare Worker is the current cloud API runtime and the FastAPI entry point is the Personal Local Edition.
+> - CI for commit `ccd4e77e6702ac6b219fcec7b164e4245a3edb64`: Dependency Review passed; Production CI/CD, Doka Quality Checks and CodeQL were cancelled. Do not mark the PR candidate CI-green. The latest documentation-only checkpoint commit is `07e2d18df6c64aa495b49422a504535442105b9a`; no workflow runs/status were returned for that SHA at recheck time.
+> - Remaining hard blockers: configure staging-only GitHub Actions secrets, successfully dry-run/deploy the staging Worker, then use two disposable staging Auth users for live isolation/lifecycle/50 MiB tests. B2/Google Drive staging-safe credentials and a fresh Myanmar/English OCR benchmark are also pending.
+> - No production Supabase/D1/Worker/secrets or Vercel production settings were changed; no paid resources were created.
+>
+> ---
+>
 > **Staging Worker deployment preparation — 2026-10-16**
 >
 > - Added `wrangler.staging.jsonc` pointing only to staging Supabase `gzxybtqquzycogaowdbj` and staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`; it uses a 50 MiB limit and a single explicit staging preview origin. Production `wrangler.jsonc` was not changed.
