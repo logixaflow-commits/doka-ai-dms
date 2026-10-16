@@ -2,7 +2,7 @@
 Version Service - Document versioning and history management
 """
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from loguru import logger
 import uuid
 import hashlib
