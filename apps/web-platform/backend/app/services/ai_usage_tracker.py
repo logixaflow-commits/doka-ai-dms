@@ -15,7 +15,7 @@ _LAST_USED: Dict[str, str] = {}
 
 
 def _check_and_reset_day():
-    global _TODAY_DATE, _CALLS_TODAY, _ERRORS_TODAY
+    global _TODAY_DATE
     current_day = datetime.now(timezone.utc).date().isoformat()
     if current_day != _TODAY_DATE:
         _TODAY_DATE = current_day
