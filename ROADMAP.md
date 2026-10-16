@@ -1,3 +1,16 @@
+> **Production-readiness checkpoint — 2026-10-16 (post PR #64)**
+>
+> - Latest `main` HEAD is `94f95b683f62b651f6bb9d959265bf812c28d174`; PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) merged after all applicable checks passed. The main-branch CI and quality workflows for this documentation-only merge were still running at the latest check; verify the exact-HEAD run before calling it green.
+> - The latest confirmed production deployment is Vercel `READY` for main SHA `2893c82ba1386969b6f6b86df2189b26f0e84b26`; the canonical frontend URL returned HTTP 200 for the HTML shell. Authenticated user workflows are not yet verified for the new main SHA.
+> - Supabase staging creation remains blocked: the project quote was $0/month, but creation was rejected by the organization’s active-free-project limit. Supabase branch pricing returned $0.01344/hour, so no branch was created. No paid resource, project deletion, pause, or plan upgrade was performed.
+> - The only Supabase project returned for this organization is production `jkobgssaqifzrqfirdfu`. It must not be used for destructive acceptance tests. Security Advisor still warns that leaked-password protection is disabled.
+> - Cloudflare Worker `doka-ai-dms` is production, uses production D1/Supabase bindings, and must not be used for acceptance tests. Render `My Workspace` has no services. No staging resources were created.
+> - The authenticated acceptance runner now rejects the known production Worker host at the script level as well as in GitHub Actions; unit tests cover production rejection, HTTPS validation, and a non-production URL.
+> - **Release blockers:** isolated staging Supabase/storage + Worker/D1, disposable distinct User A/B tokens, authenticated lifecycle/download-integrity/50 MiB/cross-user-isolation evidence, provider recovery tests, and fresh Myanmar/English OCR + local recovery validation. Do not mark production-ready until these are complete.
+>
+> ---
+>
+
 > **Live verification checkpoint — 2026-10-16 08:45 UTC**
 >
 > - Latest `main` HEAD checked: `ca9b18c539773e2af760fd987f8c184771069ab4`.
