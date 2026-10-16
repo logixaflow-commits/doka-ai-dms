@@ -1,3 +1,14 @@
+> **Production deployment checkpoint — 2026-10-16 08:32 UTC**
+>
+> - Current `main` HEAD: `d3eba2f4ca14e1c99144f3e26e75a6097064b4b6`. PR [#61](https://github.com/logixaflow-commits/doka-ai-dms/pull/61) was merged. Its fix handles the `any` provider input and rejects the known production Worker hostname as a cloud-acceptance target.
+> - Exact-HEAD CI: [Production CI/CD](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874148782) **passed**; [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874148775) **passed**; [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874148878) was **in progress at audit time**. Recheck before release sign-off.
+> - [Authenticated Cloud Acceptance run 38872116178](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38872116178) failed at the initial `/health` assertion before lifecycle/isolation checks. This does not identify the exact HTTP status, and does not prove upload/download, 50 MiB, or user-isolation gates.
+> - Cloudflare API currently lists one Worker script, `doka-ai-dms`; no dedicated staging script was listed. The repository's root `wrangler.jsonc` binds `DOKA_DB` to database `doka-ai-dms-prod`. Do **not** clone/deploy this config as staging without first creating isolated resources and verifying bindings; never run acceptance against production.
+> - Supabase project `jkobgssaqifzrqfirdfu` reports `ACTIVE_HEALTHY` with migrations through `20261009083942_doka_trigger_function_least_privilege`. Security advisor still warns that leaked-password protection is disabled (known plan limitation); performance advisor reports three unused indexes, informational only. No schema, data, secrets, routing, or production settings were changed in this audit.
+> - Remaining P0 gates: dedicated isolated acceptance Worker/resources + disposable User A/B access JWTs; authenticated lifecycle and exact 50 MiB byte/hash verification; real two-user API/RLS/Storage/RPC isolation; B2/Cloudinary/Google Drive app-path recovery; fresh browser-based Myanmar/English OCR benchmark and local recovery evidence; confirm Vercel production deployment/live status and intended Render service. Keep production single-user restrictions; do not mark production-ready until evidence passes.
+>
+> ---
+>
 > **Production release checkpoint — 2026-10-16 (after Vercel root-directory repair)**
 >
 > - Current repository `main` HEAD: `72ade0e5abc7a43f018a1165689bf1ff4255db6c`. Production CI/CD, Doka Quality Checks and CodeQL passed for this commit: [Production CI](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617374), [Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617562), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617443).
