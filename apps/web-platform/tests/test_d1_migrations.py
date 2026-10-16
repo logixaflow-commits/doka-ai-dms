@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-MIGRATIONS = ROOT / "cloudflare_worker" / "migrations"
+ROOT = Path(__file__).resolve().parents[3]
+MIGRATIONS = ROOT / "apps" / "web-platform" / "backend" / "cloudflare_worker" / "migrations"
 
 
 def _database_with_migrations() -> sqlite3.Connection:
