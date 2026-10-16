@@ -2,7 +2,7 @@
 Webhook Receiver
 Handles incoming webhooks from external API providers.
 """
-from fastapi import APIRouter, Request, HTTPException, status, Header
+from fastapi import APIRouter, Request, HTTPException, status, Header, Depends
 from sqlalchemy.orm import Session
 from loguru import logger
 import json
