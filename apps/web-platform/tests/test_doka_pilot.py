@@ -7,7 +7,7 @@ from app.core import config as config_module
 
 
 def _load_pilot_module():
-    path = Path(__file__).resolve().parents[2] / "scripts" / "doka_pilot_check.py"
+    path = Path(__file__).resolve().parents[3] / "scripts" / "doka_pilot_check.py"
     spec = importlib.util.spec_from_file_location("doka_pilot_check", path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader

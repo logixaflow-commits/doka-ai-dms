@@ -10,7 +10,7 @@ import pytest
 
 _MODULE_SPEC = importlib.util.spec_from_file_location(
     "doka_cloud_acceptance",
-    Path(__file__).resolve().parents[2] / "scripts" / "cloud_acceptance.py",
+    Path(__file__).resolve().parents[3] / "scripts" / "cloud_acceptance.py",
 )
 assert _MODULE_SPEC is not None and _MODULE_SPEC.loader is not None
 DOKA_CLOUD_ACCEPTANCE = importlib.util.module_from_spec(_MODULE_SPEC)

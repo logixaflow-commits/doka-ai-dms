@@ -205,7 +205,7 @@ def test_ocr_benchmark_rejects_invalid_quality_thresholds(tmp_path):
 def test_checked_in_ocr_report_gate_matches_sample_metrics():
     from pathlib import Path
 
-    repository_root = Path(__file__).resolve().parents[2]
+    repository_root = Path(__file__).resolve().parents[3]
     report_path = repository_root / "docs" / "Report" / "ocr-benchmark.json"
     report = json.loads(report_path.read_text(encoding="utf-8"))
 
