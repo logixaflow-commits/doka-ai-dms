@@ -1,3 +1,51 @@
+> **Connected-account recheck — 2026-10-16 (latest)**
+>
+> - Supabase inventory confirms production `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`) and staging `doka-ai-dms-staging` (`gzxybtqquzycogaowdbj`) both report `ACTIVE_HEALTHY`. Production was not modified.
+> - Cloudflare inventory confirms D1 staging exists and its read-only `sqlite_master` query shows 10 application tables plus internal `_cf_KV`, 13 indexes, and 10 triggers. All 10 application tables have zero rows. The only deployed Worker is production `doka-ai-dms`; staging Worker deployment remains pending.
+> - Render `My Workspace` has no services. Render remains deferred because Cloudflare Worker is the current cloud API runtime and the FastAPI entry point is the Personal Local Edition.
+> - CI for commit `ccd4e77e6702ac6b219fcec7b164e4245a3edb64`: Dependency Review passed; Production CI/CD, Doka Quality Checks and CodeQL were cancelled. Do not mark the PR candidate CI-green. The latest documentation-only checkpoint commit is `07e2d18df6c64aa495b49422a504535442105b9a`; no workflow runs/status were returned for that SHA at recheck time.
+> - Remaining hard blockers: configure staging-only GitHub Actions secrets, successfully dry-run/deploy the staging Worker, then use two disposable staging Auth users for live isolation/lifecycle/50 MiB tests. B2/Google Drive staging-safe credentials and a fresh Myanmar/English OCR benchmark are also pending.
+> - No production Supabase/D1/Worker/secrets or Vercel production settings were changed; no paid resources were created.
+>
+> ---
+>
+> **Staging Worker deployment preparation — 2026-10-16**
+>
+> - Added `wrangler.staging.jsonc` pointing only to staging Supabase `gzxybtqquzycogaowdbj` and staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`; it uses a 50 MiB limit and a single explicit staging preview origin. Production `wrangler.jsonc` was not changed.
+> - Added manually dispatched `.github/workflows/cloudflare-worker-staging-deploy.yml`, which refuses the `main` ref, requires an explicit non-production confirmation, runs a Python Worker dry-run first, deploys only `doka-ai-dms-staging`, then sets staging-only Supabase publishable/session secrets and verifies health, config, and exact-origin CORS preflight.
+> - Added `docs/Report/staging-worker-deployment-runbook.md` listing required GitHub Actions secrets and acceptance sequence. Required secrets are not assumed to exist; the Worker has not yet been deployed by this change.
+> - Latest branch commit `ccd4e77e6702ac6b219fcec7b164e4245a3edb64` currently has a pending Vercel preview status; CI result for this newest commit is not yet available. Do not mark this checkpoint as passed until exact-commit checks finish.
+> - Render `My Workspace` still has no services. No Render service was created because the current cloud API is the Cloudflare Python Worker; the existing FastAPI app is the Personal Local Edition. Do not expose it publicly. Revisit Render only for a separately reviewed cloud API adapter and only if cost remains $0.
+> - Production Supabase, D1, Worker, and secrets remain unchanged. Authenticated staging tests, provider recovery, and fresh OCR benchmark remain blocked until the isolated Worker and test credentials are available.
+>
+> ---
+>
+
+> **Fresh live infrastructure verification — 2026-10-16 (staging follow-up)**
+>
+> - Supabase inventory currently returns exactly two projects in the Enterprise AI DMS organization: production `jkobgssaqifzrqfirdfu` and staging `gzxybtqquzycogaowdbj`; both report `ACTIVE_HEALTHY`. Production was not paused, deleted, or altered.
+> - Staging Supabase schema check confirms the three Doka public tables have RLS enabled with owner-scoped authenticated policies. The private `doka-documents` Storage bucket exists with a 52,428,800-byte (50 MiB) limit. Policy definitions are verified; two-user live authorization tests remain pending.
+> - Cloudflare D1 schema comparison against production is read-only on production and confirms staging has the same 10 application tables, 13 indexes and 10 triggers, with no missing/extra schema objects after whitespace normalization. No production rows were copied. The D1 API's cached `num_tables` metadata reported 0, but direct `sqlite_master` queries verified the schema exists in staging.
+> - The only deployed Cloudflare Worker listed is `doka-ai-dms`, bound to production D1 `4f3a294b-11ae-4ba7-903b-6f32539cebce` and production Supabase URL `https://jkobgssaqifzrqfirdfu.supabase.co`. Its secret values were not read or copied. No staging Worker has been deployed yet because staging-specific Supabase key/session secrets and provider credentials must be wired without reusing production secrets.
+> - Render `My Workspace` has no services. The existing FastAPI entry point is explicitly the Personal Local Edition and mounts local workspace routes, so no public Render service was created from it. Render remains deferred until a separate cloud API adapter is reviewed and can be deployed at $0 with staging-only secrets. The Cloudflare Worker remains the intended cloud API runtime for now.
+> - Latest observed `main` HEAD `5f18cd8075c42e80b62d36c11e1f68c50236b724` has successful Production CI/CD and Doka Quality Checks (runs [38879172381](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38879172381), [38879172391](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38879172391)); the exact-HEAD combined status also reports Vercel success. This does not prove live authenticated workflows.
+> - **Remaining release blockers:** isolated staging Worker with staging-only bindings/secrets; disposable User A/B auth; live cross-user isolation and lifecycle/hash/50 MiB acceptance; provider recovery drills (B2/Cloudinary/Google Drive); fresh Myanmar/English OCR benchmark; staging health/CORS evidence. Production Worker `https://doka-ai-dms.logixaflow.workers.dev` remains prohibited for acceptance. No paid resources were created.
+>
+> ---
+>
+
+> **Latest staging + Render architecture checkpoint — 2026-10-16**
+>
+> - Latest observed `main` HEAD: `5f18cd8075c42e80b62d36c11e1f68c50236b724`. Exact-HEAD Production CI/CD and Doka Quality Checks both completed successfully (runs [38879172381](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38879172381) and [38879172391](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38879172391)).
+> - Supabase inventory now shows production `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`, `ACTIVE_HEALTHY`) and a separate staging project `doka-ai-dms-staging` (`gzxybtqquzycogaowdbj`, `ACTIVE_HEALTHY`) in the same organization. Do not pause/delete/alter production.
+> - A separate Cloudflare D1 staging database was reported created: `11baa497-e6f7-4054-8e9f-3a21baec93f3`. Staging schema/configuration is not equivalent to a deployed staging Worker or live authenticated acceptance evidence.
+> - Render `My Workspace` (`tea-datqhq0jo6nc73c3qva0`) currently has no listed service. **Do not deploy the existing `apps/web-platform/backend/app/main.py` directly as a public cloud API**: its own docstring identifies it as the Personal Local Edition and it mounts local-auth/workspace routes. The documented cloud API runtime remains the Cloudflare Worker + Supabase. A Render service should be created only after a separately reviewed cloud API adapter/runtime exists, with staging-only configuration, strict CORS, health checks and server-side secrets. Keep all costs at $0; do not add a paid Render plan or resource.
+> - Never expose provider API keys or Supabase secret/service-role keys in Vite/browser variables or chat. Add secrets only in the appropriate server-side secret store after the runtime and key scope are verified.
+> - **Remaining blockers:** deploy/configure an isolated staging Worker against staging D1 + staging Supabase; create disposable User A/B accounts; run authenticated ownership, lifecycle, upload/download integrity and 50 MiB tests; verify provider recovery (B2/Cloudinary/Google Drive); refresh Myanmar/English OCR benchmark; confirm staging CORS/health and update this checkpoint with exact evidence. Production Worker `https://doka-ai-dms.logixaflow.workers.dev` must not be used for acceptance.
+>
+> ---
+>
+
 > **Latest production-readiness checkpoint — 2026-10-16 (post PR #65)**
 >
 > - Current `main` HEAD: `b8392362384bed478e6867dccad7fd8e5b605e5e`. PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) and PR [#65](https://github.com/logixaflow-commits/doka-ai-dms/pull/65) are merged.
