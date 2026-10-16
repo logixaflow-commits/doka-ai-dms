@@ -5,7 +5,7 @@ import importlib.util
 import json
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "local_acceptance_preflight.py"
+SCRIPT = Path(__file__).resolve().parents[4] / "scripts" / "local_acceptance_preflight.py"
 SPEC = importlib.util.spec_from_file_location("local_acceptance_preflight", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
