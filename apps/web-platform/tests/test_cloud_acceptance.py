@@ -20,6 +20,7 @@ _download_and_verify = DOKA_CLOUD_ACCEPTANCE._download_and_verify
 _assert_cross_user_mutations_denied = DOKA_CLOUD_ACCEPTANCE._assert_cross_user_mutations_denied
 _read_fifty_mib_fixture = DOKA_CLOUD_ACCEPTANCE._read_fifty_mib_fixture
 _upload_document = DOKA_CLOUD_ACCEPTANCE._upload_document
+_assert_nonproduction_base_url = DOKA_CLOUD_ACCEPTANCE._assert_nonproduction_base_url
 
 
 def test_upload_uses_signed_provider_url_and_worker_completion():
@@ -202,3 +203,16 @@ def test_cross_user_cannot_update_trash_or_permanently_delete_document():
         ("DELETE", "/api/documents/owner-doc-123"),
         ("DELETE", "/api/documents/owner-doc-123/permanent"),
     ]
+
+def test_acceptance_runner_rejects_known_production_worker():
+    with pytest.raises(SystemExit, match="production Worker"):
+        _assert_nonproduction_base_url("https://doka-ai-dms.logixaflow.workers.dev")
+
+
+def test_acceptance_runner_allows_https_nonproduction_worker():
+    _assert_nonproduction_base_url("https://doka-ai-dms-staging.example.workers.dev")
+
+
+def test_acceptance_runner_rejects_non_https_base_url():
+    with pytest.raises(SystemExit, match="absolute HTTPS URL"):
+        _assert_nonproduction_base_url("http://doka-ai-dms-staging.example.workers.dev")

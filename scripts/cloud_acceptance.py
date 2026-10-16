@@ -20,6 +20,7 @@ import httpx
 
 
 MAX_SOURCE_BYTES = 50 * 1024 * 1024
+PRODUCTION_WORKER_HOST = "doka-ai-dms.logixaflow.workers.dev"
 
 
 def _require(name: str) -> str:
@@ -27,6 +28,19 @@ def _require(name: str) -> str:
     if not value:
         raise SystemExit(f"Missing required environment variable: {name}")
     return value
+
+
+def _assert_nonproduction_base_url(base_url: str) -> None:
+    """Reject the known production Worker before any acceptance request is sent."""
+    parsed = urlparse(base_url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if parsed.scheme != "https" or not host:
+        raise SystemExit("DOKA_CLOUD_BASE_URL must be an absolute HTTPS URL")
+    if host == PRODUCTION_WORKER_HOST:
+        raise SystemExit(
+            "Refusing cloud acceptance against the production Worker. "
+            "Configure a dedicated non-production acceptance Worker URL."
+        )
 
 
 def _auth(client: httpx.Client, token: str, path: str, *, method: str = "GET", **kwargs):
@@ -197,9 +211,7 @@ def main() -> int:
         raise SystemExit("DOKA_CLOUD_EXPECTED_PROVIDER must be 'supabase' or 'b2'")
 
     base_url = (args.base_url or _require("DOKA_CLOUD_BASE_URL")).rstrip("/")
-    parsed_base_url = urlparse(base_url)
-    if parsed_base_url.scheme != "https" or not parsed_base_url.netloc:
-        raise SystemExit("DOKA_CLOUD_BASE_URL must be an absolute HTTPS URL")
+    _assert_nonproduction_base_url(base_url)
     user_a = _require("DOKA_CLOUD_USER_A_TOKEN")
     user_b = _require("DOKA_CLOUD_USER_B_TOKEN")
     if user_a == user_b:
