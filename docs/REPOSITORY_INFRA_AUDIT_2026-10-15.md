@@ -1,3 +1,17 @@
+> **Latest production-readiness checkpoint — 2026-10-16 (post PR #65)**
+>
+> - Current `main` HEAD: `b8392362384bed478e6867dccad7fd8e5b605e5e`. PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) and PR [#65](https://github.com/logixaflow-commits/doka-ai-dms/pull/65) are merged.
+> - Exact-HEAD [Production CI/CD](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38878678267), [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38878678338), and [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38878678485) passed. The Supabase Preview check passed on this main commit; PR preview checks may be skipped when no Supabase branch exists.
+> - Vercel production deployment for `b8392362384bed478e6867dccad7fd8e5b605e5e` is `READY`. Both `https://enterprise-ai-dms.vercel.app` and the deployment URL returned HTTP 200 with the Doka HTML shell. This does not prove authenticated application workflows.
+> - The cloud acceptance runner now blocks the known production Worker hostname even when invoked directly. Cloud acceptance unit/contract checks reported **165 passed** in CI. This is not a live authenticated cloud acceptance run.
+> - Free staging remains blocked: Supabase quoted $0/month for a project but rejected creation due to the active-free-project limit. A Supabase development branch costs $0.01344/hour and was not created. No paid resources were created, and no production project was paused/deleted.
+> - Supabase production project `jkobgssaqifzrqfirdfu` has RLS enabled on all three public Doka tables (`doka_documents`, `doka_document_versions`, `doka_audit_events`) with authenticated owner-scoped policies. This is policy-definition evidence, not a substitute for two-user live isolation tests. Security Advisor still warns that leaked-password protection is disabled.
+> - Cloudflare Worker `doka-ai-dms` remains bound to production D1/Supabase; do not use it for acceptance. Render has no service in the checked workspace. Live Worker health/CORS and provider recovery remain unverified.
+> - **Remaining release blockers:** zero-cost isolated staging Supabase/storage + Worker/D1; distinct disposable User A/B tokens; live lifecycle/download-integrity/50 MiB/cross-user isolation tests; B2/Cloudinary/Google Drive recovery drills; fresh Myanmar/English OCR benchmark and local recovery validation. Legacy webhook receiver remains unmounted until mandatory signature verification and redacted logging are implemented.
+>
+> ---
+>
+
 > **Production-readiness checkpoint — 2026-10-16 (post PR #64)**
 >
 > - Latest `main` HEAD is `94f95b683f62b651f6bb9d959265bf812c28d174`; PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) merged after all applicable checks passed. The main-branch CI and quality workflows for this documentation-only merge were still running at the latest check; verify the exact-HEAD run before calling it green.
