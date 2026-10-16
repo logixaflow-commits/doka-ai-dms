@@ -143,7 +143,7 @@ class ProcessingPipeline:
             try:
                 from app.models.database import Document
                 # Check if document with similar filename exists
-                existing_doc = db.query(Document).filter(
+                existing_doc = self.db.query(Document).filter(
                     Document.original_filename.ilike(f"%{original_filename}%"),
                     Document.id != document_id
                 ).first()
