@@ -1,3 +1,14 @@
+> **Production release checkpoint — 2026-10-16 (after Vercel root-directory repair)**
+>
+> - Current repository `main` HEAD: `72ade0e5abc7a43f018a1165689bf1ff4255db6c`. Production CI/CD, Doka Quality Checks and CodeQL passed for this commit: [Production CI](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617374), [Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617562), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617443).
+> - Vercel project `enterprise-ai-dms`: the previous deployment failed because Root Directory was configured as `web-platform/frontend`, which no longer exists. Project Root Directory was corrected to `apps/web-platform/frontend`, and the ignored-build-step command was reset to the default/null setting.
+> - A fresh preview deployment and a fresh production deployment for the same `main` SHA both reached `READY`. Production deployment: [deployment details](https://vercel.com/logixaflow-9859/enterprise-ai-dms/GL4VFqatCW29koYZMhCb84tM3RV8). Its aliases include `https://enterprise-ai-dms.vercel.app`. Vercel project API still reports `live=false`; canonical-alias HTTP smoke could not be independently confirmed by the available web/runtime network, so do not claim the whole application is fully live solely from build status.
+> - **Release remains partial, not full go-live.** Authenticated upload/download/version/audit lifecycle, two-user isolation, real B2/Google Drive/Cloudinary application-path recovery and a strict Myanmar/English OCR benchmark remain open. Run cloud acceptance only with disposable users in a dedicated acceptance environment. Do not weaken the production single-user restriction.
+> - Required owner input for cloud acceptance: add `DOKA_CLOUD_BASE_URL`, `DOKA_CLOUD_USER_A_TOKEN`, and `DOKA_CLOUD_USER_B_TOKEN` as GitHub Actions secrets/variables. A/B values must be distinct Supabase test-user **access JWTs**, not UUIDs. Never send tokens in chat.
+> - OCR branch review: the current `apps/web-platform/backend` OCR code/tests and current `.github/workflows/myanmar-ocr-regression.yml` contain the useful Myanmar identifier/numeral, Unicode normalization, original-image fallback, PDFium fallback and safety-limit regressions. The old branch's Google Drive digest-property assertion is not safe to port because current main verifies the actual object bytes. The branch is stale/diverged and should be deleted only after the owner confirms no uncommitted/unique work is needed.
+>
+> ---
+>
 > **Production release checkpoint — 2026-10-15 08:32 UTC (latest; supersedes older status snapshots below where they conflict)**
 >
 > - Current `main` HEAD at checkpoint: `5e068b370a1564a8eb42945a6cbd4579334779eb`.
