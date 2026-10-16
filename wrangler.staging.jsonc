@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "doka-ai-dms-staging",
+  "main": "apps/web-platform/backend/cloudflare_worker/main.py",
+  "compatibility_date": "2026-10-02",
+  "compatibility_flags": ["python_workers"],
+  "keep_vars": true,
+  "d1_databases": [
+    {
+      "binding": "DOKA_DB",
+      "database_name": "doka-ai-dms-staging",
+      "database_id": "11baa497-e6f7-4054-8e9f-3a21baec93f3"
+    }
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://gzxybtqquzycogaowdbj.supabase.co",
+    "SUPABASE_STORAGE_BUCKET": "doka-documents",
+    "DOKA_STORAGE_MAX_OBJECT_BYTES": "52428800",
+    "DOKA_CORS_ORIGINS": "https://enterprise-ai-dms-git-docs-staging-infra-bff8d1-logixaflow-9859.vercel.app"
+  }
+}
