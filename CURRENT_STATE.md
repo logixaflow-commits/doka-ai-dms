@@ -1,3 +1,15 @@
+> **Latest staging + Render architecture checkpoint — 2026-10-16**
+>
+> - Latest observed `main` HEAD: `5f18cd8075c42e80b62d36c11e1f68c50236b724`. Exact-HEAD Production CI/CD and Doka Quality Checks both completed successfully (runs [38879172381](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38879172381) and [38879172391](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38879172391)).
+> - Supabase inventory now shows production `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`, `ACTIVE_HEALTHY`) and a separate staging project `doka-ai-dms-staging` (`gzxybtqquzycogaowdbj`, `ACTIVE_HEALTHY`) in the same organization. Do not pause/delete/alter production.
+> - A separate Cloudflare D1 staging database was reported created: `11baa497-e6f7-4054-8e9f-3a21baec93f3`. Staging schema/configuration is not equivalent to a deployed staging Worker or live authenticated acceptance evidence.
+> - Render `My Workspace` (`tea-datqhq0jo6nc73c3qva0`) currently has no listed service. **Do not deploy the existing `apps/web-platform/backend/app/main.py` directly as a public cloud API**: its own docstring identifies it as the Personal Local Edition and it mounts local-auth/workspace routes. The documented cloud API runtime remains the Cloudflare Worker + Supabase. A Render service should be created only after a separately reviewed cloud API adapter/runtime exists, with staging-only configuration, strict CORS, health checks and server-side secrets. Keep all costs at $0; do not add a paid Render plan or resource.
+> - Never expose provider API keys or Supabase secret/service-role keys in Vite/browser variables or chat. Add secrets only in the appropriate server-side secret store after the runtime and key scope are verified.
+> - **Remaining blockers:** deploy/configure an isolated staging Worker against staging D1 + staging Supabase; create disposable User A/B accounts; run authenticated ownership, lifecycle, upload/download integrity and 50 MiB tests; verify provider recovery (B2/Cloudinary/Google Drive); refresh Myanmar/English OCR benchmark; confirm staging CORS/health and update this checkpoint with exact evidence. Production Worker `https://doka-ai-dms.logixaflow.workers.dev` must not be used for acceptance.
+>
+> ---
+>
+
 > **Latest production-readiness checkpoint — 2026-10-16 (post PR #65)**
 >
 > - Current `main` HEAD: `b8392362384bed478e6867dccad7fd8e5b605e5e`. PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) and PR [#65](https://github.com/logixaflow-commits/doka-ai-dms/pull/65) are merged.
