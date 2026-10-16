@@ -1,3 +1,15 @@
+> **Live verification checkpoint — 2026-10-16 08:45 UTC**
+>
+> - Latest `main` HEAD checked: `ca9b18c539773e2af760fd987f8c184771069ab4`.
+> - Exact-HEAD [Production CI/CD](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874722614) and [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874722613) both **passed**. The check-runs API reports Production Release Gate, Supabase Preview, dependency audits, frontend build/smoke tests, backend regression/lint/tests, storage contract tests, workflow sanity, symlink security, and SBOM/static analysis all successful.
+> - Vercel production deployment for current `main` commit `ca9b18c539773e2af760fd987f8c184771069ab4` is `READY` (`enterprise-ai-if74grehv-logixaflow-9859.vercel.app`); HTTP smoke test of [https://enterprise-ai-dms.vercel.app](https://enterprise-ai-dms.vercel.app) returned **200 OK** and the Doka HTML shell. This verifies delivery of the frontend shell only, not authenticated application workflows.
+> - Render `My Workspace` service listing returned no services. Do not claim a Render backend is deployed unless a service is intentionally created and configured.
+> - Cloudflare account lists only Worker `doka-ai-dms` and D1 database `doka-ai-dms-prod`; its secret inventory contains provider credentials and Supabase publishable key, but secret values were not read. No staging Worker or isolated D1 was created.
+> - Supabase project `jkobgssaqifzrqfirdfu` is `ACTIVE_HEALTHY`; Security Advisor still reports leaked-password protection disabled (plan limitation previously reported by the user). No database changes were made.
+> - The authenticated cloud acceptance run still failed before lifecycle/isolation checks. **Do not run it against production.** Release blockers remain: an isolated staging Supabase project/storage and Worker, disposable User A/B tokens, full authenticated upload/download/50 MiB/isolation evidence, provider recovery tests, and fresh Myanmar/English OCR + local recovery validation. Keep production single-user restrictions and do not mark production-ready until these pass.
+>
+> ---
+>
 > **Provider re-audit — 2026-10-16 08:32 UTC**
 >
 > - Current `main` HEAD: `d3eba2f4ca14e1c99144f3e26e75a6097064b4b6`. PR [#61](https://github.com/logixaflow-commits/doka-ai-dms/pull/61) was merged. Its fix handles the `any` provider input and rejects the known production Worker hostname as a cloud-acceptance target.
