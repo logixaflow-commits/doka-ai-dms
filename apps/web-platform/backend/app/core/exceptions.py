@@ -103,24 +103,28 @@ class EncryptionNotAvailable(SecurityError):
 # HTTP Exception Mapping
 # =============================================================================
 def handle_dms_exception(exc: DMSException) -> HTTPException:
-    """Map domain exceptions to HTTP exceptions."""
+    """Map domain exceptions to safe HTTP messages without exposing internals."""
     if isinstance(exc, OCRError):
         return HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=__SAFE__
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="OCR processing failed.",
         )
-    elif isinstance(exc, StorageError):
+    if isinstance(exc, StorageError):
         return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=__SAFE__
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Storage operation failed.",
         )
-    elif isinstance(exc, ClassificationError):
+    if isinstance(exc, ClassificationError):
         return HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=__SAFE__
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Document classification failed.",
         )
-    elif isinstance(exc, SecurityError):
+    if isinstance(exc, SecurityError):
         return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=__SAFE__
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Security operation failed.",
         )
-    else:
-        return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=__SAFE__
-        )
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Internal server error.",
+    )
