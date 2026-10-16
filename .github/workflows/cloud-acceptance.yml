@@ -57,8 +57,21 @@ jobs:
           DOKA_CLOUD_BASE_URL: ${{ secrets.DOKA_CLOUD_BASE_URL }}
           DOKA_CLOUD_USER_A_TOKEN: ${{ secrets.DOKA_CLOUD_USER_A_TOKEN }}
           DOKA_CLOUD_USER_B_TOKEN: ${{ secrets.DOKA_CLOUD_USER_B_TOKEN }}
-          DOKA_CLOUD_EXPECTED_PROVIDER: ${{ inputs.expected_provider == 'any' && '' || inputs.expected_provider }}
+          DOKA_CLOUD_EXPECTED_PROVIDER: ${{ inputs.expected_provider }}
         run: |
+          if [ "$DOKA_CLOUD_EXPECTED_PROVIDER" = "any" ]; then
+            unset DOKA_CLOUD_EXPECTED_PROVIDER
+          fi
+          python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          url = os.environ.get("DOKA_CLOUD_BASE_URL", "").strip()
+          host = (urlparse(url).hostname or "").lower()
+          if host == "doka-ai-dms.logixaflow.workers.dev":
+              raise SystemExit("Refusing cloud acceptance against the production Worker. Configure a dedicated non-production acceptance Worker URL.")
+          if urlparse(url).scheme != "https" or not host:
+              raise SystemExit("DOKA_CLOUD_BASE_URL must be a valid HTTPS URL for a dedicated non-production acceptance Worker.")
+          PY
           python scripts/cloud_acceptance.py \
             --output artifacts/cloud-acceptance.json \
             --fifty-mib-file artifacts/fixtures/cloud-acceptance-50mib.bin
