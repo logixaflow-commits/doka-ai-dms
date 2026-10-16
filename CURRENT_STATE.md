@@ -1,3 +1,15 @@
+> **Staging Worker deployment preparation — 2026-10-16**
+>
+> - Added `wrangler.staging.jsonc` pointing only to staging Supabase `gzxybtqquzycogaowdbj` and staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`; it uses a 50 MiB limit and a single explicit staging preview origin. Production `wrangler.jsonc` was not changed.
+> - Added manually dispatched `.github/workflows/cloudflare-worker-staging-deploy.yml`, which refuses the `main` ref, requires an explicit non-production confirmation, runs a Python Worker dry-run first, deploys only `doka-ai-dms-staging`, then sets staging-only Supabase publishable/session secrets and verifies health, config, and exact-origin CORS preflight.
+> - Added `docs/Report/staging-worker-deployment-runbook.md` listing required GitHub Actions secrets and acceptance sequence. Required secrets are not assumed to exist; the Worker has not yet been deployed by this change.
+> - Latest branch commit `ccd4e77e6702ac6b219fcec7b164e4245a3edb64` currently has a pending Vercel preview status; CI result for this newest commit is not yet available. Do not mark this checkpoint as passed until exact-commit checks finish.
+> - Render `My Workspace` still has no services. No Render service was created because the current cloud API is the Cloudflare Python Worker; the existing FastAPI app is the Personal Local Edition. Do not expose it publicly. Revisit Render only for a separately reviewed cloud API adapter and only if cost remains $0.
+> - Production Supabase, D1, Worker, and secrets remain unchanged. Authenticated staging tests, provider recovery, and fresh OCR benchmark remain blocked until the isolated Worker and test credentials are available.
+>
+> ---
+>
+
 > **Fresh live infrastructure verification — 2026-10-16 (staging follow-up)**
 >
 > - Supabase inventory currently returns exactly two projects in the Enterprise AI DMS organization: production `jkobgssaqifzrqfirdfu` and staging `gzxybtqquzycogaowdbj`; both report `ACTIVE_HEALTHY`. Production was not paused, deleted, or altered.
