@@ -1,3 +1,15 @@
+> **Free-staging recheck — 2026-10-16 (latest; supersedes prior staging availability assumptions)**
+>
+> - Supabase project creation cost lookup for organization `Enterprise AI DMS` returned **$0/month**. Creation was attempted only with a zero-cost confirmation, but Supabase rejected it because the organization member has reached the maximum of **2 active free projects**. No staging project was created; no project was paused/deleted and no plan was upgraded.
+> - Supabase development-branch cost lookup returned **$0.01344/hour**. This is not free, so no database branch was created. Do not use the production project as an acceptance target or bypass the free-project cap with a billable branch.
+> - The only listed project in this organization is production project `jkobgssaqifzrqfirdfu` (`ACTIVE_HEALTHY`, `ap-southeast-1`). Live policy inspection shows RLS enabled and owner-scoped policies on `doka_documents`, `doka_document_versions`, `doka_audit_events`, and Storage objects. This is policy-definition evidence only; it is not a substitute for two-user authenticated isolation tests.
+> - Supabase Security Advisor still warns that leaked-password protection is disabled; do not represent this as fixed or change the plan. The owner previously reported that HaveIBeenPwned protection requires a paid plan.
+> - Latest main commit `2893c82ba1386969b6f6b86df2189b26f0e84b26` has successful Production CI/CD and Doka Quality Checks jobs. The latest Vercel production deployment for that SHA is `READY`, and the deployment HTML shell returned HTTP 200; authenticated workflows remain unverified.
+> - Cloudflare Worker `doka-ai-dms` has 100% traffic on its latest listed deployment and is bound to production D1 `doka-ai-dms-prod` plus the production Supabase URL. Secret values were not read. Do not point acceptance tests at this Worker or its production data. Direct external Worker health/CORS probing was not possible from this runtime, so current live health/CORS remains unverified here.
+> - **Next safe path:** owner must free an existing free-project slot (after confirming it is safe to pause/delete) or arrange an explicitly approved $0-capable organization. Then create isolated staging Supabase + Worker/D1, configure disposable User A/B JWTs in GitHub secrets, and run lifecycle, exact-50-MiB integrity, cross-user isolation, and provider recovery tests only against staging. Until then, production readiness remains blocked.
+>
+> ---
+>
 > **Live verification checkpoint — 2026-10-16 08:45 UTC**
 >
 > - Latest `main` HEAD checked: `ca9b18c539773e2af760fd987f8c184771069ab4`.
