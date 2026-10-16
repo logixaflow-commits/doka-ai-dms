@@ -93,9 +93,14 @@ async def list_documents(
     # Filter by folder permissions
     filtered_docs = permission_service.filter_documents_by_user_permissions(current_user.id, docs, db)
 
+    # NOTE: total reflects pre-filter count for stable pagination; filtered count may differ per page.
+    # For accurate per-user pagination, a separate count query with permission join would be needed.
+    # Current approach keeps pagination math stable at the cost of slightly inflated total for some users.
+    filtered_total = len(filtered_docs) + ((page - 1) * page_size)
+
     return DocumentListResponse(
         items=[_to_doc_response(d) for d in filtered_docs],
-        total=total,  # Keep total before filtering for pagination accuracy
+        total=filtered_total,
         page=page,
         page_size=page_size,
         pages=(total + page_size - 1) // page_size,
@@ -118,9 +123,13 @@ async def list_pending(
     # Filter by folder permissions
     filtered_docs = permission_service.filter_documents_by_user_permissions(current_user.id, docs, db)
 
+    # Approximate total based on filtered page results; a precise count would
+    # require a DB-level permission join which is deferred to a later refactor.
+    filtered_total = len(filtered_docs) + ((page - 1) * page_size)
+
     return DocumentListResponse(
         items=[_to_doc_response(d) for d in filtered_docs],
-        total=total,
+        total=filtered_total,
         page=page,
         page_size=page_size,
         pages=(total + page_size - 1) // page_size,
@@ -217,7 +226,8 @@ async def preview_document(
         url = storage_manager.get_presigned_url(doc.storage_key, expiry=timedelta(minutes=15))
         return {"presigned_url": url, "expires_in_seconds": 900}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate preview URL: {e}")
+        logger.error("Failed to generate presigned URL for doc %s: %s", doc_id, e)
+        raise HTTPException(status_code=500, detail="Failed to generate preview URL. Please try again.")
 
 
 @router.post("/{doc_id}/approve")
@@ -795,3 +805,60 @@ async def get_lock_status(
         locked_at=doc.locked_at,
         is_locked=is_locked
     )
+
+
+@router.post("/{doc_id}/extract-receipt")
+async def extract_receipt_data(
+    doc_id: int,
+    current_user: User = Depends(require_staff),
+    db: Session = Depends(get_db),
+):
+    """Auto-extract vendor, amounts, dates, and accounting metadata from document OCR text."""
+    from ...services.receipt_extractor import ReceiptExtractorService
+    from ...services.telegram import send_notification
+
+    doc = db.query(Document).filter(Document.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Use existing OCR text or extracted text if present
+    text_content = getattr(doc, "ocr_text", None) or getattr(doc, "content", "") or ""
+    
+    # If no text stored yet, attempt reading preview or metadata
+    if not text_content and getattr(doc, "file_path", None) and os.path.exists(doc.file_path):
+        try:
+            with open(doc.file_path, "r", encoding="utf-8", errors="ignore") as f:
+                text_content = f.read(5000)
+        except Exception:
+            text_content = ""
+
+    extracted = ReceiptExtractorService.extract_financial_data(text_content)
+
+    # Automatically set category if confident
+    if extracted["confidence"] >= 0.5 and extracted["category"]:
+        doc.category = extracted["category"]
+        db.commit()
+
+    # Trigger Telegram notification
+    curr = extracted["currency"]
+    amt = extracted["total_amount"]
+    vendor = extracted["vendor"]
+    await send_notification(
+        title=f"Receipt Parsed: {doc.filename}",
+        details=(
+            f"🏪 <b>Vendor:</b> {vendor}\n"
+            f"💰 <b>Total:</b> {curr} {amt:,.2f}\n"
+            f"🏷️ <b>Category:</b> {extracted['category']}\n"
+            f"🎯 <b>Confidence:</b> {int(extracted['confidence'] * 100)}%"
+        ),
+        status="SUCCESS",
+        actions=[("View Document", f"/documents/{doc.id}")],
+    )
+
+    return {
+        "status": "success",
+        "document_id": doc.id,
+        "filename": doc.filename,
+        "extracted_data": extracted,
+    }
+

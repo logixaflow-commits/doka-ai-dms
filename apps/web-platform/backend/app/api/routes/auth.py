@@ -2,7 +2,7 @@
 Office DMS - Authentication Routes
 Login, logout, registration, JWT token management.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
@@ -81,7 +81,7 @@ async def login(request: Request, response: Response, login_data: UserLogin, db:
 
     # Success
     record_login_attempt(ip, success=True)
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
 
     access_token = create_access_token({"sub": str(user.id), "role": user.role})

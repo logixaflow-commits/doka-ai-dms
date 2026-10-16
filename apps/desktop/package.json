@@ -1,0 +1,23 @@
+{
+  "name": "doka-ai-dms-desktop",
+  "version": "1.0.0",
+  "description": "DOKA AI DMS Desktop Application - Personal Local Edition",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win"
+  },
+  "keywords": [
+    "dms",
+    "ocr",
+    "myanmar",
+    "desktop",
+    "electron"
+  ],
+  "author": "DOKA Maintainers",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

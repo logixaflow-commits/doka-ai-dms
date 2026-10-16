@@ -35,6 +35,26 @@ const UploadScreen = () => {
     }
   };
 
+  const scanWithCamera = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Denied', 'Camera permission is required to scan documents');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      const file = normalizePickedFile(result, 'image/jpeg');
+      if (file) setSelectedFile(file);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to capture document with camera');
+    }
+  };
+
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -79,13 +99,18 @@ const UploadScreen = () => {
       
       <Card style={styles.card}>
         <Card.Content>
+          <TouchableOpacity style={styles.uploadOption} onPress={scanWithCamera}>
+            <Icon name="photo-camera" size={40} color="#4CAF50" />
+            <Text style={styles.optionText}>Scan with Camera</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.uploadOption} onPress={pickDocument}>
             <Icon name="folder" size={40} color="#2196F3" />
             <Text style={styles.optionText}>Pick from Files</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.uploadOption} onPress={pickImage}>
-            <Icon name="image" size={40} color="#2196F3" />
+            <Icon name="image" size={40} color="#FF9800" />
             <Text style={styles.optionText}>Pick from Gallery</Text>
           </TouchableOpacity>
         </Card.Content>

@@ -18,23 +18,26 @@ Current status: the Personal Local coding foundation is implemented, but real br
 - **Personal Cloud** — React/Vite + Supabase Auth/Postgres/RLS/private Storage + Cloudflare Worker.
 - **Enterprise** — deferred until its own tenant, RBAC, security and acceptance gates are activated.
 
-## Quick start
+## Quick start & Development Ports
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/TESTING.md](docs/TESTING.md).
+| Component | Target Port / Shell | Command |
+|---|---|---|
+| **Web Frontend** | `http://localhost:5173` | `cd apps/web-platform/frontend && npm install && npm run dev` |
+| **Backend API** | `http://localhost:8002` | `cd apps/web-platform/backend && uvicorn app.main:app --port 8002 --reload` |
+| **Desktop App** | Native Electron Window | `cd apps/desktop && npm install && npm start` |
+| **Mobile App** | Native Camera Scanner | `cd apps/mobile && npm install && npm start` |
 
-For Windows, the local launcher is `start_application.bat`.
-
-Personal Local development requires a strong `BOOTSTRAP_ADMIN_PASSWORD`; no usable default password is shipped.
+Windows one-click launcher scripts:
+- `start-doka.bat` — Launches Backend (8002) and Web Frontend (5173).
+- `start_desktop.bat` — Launches Electron Native Desktop Application connected to port 8002.
 
 ## Repository layout
 
-- `apps/web-platform/frontend/` — React/Vite browser application.
-- `apps/web-platform/backend/` — FastAPI Personal Local runtime, Cloudflare Worker and Supabase assets.
-- `apps/web-platform/tests/` — maintained regression tests.
-- `apps/mobile/` — preserved/deferred mobile surface; it is not a current production mobile release.
-- A desktop/native installer surface does not yet exist; it will be introduced as `apps/desktop/` only when implementation starts.
-
-See [docs/REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md) for placement rules.
+- `apps/web-platform/frontend/` — React/Vite browser application (Vite on port 5173).
+- `apps/web-platform/backend/` — FastAPI Local & Cloud runtime (Uvicorn on port 8002), SQLite `Office_DMS/database/dms.db`.
+- `apps/desktop/` — Electron Native Desktop application with local folder scanning and native menu integration.
+- `apps/mobile/` — Mobile Camera OCR document scanner client.
+- `apps/web-platform/tests/` — Maintained backend and frontend regression test suite.
 
 ## Documentation map
 

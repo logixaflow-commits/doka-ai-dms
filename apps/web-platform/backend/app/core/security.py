@@ -2,7 +2,7 @@
 Office DMS - Security Module
 Password hashing (bcrypt), JWT token management, and RBAC dependencies.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 import jwt
 from jwt.exceptions import InvalidTokenError as JWTError
@@ -198,12 +198,16 @@ _login_attempts: dict = {}  # ip -> {count, locked_until}
 
 def check_login_allowed(ip: str) -> tuple[bool, Optional[int]]:
     """Check if login is allowed from this IP. Returns (allowed, lockout_seconds_remaining)."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     record = _login_attempts.get(ip)
 
     if record and record.get("locked_until"):
-        if now < record["locked_until"]:
-            remaining = int((record["locked_until"] - now).total_seconds())
+        locked_until = record["locked_until"]
+        # Handle both naive and aware datetimes for backward compat
+        if locked_until.tzinfo is None:
+            locked_until = locked_until.replace(tzinfo=timezone.utc)
+        if now < locked_until:
+            remaining = int((locked_until - now).total_seconds())
             return False, remaining
         else:
             # Lockout expired, reset
@@ -214,7 +218,7 @@ def check_login_allowed(ip: str) -> tuple[bool, Optional[int]]:
 
 def record_login_attempt(ip: str, success: bool):
     """Record a login attempt. Lock IP after max failures."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if success:
         # Clear failures on success
@@ -231,3 +235,4 @@ def record_login_attempt(ip: str, success: bool):
         lockout_duration = timedelta(minutes=settings.LOCKOUT_DURATION_MINUTES)
         _login_attempts[ip]["locked_until"] = now + lockout_duration
         logger.warning(f"IP {ip} locked out for {settings.LOCKOUT_DURATION_MINUTES} minutes after {settings.MAX_LOGIN_ATTEMPTS} failed login attempts")
+

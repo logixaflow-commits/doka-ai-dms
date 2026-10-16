@@ -54,9 +54,17 @@ If code changes without the corresponding authority document being updated, flag
 | Cloudflare Worker | Cloud API | Cloud | Yes for Cloud | Worker access |
 | Cloudinary | derivative/provider path | Cloud | Pending live proof | Provider credentials |
 | Backblaze B2 | >50 MiB source path | Cloud | Pending live proof | Provider credentials |
-| Google Drive | export/archive | Cloud | Pending live proof | OAuth credentials |
 | AI providers | optional advisory processing | Both | Disabled by default | Provider-specific keys |
 | Vercel | frontend target | Cloud | Paused | Owner authorization |
+
+### 6.1 Local Development Ports & Verification
+
+- **Web Frontend (Vite):** `cd apps/web-platform/frontend && npm install && npm run dev` (Port 5173)
+- **Backend API (FastAPI):** `cd apps/web-platform/backend && uvicorn app.main:app --port 8002 --reload`
+- **Desktop Client (Electron):** `cd apps/desktop && npm install && npm start`
+- **One-Click Launchers:** `start-doka.bat` (Web + API) or `start_desktop.bat` (Desktop)
+- **Health Verification:** `curl http://localhost:8002/health` (HTTP 200)
+- **Frontend Build Check:** `cd apps/web-platform/frontend && npm run build` (Passing)
 
 ## 7. Evidence rules
 Status means:

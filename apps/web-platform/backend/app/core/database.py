@@ -3,7 +3,7 @@ Office DMS - Database Module
 SQLAlchemy engine, session management, and connection handling.
 """
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 from app.core.config import settings
@@ -103,7 +103,7 @@ def get_db_status() -> dict:
     """Check database connectivity. Returns status dictionary."""
     try:
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         return {
             "status": "connected",
             "type": (

@@ -60,7 +60,7 @@ echo       Final    : %FINAL_ROOT%
 echo       Backups  : %BACKUP_ROOT%
 
 echo [3/4] Starting backend and frontend services...
-start "Doka Backend" /min cmd /c ""%PYTHON%" -m uvicorn app.main:app --app-dir "%BACKEND%" --host 127.0.0.1 --port 8000"
+start "Doka Backend" /min cmd /c ""%PYTHON%" -m uvicorn app.main:app --app-dir "%BACKEND%" --host 127.0.0.1 --port 8002"
 start "Doka Frontend" /min cmd /c "cd /d "%FRONTEND%" && npm run dev -- --host 127.0.0.1 --port 5173"
 
 echo [4/4] Waiting for services to initialize...

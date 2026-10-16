@@ -139,10 +139,20 @@ class Settings:
         self.SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_urlsafe(32)
         self.ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
 
+        base_path = Path(__file__).resolve().parent.parent.parent
         # Database
-        self.DATABASE_URL = os.getenv(
-            "DATABASE_URL", "sqlite:///./Office_DMS/database/dms.db"
-        )
+        default_db_dir = base_path / "Office_DMS" / "database"
+        default_db_dir.mkdir(parents=True, exist_ok=True)
+        raw_db_url = os.getenv("DATABASE_URL")
+        if not raw_db_url:
+            self.DATABASE_URL = f"sqlite:///{default_db_dir.as_posix()}/dms.db"
+        else:
+            self.DATABASE_URL = raw_db_url
+            if self.DATABASE_URL.startswith("sqlite:///./"):
+                rel_path = self.DATABASE_URL.replace("sqlite:///./", "")
+                resolved_db_path = (base_path / rel_path).resolve()
+                resolved_db_path.parent.mkdir(parents=True, exist_ok=True)
+                self.DATABASE_URL = f"sqlite:///{resolved_db_path.as_posix()}"
         self.DATABASE_URL = self.DATABASE_URL.replace(
             "postgresql://", "postgresql+psycopg2://"
         ) if self.DATABASE_URL.startswith("postgresql://") else self.DATABASE_URL

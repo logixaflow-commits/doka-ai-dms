@@ -126,7 +126,8 @@ apps/web-platform/backend/app/static/storage/
 archive/local-runtime-backup-*/
 
 # AI/ML models
-models/
+/models/
+!apps/web-platform/backend/app/models/
 *.pkl
 *.h5
 *.pt

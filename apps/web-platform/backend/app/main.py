@@ -12,7 +12,18 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import ai_consent, local_auth, workspace, workspace_files, telegram
+from app.api.routes import (
+    ai_consent,
+    local_auth,
+    workspace,
+    workspace_files,
+    telegram,
+    templates,
+    rules,
+    permissions,
+    audit,
+    brain_soul,
+)
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.observability import init_observability
@@ -95,8 +106,11 @@ def create_app() -> FastAPI:
     app.include_router(workspace.router)
     app.include_router(workspace_files.router)
     app.include_router(telegram.router)
-    # brain_soul and chat_pdf depend on the deferred SQLAlchemy/model stack;
-    # keep them unmounted until that stack is restored and tested end-to-end.
+    app.include_router(templates.router, prefix="/api/templates", tags=["Templates"])
+    app.include_router(rules.router, prefix="/api/rules", tags=["Rules Engine"])
+    app.include_router(permissions.router, prefix="/api/permissions", tags=["Permissions"])
+    app.include_router(audit.router, prefix="/api/audit", tags=["Audit Trail"])
+    app.include_router(brain_soul.router, prefix="/api/brain-soul", tags=["Brain Soul"])
 
     @app.get("/health", tags=["System"])
     async def health():

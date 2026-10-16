@@ -11,6 +11,10 @@ import WorkspaceReview from '@/pages/WorkspaceReview';
 import CloudDocuments from '@/pages/CloudDocuments';
 import CloudAudit from '@/pages/CloudAudit';
 import AiUsage from '@/pages/AiUsage';
+import TemplatesPage from '@/pages/admin/Templates';
+import RulesPage from '@/pages/admin/Rules';
+import PermissionsPage from '@/pages/admin/Permissions';
+import AuditPage from '@/pages/admin/Audit';
 import {
   getCurrentUser,
   isSupabaseConfigured,
@@ -72,6 +76,10 @@ export default function App() {
           <Route path="cloud-documents" element={isLocalAuthEnabled() ? <Navigate to="/admin/workspace" replace /> : <CloudDocuments />} />
           <Route path="activity" element={isLocalAuthEnabled() ? <Navigate to="/admin/workspace" replace /> : <CloudAudit />} />
           <Route path="usage" element={isLocalAuthEnabled() ? <Navigate to="/admin/workspace" replace /> : <AiUsage />} />
+          <Route path="templates" element={<TemplatesPage />} />
+          <Route path="rules" element={<RulesPage />} />
+          <Route path="permissions" element={<PermissionsPage />} />
+          <Route path="audit" element={<AuditPage />} />
           <Route path="" element={<Navigate to={isLocalAuthEnabled() ? 'workspace' : 'dashboard'} replace />} />
         </Route>
         <Route path="/" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />

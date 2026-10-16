@@ -177,7 +177,7 @@ class FunctionDetectionService:
             DocumentFunction.CONTRACT: [
                 r'contract',
                 r'agreement',
-                'terms\s+and\s+conditions',
+                r'terms\s+and\s+conditions',
                 r'party\s+[ab]\s*\:'
             ],
             DocumentFunction.CERTIFICATE: [

@@ -8,14 +8,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: process.env.VITE_HOST || "127.0.0.1",
-    port: Number(process.env.VITE_PORT || 3000),
+    port: Number(process.env.VITE_PORT || 5173),
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: process.env.VITE_BACKEND_TARGET || 'http://127.0.0.1:8002',
         changeOrigin: true,
       },
       '/health': {
-        target: 'http://127.0.0.1:8000',
+        target: process.env.VITE_BACKEND_TARGET || 'http://127.0.0.1:8002',
         changeOrigin: true,
       },
     },

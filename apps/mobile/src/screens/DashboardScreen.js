@@ -7,7 +7,8 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Card, Title, Paragraph } from 'react-native-paper';
 import { useApi } from '../context/ApiContext';
@@ -16,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 const DashboardScreen = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { getDashboardStats } = useApi();
   const { user } = useAuth();
 
@@ -24,11 +26,14 @@ const DashboardScreen = () => {
   }, []);
 
   const loadStats = async () => {
+    setError(null);
+    setLoading(true);
     try {
       const data = await getDashboardStats();
       setStats(data);
-    } catch (error) {
-      console.error('Error loading stats:', error);
+    } catch (err) {
+      console.error('Error loading stats:', err);
+      setError(err?.message || 'Failed to load dashboard statistics. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -36,8 +41,22 @@ const DashboardScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#2196F3" />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorIcon}>⚠️</Text>
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorMessage}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadStats}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -119,6 +138,45 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#2196F3',
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

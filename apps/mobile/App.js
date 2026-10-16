@@ -1,5 +1,5 @@
 /**
- * Main App Component for Enterprise AI DMS Mobile
+ * Main App Component for DOKA AI DMS Mobile
  */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';

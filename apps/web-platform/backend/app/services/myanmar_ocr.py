@@ -80,7 +80,7 @@ class MyanmarOCRService:
         preprocess: bool = True
     ) -> Dict[str, Any]:
         """
-        Extract text from image with Myanmar language support
+        Extract text from image with Myanmar language support and bounding boxes
         
         Args:
             image_path: Path to image file
@@ -88,56 +88,65 @@ class MyanmarOCRService:
             preprocess: Whether to preprocess image for better OCR
             
         Returns:
-            Dictionary with extracted text and metadata
+            Dictionary with extracted text, bounding boxes, tokens and metadata
         """
-        # Keep the untouched source path so every fallback reads the original
-        # pixels, not a thresholded/contrast-adjusted intermediate image.
         source_image_path = image_path
         if not self.is_available:
             logger.warning("Myanmar OCR not available, falling back to basic OCR")
             return self._fallback_ocr(source_image_path)
         
+        skew_angle = 0.0
         try:
             # Preprocess image if requested
             if preprocess:
-                processed_path = self._preprocess_image(image_path)
-                if processed_path:
-                    image_path = processed_path
+                prep_result = self._preprocess_image_cv(image_path)
+                if prep_result:
+                    image_path, skew_angle = prep_result
             
-            # Run Tesseract with Myanmar language
-            cmd = [
+            # 1. Run Tesseract to extract plain text
+            cmd_text = [
                 self.tesseract_path,
                 image_path,
                 "stdout",
                 "-l", language,
-                "--oem", "3",  # LSTM OCR engine
-                "--psm", "6",  # Assume uniform block of text
+                "--oem", "3",
+                "--psm", "6",
                 "-c", "preserve_interword_spaces=1"
             ]
             
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            res_text = subprocess.run(cmd_text, capture_output=True, text=True, timeout=30)
             
-            if result.returncode == 0:
-                text = result.stdout.strip()
-                
-                # Post-process Myanmar text
-                cleaned_text = self._post_process_myanmar(text)
+            # 2. Run Tesseract to extract TSV bounding boxes
+            cmd_tsv = [
+                self.tesseract_path,
+                image_path,
+                "stdout",
+                "-l", language,
+                "--oem", "3",
+                "--psm", "6",
+                "tsv"
+            ]
+            res_tsv = subprocess.run(cmd_tsv, capture_output=True, text=True, timeout=30)
+            boxes = self._parse_tsv_boxes(res_tsv.stdout) if res_tsv.returncode == 0 else []
+
+            if res_text.returncode == 0:
+                raw_text = res_text.stdout.strip()
+                cleaned_text = self._post_process_myanmar(raw_text)
+                tokens = self.tokenize_myanmar(cleaned_text)
                 
                 return {
                     "success": True,
                     "text": cleaned_text,
                     "language": language,
-                    "method": "tesseract_myanmar",
+                    "method": "tesseract_myanmar_cv",
                     "confidence": self._estimate_confidence(cleaned_text),
-                    "preprocessed": preprocess
+                    "preprocessed": preprocess,
+                    "skew_angle": round(skew_angle, 2),
+                    "boxes": boxes,
+                    "tokens": tokens
                 }
             else:
-                logger.error(f"Tesseract failed: {result.stderr}")
+                logger.error(f"Tesseract failed: {res_text.stderr}")
                 return self._fallback_ocr(source_image_path)
                 
         except subprocess.TimeoutExpired:
@@ -147,7 +156,103 @@ class MyanmarOCRService:
             logger.error(f"Myanmar OCR failed: {e}")
             return self._fallback_ocr(source_image_path)
     
+    def tokenize_myanmar(self, text: str) -> list:
+        """Tokenize Myanmar text into searchable syllables and tokens."""
+        if not text:
+            return []
+        import re
+        normalized = text.replace('\u00a0', ' ').replace('\u200b', ' ')
+        # Myanmar Syllable Break regex (Unicode U+1000 - U+109F)
+        syllable_break = re.compile(r"(?<![်-႟])(?=[က-အဣဤဥဦဧဩဪဿ])")
+        segmented = syllable_break.sub(' ', normalized)
+        return [tok.strip() for tok in segmented.split() if tok.strip()]
+
+    def _parse_tsv_boxes(self, tsv_data: str) -> list:
+        """Parse Tesseract TSV output into bounding boxes for frontend visualization."""
+        boxes = []
+        if not tsv_data:
+            return boxes
+        lines = tsv_data.strip().splitlines()
+        if len(lines) <= 1:
+            return boxes
+        
+        for line in lines[1:]:
+            parts = line.split('\t')
+            if len(parts) >= 12:
+                try:
+                    conf = float(parts[10])
+                    word = parts[11].strip()
+                    if conf > 0 and word:
+                        boxes.append({
+                            "text": word,
+                            "confidence": conf,
+                            "x": int(parts[6]),
+                            "y": int(parts[7]),
+                            "width": int(parts[8]),
+                            "height": int(parts[9]),
+                            "line_num": int(parts[4]),
+                            "block_num": int(parts[2])
+                        })
+                except (ValueError, IndexError):
+                    continue
+        return boxes
+
+    def _preprocess_image_cv(self, image_path: str):
+        """Advanced OpenCV preprocessing: Deskew, CLAHE contrast enhancement & Adaptive Thresholding."""
+        try:
+            import cv2
+            import numpy as np
+            
+            img = cv2.imread(image_path)
+            if img is None:
+                return self._preprocess_image(image_path), 0.0
+
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            # 1. Deskew detection
+            thresh_for_angle = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+            coords = np.column_stack(np.where(thresh_for_angle > 0))
+            angle = 0.0
+            if len(coords) > 50:
+                rect_angle = cv2.minAreaRect(coords)[-1]
+                if rect_angle < -45:
+                    angle = -(90 + rect_angle)
+                elif rect_angle > 45:
+                    angle = 90 - rect_angle
+                else:
+                    angle = -rect_angle
+
+            # Rotate if skew is between 0.8 and 45 degrees
+            rotated_gray = gray
+            if abs(angle) > 0.8 and abs(angle) < 45:
+                (h, w) = gray.shape[:2]
+                center = (w // 2, h // 2)
+                M = cv2.getRotationMatrix2D(center, angle, 1.0)
+                rotated_gray = cv2.warpAffine(gray, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+
+            # 2. Contrast enhancement via CLAHE
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            enhanced = clahe.apply(rotated_gray)
+
+            # 3. Denoising
+            denoised = cv2.fastNlMeansDenoising(enhanced, None, 10, 7, 21)
+
+            # 4. Adaptive Gaussian Thresholding
+            binary = cv2.adaptiveThreshold(
+                denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 8
+            )
+
+            processed_path = image_path.replace('.', '_cv_processed.')
+            cv2.imwrite(processed_path, binary)
+            return processed_path, angle
+
+        except Exception as e:
+            logger.warning(f"OpenCV preprocessing error, fallback to PIL: {e}")
+            pil_path = self._preprocess_image(image_path)
+            return pil_path, 0.0
+
     def _preprocess_image(self, image_path: str) -> Optional[str]:
+        """Fallback PIL preprocessing for better OCR accuracy"""
         """Preprocess image for better OCR accuracy"""
         try:
             from PIL import Image, ImageEnhance, ImageFilter

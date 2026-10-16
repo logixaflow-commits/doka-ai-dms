@@ -43,16 +43,26 @@ Supabase Auth supplies identity. The Worker derives ownership from the verified 
 
 Storage routing is defined in `docs/STORAGE.md`: source objects <=50 MiB use Supabase, >50 MiB use B2 when configured, derivatives prefer Cloudinary when configured and healthy, and Google Drive is a configuration-gated export/archive path.
 
+## Standalone Platform Scope & Ports
+
+| Surface | Platform | Local Development Port / Shell |
+|---|---|---|
+| **Web Platform** | React 19 + TypeScript + Vite | `http://localhost:5173` |
+| **Backend API** | FastAPI / Python 3.12 | `http://localhost:8002` |
+| **Desktop Application** | Electron Native Shell | `apps/desktop` (`start_desktop.bat`) |
+| **Mobile Scanner** | Mobile Web Camera Scanner | `apps/mobile` (`UploadScreen.js`) |
+
 ## Repository boundaries
-- `apps/web-platform/backend/`: FastAPI Personal Local runtime and supporting services.
-- `apps/web-platform/frontend/`: React/Vite UI.
-- `apps/web-platform/tests/`: maintained application regression tests.
-- `apps/web-platform/backend/cloudflare_worker/`: active Cloudflare Worker cloud API.
-- `apps/web-platform/backend/supabase/migrations/`: cloud schema migrations.
-- `scripts/`: repository validation and pilot/benchmark utilities.
-- `docs/`: active domain documentation.
-- `archive/legacy/`: preserved historical documentation and retired material.
-- `infrastructure/`, `apps/mobile/`: preserved/deferred areas.
+- `apps/web-platform/backend/`: FastAPI Personal Local runtime (Port 8002), SQLite `Office_DMS/database/dms.db`.
+- `apps/web-platform/frontend/`: React/Vite UI (Port 5173).
+- `apps/desktop/`: Electron Native Desktop application with native window shell and menu integration.
+- `apps/mobile/`: Mobile Camera Document Scanner.
+- `apps/web-platform/tests/`: Maintained application regression tests.
+- `apps/web-platform/backend/cloudflare_worker/`: Cloudflare Worker cloud API path.
+- `apps/web-platform/backend/supabase/migrations/`: Cloud schema migrations.
+- `scripts/`: Repository validation and pilot/benchmark utilities.
+- `docs/`: Active domain documentation.
+- `archive/legacy/` & `archive/legacy_root/`: Preserved historical documentation and retired material.
 
 ## Runtime boundaries
 Personal Local is a local data-plane application. Personal Cloud is authenticated and provider-backed. Enterprise, mobile, multi-region, distributed job infrastructure, and advanced intelligence are deferred feature trains and must not become implicit dependencies of the Personal Local runtime.

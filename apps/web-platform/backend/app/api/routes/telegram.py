@@ -54,4 +54,20 @@ async def handle_telegram_action(payload: TelegramActionPayload) -> dict[str, An
         await send_telegram_message(msg, topic_id=payload.topic_id)
         return {"status": "ok", "action": "duplicate_kept", "id": doc_id}
 
+    # 4. Instant Receipt / Expense Parse via Telegram Message
+    elif action == "doka_receipt_scan" and payload.raw_message:
+        from ...services.receipt_extractor import ReceiptExtractorService
+        extracted = ReceiptExtractorService.extract_financial_data(payload.raw_message)
+        reply = (
+            f"🧾 <b>Instant Receipt Extracted:</b>\n"
+            f"🏪 <b>Vendor:</b> {extracted['vendor']}\n"
+            f"💰 <b>Total:</b> {extracted['currency']} {extracted['total_amount']:,.2f}\n"
+            f"🏷️ <b>Category:</b> {extracted['category']}\n"
+            f"📅 <b>Date:</b> {extracted['date'] or 'N/A'}\n"
+            f"🎯 <b>Confidence:</b> {int(extracted['confidence'] * 100)}%"
+        )
+        await send_telegram_message(reply, topic_id=payload.topic_id)
+        return {"status": "ok", "action": "receipt_scanned", "data": extracted}
+
     return {"status": "ignored", "action": action}
+

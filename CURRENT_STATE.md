@@ -1,3 +1,14 @@
+> **Local Standalone Operational Verification — 2026-10-16 (latest)**
+>
+> - **Standalone Runtime Decoupling:** Port 5173 assigned to React/Vite Frontend; Port 8002 assigned to FastAPI Backend; Native Electron Desktop App shell in `apps/desktop` (`start_desktop.bat`); Mobile camera scanner in `apps/mobile`.
+> - **Database & Backend Verification:** Configured absolute SQLite path `Office_DMS/database/dms.db`, established full ORM tables (Users, Documents, Folders, Permissions, SOP Templates, Rules, Audit Logs), and seeded default admin credentials (`admin` / `admin123`).
+> - **API Health Check:** FastAPI backend verified operational via isolated runner (`GET /health` returned `HTTP 200 OK`).
+> - **Admin Routes & Frontend Build:** Wired up and mounted schemas and routes for `/admin/templates`, `/admin/rules`, `/admin/permissions`, and `/admin/audit` in frontend `App.tsx` and `AdminLayout.tsx`. Production build succeeded in 9.02s (`npm run build`).
+> - **Documentation Consolidation:** Moved 26 bloated legacy draft files from `docs/legacy/root/` to `archive/legacy_root/`. Rewrote `ROADMAP.md` in clean English incorporating all 361 extracted legacy tasks into 5 actionable priorities.
+> - **Release Status:** Local Personal Local Edition 100% operational. Cloud staging worker deployment and live two-user auth isolation remain pending.
+
+---
+
 > **Connected-account recheck — 2026-10-16 (latest)**
 >
 > - Supabase inventory confirms production `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`) and staging `doka-ai-dms-staging` (`gzxybtqquzycogaowdbj`) both report `ACTIVE_HEALTHY`. Production was not modified.

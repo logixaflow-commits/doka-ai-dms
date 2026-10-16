@@ -10,7 +10,7 @@ from app.core.database import get_db
 from app.core.security import require_admin, get_current_user
 from app.core.logging import log_audit, get_client_info
 from app.models.database import User
-from app.services.rule_manager_service import rule_manager_service
+from app.services.rule_manager import rule_manager_service
 from app.services.rule_engine import rule_engine
 from app.models.schemas import RuleCreate, RuleUpdate, RuleResponse
 

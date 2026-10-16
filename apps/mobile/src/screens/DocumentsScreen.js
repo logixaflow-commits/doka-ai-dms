@@ -9,6 +9,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Card, Title, Paragraph, Searchbar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -19,6 +20,7 @@ const DocumentsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
   const { getDocuments } = useApi();
 
   useEffect(() => {
@@ -26,11 +28,14 @@ const DocumentsScreen = ({ navigation }) => {
   }, []);
 
   const loadDocuments = async () => {
+    setError(null);
+    setLoading(true);
     try {
       const data = await getDocuments();
       setDocuments(data.items || []);
-    } catch (error) {
-      console.error('Error loading documents:', error);
+    } catch (err) {
+      console.error('Error loading documents:', err);
+      setError(err?.message || 'Failed to load documents. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -38,8 +43,16 @@ const DocumentsScreen = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadDocuments();
-    setRefreshing(false);
+    setError(null);
+    try {
+      const data = await getDocuments();
+      setDocuments(data.items || []);
+    } catch (err) {
+      console.error('Error refreshing documents:', err);
+      setError(err?.message || 'Failed to refresh documents.');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleDocumentPress = (document) => {
@@ -82,8 +95,22 @@ const DocumentsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading documents...</Text>
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#2196F3" />
+        <Text style={styles.loadingText}>Loading documents...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorIcon}>⚠️</Text>
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorMessage}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadDocuments}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -104,6 +131,15 @@ const DocumentsScreen = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📄</Text>
+            <Text style={styles.emptyTitle}>No documents found</Text>
+            <Text style={styles.emptyMessage}>
+              {searchQuery ? 'Try a different search term.' : 'Upload your first document to get started.'}
+            </Text>
+          </View>
+        }
       />
     </View>
   );
@@ -120,6 +156,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 15,
+    flexGrow: 1,
   },
   card: {
     marginBottom: 15,
@@ -149,6 +186,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 5,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  emptyMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

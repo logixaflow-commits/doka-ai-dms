@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles, ChevronRight, Cpu } from 'lucide-react';
+import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles, ChevronRight, Cpu, FileText, Sliders, Shield, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -16,13 +16,19 @@ const baseMenuItems = [
   { title: 'AI Usage', description: 'Models & quota health', url: '/admin/usage', icon: Cpu },
 ];
 const localMenuItem = { title: 'Safe Workspace', description: 'On-device tools', url: '/admin/workspace', icon: FolderKanban };
+const extraMenuItems = [
+  { title: 'SOP Templates', description: 'Rule blueprints', url: '/admin/templates', icon: FileText },
+  { title: 'Rules Engine', description: 'Document automations', url: '/admin/rules', icon: Sliders },
+  { title: 'Permissions', description: 'Folder access control', url: '/admin/permissions', icon: Shield },
+  { title: 'Audit Trail', description: 'Actions and compliance', url: '/admin/audit', icon: History },
+];
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = getStoredUser();
   const localMode = isLocalAuthEnabled();
-  const menuItems = localMode ? [localMenuItem] : import.meta.env.PROD ? baseMenuItems : [...baseMenuItems, localMenuItem];
+  const menuItems = localMode ? [localMenuItem, ...extraMenuItems] : [...baseMenuItems, localMenuItem, ...extraMenuItems];
   const activeItem = menuItems.find(item => location.pathname === item.url || location.pathname.startsWith(`${item.url}/`));
   const handleLogout = async () => { if (localMode) await signOutLocal(); else await signOut(); navigate('/login', { replace: true }); };
   const displayName = user?.email || user?.username || 'Doka user';
