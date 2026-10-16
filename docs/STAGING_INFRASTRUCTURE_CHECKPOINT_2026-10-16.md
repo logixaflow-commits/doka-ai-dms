@@ -43,3 +43,15 @@ Cloudflare D1 staging has a schema-only initialization with the observed Doka ta
 ## Verification rule
 
 Resource creation and schema/policy configuration are not live acceptance. Keep release status BLOCKED until all required tests above have fresh, scrubbed evidence and the exact candidate SHA passes its required checks.
+
+
+## Latest connected-account recheck — 2026-10-16
+
+- Read-only Supabase inventory confirms exactly two projects in the `Enterprise AI DMS` organization: production `jkobgssaqifzrqfirdfu` and staging `gzxybtqquzycogaowdbj`; both currently report `ACTIVE_HEALTHY`. No production project operation was performed.
+- Read-only Cloudflare inventory confirms the staging D1 database `11baa497-e6f7-4054-8e9f-3a21baec93f3` exists. A direct `sqlite_master` query returns 11 non-internal tables including Cloudflare's `_cf_KV` table, 13 indexes and 10 triggers; this is 10 application tables plus the Cloudflare internal table. Separate read-only counts show all 10 application tables have zero rows. No staging data was written.
+- The Cloudflare account currently lists only the production Worker script `doka-ai-dms`; no `doka-ai-dms-staging` Worker is deployed. Production Worker settings/secrets were not modified or read.
+- Render workspace `My Workspace` currently lists no services. Render remains deferred; no service or paid resource was created.
+- For commit `ccd4e77e6702ac6b219fcec7b164e4245a3edb64`, Dependency Review completed successfully, while Production CI/CD, Doka Quality Checks and CodeQL were cancelled. Therefore this commit is **not fully CI-verified**; do not infer success from the Vercel status alone.
+- Staging Worker deployment remains blocked on repository Actions secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SUPABASE_STAGING_PUBLISHABLE_KEY`, and `DOKA_STAGING_STORAGE_SESSION_SECRET`, followed by a successful dry-run/deploy and live health/config/CORS checks. The connected tools do not expose a safe way to verify or set GitHub Actions secret values here; no secret values were retrieved.
+- User A/B JWTs and staging-safe B2/Google Drive credentials are still needed for authenticated isolation and provider recovery. Production Worker acceptance remains prohibited.
+- No production Supabase, D1, Worker, secrets, routing, or Vercel production settings were changed. No paid resource was created.
