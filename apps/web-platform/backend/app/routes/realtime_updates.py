@@ -1,7 +1,7 @@
 """
 API Routes for Real-time Updates using SSE
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
