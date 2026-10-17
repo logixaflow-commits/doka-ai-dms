@@ -241,3 +241,15 @@ def test_provider_acceptance_runner_requires_staging_worker():
     DOKA_CLOUD_PROVIDER_ACCEPTANCE.assert_staging_base_url(
         "https://doka-ai-dms-staging.logixaflow.workers.dev"
     )
+
+
+
+def test_provider_powershell_wrapper_defaults_to_staging():
+    wrapper = (
+        Path(__file__).resolve().parents[3]
+        / "scripts"
+        / "run-cloud-provider-acceptance.ps1"
+    ).read_text(encoding="utf-8")
+    assert '[string]$BaseUrl = "https://doka-ai-dms-staging.logixaflow.workers.dev"' in wrapper
+    assert '$parsed.Host -ne "doka-ai-dms-staging.logixaflow.workers.dev"' in wrapper
+    assert '[string]$BaseUrl = "https://doka-ai-dms.logixaflow.workers.dev"' not in wrapper
