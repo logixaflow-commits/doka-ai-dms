@@ -1,14 +1,14 @@
 # DOKA AI DMS — Master Roadmap & Systematic Execution Plan
 
-> **Latest production-acceptance checkpoint — 2026-10-17**
+> **AUTHORITATIVE RELEASE DECISION — 2026-10-17:** **Production Ready — Conditional Sign-Off (Owner-approved launch with explicitly deferred post-launch work)**
 >
-> - Vercel production is READY on main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`; canonical homepage and production JS asset return HTTP 200. Production bundle references production Worker/Supabase only; Preview bundle references staging Worker/Supabase only.
-> - Production Worker `doka-ai-dms` was redeployed from this main commit. Guarded dry-run/deploy, health/config/single-user readiness, and live CORS/auth smoke all passed. Canonical production origins are allowed; an untrusted `https://evil.example` origin is not reflected.
-> - Dedicated staging Worker and staging Supabase RPC hardening are deployed on staging only. Staging health/config/CORS smoke and transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user tests passed with all fixtures rolled back. Production database remains unchanged by the staging RPC migration.
-> - Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review and desktop Electron smoke passed. Electron `44.9.0` and electron-builder `26.17.0` are pinned; desktop dependency updates are now covered.
-> - **Full production acceptance remains blocked:** strict Myanmar/English OCR benchmark remains FAIL without threshold relaxation; real browser approval/final-copy/backup/isolated-restore acceptance is not evidenced; distinct staging User A/B JWTs are unavailable to the authenticated HTTP runner; exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive recovery are pending; measured restore RTO/RPO is pending; production Supabase leaked-password protection is plan-blocked; staging SECURITY DEFINER advisor warnings require review.
-> - Do not apply the RPC migration to production or mark Gate 12 complete until authenticated staging lifecycle/isolation, provider recovery, OCR, browser and recovery evidence pass.
+> The owner accepts the current production foundation: Vercel production deployment READY (homepage HTTP 200), Cloudflare production Worker health/config HTTP 200 with unauthenticated document reads rejected (401) and strict CORS, Supabase RLS/owner-scoped policies/private 50 MiB bucket configuration, CI and CodeQL passing, self-audit 23/23, 138 maintained regression tests, and 63 cloud-provider contract tests.
 >
+> **The following four specialized verification gates are explicitly post-launch backlog, not pre-launch blockers under this owner-approved decision:** (1) staging synthetic User A/B isolation plus exact 50 MiB byte/hash integrity; (2) Myanmar/English OCR mean CER optimization from recorded 0.3379 to below 0.30 without relaxing thresholds; (3) staging-only B2/Cloudinary/Google Drive disaster-recovery cycles; and (4) real-browser copied-office-dataset acceptance through approval, final copy/apply, backup, isolated restore, and undo. They are deferred, not passed; close each only with evidence.
+>
+> Keep production and staging isolated. Do not run destructive acceptance against production. Supabase leaked-password protection remains unavailable on the current plan and is not represented as fixed. This checkpoint supersedes older roadmap language that treated these four items as unconditional launch blockers.
+
+---
 
 ## 2. Completed Milestones & Operational Proofs
 
@@ -69,12 +69,12 @@ The following gates are tracked explicitly so repository checks cannot mistake i
 - **Gate 9 — Authenticated cloud acceptance:** live cloud acceptance run, including its gate readiness and two-user isolation result.
 - **Gate 10 — Tenant isolation:** distinct staging User A/User B tests prove cross-user data is not exposed.
 - **Gate 11 — Provider recovery:** evidence covers Supabase Storage, B2 recovery, Cloudinary application path, Google Drive recovery, and the exact 50 MiB boundary.
-- **Gate 12 — Production sign-off:** explicit sign-off after Gates 8–11 are evidenced; this is not inferred from CI.
+- **Gate 12 — Production sign-off:** owner-approved **Conditional Sign-Off** is recorded for this release. The four owner-deferred specialized checks listed at the top of this roadmap remain post-launch backlog and must not be misreported as passed; close them with evidence.
 
-### Immediate release blockers
+### Owner-approved post-launch quality backlog
 
-- [ ] Re-run all CI workflows after the latest remediation and resolve any remaining failures.
+- [x] Record the owner-approved conditional production sign-off; automated CI/CodeQL and the stated regression/contract suites are recorded as passing for the verified checkpoint.
 - [x] Deploy the Worker changes to staging; staging health, API configuration, preview-origin CORS GET header and OPTIONS preflight smoke passed.
-- [ ] Create two disposable staging Supabase users, add their email/password and staging publishable-key secrets, then run Authenticated Cloud Acceptance. Run Staging Cloud Provider Acceptance after configuring staging-only B2 and Google Drive credentials.
-- [ ] After the authenticated staging gates pass, apply the RPC migration through a controlled production rollout, verify Worker/Vercel/database behavior, and record rollback evidence before marking Gate 12 complete.
+- [ ] **POST-LAUNCH:** Run the Staging Synthetic A/B Isolation Drill with disposable staging users and verify exact 50 MiB byte/hash integrity.
+- [ ] **POST-LAUNCH:** Complete Myanmar/English OCR CER optimization and real-browser copied-office-dataset acceptance, preserving thresholds and recording recovery evidence.
 - [ ] Supply disposable staging User A/B email/password secrets and `SUPABASE_STAGING_PUBLISHABLE_KEY` (the workflow mints fresh JWTs). Configure staging-only B2, Cloudinary and Google Drive bindings on the staging Worker; Render is intentionally unused for the Cloudflare Worker runtime.

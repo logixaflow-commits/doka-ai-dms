@@ -1,13 +1,13 @@
-> **Latest deployment evidence — 2026-10-17**
+> **Latest deployment evidence — 2026-10-17; main `db76c9cbc89d508f9333b980671fa9feb1dd3913`**
 >
-> - Vercel production deployment for main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9` is READY; canonical homepage and production JS asset returned HTTP 200. The production bundle references production Worker/Supabase only; Preview references staging Worker/Supabase only.
-> - Production Worker was redeployed from main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Guarded dry-run/deploy, health/config/single-user checks, and live infrastructure smoke passed. The smoke confirms allowed production CORS origins, rejects an untrusted origin, and requires HTTP 401 for unauthenticated document listing.
-> - The staging Worker is deployed and bound to staging Supabase/D1 with a staging-only session secret. Guarded staging health/config, preview-origin CORS GET headers and OPTIONS preflight checks passed.
-> - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash and cross-user rejection; all temporary fixtures rolled back. Production database remains unchanged pending authenticated HTTP lifecycle/A/B isolation acceptance and rollback review.
-> - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, provider recovery or security-review gates.
+> - Production Worker `doka-ai-dms` is deployed; the current-main guarded deployment and Live Infrastructure Smoke passed. Direct live checks: `/health` 200, `/api/config` 200, unauthenticated `/api/documents` 401, canonical production CORS allowed, untrusted origin not reflected.
+> - Staging Worker `doka-ai-dms-staging` is deployed on current Cloud API source, isolated to staging Supabase `gzxybtqquzycogaowdbj` and D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`; latest guarded run [39046323682](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39046323682) passed build/deploy/health/config/CORS smoke.
+> - Vercel production deployment for frontend SHA `50de3584beb2469a5fced181b224a032537f9c89` is READY; canonical homepage and built JS returned HTTP 200. The production bundle references only production Worker/Supabase; the current branch Preview references only staging Worker/Supabase.
+> - Current-main Doka Quality Checks, Production CI/CD, CodeQL, Cloudflare Worker Production Deploy and Live Infrastructure Smoke passed. Local validation also passed self-audit 23/23, 138 maintained regression tests, 63 cloud storage/provider contracts, and frontend lint/build/smoke.
+> - **Deployment success is not full acceptance.** Gates 3, 4, 5, 6, 9, 10, 11 and 12 remain open for OCR accuracy, full browser approval/final-copy/backup/restore, measured RTO/RPO, authenticated A/B isolation, exact 50 MiB integrity, provider recovery and staging RPC advisor review. Production leaked-password protection remains plan-blocked. Never run acceptance against production.
 >
-> ---
->
+---
+
 > **Latest release evidence — 2026-10-17**
 >
 > - PR #68 merged at `3b29176a6329298205aa896eae7864ae4a8df4d9`. Exact-HEAD Production CI/CD, Doka Quality Checks, CodeQL, Myanmar OCR Regression, Live Infrastructure Smoke, and Cloudflare Worker Production Deploy succeeded. Vercel production is `READY`; the canonical homepage returned HTTP 200. The Worker health/config and single-user readiness checks passed. This does not close authenticated cloud acceptance or OCR/recovery gates.

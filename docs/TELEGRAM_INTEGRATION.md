@@ -37,6 +37,7 @@ Configure these variables in `apps/web-platform/backend/.env` or in Cloud/Worker
 | `TELEGRAM_CHAT_ID` | String | `""` | Supergroup ID (e.g. `-100xxxxxxxxxx`) |
 | `TELEGRAM_TOPIC_ID` | Integer | `None` | Thread ID for `#Doka-DMS` topic |
 | `TELEGRAM_ENABLED` | Boolean | `false` | Master toggle (`true` to enable delivery) |
+| `TELEGRAM_ACTION_WEBHOOK_SECRET` | Secret | empty | Required shared secret for trusted gateway requests to `POST /api/telegram/action`; send it in `X-Doka-Action-Secret`. The endpoint fails closed when unset. Never commit or expose this value. |
 
 ---
 
@@ -112,13 +113,15 @@ await notify_backup_status(
 
 ## 7. Inbound Action Handler API
 
-This project includes a dedicated inbound endpoint to receive callbacks from the Central Cloudflare Gateway:
+This project includes an inbound endpoint for trusted gateway messages. It requires `TELEGRAM_ACTION_WEBHOOK_SECRET` configured on the backend and the matching `X-Doka-Action-Secret` request header. Missing configuration returns HTTP 503; missing/invalid authentication returns HTTP 401.
 * **Endpoint:** `POST /api/telegram/action`
 * **Supported Actions:**
-  * `doka_cat_appr:<id>` -> Approves OCR category classification and moves document to `Final`
-  * `doka_quar:<id>` -> Quarantines suspicious document into `Quarantine/Suspicious`
-  * `doka_dup_archive:<id>` -> Moves redundant duplicate file to Duplicates archive
-  * `doka_dup_keep:<id>` -> Retains both documents with unique version hashes
+  * `doka_cat_appr:<id>`
+  * `doka_quar:<id>`
+  * `doka_dup_archive:<id>`
+  * `doka_dup_keep:<id>`
+
+The four document-mutation action types currently return HTTP 501 because the active Personal Local runtime does not wire them to an authorization-checked mutation service. They must not be treated as successful document changes. Implement the actual service and its ownership/approval checks before enabling these actions in production. The receipt-scan action remains available behind the shared-secret boundary.
 
 ---
 

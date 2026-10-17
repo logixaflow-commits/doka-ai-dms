@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { normalizeExternalUrl } = require('./externalUrl');
 
 let mainWindow = null;
 let backendProcess = null;
@@ -173,8 +174,13 @@ ipcMain.handle('notification:show', (event, { title, body }) => {
   }
 });
 
-ipcMain.handle('shell:openExternal', (event, url) => {
-  shell.openExternal(url);
+ipcMain.handle('shell:openExternal', async (event, rawUrl) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) {
+    throw new Error('External link request is not from the main application frame.');
+  }
+  const safeUrl = normalizeExternalUrl(rawUrl);
+  await shell.openExternal(safeUrl);
+  return { opened: true };
 });
 
 app.whenReady().then(async () => {

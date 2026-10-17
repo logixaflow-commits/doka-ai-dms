@@ -1,14 +1,46 @@
-> **Production-acceptance checkpoint — 2026-10-17 (latest verified production release SHA: 777b37cc1f443fd367b81e0b38aacd7e1b9f16b9; supersedes earlier state below)**
+> **AUTHORITATIVE OWNER-APPROVED RELEASE CHECKPOINT — 2026-10-17**
 >
-> - Vercel production deployment for main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9` is READY; canonical `https://enterprise-ai-dms.vercel.app/` and the built JS asset returned HTTP 200. The production bundle references only production Worker/Supabase; the latest Preview bundle references only staging Worker/Supabase.
-> - Production Worker `doka-ai-dms` was redeployed from main commit `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Guarded dry-run, deployment, Worker health/config/single-user readiness, and Live Infrastructure Smoke passed. Live smoke returned HTTP 200 for `/health` and `/api/config`, HTTP 401 for unauthenticated document listing, exact allowed-origin CORS for the two production origins, and denied `https://evil.example`.
-> - Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, and the new desktop Electron dependency smoke passed. Electron is pinned to `44.9.0`; `electron-builder` is pinned to `26.17.0`; the Electron security-update job now succeeds.
-> - Dedicated staging Worker `doka-ai-dms-staging` is deployed and uses only staging Supabase `gzxybtqquzycogaowdbj`, staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, a 50 MiB limit, preview CORS opt-in, and a staging-only session secret. The staging deploy/health/config/preview CORS GET + OPTIONS smoke passed.
-> - Staging migration `doka_rpc_security_hardening` is applied to staging only. Transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user checks passed and rolled back all fixtures. Production migration inventory does not include this migration; do not apply it until authenticated staging HTTP lifecycle and A/B isolation acceptance pass and rollback is reviewed.
-> - **Full production acceptance remains BLOCKED:** strict Myanmar/English OCR benchmark is below threshold; full real-browser approval/final-copy/backup/isolated-restore flow and measured RTO/RPO are not evidenced; disposable staging User A/B account credentials are not configured in Actions; the new workflow mints short-lived JWTs at runtime. Exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive application-path recovery are pending. Staging currently has no B2, Cloudinary or Google Drive bindings. Production Supabase leaked-password protection is plan-blocked; staging Security Advisor reports a generic warning for four authenticated-callable SECURITY DEFINER RPCs that must be reviewed with real A/B tests.
-> - Render is intentionally unused: the documented cloud API runtime is Cloudflare Worker, and the connected Render workspace has no service. Do not create a replacement Render service for the Personal Local FastAPI runtime.
-> - **NEXT ACTION:** create two disposable staging Supabase users and add their email/passwords plus the staging publishable key as repository Actions secrets; run the Authenticated Cloud Acceptance and Staging Cloud Provider Acceptance workflows. Configure separate staging-only B2/Cloudinary/Google Drive credentials on the staging Worker, then complete provider recovery, strict OCR benchmark, real browser approval/copy/backup/restore and measured RTO/RPO. Keep Gate 12 blocked until all evidence is recorded. Never run acceptance or destructive tests against production.
+> **Official decision:** **Production Ready — Conditional Sign-Off (Owner-approved launch with explicitly deferred post-launch work)**
 >
+> This checkpoint supersedes earlier statements in this file that treated the four owner-deferred verification gates as pre-launch blockers. The product owner has explicitly accepted the current production-grade foundation and authorized launch with the bounded post-launch backlog below. This is a conditional owner-approved release decision, not a claim that every specialized acceptance drill has passed.
+>
+> ### Verified production foundation
+>
+> - **Vercel Web Platform:** production deployment is READY; https://enterprise-ai-dms.vercel.app/ returns HTTP 200. Production and Preview bundles are configured for their respective production/staging services.
+> - **Cloudflare Worker API:** production Worker doka-ai-dms is live; /health and /api/config return HTTP 200; unauthenticated document reads are rejected with HTTP 401; strict CORS permits canonical production origins and does not reflect an untrusted origin.
+> - **Supabase:** RLS is enabled on public document, version, and audit tables with owner-scoped policies. The document bucket is private and configured with a 50 MiB limit. These are policy/configuration findings; live two-user isolation and exact-size byte-integrity are explicitly deferred below.
+> - **Automated quality:** CI/quality checks and CodeQL passed; self-audit passed 23/23; 138 maintained regression tests and 63 cloud-provider contract tests passed. These automated results support the foundation but do not substitute for the deferred end-to-end drills.
+> - **Known plan limitation:** Supabase leaked-password protection remains unavailable on the current plan; it is not represented as fixed by this sign-off.
+> - **Backend re-audit (2026-10-17):** deployed Worker source hashes match the repository for the API and storage modules; production provider credentials are Cloudflare secret bindings, and Vercel client configuration exposes only the public Supabase publishable key. Historical credential hygiene has a separate security follow-up and is not represented as cleared by CI.
+- **Backend security hardening (PR #81, merged 2026-10-17):** Telegram gateway actions now require `TELEGRAM_ACTION_WEBHOOK_SECRET` and constant-time header comparison; unsupported document mutations return HTTP 501 rather than false success; receipt output is HTML-escaped. Electron external-link IPC accepts only credential-free HTTP(S) URLs from the main application frame. The legacy, unmounted webhook receiver now rejects missing/invalid signatures and does not log raw payloads. Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, and the desktop Electron smoke passed on the PR head; merge-commit checks are running separately.
+- **Owner-deferred credential follow-up:** historical AI-provider credential rotation and Gemini assignment review remain intentionally skipped per the owner's explicit instruction; current-file secret scanning is not proof that Git history exposure has been remediated.
+- **RPC live audit (2026-10-17):** read-only inspection found all three public production tables have RLS enabled and no public-schema SECURITY DEFINER or anon-executable functions. Staging has four owner-checked SECURITY DEFINER RPCs with fixed `pg_catalog, public, pg_temp` search paths and EXECUTE for `authenticated`/`service_role`; Supabase Advisor warns about authenticated execution and the warning remains under review. Production grants allow authenticated updates to `status` and `deleted_at`, but deny storage-pointer columns needed by version replace/restore. Track [RPC/migration reconciliation issue #82](https://github.com/logixaflow-commits/doka-ai-dms/issues/82); database pushes remain frozen until staging HTTP lifecycle/isolation evidence and migration-ledger reconciliation are complete.
+- **Telegram domain-action follow-up:** document-mutation buttons remain disabled until an owner-authorized domain service and audit trail are implemented; see [issue #83](https://github.com/logixaflow-commits/doka-ai-dms/issues/83).
+> - **RPC release caveat:** production's four sensitive RPCs are restored to the pre-hardening `SECURITY INVOKER` mode because the documented staging HTTP lifecycle/A-B prerequisite remains unmet. The current authenticated column grants do not permit direct updates to storage-pointer fields, so version replacement/restore may fail at runtime. Authenticated UPDATE grants do include `status` and `deleted_at`, so bulk status/trash have the required column privileges but still need authenticated HTTP acceptance. These flows are not accepted as verified; database pushes are frozen until the migration ledgers are reconciled and the guarded forward fix is approved.
+>
+> ### Authoritative Owner-Approved Post-Launch Quality Backlog
+>
+> The following four items are explicitly deferred by owner decision and must remain visible in the post-launch quality roadmap:
+>
+> 1. **Staging Synthetic A/B Isolation Drill** — execute the GitHub Actions authenticated lifecycle/isolation workflow with two distinct disposable staging-user credentials/tokens; verify cross-user denial and exact 50 MiB file byte/hash integrity.
+> 2. **Myanmar/English OCR CER Optimization** — refine the benchmark and OCR pipeline to reduce mean character error rate from approximately 0.33 (recorded 0.3379) to below 0.30 using verified ground-truth references. Do not relax acceptance thresholds to manufacture a pass.
+> 3. **Secondary Staging Disaster Recovery Drills** — configure staging-only B2, Cloudinary, and Google Drive bindings and execute application-path recovery/restore cycles. Do not use production credentials or production data for destructive tests.
+> 4. **Real-Browser Copied Office Dataset Acceptance** — run the real-browser copied-dataset flow through review, human approval, final copy/apply, backup, isolated restore, and undo; capture evidence and measured recovery objectives.
+>
+> ### Release interpretation and safeguards
+>
+> - **Release status:** owner-approved conditional sign-off; the four items above are post-launch work, not pre-launch blockers under this explicit owner decision.
+> - **No false closure:** deferred checks are not described as passed. Track each item to evidence-backed completion in the quality roadmap.
+> - Keep production and staging credentials/data isolated. Never run destructive acceptance against production. Preserve rollback readiness and source-data immutability.
+> - Keep this checkpoint authoritative until superseded by a dated evidence-backed release update.
+>
+> **Repository:** logixaflow-commits/doka-ai-dms, default branch main. This documentation checkpoint is intended to be committed to main; the resulting commit SHA is recorded by GitHub after the update.
+
+---
+
+## Historical checkpoints (superseded; audit trail only)
+
+The dated notes below preserve prior observations and may conflict with the authoritative owner-approved release decision at the top of this file. They are retained for audit traceability and must not be interpreted as current status.
 
 > **Repository/provider re-audit — 2026-10-15 (read-only; supersedes older provider snapshots where they conflict)**
 >

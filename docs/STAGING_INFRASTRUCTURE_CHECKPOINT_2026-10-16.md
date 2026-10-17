@@ -1,30 +1,29 @@
 # Staging Infrastructure Checkpoint — 2026-10-16
 
-## Latest staging deployment and acceptance status — 2026-10-17
+## Latest staging deployment and acceptance status — 2026-10-17 (reconciled)
 
-- The dedicated `doka-ai-dms-staging` Worker is now deployed with the staging D1 database and staging Supabase project; the public `/health` and `/api/config` smoke checks pass.
-- The staging Worker receives a generated staging-only `DOKA_STORAGE_SESSION_SECRET` at deploy time. The staging publishable key is public by design and configured only in the staging Worker config; production service-role credentials are not used.
-- Staging Supabase RPC hardening migration `doka_rpc_security_hardening` was applied to staging only. Metadata confirms fixed search paths and owner checks; no-identity SQL negative tests and transaction-scoped version/restore/legacy replacement/bulk trash/cross-user rejection checks pass. All temporary fixture rows rolled back and zero persisted. Production DB has not been changed.
-- The latest guarded staging workflow passes `/health`, `/api/config`, preview-origin CORS header and `OPTIONS` preflight checks. Earlier bare automation probes returned Cloudflare edge error 1010; the final smoke passes. Real Preview UI authenticated browser flow remains required.
-- Authenticated User A/B tests, exact 50 MiB integrity, lifecycle cleanup, B2/Cloudinary/Google Drive recovery, strict OCR benchmark, full browser acceptance, and measured RTO/RPO are still pending. Gate 12 remains BLOCKED.
+- The dedicated `doka-ai-dms-staging` Worker is deployed from the same current Cloud API source as main; latest staging deploy run [39046323682](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39046323682) succeeded after a fresh staging-only session-secret rotation.
+- Live staging `/health` and `/api/config` return HTTP 200; unauthenticated `/api/documents` returns HTTP 401. Preview-origin CORS GET and browser-like OPTIONS preflight return the exact allowed origin and required Authorization/Content-Type headers; `https://evil.example` is not reflected.
+- Staging binds only staging Supabase `gzxybtqquzycogaowdbj` and D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, with a 50 MiB object limit and preview CORS opt-in. The production Supabase project and production D1 were not changed by staging RPC work.
+- Staging migration `doka_rpc_security_hardening` is applied to staging only. Transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user checks passed and rolled back all fixtures. Do not apply this migration to production until authenticated staging HTTP lifecycle and A/B isolation pass and rollback is reviewed.
+- **Full production acceptance remains BLOCKED:** authenticated User A/B lifecycle/isolation and exact 50 MiB byte-integrity are not evidenced; staging has no B2, Cloudinary or Google Drive bindings; provider recovery, strict OCR benchmark, full browser approval/copy/backup/restore, and measured RTO/RPO remain pending. Staging Security Advisor warns about four authenticated-callable SECURITY DEFINER RPCs; owner checks exist but require live A/B evidence and review.
 
 ---
-
 
 ## Latest staging RPC reconciliation — 2026-10-17
 >
 > - A read-only live comparison found the staging Supabase schema contains the three Doka tables and owner-scoped RLS, but its original bootstrap migration did not include the four RPCs present in production. Production's live RPC definitions also differ from the repository's earlier hardened migration history, so migration-history presence alone was not accepted as proof of runtime behavior.
-> - Branch `fix/staging-rpc-security-parity` adds `apps/web-platform/backend/supabase/migrations/20261017100000_doka_rpc_security_hardening.sql`. The migration was applied to staging only; the four functions now have fixed search paths and explicit `auth.uid()` ownership checks. Read-only metadata verified their security mode and grants; SQL negative checks verified all four reject missing identity.
+> - The current repository tracks `apps/web-platform/backend/supabase/migrations/20261017170027_doka_rpc_security_hardening.sql` for the hardened RPC definitions; staging's remote migration ledger retains the earlier version `20261017081123`. The migration was applied to staging only; the four functions now have fixed search paths and explicit `auth.uid()` ownership checks. Read-only metadata verified their security mode and grants; SQL negative checks verified all four reject missing identity.
 > - Staging Security Advisor now warns about four SECURITY DEFINER functions exposed to authenticated callers. This is a deliberate tradeoff for protected storage-pointer/soft-delete updates under least-privilege column grants, not a warning to ignore: the owner checks need authenticated two-user lifecycle/isolation tests before release.
-> - The staging Worker is still not deployed. Do not promote this migration to production until the staging Worker and User A/B acceptance runs pass and a rollback plan is confirmed. Gate 12 remains BLOCKED.
+> - The staging Worker is now deployed (latest guarded run [39046323682](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39046323682)); health/config and preview CORS smoke pass. Authenticated User A/B HTTP acceptance is still pending. Do not promote this migration to production until lifecycle/isolation runs pass and rollback is reviewed. Gate 12 remains BLOCKED.
 >
 > ---
 >
 
 ## Safety boundary
 
-- Production Supabase project `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`) remains `ACTIVE_HEALTHY`. It was not paused, deleted, migrated, or used for acceptance writes.
-- Production Cloudflare Worker `doka-ai-dms` and D1 database `doka-ai-dms-prod` were not changed.
+- Production Supabase project `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`) remains `ACTIVE_HEALTHY` and was not used for acceptance writes. On 2026-10-17, the RPC-hardening migration was briefly applied and then rolled back with a compensating migration because the documented staging HTTP lifecycle/A-B prerequisite was unmet. No document rows or storage objects were changed. The production-only rollback script is kept outside the shared migration directory so it cannot undo staging test setup.
+- Production Cloudflare Worker `doka-ai-dms` and D1 database `doka-ai-dms-prod` were not changed by this database RPC rollback.
 - No paid Supabase plan, paid project, or Supabase development branch was created.
 - Never point acceptance tests at the production Worker or production Supabase project.
 
