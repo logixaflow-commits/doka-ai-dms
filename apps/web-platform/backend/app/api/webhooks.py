@@ -57,7 +57,7 @@ async def receive_webhook(
             "processed": result
         }
         
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         logger.warning("Invalid JSON webhook payload for provider: %s", provider_name)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -65,7 +65,7 @@ async def receive_webhook(
         )
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         logger.error("Failed to process webhook for provider: %s", provider_name)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -158,6 +158,6 @@ async def _process_webhook(provider_name: str, webhook_data: dict, db: Session) 
         
         return False
         
-    except Exception as e:
+    except Exception:
         logger.error("Failed to process webhook data for provider: %s", provider_name)
         return False
