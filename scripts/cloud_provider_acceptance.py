@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Single-user live provider acceptance for Doka Cloud.
+"""Staging-only provider acceptance for Doka Cloud.
 
 Exercises the configured source provider (Supabase or B2), byte integrity,
 version history, trash/restore, Google Drive export verification, audit events,
-and cleanup. Designed for the currently single-user production deployment;
+and cleanup. It refuses every host except the dedicated staging Worker and
 never records access tokens, emails, signed URLs, document IDs, or file content.
 """
 from __future__ import annotations
@@ -18,6 +18,18 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
+
+
+STAGING_WORKER_HOST = "doka-ai-dms-staging.logixaflow.workers.dev"
+
+
+def assert_staging_base_url(base_url: str) -> None:
+    parsed = urlparse(base_url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if parsed.scheme != "https" or not host:
+        raise SystemExit("DOKA_CLOUD_BASE_URL must be an absolute HTTPS URL")
+    if host != STAGING_WORKER_HOST:
+        raise SystemExit("Refusing provider acceptance unless the exact dedicated staging Worker is configured.")
 
 
 def require_env(name: str) -> str:
@@ -207,8 +219,7 @@ def main() -> int:
 
     base_url = (args.base_url or require_env("DOKA_CLOUD_BASE_URL")).rstrip("/")
     parsed = urlparse(base_url)
-    if parsed.scheme != "https" or not parsed.netloc:
-        raise SystemExit("DOKA_CLOUD_BASE_URL must be an absolute HTTPS URL")
+    assert_staging_base_url(base_url)
     token = require_env("DOKA_CLOUD_USER_TOKEN")
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
