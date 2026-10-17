@@ -17,6 +17,11 @@ on:
           - supabase
           - b2
           - both
+      test_cloudinary:
+        description: "Also test the authenticated Cloudinary derivative upload/read-back/cleanup path (requires staging-only Cloudinary credentials)."
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -52,6 +57,17 @@ jobs:
           test -n "$DOKA_STAGING_USER_A_EMAIL" || { echo "::error::Missing DOKA_STAGING_USER_A_EMAIL staging secret."; exit 1; }
           test -n "$DOKA_STAGING_USER_A_PASSWORD" || { echo "::error::Missing DOKA_STAGING_USER_A_PASSWORD staging secret."; exit 1; }
 
+      - name: Validate staging-only Cloudinary secrets
+        if: inputs.test_cloudinary == true
+        env:
+          CLOUDINARY_STAGING_CLOUD_NAME: ${{ secrets.CLOUDINARY_STAGING_CLOUD_NAME }}
+          CLOUDINARY_STAGING_API_KEY: ${{ secrets.CLOUDINARY_STAGING_API_KEY }}
+          CLOUDINARY_STAGING_API_SECRET: ${{ secrets.CLOUDINARY_STAGING_API_SECRET }}
+        run: |
+          test -n "$CLOUDINARY_STAGING_CLOUD_NAME" || { echo "::error::Missing CLOUDINARY_STAGING_CLOUD_NAME staging secret."; exit 1; }
+          test -n "$CLOUDINARY_STAGING_API_KEY" || { echo "::error::Missing CLOUDINARY_STAGING_API_KEY staging secret."; exit 1; }
+          test -n "$CLOUDINARY_STAGING_API_SECRET" || { echo "::error::Missing CLOUDINARY_STAGING_API_SECRET staging secret."; exit 1; }
+
       - name: Mint fresh staging-only User A access token
         env:
           SUPABASE_STAGING_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_STAGING_PUBLISHABLE_KEY }}
@@ -79,11 +95,26 @@ jobs:
             run_provider "$DOKA_PROVIDER_CHOICE"
           fi
 
+      - name: Run Cloudinary authenticated derivative upload/read-back/cleanup acceptance
+        if: inputs.test_cloudinary == true
+        env:
+          DOKA_CLOUD_BASE_URL: https://doka-ai-dms-staging.logixaflow.workers.dev
+          CLOUDINARY_STAGING_CLOUD_NAME: ${{ secrets.CLOUDINARY_STAGING_CLOUD_NAME }}
+          CLOUDINARY_STAGING_API_KEY: ${{ secrets.CLOUDINARY_STAGING_API_KEY }}
+          CLOUDINARY_STAGING_API_SECRET: ${{ secrets.CLOUDINARY_STAGING_API_SECRET }}
+        run: |
+          mkdir -p artifacts
+          python scripts/cloudinary_derivative_acceptance.py \
+            --base-url "$DOKA_CLOUD_BASE_URL" \
+            --output artifacts/cloudinary-derivative-acceptance.json
+
       - name: Upload privacy-safe provider acceptance evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: doka-staging-provider-acceptance-evidence
-          path: artifacts/cloud-provider-*.json
+          path: |
+            artifacts/cloud-provider-*.json
+            artifacts/cloudinary-derivative-acceptance.json
           if-no-files-found: warn
           retention-days: 14
