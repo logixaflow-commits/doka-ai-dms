@@ -11,7 +11,7 @@ import time
 import uuid
 import zlib
 from pathlib import Path
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import quote, urlparse
 
 import httpx
 
