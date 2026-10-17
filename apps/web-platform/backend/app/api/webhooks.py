@@ -29,20 +29,25 @@ async def receive_webhook(
         body = await request.body()
         payload = body.decode('utf-8')
         
-        # Verify webhook signature if signature header provided
-        if x_webhook_signature:
-            api_service = get_external_api_service(db)
-            if not api_service.verify_webhook(provider_name, payload, x_webhook_signature):
-                logger.warning(f"Invalid webhook signature for provider: {provider_name}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid signature"
-                )
+        # Never accept an unsigned webhook. This legacy router is not mounted in
+        # the active runtime, but it must remain fail-closed if it is ever wired in.
+        if not x_webhook_signature:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Webhook signature required",
+            )
+        api_service = get_external_api_service(db)
+        if not api_service.verify_webhook(provider_name, payload, x_webhook_signature):
+            logger.warning("Invalid webhook signature for provider: %s", provider_name)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid signature",
+            )
         
         # Parse webhook payload
         webhook_data = json.loads(payload)
         
-        logger.info(f"Received webhook from {provider_name}: {webhook_data}")
+        logger.info("Received webhook for provider: %s", provider_name)
         
         # Process webhook based on provider type
         result = await _process_webhook(provider_name, webhook_data, db)
@@ -53,7 +58,7 @@ async def receive_webhook(
         }
         
     except json.JSONDecodeError as e:
-        logger.error(f"Invalid webhook payload: {e}")
+        logger.warning("Invalid JSON webhook payload for provider: %s", provider_name)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid JSON payload"
@@ -61,7 +66,7 @@ async def receive_webhook(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to process webhook: {e}")
+        logger.error("Failed to process webhook for provider: %s", provider_name)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process webhook"
@@ -154,5 +159,5 @@ async def _process_webhook(provider_name: str, webhook_data: dict, db: Session) 
         return False
         
     except Exception as e:
-        logger.error(f"Failed to process webhook data: {e}")
+        logger.error("Failed to process webhook data for provider: %s", provider_name)
         return False
