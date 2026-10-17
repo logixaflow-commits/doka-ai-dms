@@ -1,4 +1,4 @@
-> **Production-acceptance checkpoint — 2026-10-17 (main: 777b37cc1f443fd367b81e0b38aacd7e1b9f16b9; supersedes earlier state below)**
+> **Production-acceptance checkpoint — 2026-10-17 (latest verified production release SHA: 777b37cc1f443fd367b81e0b38aacd7e1b9f16b9; supersedes earlier state below)**
 >
 > - Vercel production deployment for main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9` is READY; canonical `https://enterprise-ai-dms.vercel.app/` and the built JS asset returned HTTP 200. The production bundle references only production Worker/Supabase; the latest Preview bundle references only staging Worker/Supabase.
 > - Production Worker `doka-ai-dms` was redeployed from main commit `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Guarded dry-run, deployment, Worker health/config/single-user readiness, and Live Infrastructure Smoke passed. Live smoke returned HTTP 200 for `/health` and `/api/config`, HTTP 401 for unauthenticated document listing, exact allowed-origin CORS for the two production origins, and denied `https://evil.example`.
