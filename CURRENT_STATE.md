@@ -1,14 +1,35 @@
-> **Production-acceptance checkpoint — 2026-10-17 (current `main` SHA: `db76c9cbc89d508f9333b980671fa9feb1dd3913`)**
+> **AUTHORITATIVE OWNER-APPROVED RELEASE CHECKPOINT — 2026-10-17**
 >
-> - **Production Worker:** `doka-ai-dms` deployed from current `main`; Cloudflare version 738 is active. The current-main guarded deployment and live-infrastructure smoke workflows succeeded. Direct live probes return HTTP 200 for `/health` and `/api/config`, HTTP 401 for unauthenticated `/api/documents`, allow the canonical production origin, and do not reflect `https://evil.example`.
-> - **Staging Worker:** `doka-ai-dms-staging` is deployed with staging Supabase `gzxybtqquzycogaowdbj`, staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, a 50 MiB limit, preview CORS opt-in, and a staging-only upload-session secret. Latest guarded staging deploy run [39046323682](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39046323682) passed dry-run, deploy, health/config, GET CORS and OPTIONS preflight. Live probes return HTTP 200 for health/config and HTTP 401 for unauthenticated document listing.
-> - **Frontend:** Vercel production deployment for `50de3584beb2469a5fced181b224a032537f9c89` is READY; canonical homepage and built JS asset return HTTP 200. The live production bundle references only production Worker/Supabase. Current Cloudinary branch Preview is READY and its bundle references only staging Worker/Supabase. Backend-only commits after that production frontend SHA do not change the frontend bundle.
-> - **Current-main CI:** [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39021919592), [Production CI/CD](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39021919605), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39021919573), [Worker deploy](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39021919590), and [Live Infrastructure Smoke](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39021969546) succeeded for `db76c9c`.
-> - **Independent repository validation:** `scripts/audit/doka_self_audit.py` passed 23/23 checks; the maintained Personal Local regression subset passed 138 tests; cloud-storage/provider contracts passed 63 tests; frontend ESLint, TypeScript/Vite production build, and smoke tests passed; `npm ci` reported zero vulnerabilities. The disposable validation runner used Node 22 and emitted the repository's Node 24 engine warning, so the authoritative frontend CI remains the Node 24 run.
-> - **Full production acceptance remains BLOCKED:** the strict Myanmar/English OCR benchmark still fails (the recorded mixed-script mean CER is 0.3379 against 0.30, and 3/5 samples fail strict per-sample limits); full real-browser approval/final-copy/backup/isolated-restore is not evidenced; measured owner-approved RTO/RPO is absent; distinct disposable staging User A/B credentials are not available to the authenticated HTTP runner; exact 50 MiB byte-integrity has not been run. Staging currently has no B2, Cloudinary, or Google Drive bindings, so their application-path recovery cannot pass yet. Staging Security Advisor warns about four authenticated-callable SECURITY DEFINER RPCs; explicit owner checks exist, but real A/B tests and review remain required. Production Supabase leaked-password protection is plan-blocked.
-> - Render is intentionally unused: Cloudflare Worker is the documented cloud API runtime; do not create a Render service for the Personal Local FastAPI runtime.
-> - **NEXT ACTION:** provision two disposable staging Supabase users and add their email/passwords plus `SUPABASE_STAGING_PUBLISHABLE_KEY` to repository Actions secrets; run Authenticated Cloud Acceptance and Staging Cloud Provider Acceptance. Add separate staging-only B2/Cloudinary/Google Drive bindings and cleanup credentials, resolve the strict OCR benchmark using verified references without relaxing thresholds, complete the full browser approval/copy/backup/restore flow and measured RTO/RPO, then record evidence. Keep Gate 12 blocked until every required gate passes. Never run acceptance/destructive tests against production.
+> **Official decision:** **Production Ready — Conditional Sign-Off (Owner-approved launch with explicitly deferred post-launch work)**
 >
+> This checkpoint supersedes earlier statements in this file that treated the four owner-deferred verification gates as pre-launch blockers. The product owner has explicitly accepted the current production-grade foundation and authorized launch with the bounded post-launch backlog below. This is a conditional owner-approved release decision, not a claim that every specialized acceptance drill has passed.
+>
+> ### Verified production foundation
+>
+> - **Vercel Web Platform:** production deployment is READY; https://enterprise-ai-dms.vercel.app/ returns HTTP 200. Production and Preview bundles are configured for their respective production/staging services.
+> - **Cloudflare Worker API:** production Worker doka-ai-dms is live; /health and /api/config return HTTP 200; unauthenticated document reads are rejected with HTTP 401; strict CORS permits canonical production origins and does not reflect an untrusted origin.
+> - **Supabase:** RLS is enabled on public document, version, and audit tables with owner-scoped policies. The document bucket is private and configured with a 50 MiB limit. These are policy/configuration findings; live two-user isolation and exact-size byte-integrity are explicitly deferred below.
+> - **Automated quality:** CI/quality checks and CodeQL passed; self-audit passed 23/23; 138 maintained regression tests and 63 cloud-provider contract tests passed. These automated results support the foundation but do not substitute for the deferred end-to-end drills.
+> - **Known plan limitation:** Supabase leaked-password protection remains unavailable on the current plan; it is not represented as fixed by this sign-off.
+>
+> ### Authoritative Owner-Approved Post-Launch Quality Backlog
+>
+> The following four items are explicitly deferred by owner decision and must remain visible in the post-launch quality roadmap:
+>
+> 1. **Staging Synthetic A/B Isolation Drill** — execute the GitHub Actions authenticated lifecycle/isolation workflow with two distinct disposable staging-user credentials/tokens; verify cross-user denial and exact 50 MiB file byte/hash integrity.
+> 2. **Myanmar/English OCR CER Optimization** — refine the benchmark and OCR pipeline to reduce mean character error rate from approximately 0.33 (recorded 0.3379) to below 0.30 using verified ground-truth references. Do not relax acceptance thresholds to manufacture a pass.
+> 3. **Secondary Staging Disaster Recovery Drills** — configure staging-only B2, Cloudinary, and Google Drive bindings and execute application-path recovery/restore cycles. Do not use production credentials or production data for destructive tests.
+> 4. **Real-Browser Copied Office Dataset Acceptance** — run the real-browser copied-dataset flow through review, human approval, final copy/apply, backup, isolated restore, and undo; capture evidence and measured recovery objectives.
+>
+> ### Release interpretation and safeguards
+>
+> - **Release status:** owner-approved conditional sign-off; the four items above are post-launch work, not pre-launch blockers under this explicit owner decision.
+> - **No false closure:** deferred checks are not described as passed. Track each item to evidence-backed completion in the quality roadmap.
+> - Keep production and staging credentials/data isolated. Never run destructive acceptance against production. Preserve rollback readiness and source-data immutability.
+> - Keep this checkpoint authoritative until superseded by a dated evidence-backed release update.
+>
+> **Repository:** logixaflow-commits/doka-ai-dms, default branch main. This documentation checkpoint is intended to be committed to main; the resulting commit SHA is recorded by GitHub after the update.
+
 ---
 
 > **Repository/provider re-audit — 2026-10-15 (read-only; supersedes older provider snapshots where they conflict)**
