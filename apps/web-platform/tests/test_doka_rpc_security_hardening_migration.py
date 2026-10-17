@@ -7,7 +7,7 @@ MIGRATION = (
     / "backend"
     / "supabase"
     / "migrations"
-    / "20261017100000_doka_rpc_security_hardening.sql"
+    / "20261017170027_doka_rpc_security_hardening.sql"
 ).read_text(encoding="utf-8")
 
 

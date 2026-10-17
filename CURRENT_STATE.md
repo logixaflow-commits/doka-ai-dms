@@ -11,6 +11,8 @@
 > - **Supabase:** RLS is enabled on public document, version, and audit tables with owner-scoped policies. The document bucket is private and configured with a 50 MiB limit. These are policy/configuration findings; live two-user isolation and exact-size byte-integrity are explicitly deferred below.
 > - **Automated quality:** CI/quality checks and CodeQL passed; self-audit passed 23/23; 138 maintained regression tests and 63 cloud-provider contract tests passed. These automated results support the foundation but do not substitute for the deferred end-to-end drills.
 > - **Known plan limitation:** Supabase leaked-password protection remains unavailable on the current plan; it is not represented as fixed by this sign-off.
+> - **Backend re-audit (2026-10-17):** deployed Worker source hashes match the repository for the API and storage modules; production provider credentials are Cloudflare secret bindings, and Vercel client configuration exposes only the public Supabase publishable key. Historical credential hygiene has a separate security follow-up and is not represented as cleared by CI.
+> - **RPC release caveat:** production's four sensitive RPCs are restored to the pre-hardening `SECURITY INVOKER` mode because the documented staging HTTP lifecycle/A-B prerequisite remains unmet. The current authenticated column grants do not permit direct updates to storage-pointer fields, so version replacement/restore and bulk trash may fail at runtime. These flows are not accepted as verified; database pushes are frozen until the migration ledgers are reconciled and the guarded forward fix is approved.
 >
 > ### Authoritative Owner-Approved Post-Launch Quality Backlog
 >
