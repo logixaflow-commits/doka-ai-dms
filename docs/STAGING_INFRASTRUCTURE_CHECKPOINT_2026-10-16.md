@@ -5,7 +5,7 @@
 - The dedicated `doka-ai-dms-staging` Worker is now deployed with the staging D1 database and staging Supabase project; the public `/health` and `/api/config` smoke checks pass.
 - The staging Worker receives a generated staging-only `DOKA_STORAGE_SESSION_SECRET` at deploy time. The staging publishable key is public by design and configured only in the staging Worker config; production service-role credentials are not used.
 - Staging Supabase RPC hardening migration `doka_rpc_security_hardening` was applied to staging only. Metadata confirms fixed search paths and owner checks; no-identity SQL negative tests pass. Production DB has not been changed.
-- Automated OPTIONS requests from GitHub Actions return Cloudflare edge error 1010 before reaching the Worker. The deployment workflow records this as inconclusive and separately checks the CORS response header on GET. Real browser preflight remains required.
+- The latest guarded staging workflow passes `/health`, `/api/config`, preview-origin CORS header and `OPTIONS` preflight checks. Earlier bare automation probes returned Cloudflare edge error 1010; the final smoke passes. Real Preview UI authenticated browser flow remains required.
 - Authenticated User A/B tests, exact 50 MiB integrity, lifecycle cleanup, B2/Cloudinary/Google Drive recovery, strict OCR benchmark, full browser acceptance, and measured RTO/RPO are still pending. Gate 12 remains BLOCKED.
 
 ---

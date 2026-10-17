@@ -2,7 +2,7 @@
 >
 > - Production Vercel homepage returned HTTP 200 and its built bundle points to the production Worker and production Supabase project only. The active Preview bundle points to the staging Worker and staging Supabase project only.
 > - Production Worker deployment and its health/config/single-user readiness checks passed.
-> - The staging Worker is deployed and its `/health` and `/api/config` checks pass. The GitHub runner's automated `OPTIONS` probe is blocked by Cloudflare edge error 1010; this is not evidence of a CORS failure inside the Worker, but it is also not a successful browser-preflight test. Preview-origin CORS header checks and real browser preflight remain required.
+> - The staging Worker is deployed and its `/health` and `/api/config` checks pass. The latest guarded staging workflow passed `/health`, `/api/config`, preview-origin CORS header, and `OPTIONS` preflight checks using browser-like request headers. Earlier bare automation probes received Cloudflare edge error 1010; the final acceptance smoke passes, while the real Preview UI's authenticated browser flow remains required.
 > - Staging-only RPC hardening was applied to staging Supabase. Production database remains unchanged pending authenticated staging lifecycle/isolation acceptance and rollback review.
 > - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, or provider-recovery gates.
 >

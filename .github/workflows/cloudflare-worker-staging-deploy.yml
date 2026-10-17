@@ -3,6 +3,12 @@ name: Cloudflare Worker Staging Deploy
 on:
   push:
     branches: [fix/staging-rpc-security-parity]
+    paths:
+      - 'apps/web-platform/backend/cloudflare_worker/**'
+      - 'apps/web-platform/backend/requirements-local.txt'
+      - 'apps/web-platform/backend/supabase/migrations/**'
+      - 'wrangler.staging.jsonc'
+      - '.github/workflows/cloudflare-worker-staging-deploy.yml'
   workflow_dispatch:
     inputs:
       confirm_nonproduction:

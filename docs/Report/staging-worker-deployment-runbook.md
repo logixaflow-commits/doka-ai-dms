@@ -33,13 +33,13 @@ Separate **authenticated acceptance** still requires two distinct disposable sta
 1. Push to the dedicated `fix/staging-rpc-security-parity` branch (or dispatch **Cloudflare Worker Staging Deploy** with `confirm_nonproduction=true`).
 2. The workflow runs a Python Worker dry-run build before deployment.
 3. It deploys only the `doka-ai-dms-staging` Worker and sets a fresh staging-only upload-session secret.
-4. It checks `/health`, `/api/config`, and the preview-origin CORS response. Cloudflare edge error 1010 on automated OPTIONS is recorded as **inconclusive**; it is not counted as a passing browser preflight.
+4. It checks `/health`, `/api/config`, preview-origin CORS response headers, and `OPTIONS` preflight. The latest guarded run passed preflight using browser-like request headers; bare automation probes may be blocked by Cloudflare edge error 1010.
 5. For authenticated acceptance, configure `DOKA_CLOUD_BASE_URL` and two distinct disposable staging-user JWTs, then run `scripts/cloud_acceptance.py` with the exact 50-MiB fixture. The runner refuses the known production Worker host.
 6. Save scrubbed evidence and only mark the release candidate ready after real A/B isolation, 50 MiB, byte-integrity, lifecycle, provider recovery and OCR tests pass.
 
 ## Current status
 
-The staging Worker has been deployed at `https://doka-ai-dms-staging.logixaflow.workers.dev`; `/health` and `/api/config` checks pass, and the Worker is bound to the staging Supabase project and staging D1. Cloudflare edge returns error 1010 for the automated OPTIONS probe from GitHub Actions; the GET CORS-policy check is being used separately and browser preflight remains unverified. Authenticated User A/B lifecycle, exact-50-MiB integrity, provider recovery, strict OCR and measured restore RTO/RPO remain pending. Keep release status blocked until those checks have passed.
+The staging Worker has been deployed at `https://doka-ai-dms-staging.logixaflow.workers.dev`; `/health` and `/api/config` checks pass, and the Worker is bound to the staging Supabase project and staging D1. The latest guarded staging run passes the GET CORS policy and OPTIONS preflight smoke. A real Preview UI authenticated browser flow is still pending. Authenticated User A/B lifecycle, exact-50-MiB integrity, provider recovery, strict OCR and measured restore RTO/RPO remain pending. Keep release status blocked until those checks have passed.
 
 ## Render decision
 
