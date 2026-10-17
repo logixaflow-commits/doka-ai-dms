@@ -55,7 +55,7 @@ If code changes without the corresponding authority document being updated, flag
 | Cloudinary | derivative/provider path | Cloud | Pending live proof | Provider credentials |
 | Backblaze B2 | >50 MiB source path | Cloud | Pending live proof | Provider credentials |
 | AI providers | optional advisory processing | Both | Disabled by default | Provider-specific keys |
-| Vercel | frontend target | Cloud | Paused | Owner authorization |
+| Vercel | frontend target | Cloud | Active production + Preview | Vercel project access; only public VITE_* configuration |
 
 ### 6.1 Local Development Ports & Verification
 
