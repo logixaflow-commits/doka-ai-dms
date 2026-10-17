@@ -87,6 +87,9 @@ def main() -> int:
             user_ids.append(user_id)
     if len(set(user_ids)) != len(user_ids):
         raise SystemExit("Staging User A and User B resolved to the same Auth identity.")
+    if args.mode == "user-a":
+        # Provider acceptance consumes the single-user alias; both names are job-scoped only.
+        tokens["DOKA_CLOUD_USER_TOKEN"] = tokens["DOKA_CLOUD_USER_A_TOKEN"]
     _write_github_env(tokens, os.getenv("GITHUB_ENV", ""))
     print("Fresh staging-only access tokens were minted, masked, and exported for this job; values were not recorded.")
     return 0
