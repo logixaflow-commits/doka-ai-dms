@@ -1,6 +1,6 @@
 > **Repository and provider reconciliation — 2026-10-17**
 >
-> - Main HEAD is `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, desktop Electron smoke, and Live Infrastructure Smoke passed.
+> - Latest verified production release SHA is `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Its exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, desktop Electron smoke, and Live Infrastructure Smoke passed.
 > - Vercel production is READY on this main SHA; canonical homepage and built JS asset return HTTP 200. Production bundle points only to production Worker/Supabase; Preview points only to staging Worker/Supabase.
 > - Production Worker was redeployed from this main SHA; guarded dry-run, health/config/single-user checks and live CORS/auth smoke passed. Untrusted origins are denied and unauthenticated document listing returns HTTP 401.
 > - Staging Supabase `gzxybtqquzycogaowdbj`, staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, and Worker `doka-ai-dms-staging` are provisioned. Staging-only RPC hardening and transaction-scoped SQL lifecycle/isolation checks passed; all fixtures rolled back. The staging Security Advisor still warns on authenticated-callable SECURITY DEFINER RPCs.
