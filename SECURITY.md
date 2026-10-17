@@ -22,7 +22,7 @@ Service-role/database secrets, AI-provider keys, Cloudinary secrets, B2 credenti
 Original source is read-only. SOURCE_ROOT and WORKING_ROOT must not overlap. Writable organization targets remain within the working root. Backup is separate. Restore is isolated. Copy/undo operations verify content integrity and do not overwrite unrelated content.
 
 ## API and browser boundary
-The browser must use the intended API boundary and must never bypass server authorization by calling privileged storage/database APIs directly. Signed URLs are short-lived. Preview accepts only explicitly safe passive formats.
+The browser must use the intended API boundary and must never bypass server authorization by calling privileged storage/database APIs directly. Signed URLs are short-lived. Preview accepts only explicitly safe passive formats. Electron's external-link IPC accepts only credential-free HTTP(S) URLs and only from the main application frame; do not add arbitrary protocol support.
 
 ## Rate limits, CORS and abuse controls
 Rate limiting and CORS remain server-side controls. Production configuration must use exact allowed origins and bounded request/resource limits. Do not weaken these controls to make a deployment pass.
