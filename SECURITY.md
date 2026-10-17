@@ -41,7 +41,8 @@ Vercel production and Preview are currently deployed. Continue to gate productio
 - Real B2, Cloudinary and Google Drive recovery evidence is pending.
 - Enterprise RBAC/tenant isolation is deferred.
 - Configured provider credentials do not prove live health.
-- The legacy webhook receiver at `apps/web-platform/backend/app/api/webhooks.py` is not mounted by the active `app/main.py` runtime. It currently accepts requests without a signature and logs the full payload; do not mount it until signature verification is mandatory and payload logging is redacted and tested.
+- The legacy webhook receiver at `apps/web-platform/backend/app/api/webhooks.py` is not mounted by the active `app/main.py` runtime. It accepts requests without a signature and logs the full payload; do not mount it until signature verification is mandatory and payload logging is redacted and tested.
+- The Telegram action endpoint requires `TELEGRAM_ACTION_WEBHOOK_SECRET` via `X-Doka-Action-Secret` and fails closed when missing. Document-mutating action types deliberately return HTTP 501 until a real authorization-checked mutation service is implemented; they must not be represented as completed actions. Configure the shared secret only in the trusted gateway and backend secret store.
 
 ## Verification checklist
 - [ ] Authenticated cloud lifecycle tested.
