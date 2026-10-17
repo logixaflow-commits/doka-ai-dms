@@ -1231,8 +1231,20 @@ async def permanently_delete_document(request: Request, document_id: str, user_i
     return {"deleted": True, "document_id": document_id, "objects_deleted": len(objects)}
 
 
-def _worker_config_value(name: str) -> str:
-    """Read a Worker binding when running on Cloudflare, with local env fallback."""
+def _worker_config_value(name: str, scope: dict | None = None) -> str:
+    """Read request-scoped Worker bindings first, then global bindings/local env."""
+    if scope is not None:
+        bindings = scope.get("env")
+        if bindings is not None:
+            try:
+                value = getattr(bindings, name)
+            except Exception:
+                try:
+                    value = bindings[name]
+                except Exception:
+                    value = None
+            if value is not None:
+                return str(value)
     if worker_env is not None:
         try:
             value = getattr(worker_env, name)
@@ -1246,14 +1258,13 @@ def _worker_config_value(name: str) -> str:
     return os.getenv(name, "")
 
 
-def _cors_origins() -> list[str]:
+def _cors_origins(scope: dict | None = None) -> list[str]:
     """Return explicit browser origins; never fall back to a wildcard."""
-    raw = _worker_config_value("DOKA_CORS_ORIGINS")
+    raw = _worker_config_value("DOKA_CORS_ORIGINS", scope)
     configured = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
     if configured:
         return configured
-    # Keep known production origins available until deployment configuration
-    # explicitly replaces them. Bearer-token auth does not require cookies.
+    # Keep known production origins available for local/legacy environments only.
     return [
         "https://enterprise-ai-dms.vercel.app",
         "https://enterprise-ai-dms-logixaflow-9859.vercel.app",
@@ -1262,21 +1273,40 @@ def _cors_origins() -> list[str]:
     ]
 
 
-def _cors_origin_regex() -> str | None:
+def _cors_origin_regex(scope: dict | None = None) -> str | None:
     """Allow Vercel branch aliases only when explicitly enabled for staging."""
-    enabled = _worker_config_value("DOKA_CORS_ALLOW_PREVIEW_ORIGINS").strip().casefold()
+    enabled = _worker_config_value("DOKA_CORS_ALLOW_PREVIEW_ORIGINS", scope).strip().casefold()
     if enabled == "true":
-        return r"^https://enterprise-ai-dms-git-[a-z0-9-]+-logixaflow-9859\.vercel\.app$"
+        return r"^https://enterprise-ai-[a-z0-9-]+-logixaflow-9859\.vercel\.app$"
     return None
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_cors_origins(),
-    allow_origin_regex=_cors_origin_regex(),
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
-)
+class WorkerAwareCORSMiddleware:
+    """Build CORS policy from the current request's Worker environment bindings.
+
+    Cloudflare Python Workers populate bindings on ASGI scope. Evaluating the
+    policy per request avoids freezing production defaults at module import and
+    keeps staging preview-origin support isolated from production.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        middleware = CORSMiddleware(
+            self.app,
+            allow_origins=_cors_origins(scope),
+            allow_origin_regex=_cors_origin_regex(scope),
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+        )
+        await middleware(scope, receive, send)
+
+
+app.add_middleware(WorkerAwareCORSMiddleware)
 
 Default = asgi.entrypoint(app)

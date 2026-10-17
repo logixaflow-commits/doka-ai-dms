@@ -1,3 +1,22 @@
+> **Latest deployment evidence — 2026-10-17**
+>
+> - Production Vercel homepage returned HTTP 200 and its built bundle points to the production Worker and production Supabase project only. The active Preview bundle points to the staging Worker and staging Supabase project only.
+> - Production Worker deployment and its health/config/single-user readiness checks passed.
+> - The staging Worker is deployed and its `/health` and `/api/config` checks pass. The latest guarded staging workflow passed `/health`, `/api/config`, preview-origin CORS header, and `OPTIONS` preflight checks using browser-like request headers. Earlier bare automation probes received Cloudflare edge error 1010; the final acceptance smoke passes, while the real Preview UI's authenticated browser flow remains required.
+> - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash, and cross-user rejection; all temporary fixtures rolled back and zero persisted. Production database remains unchanged pending authenticated HTTP lifecycle/A-B isolation acceptance and rollback review.
+> - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, or provider-recovery gates.
+>
+> ---
+>
+> **Latest release evidence — 2026-10-17**
+>
+> - PR #68 merged at `3b29176a6329298205aa896eae7864ae4a8df4d9`. Exact-HEAD Production CI/CD, Doka Quality Checks, CodeQL, Myanmar OCR Regression, Live Infrastructure Smoke, and Cloudflare Worker Production Deploy succeeded. Vercel production is `READY`; the canonical homepage returned HTTP 200. The Worker health/config and single-user readiness checks passed. This does not close authenticated cloud acceptance or OCR/recovery gates.
+> - The latest staging Supabase audit found that the four live Doka RPCs did not match the hardened migration history. The new branch `fix/staging-rpc-security-parity` adds an owner-checked RPC hardening migration; it has been applied to staging only and unauthenticated calls fail closed. Production database was not changed.
+> - Staging remains blocked on deploying `doka-ai-dms-staging` with staging-only secrets, exact-origin CORS/health verification, distinct disposable User A/B accounts, authenticated lifecycle and exact-50-MiB integrity tests, provider recovery, fresh OCR benchmark and real restore RTO/RPO evidence. Never run these tests against production.
+> - Production Supabase Security Advisor still warns that leaked-password protection is disabled; the current plan limitation is unresolved. The staging advisor has no lints before the RPC hardening migration; it now emits a generic warning for the intentionally authenticated-callable SECURITY DEFINER RPCs, which must be reviewed with their explicit ownership checks and real authenticated tests.
+>
+> ---
+>
 > **Latest production-readiness checkpoint — 2026-10-16 (post PR #65)**
 >
 > - Current `main` HEAD: `b8392362384bed478e6867dccad7fd8e5b605e5e`. PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) and PR [#65](https://github.com/logixaflow-commits/doka-ai-dms/pull/65) are merged.
@@ -54,7 +73,7 @@
 > - Vercel project `enterprise-ai-dms`: the previous deployment failed because Root Directory was configured as `web-platform/frontend`, which no longer exists. Project Root Directory was corrected to `apps/web-platform/frontend`, and the ignored-build-step command was reset to the default/null setting.
 > - A fresh preview deployment and a fresh production deployment for the same `main` SHA both reached `READY`. Production deployment: [deployment details](https://vercel.com/logixaflow-9859/enterprise-ai-dms/GL4VFqatCW29koYZMhCb84tM3RV8). Its aliases include `https://enterprise-ai-dms.vercel.app`. Vercel project API still reports `live=false`; canonical-alias HTTP smoke could not be independently confirmed by the available web/runtime network, so do not claim the whole application is fully live solely from build status.
 > - **Release remains partial, not full go-live.** Authenticated upload/download/version/audit lifecycle, two-user isolation, real B2/Google Drive/Cloudinary application-path recovery and a strict Myanmar/English OCR benchmark remain open. Run cloud acceptance only with disposable users in a dedicated acceptance environment. Do not weaken the production single-user restriction.
-> - Required owner input for cloud acceptance: add `DOKA_CLOUD_BASE_URL`, `DOKA_CLOUD_USER_A_TOKEN`, and `DOKA_CLOUD_USER_B_TOKEN` as GitHub Actions secrets/variables. A/B values must be distinct Supabase test-user **access JWTs**, not UUIDs. Never send tokens in chat.
+> - Required owner input for authenticated cloud acceptance: add `DOKA_CLOUD_USER_A_TOKEN` and `DOKA_CLOUD_USER_B_TOKEN` as GitHub Actions secrets. The workflow pins `DOKA_CLOUD_BASE_URL` to the exact staging Worker. A/B values must be distinct Supabase staging-user **access JWTs**, not UUIDs. Never send tokens in chat.
 > - OCR branch review: the current `apps/web-platform/backend` OCR code/tests and current `.github/workflows/myanmar-ocr-regression.yml` contain the useful Myanmar identifier/numeral, Unicode normalization, original-image fallback, PDFium fallback and safety-limit regressions. The old branch's Google Drive digest-property assertion is not safe to port because current main verifies the actual object bytes. The branch is stale/diverged and should be deleted only after the owner confirms no uncommitted/unique work is needed.
 >
 > ---

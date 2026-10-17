@@ -1,5 +1,16 @@
 # DOKA AI DMS — Master Roadmap & Systematic Execution Plan
 
+> **Latest production-acceptance checkpoint — 2026-10-17**
+>
+> - Production Vercel and Worker are live; the production Worker health/config/single-user smoke passed. Production bundle points to production Worker/Supabase only; Preview bundle points to staging Worker/Supabase only.
+> - The dedicated staging Worker is deployed and its health/config/preview-origin CORS GET + OPTIONS preflight smoke passes. Staging Supabase RPC hardening is applied to staging only; transaction-scoped SQL lifecycle, version restore, legacy replacement, bulk-trash and cross-user rejection checks passed with all fixtures rolled back.
+> - The latest PR branch exact-head CI (Doka Quality, backend/frontend build, CodeQL, dependency review) passed before the latest docs-only evidence update; production database has not been changed by the staging RPC migration.
+> - **Full production acceptance is still blocked:** strict Myanmar/English OCR benchmark remains FAIL without threshold relaxation; real frontend approval/final-copy/backup/isolated-restore browser acceptance is not evidenced; distinct staging User A/B JWTs are unavailable for the authenticated HTTP runner; exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive recovery are pending; measured restore RTO/RPO is pending; production Supabase leaked-password protection is plan-blocked.
+> - Do not apply the RPC migration to production or mark Gate 12 complete until authenticated staging HTTP lifecycle/isolation, provider recovery, OCR, browser and recovery evidence pass.
+>
+> ---
+>
+
 **Project Type:** Standalone AI-Powered Document Management & OCR Suite  
 **Platforms:** Vite/React Web App (`http://localhost:5173`), FastAPI Backend (`http://localhost:8002`), Electron Native Desktop App  
 **Status:** In Active Development & Local Verification  
@@ -48,7 +59,7 @@ graph TD
 ## 2. Completed Milestones & Operational Proofs
 
 - [x] **Decoupled Standalone Infrastructure:** Assigned dedicated ports (Web: 5173, API: 8002).
-- [x] **Database & ORM Stabilization:** Configured absolute SQLite path `Office_DMS/database/dms.db`, established full ORM tables (Users, Documents, Folders, Permissions, SOP Templates, Rules, Audit Logs), and seeded initial admin credentials (`admin` / `admin123`).
+- [x] **Database & ORM Stabilization:** Configured absolute SQLite path `Office_DMS/database/dms.db` and established ORM tables (Users, Documents, Folders, Permissions, SOP Templates, Rules, Audit Logs). Local bootstrap authentication requires `BOOTSTRAP_ADMIN_PASSWORD` from local environment configuration (minimum 12 characters); no hard-coded default admin password is intended, and local password authentication is disabled outside development/local/test.
 - [x] **Backend API & Health Verifications:** FastAPI `/health` endpoint operational (HTTP 200 OK). Mounted routers for documents, templates, rules, permissions, audit, and brain_soul.
 - [x] **Advanced OpenCV OCR Preprocessing:** Integrated deskewing, Contrast Limited Adaptive Histogram Equalization (CLAHE), adaptive binarization, and Tesseract TSV bounding box parser with Myanmar Unicode syllable normalization.
 - [x] **Web Frontend Platform:** Built complete document management interface, document previewer with OCR bounding box overlay, and routed admin pages (`/admin/templates`, `/admin/rules`, `/admin/permissions`, `/admin/audit`). Frontend production build verified (passing in 9.02s).
@@ -80,8 +91,8 @@ graph TD
 - [ ] **Comprehensive Audit Trail Reporting:** Provide CSV/PDF export of document access history, user login events, and administrative configuration changes.
 
 ### Priority 5: Security Hardening & E2E Validation
-- [ ] **Multi-Tenant / Multi-User Isolation Tests:** Execute automated integration tests verifying complete data isolation between regular users and administrative roles.
-- [ ] **End-to-End Cypress / Playwright Regression:** Automate cross-browser and Electron E2E test suites covering file upload, OCR extraction, search, and permission enforcement.
+- [ ] **Multi-Tenant / Multi-User Isolation Tests:** Execute authenticated staging HTTP integration tests with distinct User A/User B JWTs. Staging SQL RPC isolation checks pass, but live API isolation evidence is still required.
+- [ ] **End-to-End Cypress / Playwright Regression:** Complete the real browser approval → final copy/apply → backup → isolated restore/undo flow and capture evidence; automated smoke/build tests alone do not close this gate.
 
 ---
 
@@ -109,7 +120,7 @@ The following gates are tracked explicitly so repository checks cannot mistake i
 ### Immediate release blockers
 
 - [ ] Re-run all CI workflows after the latest remediation and resolve any remaining failures.
-- [ ] Deploy the Worker changes to staging first; verify health, API configuration, and production-vs-preview CORS behavior.
-- [ ] Run authenticated staging isolation and provider recovery acceptance with distinct staging-only credentials.
-- [ ] Verify the production Worker and Vercel deployment after controlled release; record evidence before marking Gate 12 complete.
-- [ ] Confirm GitHub Actions secrets and Render service inventory; do not claim live acceptance when credentials or a service are unavailable.
+- [x] Deploy the Worker changes to staging; staging health, API configuration, preview-origin CORS GET header and OPTIONS preflight smoke passed.
+- [ ] Run authenticated staging HTTP isolation/lifecycle acceptance with distinct User A/B JWTs, then provider recovery acceptance.
+- [ ] After the authenticated staging gates pass, apply the RPC migration through a controlled production rollout, verify Worker/Vercel/database behavior, and record rollback evidence before marking Gate 12 complete.
+- [ ] Supply distinct staging User A/B JWTs and staging-only provider credentials for the authenticated acceptance runner; Render is intentionally unused for the Cloudflare Worker runtime.

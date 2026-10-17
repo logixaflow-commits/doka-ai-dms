@@ -15,31 +15,31 @@ Date: 2026-10-16
 ## Deployment files
 
 - `wrangler.staging.jsonc`: isolated staging bindings and staging CORS origin.
-- `.github/workflows/cloudflare-worker-staging-deploy.yml`: manually dispatched staging-only deployment, guarded by a required confirmation input and refusing the main branch.
+- `.github/workflows/cloudflare-worker-staging-deploy.yml`: manually dispatched with explicit confirmation, and auto-deployed only when the dedicated `fix/staging-rpc-security-parity` branch is pushed; the production branch cannot trigger this staging workflow.
 
 ## Required GitHub Actions secrets
 
-Configure these in the repository before running the staging workflow:
+The staging deploy workflow requires only:
 
 - `CLOUDFLARE_API_TOKEN`: token scoped to the correct Cloudflare account and Workers deployment permissions.
 - `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account ID.
-- `SUPABASE_STAGING_PUBLISHABLE_KEY`: publishable key from the staging Supabase project only.
-- `DOKA_STAGING_STORAGE_SESSION_SECRET`: unique random staging-only secret of at least 32 characters.
 
-Do not use the production Supabase secret/service-role key. Do not add any secret to Vite/browser-prefixed variables or commit it to Git. The deployment workflow deliberately fails early if required secrets are missing.
+The staging Supabase publishable key is a public client key (not a service-role secret) and is configured only in `wrangler.staging.jsonc`. The workflow generates a fresh random `DOKA_STORAGE_SESSION_SECRET` inside the GitHub runner for the staging Worker; it is never printed or committed. This rotates only in-flight signed upload sessions on each staging deploy.
+
+Separate **authenticated acceptance** still requires two distinct disposable staging-user JWTs (`DOKA_CLOUD_USER_A_TOKEN`, `DOKA_CLOUD_USER_B_TOKEN`) and the exact-50-MiB fixture. The GitHub workflow pins the base URL to the exact staging Worker. Provider recovery also requires staging-only B2, Cloudinary and Google Drive credentials. Never use production user tokens, a production service-role key, or production document data.
 
 ## Deployment and verification
 
-1. Dispatch **Cloudflare Worker Staging Deploy** from this non-main branch and set `confirm_nonproduction=true`.
+1. Push to the dedicated `fix/staging-rpc-security-parity` branch (or dispatch **Cloudflare Worker Staging Deploy** with `confirm_nonproduction=true`).
 2. The workflow runs a Python Worker dry-run build before deployment.
-3. It deploys only the `doka-ai-dms-staging` Worker, then sets staging-only secrets.
-4. It checks `/health` and `/api/config` and requires staging Auth and Storage configuration to be present.
-5. After the workflow passes, configure `DOKA_CLOUD_BASE_URL` and two disposable staging-user JWTs as GitHub Actions secrets, then manually dispatch **Authenticated Cloud Acceptance** with `confirm_nonproduction=true`. The acceptance runner refuses the known production Worker host.
-6. Save scrubbed evidence and only mark the release candidate ready after user isolation, 50 MiB, byte-integrity, lifecycle, provider recovery and OCR tests pass.
+3. It deploys only the `doka-ai-dms-staging` Worker and sets a fresh staging-only upload-session secret.
+4. It checks `/health`, `/api/config`, preview-origin CORS response headers, and `OPTIONS` preflight. The latest guarded run passed preflight using browser-like request headers; bare automation probes may be blocked by Cloudflare edge error 1010.
+5. For authenticated acceptance, configure two distinct disposable staging-user JWTs in `DOKA_CLOUD_USER_A_TOKEN` and `DOKA_CLOUD_USER_B_TOKEN`, then run `scripts/cloud_acceptance.py` with the exact 50-MiB fixture. The GitHub workflow pins the base URL to staging and the runner refuses production.
+6. Save scrubbed evidence and only mark the release candidate ready after real A/B isolation, 50 MiB, byte-integrity, lifecycle, provider recovery and OCR tests pass.
 
 ## Current status
 
-The config and guarded workflow are committed to the PR branch, but the staging Worker has **not** been deployed by this commit. Deployment is pending the required repository secrets and a successful dry-run. The existence of staging databases or deployment code is not evidence of live acceptance. Keep release status blocked until live checks have passed.
+The staging Worker has been deployed at `https://doka-ai-dms-staging.logixaflow.workers.dev`; `/health`, `/api/config`, preview-origin CORS GET header and OPTIONS preflight checks pass, and the Worker is bound to the staging Supabase project and staging D1. The staging RPC migration also passed transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user checks with all temporary fixtures rolled back. The latest guarded staging run passes the GET CORS policy and OPTIONS preflight smoke. A real Preview UI authenticated browser flow is still pending. Authenticated User A/B lifecycle, exact-50-MiB integrity, provider recovery, strict OCR and measured restore RTO/RPO remain pending. Keep release status blocked until those checks have passed.
 
 ## Render decision
 
