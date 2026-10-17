@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await fetch(\`\${API_BASE_URL}/auth/login\`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -72,9 +72,9 @@ export const AuthProvider = ({ children }) => {
     const token = userToken;
     try {
       if (token) {
-        await fetch(\`\${API_BASE_URL}/auth/logout\`, {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
-          headers: { Authorization: \`Bearer \${token}\` },
+          headers: { Authorization: `Bearer ${token}` },
         });
       }
     } catch (error) {
