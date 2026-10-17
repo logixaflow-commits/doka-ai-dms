@@ -1,3 +1,14 @@
+> **Latest independent validation — 2026-10-17 (current main `db76c9c`)**
+>
+> - Self-audit: 23/23 checks passed.
+> - Maintained Personal Local regression subset: 138 passed.
+> - Cloud storage/provider contracts: 63 passed, including Cloudinary private-derivative integrity/ownership guards.
+> - Frontend ESLint, TypeScript/Vite production build, and smoke suite passed; npm install audit reported zero vulnerabilities. The disposable runner used Node 22 and warned that the project specifies Node 24; use the authoritative Node 24 CI result for release evidence.
+> - Live production and staging Worker health/config and auth-denial smoke passed; CORS allowed canonical origins, returned required preflight headers, and did not reflect an untrusted origin.
+> - These results do **not** close the strict Myanmar/English OCR benchmark, full human-approved browser copy/backup/isolated-restore flow, measured RTO/RPO, authenticated staging A/B lifecycle/isolation, exact 50 MiB byte-integrity, or live B2/Cloudinary/Google Drive recovery. Gate 12 remains blocked.
+>
+---
+
 > **Exact-HEAD reconciliation — 2026-10-14**
 >
 > Candidate SHA: `960923a656ffaf2739b21c7cebdb48c83456fef1`. Exact-SHA checks passed: [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142421), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561144243), and [Myanmar OCR Regression](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38561142780). Dependabot PR #47 was merged after its own checks passed.

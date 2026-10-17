@@ -1,14 +1,16 @@
 # DOKA AI DMS — Master Roadmap & Systematic Execution Plan
 
-> **Latest production-acceptance checkpoint — 2026-10-17**
+> **Latest production-acceptance checkpoint — 2026-10-17; current `main` SHA `db76c9cbc89d508f9333b980671fa9feb1dd3913`**
 >
-> - Vercel production is READY on main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`; canonical homepage and production JS asset return HTTP 200. Production bundle references production Worker/Supabase only; Preview bundle references staging Worker/Supabase only.
-> - Production Worker `doka-ai-dms` was redeployed from this main commit. Guarded dry-run/deploy, health/config/single-user readiness, and live CORS/auth smoke all passed. Canonical production origins are allowed; an untrusted `https://evil.example` origin is not reflected.
-> - Dedicated staging Worker and staging Supabase RPC hardening are deployed on staging only. Staging health/config/CORS smoke and transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user tests passed with all fixtures rolled back. Production database remains unchanged by the staging RPC migration.
-> - Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review and desktop Electron smoke passed. Electron `44.9.0` and electron-builder `26.17.0` are pinned; desktop dependency updates are now covered.
-> - **Full production acceptance remains blocked:** strict Myanmar/English OCR benchmark remains FAIL without threshold relaxation; real browser approval/final-copy/backup/isolated-restore acceptance is not evidenced; distinct staging User A/B JWTs are unavailable to the authenticated HTTP runner; exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive recovery are pending; measured restore RTO/RPO is pending; production Supabase leaked-password protection is plan-blocked; staging SECURITY DEFINER advisor warnings require review.
-> - Do not apply the RPC migration to production or mark Gate 12 complete until authenticated staging lifecycle/isolation, provider recovery, OCR, browser and recovery evidence pass.
+> - Production Cloudflare Worker version 738 and current-main deployment/live smoke passed. Health/config return 200, unauthenticated document listing returns 401, production CORS allows the canonical origin and does not reflect an untrusted origin.
+> - Dedicated staging Worker is deployed with staging Supabase/D1 only. Latest staging deployment run [39046323682](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39046323682) passed build/deploy/health/config/preview CORS GET and OPTIONS checks.
+> - Vercel production is READY on the latest frontend-affecting main release (SHA `50de3584beb2469a5fced181b224a032537f9c89`); live homepage and JS return 200, and the bundle uses production Worker/Supabase only. Current Preview uses staging Worker/Supabase only.
+> - Current-main Doka Quality Checks, Production CI/CD, CodeQL, Cloudflare production deploy, and Live Infrastructure Smoke passed. Independent checks: self-audit 23/23; Personal Local maintained regression 138 passed; cloud provider contracts 63 passed; frontend lint/build/smoke passed; npm install audit reported zero vulnerabilities.
+> - **Gate 12 is BLOCKED.** Strict Myanmar/English OCR accuracy fails the unchanged thresholds; full browser approval/final-copy/backup/isolated restore and measured RTO/RPO are not evidenced; authenticated staging User A/B lifecycle/isolation and exact 50 MiB byte integrity are pending; staging B2/Cloudinary/Google Drive bindings and recovery tests are absent; four staging SECURITY DEFINER advisor warnings require authenticated ownership tests/review; production leaked-password protection is plan-blocked.
+> - Render is intentionally unused; do not create a Render replacement for the Personal Local FastAPI runtime.
+> - Do not apply staging RPC changes to production or mark Gate 12 complete until every required staging, provider, OCR, browser and recovery gate has evidence and rollback is reviewed.
 >
+---
 
 ## 2. Completed Milestones & Operational Proofs
 
