@@ -30,6 +30,8 @@ Separate **authenticated acceptance** still requires two distinct disposable sta
 
 ## Deployment and verification
 
+The local cloud-isolation and provider-acceptance runners must target exactly `https://doka-ai-dms-staging.logixaflow.workers.dev`; they refuse production and arbitrary other hosts before prompting for tokens or sending requests. The provider runner defaults to this staging URL. Do not override it with the production Worker or a Vercel alias.
+
 1. Push to the dedicated `fix/staging-rpc-security-parity` branch (or dispatch **Cloudflare Worker Staging Deploy** with `confirm_nonproduction=true`).
 2. The workflow runs a Python Worker dry-run build before deployment.
 3. It deploys only the `doka-ai-dms-staging` Worker and sets a fresh staging-only upload-session secret.

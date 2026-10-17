@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Authenticated Cloud release acceptance runner.
 
-Uses the production direct-upload session contract; file bytes never pass
+Uses the staging direct-upload session contract; file bytes never pass
 through the Cloudflare Worker. Requires two pre-created Supabase users and
 access tokens. Evidence is privacy-safe and never records tokens or emails.
 """
@@ -20,7 +20,7 @@ import httpx
 
 
 MAX_SOURCE_BYTES = 50 * 1024 * 1024
-PRODUCTION_WORKER_HOST = "doka-ai-dms.logixaflow.workers.dev"
+STAGING_WORKER_HOST = "doka-ai-dms-staging.logixaflow.workers.dev"
 
 
 def _require(name: str) -> str:
@@ -30,16 +30,15 @@ def _require(name: str) -> str:
     return value
 
 
-def _assert_nonproduction_base_url(base_url: str) -> None:
-    """Reject the known production Worker before any acceptance request is sent."""
+def _assert_staging_base_url(base_url: str) -> None:
+    """Require the exact dedicated staging Worker before any acceptance request."""
     parsed = urlparse(base_url)
     host = (parsed.hostname or "").lower().rstrip(".")
     if parsed.scheme != "https" or not host:
         raise SystemExit("DOKA_CLOUD_BASE_URL must be an absolute HTTPS URL")
-    if host == PRODUCTION_WORKER_HOST:
+    if host != STAGING_WORKER_HOST:
         raise SystemExit(
-            "Refusing cloud acceptance against the production Worker. "
-            "Configure a dedicated non-production acceptance Worker URL."
+            "Refusing cloud acceptance unless the exact dedicated staging Worker is configured."
         )
 
 
@@ -211,7 +210,7 @@ def main() -> int:
         raise SystemExit("DOKA_CLOUD_EXPECTED_PROVIDER must be 'supabase' or 'b2'")
 
     base_url = (args.base_url or _require("DOKA_CLOUD_BASE_URL")).rstrip("/")
-    _assert_nonproduction_base_url(base_url)
+    _assert_staging_base_url(base_url)
     user_a = _require("DOKA_CLOUD_USER_A_TOKEN")
     user_b = _require("DOKA_CLOUD_USER_B_TOKEN")
     if user_a == user_b:

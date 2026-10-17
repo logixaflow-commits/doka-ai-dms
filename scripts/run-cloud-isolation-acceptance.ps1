@@ -23,8 +23,8 @@ $parsed = $null
 if (-not [Uri]::TryCreate($AcceptanceBaseUrl, [UriKind]::Absolute, [ref]$parsed) -or $parsed.Scheme -ne "https") {
     throw "AcceptanceBaseUrl must be an absolute HTTPS URL."
 }
-if ($parsed.Host -eq "doka-ai-dms.logixaflow.workers.dev") {
-    throw "Refusing to run two-user isolation against production. Use an isolated acceptance environment that permits both test users."
+if ($parsed.Host -ne "doka-ai-dms-staging.logixaflow.workers.dev") {
+    throw "Refusing acceptance unless AcceptanceBaseUrl is the exact dedicated staging Worker URL."
 }
 
 $userASecure = Read-Host "Enter Supabase access token for test user A (hidden input)" -AsSecureString

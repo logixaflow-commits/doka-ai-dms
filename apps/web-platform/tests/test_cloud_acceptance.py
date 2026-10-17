@@ -20,7 +20,7 @@ _download_and_verify = DOKA_CLOUD_ACCEPTANCE._download_and_verify
 _assert_cross_user_mutations_denied = DOKA_CLOUD_ACCEPTANCE._assert_cross_user_mutations_denied
 _read_fifty_mib_fixture = DOKA_CLOUD_ACCEPTANCE._read_fifty_mib_fixture
 _upload_document = DOKA_CLOUD_ACCEPTANCE._upload_document
-_assert_nonproduction_base_url = DOKA_CLOUD_ACCEPTANCE._assert_nonproduction_base_url
+_assert_staging_base_url = DOKA_CLOUD_ACCEPTANCE._assert_staging_base_url
 
 
 def test_upload_uses_signed_provider_url_and_worker_completion():
@@ -204,15 +204,52 @@ def test_cross_user_cannot_update_trash_or_permanently_delete_document():
         ("DELETE", "/api/documents/owner-doc-123/permanent"),
     ]
 
-def test_acceptance_runner_rejects_known_production_worker():
-    with pytest.raises(SystemExit, match="production Worker"):
-        _assert_nonproduction_base_url("https://doka-ai-dms.logixaflow.workers.dev")
+def test_acceptance_runner_rejects_production_and_other_hosts():
+    for url in (
+        "https://doka-ai-dms.logixaflow.workers.dev",
+        "https://enterprise-ai-dms.vercel.app",
+        "https://doka-ai-dms-staging.example.workers.dev",
+    ):
+        with pytest.raises(SystemExit, match="exact dedicated staging Worker"):
+            _assert_staging_base_url(url)
 
 
-def test_acceptance_runner_allows_https_nonproduction_worker():
-    _assert_nonproduction_base_url("https://doka-ai-dms-staging.example.workers.dev")
+def test_acceptance_runner_allows_exact_staging_worker():
+    _assert_staging_base_url("https://doka-ai-dms-staging.logixaflow.workers.dev")
 
 
 def test_acceptance_runner_rejects_non_https_base_url():
     with pytest.raises(SystemExit, match="absolute HTTPS URL"):
-        _assert_nonproduction_base_url("http://doka-ai-dms-staging.example.workers.dev")
+        _assert_staging_base_url("http://doka-ai-dms-staging.logixaflow.workers.dev")
+
+
+
+_PROVIDER_MODULE_SPEC = importlib.util.spec_from_file_location(
+    "doka_cloud_provider_acceptance",
+    Path(__file__).resolve().parents[3] / "scripts" / "cloud_provider_acceptance.py",
+)
+assert _PROVIDER_MODULE_SPEC is not None and _PROVIDER_MODULE_SPEC.loader is not None
+DOKA_CLOUD_PROVIDER_ACCEPTANCE = importlib.util.module_from_spec(_PROVIDER_MODULE_SPEC)
+_PROVIDER_MODULE_SPEC.loader.exec_module(DOKA_CLOUD_PROVIDER_ACCEPTANCE)
+
+
+def test_provider_acceptance_runner_requires_staging_worker():
+    with pytest.raises(SystemExit, match="exact dedicated staging Worker"):
+        DOKA_CLOUD_PROVIDER_ACCEPTANCE.assert_staging_base_url(
+            "https://doka-ai-dms.logixaflow.workers.dev"
+        )
+    DOKA_CLOUD_PROVIDER_ACCEPTANCE.assert_staging_base_url(
+        "https://doka-ai-dms-staging.logixaflow.workers.dev"
+    )
+
+
+
+def test_provider_powershell_wrapper_defaults_to_staging():
+    wrapper = (
+        Path(__file__).resolve().parents[3]
+        / "scripts"
+        / "run-cloud-provider-acceptance.ps1"
+    ).read_text(encoding="utf-8")
+    assert '[string]$BaseUrl = "https://doka-ai-dms-staging.logixaflow.workers.dev"' in wrapper
+    assert '$parsed.Host -ne "doka-ai-dms-staging.logixaflow.workers.dev"' in wrapper
+    assert '[string]$BaseUrl = "https://doka-ai-dms.logixaflow.workers.dev"' not in wrapper
