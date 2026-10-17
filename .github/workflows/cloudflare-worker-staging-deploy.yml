@@ -60,7 +60,8 @@ jobs:
         run: |
           python - <<'PY'
           import json
-          from urllib.error import HTTPError\n          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
 
           base = "https://doka-ai-dms-staging.logixaflow.workers.dev"
           def get(path):
