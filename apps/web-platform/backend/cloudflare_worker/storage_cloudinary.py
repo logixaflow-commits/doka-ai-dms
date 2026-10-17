@@ -5,7 +5,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from storage_contracts_compat import (
     CLOUDINARY_DERIVATIVE_MAX_BYTES,
@@ -82,6 +82,34 @@ class CloudinaryDerivativeProvider:
         payload = "&".join(f"{key}={params[key]}" for key in sorted(params) if params[key] is not None)
         return hashlib.sha256((payload + secret).encode()).hexdigest()
 
+    @staticmethod
+    def _public_id(object_key: str) -> str:
+        filename = object_key.rsplit("/", 1)[-1]
+        if "." not in filename:
+            raise ValueError("Cloudinary derivative keys require a file extension")
+        return object_key.rsplit(".", 1)[0]
+
+    @staticmethod
+    def _context_fields(value) -> dict[str, str]:
+        if isinstance(value, dict):
+            custom = value.get("custom") if isinstance(value.get("custom"), dict) else value
+            return {str(key): str(item) for key, item in custom.items() if item is not None}
+        if isinstance(value, str):
+            result: dict[str, str] = {}
+            for field in value.split("|"):
+                if "=" in field:
+                    key, item = field.split("=", 1)
+                    result[key] = item
+            return result
+        return {}
+
+    def _signed_params(self, params: dict[str, str]) -> dict[str, str]:
+        return {
+            **params,
+            "api_key": self.config.api_key,
+            "signature": self._signature(params, self.config.api_secret),
+        }
+
     async def create_upload_session(self, metadata: UploadMetadata) -> UploadSession:
         metadata.validate()
         if metadata.artifact_type.value not in {"preview", "thumbnail", "cover"}:
@@ -94,11 +122,16 @@ class CloudinaryDerivativeProvider:
             raise RuntimeError(warning)
         key = owner_object_key(metadata)
         timestamp = int(time.time())
-        public_id = key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        public_id = self._public_id(key)
+        context = (
+            f"sha256={metadata.sha256.lower()}|size_bytes={metadata.size_bytes}"
+            f"|content_type={metadata.content_type}"
+        )
         params = {
-            "context": f"sha256={metadata.sha256.lower()}",
+            "context": context,
             "public_id": public_id,
             "timestamp": str(timestamp),
+            "type": "authenticated",
         }
         signature = self._signature(params, self.config.api_secret)
         upload_url = f"https://api.cloudinary.com/v1_1/{quote(self.config.cloud_name, safe='')}/image/upload"
@@ -110,7 +143,8 @@ class CloudinaryDerivativeProvider:
                 "timestamp": str(timestamp),
                 "signature": signature,
                 "public_id": public_id,
-                "context": params["context"],
+                "context": context,
+                "type": "authenticated",
             },
         )
         return UploadSession(
@@ -118,24 +152,73 @@ class CloudinaryDerivativeProvider:
             object_ref=StorageObjectRef(self.name, key, metadata.owner_id),
             expires_at=timestamp + 3600,
             upload=upload,
-            session_id=f"cloudinary:{metadata.owner_id}:{metadata.sha256.lower()}",
+            session_id=f"cloudinary:{metadata.owner_id}:{metadata.artifact_type.value}:{hashlib.sha256(key.encode()).hexdigest()}",
         )
 
     async def complete_upload(self, session: UploadSession, client_result: dict) -> StoredObjectResult:
-        public_id = session.upload.fields["public_id"]
-        context = str(client_result.get("context") or "")
-        expected = session.object_ref.object_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
-        if public_id != expected:
+        expected_public_id = session.upload.fields["public_id"]
+        if str(client_result.get("public_id") or "") != expected_public_id:
             raise ValueError("Cloudinary completion public ID mismatch")
-        digest = context.split("sha256=", 1)[1].split("|", 1)[0].lower() if "sha256=" in context else ""
-        if len(digest) != 64:
-            raise ValueError("Cloudinary completion is missing SHA-256 metadata")
-        return StoredObjectResult(session.object_ref, int(client_result.get("bytes") or 0), digest, str(client_result.get("resource_type") or "image"))
+        if str(client_result.get("type") or "") != "authenticated":
+            raise ValueError("Cloudinary derivative must use authenticated delivery")
+        if str(client_result.get("resource_type") or "") != "image":
+            raise ValueError("Cloudinary derivative resource type mismatch")
+
+        expected_context = self._context_fields(session.upload.fields["context"])
+        received_context = self._context_fields(client_result.get("context"))
+        if any(received_context.get(key) != value for key, value in expected_context.items()):
+            raise ValueError("Cloudinary completion context mismatch")
+        digest = expected_context.get("sha256", "").lower()
+        content_type = expected_context.get("content_type", "")
+        try:
+            expected_size = int(expected_context.get("size_bytes", "0"))
+            reported_size = int(client_result.get("bytes") or 0)
+        except (TypeError, ValueError):
+            raise ValueError("Cloudinary completion has invalid size metadata") from None
+        if len(digest) != 64 or not content_type or expected_size < 1 or reported_size != expected_size:
+            raise ValueError("Cloudinary completion metadata does not match the signed upload session")
+
+        # The upload response's context is client-visible metadata, not proof of the
+        # stored bytes. Re-download the authenticated asset through a short-lived
+        # API URL and verify the actual byte count and SHA-256 before accepting it.
+        signed_url = await self.get_signed_download(session.object_ref, expires_seconds=300)
+        status, verification = await self.fetcher(
+            signed_url,
+            return_sha256=True,
+            max_bytes=CLOUDINARY_DERIVATIVE_MAX_BYTES,
+        )
+        if status >= 300 or not isinstance(verification, dict):
+            raise RuntimeError("Cloudinary derivative integrity verification failed")
+        if (
+            str(verification.get("sha256") or "").lower() != digest
+            or int(verification.get("size_bytes") or 0) != expected_size
+        ):
+            raise ValueError("Cloudinary derivative content integrity check failed")
+        return StoredObjectResult(session.object_ref, expected_size, digest, content_type)
 
     async def get_signed_download(self, object_ref: StorageObjectRef, expires_seconds: int = 300) -> str:
-        # Cloudinary delivery is identified by the opaque public ID; the API key is not included.
-        public_id = object_ref.object_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
-        return f"https://res.cloudinary.com/{quote(self.config.cloud_name, safe='')}/image/upload/{quote(public_id, safe='/')}"
+        if not 1 <= expires_seconds <= 604800:
+            raise ValueError("Signed URL expiry must be between 1 second and 7 days.")
+        prefix = f"users/{object_ref.owner_id}/derivatives/"
+        if object_ref.provider != self.name or not object_ref.object_key.startswith(prefix):
+            raise ValueError("Cloudinary derivative key is not scoped to the authenticated owner")
+        filename = object_ref.object_key.rsplit("/", 1)[-1]
+        if "." not in filename:
+            raise ValueError("Cloudinary derivative keys require a file extension")
+        public_id = self._public_id(object_ref.object_key)
+        file_format = filename.rsplit(".", 1)[-1].lower()
+        timestamp = int(time.time())
+        params = {
+            "expires_at": str(timestamp + expires_seconds),
+            "format": file_format,
+            "public_id": public_id,
+            "timestamp": str(timestamp),
+            "type": "authenticated",
+        }
+        signed = self._signed_params(params)
+        url = f"https://api.cloudinary.com/v1_1/{quote(self.config.cloud_name, safe='')}/image/download"
+        from urllib.parse import urlencode
+        return f"{url}?{urlencode(signed)}"
 
     async def delete(self, object_ref: StorageObjectRef) -> None:
         raise NotImplementedError("Cloudinary deletion is handled by the derivative lifecycle adapter")
