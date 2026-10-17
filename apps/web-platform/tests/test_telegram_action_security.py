@@ -85,3 +85,33 @@ def test_unknown_authenticated_action_is_ignored(client):
     assert response.status_code == 200
     assert response.json()["status"] == "ignored"
     telegram.send_telegram_message.assert_not_awaited()
+
+def test_receipt_fields_are_escaped_before_rendering_telegram_html(client, monkeypatch):
+    from app.services.receipt_extractor import ReceiptExtractorService
+
+    malicious = {
+        "vendor": "<script>alert(1)</script>",
+        "currency": "<b>USD</b>",
+        "total_amount": "12.5",
+        "category": "<img src=x>",
+        "date": None,
+        "confidence": 0.9,
+    }
+    monkeypatch.setattr(
+        ReceiptExtractorService,
+        "extract_financial_data",
+        classmethod(lambda cls, text: malicious),
+    )
+
+    response = client.post(
+        "/api/telegram/action",
+        headers={"X-Doka-Action-Secret": "test-only-gateway-secret"},
+        json={"action": "doka_receipt_scan", "raw_message": "receipt text"},
+    )
+
+    assert response.status_code == 200
+    sent_message = telegram.send_telegram_message.await_args.args[0]
+    assert "<script>" not in sent_message
+    assert "<img" not in sent_message
+    assert "&lt;script&gt;" in sent_message
+    assert "&lt;b&gt;USD&lt;/b&gt;" in sent_message
