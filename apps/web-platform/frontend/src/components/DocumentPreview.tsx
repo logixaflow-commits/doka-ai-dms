@@ -29,6 +29,14 @@ export interface OCRBoundingBox {
   height: number;
 }
 
+interface ReceiptData {
+  vendor?: string;
+  total_amount?: number;
+  currency?: string;
+  category?: string;
+  confidence?: number;
+}
+
 interface DocumentPreviewProps {
   documentId: string;
   documentName: string;
@@ -56,7 +64,7 @@ export default function DocumentPreview({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [extractingReceipt, setExtractingReceipt] = useState(false);
-  const [receiptData, setReceiptData] = useState<any>(null);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleExtractReceipt = async () => {
