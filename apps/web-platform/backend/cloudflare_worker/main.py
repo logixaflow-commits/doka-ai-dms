@@ -1231,13 +1231,28 @@ async def permanently_delete_document(request: Request, document_id: str, user_i
     return {"deleted": True, "document_id": document_id, "objects_deleted": len(objects)}
 
 
+def _worker_config_value(name: str) -> str:
+    """Read a Worker binding when running on Cloudflare, with local env fallback."""
+    if worker_env is not None:
+        try:
+            value = getattr(worker_env, name)
+        except Exception:
+            try:
+                value = worker_env[name]
+            except Exception:
+                value = None
+        if value is not None:
+            return str(value)
+    return os.getenv(name, "")
+
+
 def _cors_origins() -> list[str]:
     """Return explicit browser origins; never fall back to a wildcard."""
-    raw = os.getenv("DOKA_CORS_ORIGINS", "")
+    raw = _worker_config_value("DOKA_CORS_ORIGINS")
     configured = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
     if configured:
         return configured
-    # Keep known release/preview origins available until deployment configuration
+    # Keep known production origins available until deployment configuration
     # explicitly replaces them. Bearer-token auth does not require cookies.
     return [
         "https://enterprise-ai-dms.vercel.app",
@@ -1247,9 +1262,18 @@ def _cors_origins() -> list[str]:
     ]
 
 
+def _cors_origin_regex() -> str | None:
+    """Allow Vercel branch aliases only when explicitly enabled for staging."""
+    enabled = _worker_config_value("DOKA_CORS_ALLOW_PREVIEW_ORIGINS").strip().casefold()
+    if enabled == "true":
+        return r"^https://enterprise-ai-dms-git-[a-z0-9-]+-logixaflow-9859\\.vercel\\.app$"
+    return None
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins(),
+    allow_origin_regex=_cors_origin_regex(),
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
