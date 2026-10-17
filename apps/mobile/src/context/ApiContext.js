@@ -22,7 +22,7 @@ export const ApiProvider = ({ children }) => {
     instance.interceptors.request.use((config) => {
       if (userToken) {
         config.headers = config.headers || {};
-        config.headers.Authorization = \`Bearer \${userToken}\`;
+        config.headers.Authorization = `Bearer ${userToken}`;
       }
       return config;
     });
@@ -55,11 +55,11 @@ export const ApiProvider = ({ children }) => {
       return { success: true, data: response.data };
     },
     getDocument: async (documentId) => {
-      const response = await api.get(\`/documents/\${documentId}\`);
+      const response = await api.get(`/documents/${documentId}`);
       return response.data;
     },
     deleteDocument: async (documentId) => {
-      const response = await api.delete(\`/documents/\${documentId}\`);
+      const response = await api.delete(`/documents/${documentId}`);
       return response.data;
     },
     searchDocuments: async (query, filters = {}) => {
