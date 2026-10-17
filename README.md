@@ -10,7 +10,7 @@ Doka is a safety-first document management system with three editions: **Persona
 
 The original source is read-only. Doka must not use the original source as a writable organization target.
 
-Current status: the Personal Local coding foundation is implemented, but real browser acceptance, representative copied-office validation, OCR benchmarking and measured recovery evidence are still required. Cloud verification follows the Local release gates. Enterprise is deferred.
+Current release status: **Production Ready — Conditional Sign-Off (Owner-approved launch with explicitly deferred post-launch work)**. The owner accepts the current Vercel + Cloudflare Worker + Supabase RLS production foundation and the recorded automated quality results. Four specialized checks remain explicitly deferred to the post-launch quality roadmap: staging synthetic A/B isolation and exact 50 MiB integrity; Myanmar/English OCR CER optimization; staging-only B2/Cloudinary/Google Drive recovery drills; and real-browser copied-office-dataset acceptance. These items are deferred, not claimed as passed. See CURRENT_STATE.md for the authoritative checkpoint and ROADMAP.md for the backlog. Enterprise remains deferred.
 
 ## Editions
 
