@@ -25,7 +25,7 @@ Provider-level recovery was live-tested on 2026-10-08 using a disposable 22-byte
 - Tool-side duration: not exposed by the connector.
 This proves provider-level recovery behavior, not the complete Doka application adapter/release gate.
 
-The Cloudflare derivative adapter is being hardened to use owner-scoped Cloudinary public IDs and `type=authenticated`, issue time-limited signed API download URLs, and verify the actual downloaded byte count/SHA-256 before accepting an upload-complete response. Unit/contract tests cover the private delivery type, owner boundary, expiry and remote-byte verification. This is implementation evidence only; live Cloudinary application-path acceptance remains pending until separate staging Cloudinary credentials are configured and the staging acceptance runner proves upload, read-back and cleanup. Production credentials must not be copied into staging.
+The Cloudflare derivative adapter is being hardened to use owner-scoped Cloudinary public IDs and `type=authenticated`, issue time-limited signed API download URLs, and verify the actual downloaded byte count/SHA-256 before accepting an upload-complete response. Unit/contract tests cover the private delivery type, owner boundary, expiry and remote-byte verification. This is implementation evidence only; live Cloudinary application-path acceptance remains pending until separate staging Cloudinary credentials are configured and the optional `test_cloudinary=true` path in `Staging Cloud Provider Acceptance` proves upload, read-back and cleanup. Production credentials must not be copied into staging.
 
 ### Backblaze B2
 Configuration evidence (2026-10-13):
