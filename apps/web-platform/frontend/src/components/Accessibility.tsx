@@ -16,7 +16,7 @@ export function useKeyboardNavigation(
       if (items.length === 0) return;
 
       const currentIndex = currentIndexRef.current;
-      let nextIndex = currentIndex;
+      let nextIndex: number;
 
       switch (e.key) {
         case 'ArrowDown':
