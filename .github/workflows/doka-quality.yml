@@ -310,6 +310,7 @@ jobs:
           python -m py_compile
           scripts/cloud_acceptance.py
           scripts/cloud_provider_acceptance.py
+          scripts/cloudinary_derivative_acceptance.py
           scripts/staging_test_auth.py
           scripts/release_gate_check.py
           apps/web-platform/tests/test_cloud_acceptance.py
@@ -324,6 +325,7 @@ jobs:
             apps/web-platform/tests/test_cloudflare_google_drive.py \
             apps/web-platform/tests/test_cloudflare_b2_quota.py \
             apps/web-platform/tests/test_cloudflare_cloudinary_guard.py \
+            apps/web-platform/tests/test_cloudinary_derivative_acceptance.py \
             apps/web-platform/tests/test_cloudflare_storage_router.py \
             apps/web-platform/tests/test_doka_storage_metadata_migration.py \
             apps/web-platform/tests/test_doka_rpc_security_hardening_migration.py \
