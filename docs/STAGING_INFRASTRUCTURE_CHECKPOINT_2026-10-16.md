@@ -1,5 +1,15 @@
 # Staging Infrastructure Checkpoint — 2026-10-16
 
+## Latest staging RPC reconciliation — 2026-10-17
+>
+> - A read-only live comparison found the staging Supabase schema contains the three Doka tables and owner-scoped RLS, but its original bootstrap migration did not include the four RPCs present in production. Production's live RPC definitions also differ from the repository's earlier hardened migration history, so migration-history presence alone was not accepted as proof of runtime behavior.
+> - Branch `fix/staging-rpc-security-parity` adds `apps/web-platform/backend/supabase/migrations/20261017100000_doka_rpc_security_hardening.sql`. The migration was applied to staging only; the four functions now have fixed search paths and explicit `auth.uid()` ownership checks. Read-only metadata verified their security mode and grants; SQL negative checks verified all four reject missing identity.
+> - Staging Security Advisor now warns about four SECURITY DEFINER functions exposed to authenticated callers. This is a deliberate tradeoff for protected storage-pointer/soft-delete updates under least-privilege column grants, not a warning to ignore: the owner checks need authenticated two-user lifecycle/isolation tests before release.
+> - The staging Worker is still not deployed. Do not promote this migration to production until the staging Worker and User A/B acceptance runs pass and a rollback plan is confirmed. Gate 12 remains BLOCKED.
+>
+> ---
+>
+
 ## Safety boundary
 
 - Production Supabase project `Enterprise AI DMS` (`jkobgssaqifzrqfirdfu`) remains `ACTIVE_HEALTHY`. It was not paused, deleted, migrated, or used for acceptance writes.
