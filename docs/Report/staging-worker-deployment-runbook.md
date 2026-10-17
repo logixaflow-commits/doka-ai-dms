@@ -39,7 +39,7 @@ Separate **authenticated acceptance** still requires two distinct disposable sta
 
 ## Current status
 
-The staging Worker has been deployed at `https://doka-ai-dms-staging.logixaflow.workers.dev`; `/health` and `/api/config` checks pass, and the Worker is bound to the staging Supabase project and staging D1. The latest guarded staging run passes the GET CORS policy and OPTIONS preflight smoke. A real Preview UI authenticated browser flow is still pending. Authenticated User A/B lifecycle, exact-50-MiB integrity, provider recovery, strict OCR and measured restore RTO/RPO remain pending. Keep release status blocked until those checks have passed.
+The staging Worker has been deployed at `https://doka-ai-dms-staging.logixaflow.workers.dev`; `/health`, `/api/config`, preview-origin CORS GET header and OPTIONS preflight checks pass, and the Worker is bound to the staging Supabase project and staging D1. The staging RPC migration also passed transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user checks with all temporary fixtures rolled back. The latest guarded staging run passes the GET CORS policy and OPTIONS preflight smoke. A real Preview UI authenticated browser flow is still pending. Authenticated User A/B lifecycle, exact-50-MiB integrity, provider recovery, strict OCR and measured restore RTO/RPO remain pending. Keep release status blocked until those checks have passed.
 
 ## Render decision
 

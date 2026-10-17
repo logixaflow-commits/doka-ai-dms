@@ -3,7 +3,7 @@
 > - Production Vercel homepage returned HTTP 200 and its built bundle points to the production Worker and production Supabase project only. The active Preview bundle points to the staging Worker and staging Supabase project only.
 > - Production Worker deployment and its health/config/single-user readiness checks passed.
 > - The staging Worker is deployed and its `/health` and `/api/config` checks pass. The latest guarded staging workflow passed `/health`, `/api/config`, preview-origin CORS header, and `OPTIONS` preflight checks using browser-like request headers. Earlier bare automation probes received Cloudflare edge error 1010; the final acceptance smoke passes, while the real Preview UI's authenticated browser flow remains required.
-> - Staging-only RPC hardening was applied to staging Supabase. Production database remains unchanged pending authenticated staging lifecycle/isolation acceptance and rollback review.
+> - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash, and cross-user rejection; all temporary fixtures rolled back and zero persisted. Production database remains unchanged pending authenticated HTTP lifecycle/A-B isolation acceptance and rollback review.
 > - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, or provider-recovery gates.
 >
 > ---
