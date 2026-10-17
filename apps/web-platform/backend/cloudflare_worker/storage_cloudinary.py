@@ -152,7 +152,7 @@ class CloudinaryDerivativeProvider:
             object_ref=StorageObjectRef(self.name, key, metadata.owner_id),
             expires_at=timestamp + 3600,
             upload=upload,
-            session_id=f"cloudinary:{metadata.owner_id}:{metadata.sha256.lower()}",
+            session_id=f"cloudinary:{metadata.owner_id}:{metadata.artifact_type.value}:{hashlib.sha256(key.encode()).hexdigest()}",
         )
 
     async def complete_upload(self, session: UploadSession, client_result: dict) -> StoredObjectResult:
