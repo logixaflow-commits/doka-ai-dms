@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { normalizeExternalUrl } = require('./externalUrl');
 
 let mainWindow = null;
 let backendProcess = null;
@@ -177,21 +178,8 @@ ipcMain.handle('shell:openExternal', async (event, rawUrl) => {
   if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) {
     throw new Error('External link request is not from the main application frame.');
   }
-  if (typeof rawUrl !== 'string' || rawUrl.length === 0 || rawUrl.length > 2048) {
-    throw new Error('External link must be a valid URL string.');
-  }
-
-  let parsed;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    throw new Error('External link URL is invalid.');
-  }
-  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) {
-    throw new Error('Only credential-free HTTP(S) external links are allowed.');
-  }
-
-  await shell.openExternal(parsed.href);
+  const safeUrl = normalizeExternalUrl(rawUrl);
+  await shell.openExternal(safeUrl);
   return { opened: true };
 });
 
