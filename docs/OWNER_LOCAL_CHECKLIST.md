@@ -5,7 +5,7 @@
 > - Production Worker was redeployed from this main SHA; guarded dry-run, health/config/single-user checks and live CORS/auth smoke passed. Untrusted origins are denied and unauthenticated document listing returns HTTP 401.
 > - Staging Supabase `gzxybtqquzycogaowdbj`, staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, and Worker `doka-ai-dms-staging` are provisioned. Staging-only RPC hardening and transaction-scoped SQL lifecycle/isolation checks passed; all fixtures rolled back. The staging Security Advisor still warns on authenticated-callable SECURITY DEFINER RPCs.
 > - Production Supabase remains unchanged by the staging RPC migration. Its leaked-password protection warning is plan-blocked.
-> - **Still required before full acceptance:** distinct staging User A/B access JWTs for authenticated HTTP lifecycle/isolation and exact 50 MiB checks; B2/Cloudinary/Google Drive application-path recovery; strict fresh Myanmar/English OCR benchmark; real browser approval/final-copy/backup/isolated-restore; reproducible measured RTO/RPO; review and disposition of the staging RPC advisor warning. Keep Gate 12 blocked until evidence passes.
+> - **Still required before full acceptance:** two disposable staging User A/B accounts with email/password secrets plus `SUPABASE_STAGING_PUBLISHABLE_KEY` (the workflow mints ephemeral JWTs); staging-only B2/Cloudinary/Google Drive bindings and application-path recovery; strict fresh Myanmar/English OCR benchmark; real browser approval/final-copy/backup/isolated-restore; reproducible measured RTO/RPO; review and disposition of the staging RPC advisor warning. Keep Gate 12 blocked until evidence passes.
 > - Render returned no services in the connected workspace and is intentionally unused because Cloudflare Worker is the documented cloud API runtime. Never use production users, production objects, or the production Worker for acceptance.
 >
 
@@ -97,7 +97,7 @@ These cannot be fabricated or safely substituted with synthetic credentials. Use
 
 **Repository/CI-side:** code fixes, tests, documentation, self-audit, dependency/secret/lockfile workflows, unit/contract tests, test harness hardening, review of migration scripts, and CI validation.
 
-**Owner/local or authorized live-environment work:** real Tesseract benchmark and source dataset; copied-office pilot; local authenticated browser acceptance; timed restore/RTO/RPO; two real test users/tokens; B2/Drive credentials; actual provider recovery; security dashboard settings that the connector cannot change; final production sign-off.
+**Owner/local or authorized live-environment work:** real Tesseract benchmark and source dataset; copied-office pilot; local authenticated browser acceptance; timed restore/RTO/RPO; two disposable staging test users and their email/password GitHub Secrets; `SUPABASE_STAGING_PUBLISHABLE_KEY`; staging-only B2, Cloudinary and Google Drive credentials; actual provider recovery; security dashboard settings that the connector cannot change; final production sign-off.
 
 Do not commit evidence containing document content, access tokens, private URLs, personal data, or provider secrets. Prefer scrubbed JSON summaries, hashes, versions, timestamps, run IDs, and pass/fail results.
 
