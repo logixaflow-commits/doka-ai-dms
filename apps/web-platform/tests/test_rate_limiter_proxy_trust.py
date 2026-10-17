@@ -60,3 +60,10 @@ def test_invalid_proxy_addresses_fall_back_to_direct_client(monkeypatch):
     })
 
     assert limiter.get_client_ip(request) == "127.0.0.1"
+
+
+def test_request_error_logs_do_not_include_exception_details():
+    main_source = (BACKEND / "app" / "main.py").read_text(encoding="utf-8")
+
+    assert 'logger.error("Unhandled request error type={} request_id={}"' in main_source
+    assert "Unhandled request error: {exc}" not in main_source
