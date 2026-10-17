@@ -1,6 +1,8 @@
 name: Cloudflare Worker Staging Deploy
 
 on:
+  push:
+    branches: [fix/staging-rpc-security-parity]
   workflow_dispatch:
     inputs:
       confirm_nonproduction:
@@ -18,14 +20,14 @@ concurrency:
 
 jobs:
   deploy-staging:
-    if: inputs.confirm_nonproduction == true && github.ref != 'refs/heads/main'
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_nonproduction == true && github.ref != 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/fix/staging-rpc-security-parity')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      SUPABASE_STAGING_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_STAGING_PUBLISHABLE_KEY }}
-      DOKA_STAGING_STORAGE_SESSION_SECRET: ${{ secrets.DOKA_STAGING_STORAGE_SESSION_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,19 +43,19 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN secret."; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID secret."; exit 1; }
-          test -n "$SUPABASE_STAGING_PUBLISHABLE_KEY" || { echo "::error::Missing SUPABASE_STAGING_PUBLISHABLE_KEY secret."; exit 1; }
-          test -n "$DOKA_STAGING_STORAGE_SESSION_SECRET" || { echo "::error::Missing DOKA_STAGING_STORAGE_SESSION_SECRET secret."; exit 1; }
-          test "${#DOKA_STAGING_STORAGE_SESSION_SECRET}" -ge 32 || { echo "::error::Staging session secret must be at least 32 characters."; exit 1; }
       - name: Install pinned Wrangler CLI
         run: npm install --global wrangler@4.64.0
       - name: Build staging Python Worker without deploying
         run: uvx --from workers-py==1.17.7 pywrangler deploy --dry-run --config wrangler.staging.jsonc
       - name: Deploy dedicated staging Worker
         run: uvx --from workers-py==1.17.7 pywrangler deploy --config wrangler.staging.jsonc
-      - name: Set staging-only secrets
+      - name: Set fresh staging-only upload-session secret
         run: |
-          printf '%s' "$SUPABASE_STAGING_PUBLISHABLE_KEY" | wrangler secret put SUPABASE_PUBLISHABLE_KEY --config wrangler.staging.jsonc
-          printf '%s' "$DOKA_STAGING_STORAGE_SESSION_SECRET" | wrangler secret put DOKA_STORAGE_SESSION_SECRET --config wrangler.staging.jsonc
+          # Staging only: do not persist this value in GitHub logs or repository variables.
+          # Rotation invalidates only in-flight signed upload sessions on this non-production Worker.
+          secret="$(openssl rand -hex 32)"
+          test "${#secret}" -ge 32
+          printf '%s' "$secret" | wrangler secret put DOKA_STORAGE_SESSION_SECRET --config wrangler.staging.jsonc
       - name: Verify staging health and configuration
         run: |
           python - <<'PY'
