@@ -1,0 +1,89 @@
+name: Staging Cloud Provider Acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_nonproduction:
+        description: "Confirm this run targets the dedicated staging Worker and disposable staging data only."
+        type: boolean
+        required: true
+        default: false
+      provider:
+        description: "Source provider to exercise; B2 also exercises the >50 MiB route and Google Drive export."
+        type: choice
+        required: true
+        default: both
+        options:
+          - supabase
+          - b2
+          - both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doka-staging-provider-acceptance
+  cancel-in-progress: false
+
+jobs:
+  provider-acceptance:
+    if: inputs.confirm_nonproduction == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install acceptance runner dependency
+        run: python -m pip install "httpx>=0.28,<1.0"
+
+      - name: Validate disposable staging User A secrets
+        env:
+          SUPABASE_STAGING_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_STAGING_PUBLISHABLE_KEY }}
+          DOKA_STAGING_USER_A_EMAIL: ${{ secrets.DOKA_STAGING_USER_A_EMAIL }}
+          DOKA_STAGING_USER_A_PASSWORD: ${{ secrets.DOKA_STAGING_USER_A_PASSWORD }}
+        run: |
+          test -n "$SUPABASE_STAGING_PUBLISHABLE_KEY" || { echo "::error::Missing SUPABASE_STAGING_PUBLISHABLE_KEY staging secret."; exit 1; }
+          test -n "$DOKA_STAGING_USER_A_EMAIL" || { echo "::error::Missing DOKA_STAGING_USER_A_EMAIL staging secret."; exit 1; }
+          test -n "$DOKA_STAGING_USER_A_PASSWORD" || { echo "::error::Missing DOKA_STAGING_USER_A_PASSWORD staging secret."; exit 1; }
+
+      - name: Mint fresh staging-only User A access token
+        env:
+          SUPABASE_STAGING_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_STAGING_PUBLISHABLE_KEY }}
+          DOKA_STAGING_USER_A_EMAIL: ${{ secrets.DOKA_STAGING_USER_A_EMAIL }}
+          DOKA_STAGING_USER_A_PASSWORD: ${{ secrets.DOKA_STAGING_USER_A_PASSWORD }}
+        run: python scripts/staging_test_auth.py --mode user-a
+
+      - name: Run live provider lifecycle and Google Drive export acceptance
+        env:
+          DOKA_CLOUD_BASE_URL: https://doka-ai-dms-staging.logixaflow.workers.dev
+          DOKA_PROVIDER_CHOICE: ${{ inputs.provider }}
+        run: |
+          mkdir -p artifacts
+          run_provider() {
+            provider="$1"
+            python scripts/cloud_provider_acceptance.py \
+              --base-url "$DOKA_CLOUD_BASE_URL" \
+              --provider "$provider" \
+              --output "artifacts/cloud-provider-$provider.json"
+          }
+          if [ "$DOKA_PROVIDER_CHOICE" = "both" ]; then
+            run_provider b2
+            run_provider supabase
+          else
+            run_provider "$DOKA_PROVIDER_CHOICE"
+          fi
+
+      - name: Upload privacy-safe provider acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: doka-staging-provider-acceptance-evidence
+          path: artifacts/cloud-provider-*.json
+          if-no-files-found: warn
+          retention-days: 14

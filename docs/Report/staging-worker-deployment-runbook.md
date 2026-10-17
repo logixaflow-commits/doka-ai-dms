@@ -26,7 +26,7 @@ The staging deploy workflow requires only:
 
 The staging Supabase publishable key is a public client key (not a service-role secret) and is configured only in `wrangler.staging.jsonc`. The workflow generates a fresh random `DOKA_STORAGE_SESSION_SECRET` inside the GitHub runner for the staging Worker; it is never printed or committed. This rotates only in-flight signed upload sessions on each staging deploy.
 
-Separate **authenticated acceptance** still requires two distinct disposable staging-user JWTs (`DOKA_CLOUD_USER_A_TOKEN`, `DOKA_CLOUD_USER_B_TOKEN`) and the exact-50-MiB fixture. The GitHub workflow pins the base URL to the exact staging Worker. Provider recovery also requires staging-only B2, Cloudinary and Google Drive credentials. Never use production user tokens, a production service-role key, or production document data.
+Separate **authenticated acceptance** requires two disposable staging Supabase users and these GitHub Actions secrets: `SUPABASE_STAGING_PUBLISHABLE_KEY`, `DOKA_STAGING_USER_A_EMAIL`, `DOKA_STAGING_USER_A_PASSWORD`, `DOKA_STAGING_USER_B_EMAIL`, and `DOKA_STAGING_USER_B_PASSWORD`. The workflow logs in to the exact staging Supabase project at run time, masks fresh short-lived JWTs, and pins the API base URL to the exact staging Worker. Do not store expiring JWTs as long-lived secrets. Provider recovery additionally requires staging-only Worker bindings for B2 (`B2_ENDPOINT`, `B2_BUCKET`, `B2_KEY_ID`, `B2_APPLICATION_KEY`, `B2_REGION`, `B2_QUOTA_BYTES`), Cloudinary (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, optional `CLOUDINARY_LOW_CREDIT_THRESHOLD`), and Google Drive (`GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET`, `GOOGLE_DRIVE_REFRESH_TOKEN`, `GOOGLE_DRIVE_FOLDER_ID`). Never copy production provider credentials into staging or use production document data.
 
 ## Deployment and verification
 
@@ -36,8 +36,9 @@ The local cloud-isolation and provider-acceptance runners must target exactly `h
 2. The workflow runs a Python Worker dry-run build before deployment.
 3. It deploys only the `doka-ai-dms-staging` Worker and sets a fresh staging-only upload-session secret.
 4. It checks `/health`, `/api/config`, preview-origin CORS response headers, and `OPTIONS` preflight. The latest guarded run passed preflight using browser-like request headers; bare automation probes may be blocked by Cloudflare edge error 1010.
-5. For authenticated acceptance, configure two distinct disposable staging-user JWTs in `DOKA_CLOUD_USER_A_TOKEN` and `DOKA_CLOUD_USER_B_TOKEN`, then run `scripts/cloud_acceptance.py` with the exact 50-MiB fixture. The GitHub workflow pins the base URL to staging and the runner refuses production.
-6. Save scrubbed evidence and only mark the release candidate ready after real A/B isolation, 50 MiB, byte-integrity, lifecycle, provider recovery and OCR tests pass.
+5. In GitHub Actions, run **Authenticated Cloud Acceptance** with `confirm_nonproduction=true` and the required provider selection. It mints fresh staging User A/B JWTs, exercises lifecycle/isolation, and uploads/downloads an exact 50 MiB fixture. The runner refuses every host except the exact staging Worker.
+6. Run **Staging Cloud Provider Acceptance** with `confirm_nonproduction=true` after staging-only B2/Google Drive credentials are configured. It tests B2 (>50 MiB), Supabase version transition, download integrity, Google Drive export, trash/restore, audit events and cleanup.
+7. Save scrubbed evidence and only mark the release candidate ready after real A/B isolation, 50 MiB, byte-integrity, lifecycle, provider recovery and OCR tests pass.
 
 ## Current status
 

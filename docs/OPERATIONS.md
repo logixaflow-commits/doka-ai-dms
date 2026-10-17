@@ -6,7 +6,7 @@
 > - Supabase production and staging both report `ACTIVE_HEALTHY`. Production Security Advisor warns that leaked-password protection is disabled (plan-blocked). Staging Security Advisor warns on four authenticated-callable SECURITY DEFINER RPCs; explicit owner checks exist, but real authenticated A/B tests and review remain required.
 > - Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review and desktop Electron smoke passed. Electron and electron-builder are pinned and desktop dependency updates are covered.
 > - Render `My Workspace` has no services and is intentionally unused; the documented cloud API runtime is Cloudflare Worker, not the Personal Local FastAPI entry point.
-> - **Full production acceptance remains blocked** on strict Myanmar/English OCR benchmark, real browser approval/copy/backup/isolated restore, measured RTO/RPO, authenticated staging A/B lifecycle/isolation, exact 50 MiB byte integrity, B2/Cloudinary/Google Drive application-path recovery, and review of the staging RPC advisor warning.
+> - **Full production acceptance remains blocked** on strict Myanmar/English OCR benchmark, real browser approval/copy/backup/isolated restore, measured RTO/RPO, authenticated staging A/B lifecycle/isolation, exact 50 MiB byte integrity, staging-only B2/Cloudinary/Google Drive bindings and application-path recovery, and review of the staging RPC advisor warning.
 
 # Doka Operations
 

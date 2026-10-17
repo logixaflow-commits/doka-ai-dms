@@ -310,8 +310,10 @@ jobs:
           python -m py_compile
           scripts/cloud_acceptance.py
           scripts/cloud_provider_acceptance.py
+          scripts/staging_test_auth.py
           scripts/release_gate_check.py
           apps/web-platform/tests/test_cloud_acceptance.py
+          apps/web-platform/tests/test_staging_test_auth.py
           apps/web-platform/tests/test_release_gate_check.py
       - name: Run cloud storage provider contracts
         run: |
@@ -333,6 +335,7 @@ jobs:
             apps/web-platform/tests/test_vector_search_ocr.py \
             apps/web-platform/tests/test_release_gate_check.py \
             apps/web-platform/tests/test_cloud_acceptance.py \
+            apps/web-platform/tests/test_staging_test_auth.py \
             apps/web-platform/tests/test_d1_migrations.py
 
   symlink-security:
