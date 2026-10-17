@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-from urllib.parse import parse_qs, urlparse
+import importlib.util
+from pathlib import Path
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
 
-from scripts.cloudinary_derivative_acceptance import (
-    STAGING_WORKER_HOST,
-    _assert_staging_base_url,
-    _cleanup_cloudinary_asset,
-    _cloudinary_signature,
-    _png_1x1,
-)
+_SCRIPT = Path(__file__).resolve().parents[3] / "scripts" / "cloudinary_derivative_acceptance.py"
+_SPEC = importlib.util.spec_from_file_location("doka_cloudinary_derivative_acceptance", _SCRIPT)
+assert _SPEC is not None and _SPEC.loader is not None
+ACCEPTANCE = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(ACCEPTANCE)
+
+STAGING_WORKER_HOST = ACCEPTANCE.STAGING_WORKER_HOST
+_assert_staging_base_url = ACCEPTANCE._assert_staging_base_url
+_cleanup_cloudinary_asset = ACCEPTANCE._cleanup_cloudinary_asset
+_cloudinary_signature = ACCEPTANCE._cloudinary_signature
+_png_1x1 = ACCEPTANCE._png_1x1
 
 
 def test_cloudinary_acceptance_runner_is_pinned_to_staging_worker():
