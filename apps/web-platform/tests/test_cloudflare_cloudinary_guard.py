@@ -93,7 +93,6 @@ def test_cloudinary_derivatives_are_owner_scoped_authenticated_and_time_limited(
 
 
 def test_cloudinary_completion_verifies_actual_downloaded_bytes():
-    from urllib.parse import parse_qs, urlparse
 
     payload = b"verified-thumbnail" * 32
     digest = hashlib.sha256(payload).hexdigest()
