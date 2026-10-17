@@ -75,6 +75,6 @@ The following gates are tracked explicitly so repository checks cannot mistake i
 
 - [ ] Re-run all CI workflows after the latest remediation and resolve any remaining failures.
 - [x] Deploy the Worker changes to staging; staging health, API configuration, preview-origin CORS GET header and OPTIONS preflight smoke passed.
-- [ ] Run authenticated staging HTTP isolation/lifecycle acceptance with distinct User A/B JWTs, then provider recovery acceptance.
+- [ ] Create two disposable staging Supabase users, add their email/password and staging publishable-key secrets, then run Authenticated Cloud Acceptance. Run Staging Cloud Provider Acceptance after configuring staging-only B2 and Google Drive credentials.
 - [ ] After the authenticated staging gates pass, apply the RPC migration through a controlled production rollout, verify Worker/Vercel/database behavior, and record rollback evidence before marking Gate 12 complete.
-- [ ] Supply distinct staging User A/B JWTs and staging-only provider credentials for the authenticated acceptance runner; Render is intentionally unused for the Cloudflare Worker runtime.
+- [ ] Supply disposable staging User A/B email/password secrets and `SUPABASE_STAGING_PUBLISHABLE_KEY` (the workflow mints fresh JWTs). Configure staging-only B2, Cloudinary and Google Drive bindings on the staging Worker; Render is intentionally unused for the Cloudflare Worker runtime.
