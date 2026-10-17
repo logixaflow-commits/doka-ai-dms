@@ -2,22 +2,13 @@
 
 > **Latest production-acceptance checkpoint — 2026-10-17**
 >
-> - Production Vercel and Worker are live; the production Worker health/config/single-user smoke passed. Production bundle points to production Worker/Supabase only; Preview bundle points to staging Worker/Supabase only.
-> - The dedicated staging Worker is deployed and its health/config/preview-origin CORS GET + OPTIONS preflight smoke passes. Staging Supabase RPC hardening is applied to staging only; transaction-scoped SQL lifecycle, version restore, legacy replacement, bulk-trash and cross-user rejection checks passed with all fixtures rolled back.
-> - The latest PR branch exact-head CI (Doka Quality, backend/frontend build, CodeQL, dependency review) passed before the latest docs-only evidence update; production database has not been changed by the staging RPC migration.
-> - **Full production acceptance is still blocked:** strict Myanmar/English OCR benchmark remains FAIL without threshold relaxation; real frontend approval/final-copy/backup/isolated-restore browser acceptance is not evidenced; distinct staging User A/B JWTs are unavailable for the authenticated HTTP runner; exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive recovery are pending; measured restore RTO/RPO is pending; production Supabase leaked-password protection is plan-blocked.
-> - Do not apply the RPC migration to production or mark Gate 12 complete until authenticated staging HTTP lifecycle/isolation, provider recovery, OCR, browser and recovery evidence pass.
+> - Vercel production is READY on current main `ca38d52a3155785e83720edcb18e3de9497a0b86`; the canonical homepage returns HTTP 200. Preview and production bundles must remain isolated to their matching staging/production services.
+> - Production Worker health/config/single-user smoke passed on deployed source `3b29176a6329298205aa896eae7864ae4a8df4d9`. The request-scoped CORS fix now in main `ca38d52` has not yet been deployed to production because its push workflow was intentionally gated by `[deploy-worker]`; the current follow-up PR is preparing a controlled, verified rollout.
+> - The dedicated staging Worker is deployed and bound to staging Supabase + staging D1, with a staging-only session secret and the 50 MiB boundary. Staging health/config/preview-origin CORS GET + OPTIONS smoke passed. Staging RPC hardening is applied to staging only; transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user checks passed with all fixtures rolled back.
+> - Latest main Doka Quality Checks, Production CI/CD, and CodeQL passed. The separate Electron Dependabot update failed because `apps/desktop/package.json` lacked a lockfile and used a floating version range; the current follow-up pins Electron and enables desktop dependency updates.
+> - **Full production acceptance is still blocked:** strict Myanmar/English OCR benchmark remains FAIL without threshold relaxation; real browser approval/final-copy/backup/isolated-restore acceptance is not evidenced; distinct staging User A/B JWTs are unavailable to the authenticated HTTP runner; exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive recovery are pending; measured restore RTO/RPO is pending; production Supabase leaked-password protection is plan-blocked; staging SECURITY DEFINER advisor warnings require review.
+> - Do not apply the RPC migration to production or mark Gate 12 complete until authenticated staging lifecycle/isolation, provider recovery, OCR, browser and recovery evidence pass.
 >
-> ---
->
-
-**Project Type:** Standalone AI-Powered Document Management & OCR Suite  
-**Platforms:** Vite/React Web App (`http://localhost:5173`), FastAPI Backend (`http://localhost:8002`), Electron Native Desktop App  
-**Status:** In Active Development & Local Verification  
-**Language Specification:** English (Standard Technical Documentation)  
-**Last Updated:** October 2026  
-
----
 
 ## 1. System Architecture & Topology
 
