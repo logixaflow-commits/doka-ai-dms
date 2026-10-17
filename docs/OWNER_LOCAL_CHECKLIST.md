@@ -1,13 +1,12 @@
-> **Repository and provider reconciliation — 2026-10-15**
+> **Repository and provider reconciliation — 2026-10-17**
 >
-> - Latest observed `main` SHA is `6c1fe995c807382cbe3c1000e893e678d621f83b`; verify exact-SHA CI rather than reusing earlier green runs.
-> - Vercel production remains inactive/canceled; do not reactivate without owner approval and all release gates.
-> - Render returned no services in the connected workspace; owner must confirm the intended workspace/service.
-> - Supabase is healthy and its latest listed migration is reconciled, but two-user isolation remains pending.
-> - Cloudflare currently lists zero zones; Worker script exists but route/deployment metadata needs reconciliation.
-> - See [docs/REPOSITORY_INFRA_AUDIT_2026-10-15.md](REPOSITORY_INFRA_AUDIT_2026-10-15.md) for the complete prioritized checklist. Use disposable users/objects; never share tokens or secrets.
-
----
+> - Main HEAD is `ca38d52a3155785e83720edcb18e3de9497a0b86`. Exact-HEAD Doka Quality Checks, Production CI/CD and CodeQL passed. The separate desktop Electron Dependabot security-update job failed because no lockfile or pinned dependency requirement was present; follow-up pins Electron and enables desktop dependency updates.
+> - Vercel production for main is READY and the canonical homepage returns HTTP 200. Production Worker health/config/single-user smoke passed on deployed source `3b29176a6329298205aa896eae7864ae4a8df4d9`; the request-scoped CORS fix now in main still needs its guarded production rollout.
+> - Staging Supabase `gzxybtqquzycogaowdbj`, staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, and Worker `doka-ai-dms-staging` are provisioned. Staging-only RPC hardening and transaction-scoped SQL lifecycle/isolation checks passed; all fixtures rolled back. The staging Security Advisor still warns on authenticated-callable SECURITY DEFINER RPCs.
+> - Production Supabase remains unchanged by the staging RPC migration. Its leaked-password protection warning is plan-blocked.
+> - **Still required before full acceptance:** disposable staging User A/B access JWTs for authenticated HTTP lifecycle/isolation and exact 50 MiB checks; B2/Cloudinary/Google Drive application-path recovery; strict fresh Myanmar/English OCR benchmark; real browser approval/final-copy/backup/isolated-restore; reproducible measured RTO/RPO; review and disposition of the staging RPC advisor warning. Keep Gate 12 blocked until evidence passes.
+> - Render returned no services in the connected workspace and is intentionally unused because Cloudflare Worker is the documented cloud API runtime. Never use production users, production objects, or the production Worker for acceptance.
+>
 
 > **Current handoff order — 2026-10-14**
 >
