@@ -21,7 +21,7 @@ def test_staging_auth_mints_token_only_from_exact_staging_project():
         return httpx.Response(
             200,
             json={
-                "access_token": "a" * 120 + ".b" * 2 + ".c" * 2,
+                "access_token": "a" * 120 + "." + "b" * 30 + "." + "c" * 30,
                 "expires_in": 3600,
                 "user": {"id": "staging-user-a"},
             },
