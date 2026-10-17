@@ -1,13 +1,12 @@
-> **Provider readiness snapshot — 2026-10-17**
+> **Provider readiness snapshot — 2026-10-17 (current main `db76c9c`)**
 >
-> - Vercel production for main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9` is READY; canonical homepage and built JS asset returned HTTP 200. Production and Preview bundles are verified to reference only their matching Worker/Supabase environments.
-> - Cloudflare production Worker `doka-ai-dms` was redeployed from the same main commit. Guarded deploy, health/config/single-user checks and live smoke passed. Live smoke confirms production origins are allowed, untrusted origin is denied, and unauthenticated document listing returns HTTP 401.
-> - Cloudflare staging Worker and staging D1/Supabase bindings are present. Staging health/config/preview-origin CORS GET + OPTIONS smoke passed; staging RPC hardening remains staging-only.
-> - Supabase production and staging both report `ACTIVE_HEALTHY`. Production Security Advisor warns that leaked-password protection is disabled (plan-blocked). Staging Security Advisor warns on four authenticated-callable SECURITY DEFINER RPCs; explicit owner checks exist, but real authenticated A/B tests and review remain required.
-> - Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review and desktop Electron smoke passed. Electron and electron-builder are pinned and desktop dependency updates are covered.
-> - Render `My Workspace` has no services and is intentionally unused; the documented cloud API runtime is Cloudflare Worker, not the Personal Local FastAPI entry point.
-> - **Full production acceptance remains blocked** on strict Myanmar/English OCR benchmark, real browser approval/copy/backup/isolated restore, measured RTO/RPO, authenticated staging A/B lifecycle/isolation, exact 50 MiB byte integrity, staging-only B2/Cloudinary/Google Drive bindings and application-path recovery, and review of the staging RPC advisor warning.
-
+> - Production Worker version 738 is live; health/config, unauthenticated-denial, allowed-origin CORS and untrusted-origin rejection passed. Current-main Production CI/CD, Doka Quality Checks, CodeQL, Worker deployment and live infrastructure smoke passed.
+> - Dedicated staging Worker is deployed with staging-only Supabase/D1 and session secret. Staging health/config, preview-origin CORS GET and OPTIONS preflight passed. Staging currently has no B2, Cloudinary or Google Drive bindings.
+> - Vercel production frontend is READY and the canonical homepage/JS return HTTP 200; production bundle points only at production Worker/Supabase. Preview points only at staging.
+> - Independent checks: repository self-audit 23/23; Personal Local regression subset 138 passed; cloud-storage/provider contract tests 63 passed; frontend lint/build/smoke passed; npm install audit reported zero vulnerabilities.
+> - **Full production acceptance remains blocked** on strict Myanmar/English OCR accuracy, full browser approval/final-copy/backup/isolated restore, measured RTO/RPO, authenticated staging A/B lifecycle/isolation, exact 50 MiB byte integrity, staging-only provider bindings/recovery, review of four staging SECURITY DEFINER advisor warnings, and the plan-blocked production leaked-password-protection setting.
+> - Render is intentionally unused. The cloud API runtime is Cloudflare Worker, not the Personal Local FastAPI entry point.
+>
 # Doka Operations
 
 > **Owner:** How is Doka operated, monitored and kept within its security/recovery boundaries?

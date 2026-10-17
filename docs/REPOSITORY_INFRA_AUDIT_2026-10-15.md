@@ -1,3 +1,13 @@
+> **Latest infrastructure reconciliation — 2026-10-17 (current main `db76c9c`)**
+>
+> - Production Worker version 738 and current-main guarded deploy/live smoke passed; staging Worker was redeployed by [run 39046323682](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/39046323682). Both health/config endpoints return 200; unauthenticated document listing returns 401; allowed CORS origin is exact and untrusted origins are not reflected.
+> - Vercel production frontend deployment `50de3584beb2469a5fced181b224a032537f9c89` is READY; homepage and JS return 200. Production bundle references production Worker/Supabase only; Preview bundle references staging Worker/Supabase only.
+> - Current-main Doka Quality Checks, Production CI/CD, CodeQL, Worker deploy and Live Infrastructure Smoke passed. Independent validation passed self-audit 23/23, 138 maintained regression tests, 63 cloud storage/provider contracts, and frontend lint/build/smoke.
+> - Production has B2/Cloudinary/Google Drive binding metadata; staging has none of those provider bindings. Binding presence does not prove provider values work. Staging User A/B authenticated HTTP tests, exact 50 MiB byte integrity, provider recovery, strict OCR, full browser approval/copy/restore, and measured RTO/RPO remain pending. Four staging SECURITY DEFINER advisor warnings require authenticated review; production leaked-password protection remains plan-blocked.
+> - Render is intentionally unused for the cloud API. Do not create a replacement service for Personal Local FastAPI.
+>
+---
+
 > **Latest infrastructure and acceptance checkpoint — 2026-10-17 (supersedes older snapshots below)**
 >
 > - Latest verified production release SHA: `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, desktop Electron smoke and Live Infrastructure Smoke passed.
