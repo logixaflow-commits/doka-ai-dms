@@ -1,10 +1,10 @@
 > **Latest deployment evidence — 2026-10-17**
 >
-> - Production Vercel homepage returned HTTP 200 and its built bundle points to the production Worker and production Supabase project only. The active Preview bundle points to the staging Worker and staging Supabase project only.
-> - Production Worker deployment and its health/config/single-user readiness checks passed.
-> - The staging Worker is deployed and its `/health` and `/api/config` checks pass. The latest guarded staging workflow passed `/health`, `/api/config`, preview-origin CORS header, and `OPTIONS` preflight checks using browser-like request headers. Earlier bare automation probes received Cloudflare edge error 1010; the final acceptance smoke passes, while the real Preview UI's authenticated browser flow remains required.
-> - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash, and cross-user rejection; all temporary fixtures rolled back and zero persisted. Production database remains unchanged pending authenticated HTTP lifecycle/A-B isolation acceptance and rollback review.
-> - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, or provider-recovery gates.
+> - Vercel production deployment for main `ca38d52a3155785e83720edcb18e3de9497a0b86` is READY and the canonical homepage returns HTTP 200. The current Preview bundle uses staging Worker/Supabase; production bundle uses production Worker/Supabase.
+> - Production Worker health/config/single-user checks passed on deployed source `3b29176a6329298205aa896eae7864ae4a8df4d9`. The tested request-scoped CORS middleware present in main `ca38d52` has not yet been deployed to production because the guarded push workflow requires `[deploy-worker]`; the follow-up PR includes a Worker-path change to trigger the controlled deployment after exact-head checks pass.
+> - The staging Worker is deployed and bound to staging Supabase/D1, with a staging-only session secret. Guarded staging health/config, preview-origin CORS response headers and OPTIONS preflight checks passed.
+> - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash and cross-user rejection; all temporary fixtures rolled back. Production database remains unchanged pending authenticated HTTP lifecycle/A/B isolation acceptance and rollback review.
+> - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, provider recovery or security-review gates.
 >
 > ---
 >

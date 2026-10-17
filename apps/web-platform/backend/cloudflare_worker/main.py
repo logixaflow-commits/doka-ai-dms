@@ -1307,6 +1307,7 @@ class WorkerAwareCORSMiddleware:
         await middleware(scope, receive, send)
 
 
+# Production must use explicit configured origins; preview regex is opt-in in staging only.
 app.add_middleware(WorkerAwareCORSMiddleware)
 
 Default = asgi.entrypoint(app)

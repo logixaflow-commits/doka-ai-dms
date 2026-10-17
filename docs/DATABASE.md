@@ -1,5 +1,15 @@
 # Doka Database
 
+> **Live migration and RPC reconciliation — 2026-10-17**
+>
+> - Production project `jkobgssaqifzrqfirdfu` remains ACTIVE_HEALTHY. Its latest listed migration is `20261009083942_doka_trigger_function_least_privilege`; it does **not** include `20261017100000_doka_rpc_security_hardening.sql`.
+> - Staging project `gzxybtqquzycogaowdbj` remains ACTIVE_HEALTHY and has migrations `20261016094050_staging_doka_core_schema_rls_storage` and `20261017081123_doka_rpc_security_hardening`. The hardened migration is staging-only.
+> - Staging SQL checks verified fixed search paths and explicit `auth.uid()` ownership checks for four sensitive RPCs; unauthenticated negative tests and transaction-scoped lifecycle/version/restore/bulk-trash/cross-user tests passed with fixtures rolled back. This is not a substitute for authenticated HTTP User A/B acceptance.
+> - The staging Security Advisor reports a generic warning for the four SECURITY DEFINER RPCs callable by authenticated users. Review this finding against fixed search paths, owner checks, restricted EXECUTE grants and live A/B evidence before considering any production rollout.
+> - Production Security Advisor reports leaked-password protection disabled; the current Supabase plan does not expose the HaveIBeenPwned-based control. Do not describe this warning as fixed.
+>
+> ---
+
 > **Owner:** How is Doka's database, migration, ownership and RLS boundary maintained?
 > **Update when:** Schema, migration heads, RLS, RPC/function privileges, ownership checks or database providers change.
 > **Last Updated:** 2026-10-08

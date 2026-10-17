@@ -34,7 +34,7 @@ Do not log credentials, tokens, signed URLs, raw document contents or unnecessar
 Maintain lockfiles, Dependabot/security scanning, CodeQL and secret scanning. A green scan is evidence for that scan only; it does not prove runtime security.
 
 ## Deployment control
-Vercel is owner-paused. Do not reactivate, reconnect or deploy without explicit owner authorization. Cloudflare Worker is the active cloud API. Render has no active runtime verified.
+Vercel production and Preview are currently deployed. Continue to gate production releases on exact-HEAD CI, explicit deployment workflow conditions, service-binding isolation, health/config smoke checks and the acceptance gates in ROADMAP.md; do not bypass those controls. Cloudflare Worker is the active cloud API. Render has no active runtime verified.
 
 ## Known/deferred risks
 - Supabase leaked-password protection remains a release verification item until explicitly enabled and verified.
