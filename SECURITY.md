@@ -25,7 +25,7 @@ Original source is read-only. SOURCE_ROOT and WORKING_ROOT must not overlap. Wri
 The browser must use the intended API boundary and must never bypass server authorization by calling privileged storage/database APIs directly. Signed URLs are short-lived. Preview accepts only explicitly safe passive formats. Electron's external-link IPC accepts only credential-free HTTP(S) URLs and only from the main application frame; do not add arbitrary protocol support.
 
 ## Rate limits, CORS and abuse controls
-Rate limiting and CORS remain server-side controls. Production configuration must use exact allowed origins and bounded request/resource limits. Do not weaken these controls to make a deployment pass.
+Rate limiting and CORS remain server-side controls. Production configuration must use exact allowed origins and bounded request/resource limits. FastAPI ignores forwarded-IP headers by default; set `TRUST_PROXY_HEADERS=true` only when a trusted reverse proxy strips/overwrites incoming forwarding headers. Never trust client-supplied `X-Forwarded-For` directly. Do not weaken these controls to make a deployment pass.
 
 ## Logging and PII
 Do not log credentials, tokens, signed URLs, raw document contents or unnecessary personal data. Telemetry must be privacy-scrubbed where configured.
