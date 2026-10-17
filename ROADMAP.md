@@ -90,3 +90,26 @@ graph TD
 1. **Step 1:** Run `verify_all_backends.py` and frontend test suite to ensure backend route coverage is 100% verified.
 2. **Step 2:** Test Electron desktop app folder watcher connection with backend file import endpoint.
 3. **Step 3:** Perform live multi-page PDF batch OCR extraction test.
+
+
+## 5. Release Gates and Evidence Status
+
+The following gates are tracked explicitly so repository checks cannot mistake implementation notes for production acceptance. Gates remain **pending** until their required evidence is recorded; passing CI alone does not close them.
+
+- **Gate 3 — Release readiness:** current release gate report and explicit readiness evidence.
+- **Gate 4 — Regression acceptance:** maintained backend/frontend regression suites pass.
+- **Gate 5 — Source integrity:** source immutability and recovery verification evidence.
+- **Gate 6 — Recovery objectives:** recovery test and measured RTO evidence.
+- **Gate 8 — Prerequisite gates:** Gates 1–7 are accepted with evidence.
+- **Gate 9 — Authenticated cloud acceptance:** live cloud acceptance run, including its gate readiness and two-user isolation result.
+- **Gate 10 — Tenant isolation:** distinct staging User A/User B tests prove cross-user data is not exposed.
+- **Gate 11 — Provider recovery:** evidence covers Supabase Storage, B2 recovery, Cloudinary application path, Google Drive recovery, and the exact 50 MiB boundary.
+- **Gate 12 — Production sign-off:** explicit sign-off after Gates 8–11 are evidenced; this is not inferred from CI.
+
+### Immediate release blockers
+
+- [ ] Re-run all CI workflows after the latest remediation and resolve any remaining failures.
+- [ ] Deploy the Worker changes to staging first; verify health, API configuration, and production-vs-preview CORS behavior.
+- [ ] Run authenticated staging isolation and provider recovery acceptance with distinct staging-only credentials.
+- [ ] Verify the production Worker and Vercel deployment after controlled release; record evidence before marking Gate 12 complete.
+- [ ] Confirm GitHub Actions secrets and Render service inventory; do not claim live acceptance when credentials or a service are unavailable.
