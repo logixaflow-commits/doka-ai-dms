@@ -2,6 +2,7 @@
 Rate Limiter Middleware
 Implements per-IP rate limiting for API endpoints.
 """
+import ipaddress
 import os
 import time
 from typing import Dict, Optional
@@ -16,6 +17,7 @@ class RateLimiter:
     def __init__(self):
         self.requests_per_minute = int(os.getenv('RATE_LIMIT_PER_MINUTE', '100'))
         self.burst_size = int(os.getenv('RATE_LIMIT_BURST', '20'))
+        self.trust_proxy_headers = os.getenv('TRUST_PROXY_HEADERS', 'false').strip().lower() == 'true'
         self.exempt_paths = os.getenv('RATE_LIMIT_EXEMPT', '/health,/metrics,/docs').split(',')
         
         # In-memory store: {ip_address: [(timestamp, count)]}
@@ -81,19 +83,27 @@ class RateLimiter:
                 del self.request_log[ip]
 
     def get_client_ip(self, request: Request) -> str:
-        """Get client IP address from request."""
-        # Check for forwarded headers (behind proxy)
+        """Use proxy-supplied client IPs only when the operator explicitly trusts that proxy."""
+        direct_ip = request.client.host if request.client else "unknown"
+        if not self.trust_proxy_headers:
+            return direct_ip
+
+        candidates = [
+            request.headers.get("CF-Connecting-IP"),
+            request.headers.get("X-Real-IP"),
+        ]
         forwarded_for = request.headers.get("X-Forwarded-For")
         if forwarded_for:
-            return forwarded_for.split(',')[0].strip()
-        
-        # Check for real IP header
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip
-        
-        # Fall back to direct connection
-        return request.client.host if request.client else "unknown"
+            candidates.append(forwarded_for.split(",", 1)[0].strip())
+
+        for candidate in candidates:
+            if not candidate:
+                continue
+            try:
+                return str(ipaddress.ip_address(candidate.strip()))
+            except ValueError:
+                continue
+        return direct_ip
 
 
 # Singleton rate limiter instance
