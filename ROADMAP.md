@@ -2,50 +2,13 @@
 
 > **Latest production-acceptance checkpoint — 2026-10-17**
 >
-> - Vercel production is READY on current main `ca38d52a3155785e83720edcb18e3de9497a0b86`; the canonical homepage returns HTTP 200. Preview and production bundles must remain isolated to their matching staging/production services.
-> - Production Worker health/config/single-user smoke passed on deployed source `3b29176a6329298205aa896eae7864ae4a8df4d9`. The request-scoped CORS fix now in main `ca38d52` has not yet been deployed to production because its push workflow was intentionally gated by `[deploy-worker]`; the current follow-up PR is preparing a controlled, verified rollout.
-> - The dedicated staging Worker is deployed and bound to staging Supabase + staging D1, with a staging-only session secret and the 50 MiB boundary. Staging health/config/preview-origin CORS GET + OPTIONS smoke passed. Staging RPC hardening is applied to staging only; transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user checks passed with all fixtures rolled back.
-> - Latest main Doka Quality Checks, Production CI/CD, and CodeQL passed. The separate Electron Dependabot update failed because `apps/desktop/package.json` lacked a lockfile and used a floating version range; the current follow-up pins Electron and enables desktop dependency updates.
-> - **Full production acceptance is still blocked:** strict Myanmar/English OCR benchmark remains FAIL without threshold relaxation; real browser approval/final-copy/backup/isolated-restore acceptance is not evidenced; distinct staging User A/B JWTs are unavailable to the authenticated HTTP runner; exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive recovery are pending; measured restore RTO/RPO is pending; production Supabase leaked-password protection is plan-blocked; staging SECURITY DEFINER advisor warnings require review.
+> - Vercel production is READY on main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`; canonical homepage and production JS asset return HTTP 200. Production bundle references production Worker/Supabase only; Preview bundle references staging Worker/Supabase only.
+> - Production Worker `doka-ai-dms` was redeployed from this main commit. Guarded dry-run/deploy, health/config/single-user readiness, and live CORS/auth smoke all passed. Canonical production origins are allowed; an untrusted `https://evil.example` origin is not reflected.
+> - Dedicated staging Worker and staging Supabase RPC hardening are deployed on staging only. Staging health/config/CORS smoke and transaction-scoped SQL lifecycle/version/restore/bulk-trash/cross-user tests passed with all fixtures rolled back. Production database remains unchanged by the staging RPC migration.
+> - Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review and desktop Electron smoke passed. Electron `44.9.0` and electron-builder `26.17.0` are pinned; desktop dependency updates are now covered.
+> - **Full production acceptance remains blocked:** strict Myanmar/English OCR benchmark remains FAIL without threshold relaxation; real browser approval/final-copy/backup/isolated-restore acceptance is not evidenced; distinct staging User A/B JWTs are unavailable to the authenticated HTTP runner; exact 50 MiB byte-integrity and B2/Cloudinary/Google Drive recovery are pending; measured restore RTO/RPO is pending; production Supabase leaked-password protection is plan-blocked; staging SECURITY DEFINER advisor warnings require review.
 > - Do not apply the RPC migration to production or mark Gate 12 complete until authenticated staging lifecycle/isolation, provider recovery, OCR, browser and recovery evidence pass.
 >
-
-## 1. System Architecture & Topology
-
-DOKA AI DMS provides a zero-leakage, multi-platform document intelligence system supporting:
-`Document Ingestion → OCR Preprocessing & Layout Analysis → Text Extraction (Burmese & English) → Vector Embedding & RAG → Rule Matching & Tagging → Granular Folder RBAC → Audit Trail & Long-Term Archival`.
-
-```mermaid
-graph TD
-    subgraph Client Applications
-        Web["React + Vite Web App<br/>Port 5173"]
-        Desktop["Electron Desktop App<br/>Local Watcher & Native Scanner"]
-        Mobile["Mobile Web Scanner<br/>Camera OCR Client"]
-    end
-
-    subgraph Backend Services
-        API["FastAPI Backend<br/>Port 8002"]
-        OCR["OpenCV + Tesseract / PaddleOCR<br/>Layout & Syllable Tokenizer"]
-        RAG["ChromaDB / SQLite Vector<br/>Document Semantic Search"]
-        DB[(SQLite / PostgreSQL<br/>dms.db)]
-    end
-
-    subgraph Storage Layer
-        LocalFS["Local File Vault<br/>dms_uploads/"]
-        R2["Cloudflare R2 / S3<br/>Encrypted Cloud Vault (Optional)"]
-    end
-
-    Web <-->|REST API| API
-    Desktop <-->|Native IPC & REST| API
-    Mobile <-->|Camera Upload REST| API
-    API <--> DB
-    API --> OCR
-    API --> RAG
-    API --> LocalFS
-    API --> R2
-```
-
----
 
 ## 2. Completed Milestones & Operational Proofs
 
