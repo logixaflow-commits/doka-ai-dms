@@ -153,7 +153,7 @@ async def _process_webhook(provider_name: str, webhook_data: dict, db: Session) 
                 doc.extracted_metadata = metadata
                 db.commit()
                 
-                logger.info(f"Updated document {doc.id} with webhook data from {provider_name}")
+                logger.info("Updated document %s with webhook data from provider: %s", doc.id, provider_name)
                 return True
         
         return False
