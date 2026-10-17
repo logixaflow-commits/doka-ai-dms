@@ -1,6 +1,6 @@
 > **Latest infrastructure and acceptance checkpoint — 2026-10-17 (supersedes older snapshots below)**
 >
-> - Main HEAD: `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, desktop Electron smoke and Live Infrastructure Smoke passed.
+> - Latest verified production release SHA: `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, desktop Electron smoke and Live Infrastructure Smoke passed.
 > - Vercel production deployment is READY on this main SHA. Canonical homepage and production JS asset returned HTTP 200; the production bundle references only production Worker/Supabase, while Preview references only staging Worker/Supabase.
 > - Cloudflare production Worker `doka-ai-dms` was redeployed from this SHA. Guarded dry-run/deploy, health/config/single-user smoke and live infrastructure smoke passed. CORS permits the two explicit production origins, does not reflect `https://evil.example`, and unauthenticated document listing returns HTTP 401.
 > - Cloudflare also has `doka-ai-dms-staging` and staging D1. Staging Worker settings use only Supabase `gzxybtqquzycogaowdbj`, D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, the 50 MiB limit, preview CORS opt-in and a staging-only session secret.
