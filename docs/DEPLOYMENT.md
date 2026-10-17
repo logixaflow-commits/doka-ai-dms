@@ -1,98 +1,11 @@
 > **Latest deployment evidence — 2026-10-17**
 >
-> - Production Vercel homepage returned HTTP 200 and its built bundle points to the production Worker and production Supabase project only. The active Preview bundle points to the staging Worker and staging Supabase project only.
-> - Production Worker deployment and its health/config/single-user readiness checks passed.
-> - The staging Worker is deployed and its `/health` and `/api/config` checks pass. The latest guarded staging workflow passed `/health`, `/api/config`, preview-origin CORS header, and `OPTIONS` preflight checks using browser-like request headers. Earlier bare automation probes received Cloudflare edge error 1010; the final acceptance smoke passes, while the real Preview UI's authenticated browser flow remains required.
-> - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash, and cross-user rejection; all temporary fixtures rolled back and zero persisted. Production database remains unchanged pending authenticated HTTP lifecycle/A-B isolation acceptance and rollback review.
-> - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, or provider-recovery gates.
+> - Vercel production deployment for main `ca38d52a3155785e83720edcb18e3de9497a0b86` is READY and the canonical homepage returns HTTP 200. The current Preview bundle uses staging Worker/Supabase; production bundle uses production Worker/Supabase.
+> - Production Worker health/config/single-user checks passed on deployed source `3b29176a6329298205aa896eae7864ae4a8df4d9`. The tested request-scoped CORS middleware present in main `ca38d52` has not yet been deployed to production because the guarded push workflow requires `[deploy-worker]`; the follow-up PR includes a Worker-path change to trigger the controlled deployment after exact-head checks pass.
+> - The staging Worker is deployed and bound to staging Supabase/D1, with a staging-only session secret. Guarded staging health/config, preview-origin CORS response headers and OPTIONS preflight checks passed.
+> - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash and cross-user rejection; all temporary fixtures rolled back. Production database remains unchanged pending authenticated HTTP lifecycle/A/B isolation acceptance and rollback review.
+> - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, provider recovery or security-review gates.
 >
-> ---
->
-> **Latest release evidence — 2026-10-17**
->
-> - PR #68 merged at `3b29176a6329298205aa896eae7864ae4a8df4d9`. Exact-HEAD Production CI/CD, Doka Quality Checks, CodeQL, Myanmar OCR Regression, Live Infrastructure Smoke, and Cloudflare Worker Production Deploy succeeded. Vercel production is `READY`; the canonical homepage returned HTTP 200. The Worker health/config and single-user readiness checks passed. This does not close authenticated cloud acceptance or OCR/recovery gates.
-> - The latest staging Supabase audit found that the four live Doka RPCs did not match the hardened migration history. The new branch `fix/staging-rpc-security-parity` adds an owner-checked RPC hardening migration; it has been applied to staging only and unauthenticated calls fail closed. Production database was not changed.
-> - Staging remains blocked on deploying `doka-ai-dms-staging` with staging-only secrets, exact-origin CORS/health verification, distinct disposable User A/B accounts, authenticated lifecycle and exact-50-MiB integrity tests, provider recovery, fresh OCR benchmark and real restore RTO/RPO evidence. Never run these tests against production.
-> - Production Supabase Security Advisor still warns that leaked-password protection is disabled; the current plan limitation is unresolved. The staging advisor has no lints before the RPC hardening migration; it now emits a generic warning for the intentionally authenticated-callable SECURITY DEFINER RPCs, which must be reviewed with their explicit ownership checks and real authenticated tests.
->
-> ---
->
-> **Latest production-readiness checkpoint — 2026-10-16 (post PR #65)**
->
-> - Current `main` HEAD: `b8392362384bed478e6867dccad7fd8e5b605e5e`. PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) and PR [#65](https://github.com/logixaflow-commits/doka-ai-dms/pull/65) are merged.
-> - Exact-HEAD [Production CI/CD](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38878678267), [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38878678338), and [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38878678485) passed. The Supabase Preview check passed on this main commit; PR preview checks may be skipped when no Supabase branch exists.
-> - Vercel production deployment for `b8392362384bed478e6867dccad7fd8e5b605e5e` is `READY`. Both `https://enterprise-ai-dms.vercel.app` and the deployment URL returned HTTP 200 with the Doka HTML shell. This does not prove authenticated application workflows.
-> - The cloud acceptance runner now blocks the known production Worker hostname even when invoked directly. Cloud acceptance unit/contract checks reported **165 passed** in CI. This is not a live authenticated cloud acceptance run.
-> - Free staging remains blocked: Supabase quoted $0/month for a project but rejected creation due to the active-free-project limit. A Supabase development branch costs $0.01344/hour and was not created. No paid resources were created, and no production project was paused/deleted.
-> - Supabase production project `jkobgssaqifzrqfirdfu` has RLS enabled on all three public Doka tables (`doka_documents`, `doka_document_versions`, `doka_audit_events`) with authenticated owner-scoped policies. This is policy-definition evidence, not a substitute for two-user live isolation tests. Security Advisor still warns that leaked-password protection is disabled.
-> - Cloudflare Worker `doka-ai-dms` remains bound to production D1/Supabase; do not use it for acceptance. Render has no service in the checked workspace. Live Worker health/CORS and provider recovery remain unverified.
-> - **Remaining release blockers:** zero-cost isolated staging Supabase/storage + Worker/D1; distinct disposable User A/B tokens; live lifecycle/download-integrity/50 MiB/cross-user isolation tests; B2/Cloudinary/Google Drive recovery drills; fresh Myanmar/English OCR benchmark and local recovery validation. Legacy webhook receiver remains unmounted until mandatory signature verification and redacted logging are implemented.
->
-> ---
->
-
-> **Production-readiness checkpoint — 2026-10-16 (post PR #64)**
->
-> - Latest `main` HEAD is `94f95b683f62b651f6bb9d959265bf812c28d174`; PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) merged after all applicable checks passed. The main-branch CI and quality workflows for this documentation-only merge were still running at the latest check; verify the exact-HEAD run before calling it green.
-> - The latest confirmed production deployment is Vercel `READY` for main SHA `2893c82ba1386969b6f6b86df2189b26f0e84b26`; the canonical frontend URL returned HTTP 200 for the HTML shell. Authenticated user workflows are not yet verified for the new main SHA.
-> - Supabase staging creation remains blocked: the project quote was $0/month, but creation was rejected by the organization’s active-free-project limit. Supabase branch pricing returned $0.01344/hour, so no branch was created. No paid resource, project deletion, pause, or plan upgrade was performed.
-> - The only Supabase project returned for this organization is production `jkobgssaqifzrqfirdfu`. It must not be used for destructive acceptance tests. Security Advisor still warns that leaked-password protection is disabled.
-> - Cloudflare Worker `doka-ai-dms` is production, uses production D1/Supabase bindings, and must not be used for acceptance tests. Render `My Workspace` has no services. No staging resources were created.
-> - The authenticated acceptance runner now rejects the known production Worker host at the script level as well as in GitHub Actions; unit tests cover production rejection, HTTPS validation, and a non-production URL.
-> - **Release blockers:** isolated staging Supabase/storage + Worker/D1, disposable distinct User A/B tokens, authenticated lifecycle/download-integrity/50 MiB/cross-user-isolation evidence, provider recovery tests, and fresh Myanmar/English OCR + local recovery validation. Do not mark production-ready until these are complete.
->
-> ---
->
-
-> **Live verification checkpoint — 2026-10-16 08:45 UTC**
->
-> - Latest `main` HEAD checked: `ca9b18c539773e2af760fd987f8c184771069ab4`.
-> - Exact-HEAD [Production CI/CD](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874722614) and [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874722613) both **passed**. The check-runs API reports Production Release Gate, Supabase Preview, dependency audits, frontend build/smoke tests, backend regression/lint/tests, storage contract tests, workflow sanity, symlink security, and SBOM/static analysis all successful.
-> - Vercel production deployment for current `main` commit `ca9b18c539773e2af760fd987f8c184771069ab4` is `READY` (`enterprise-ai-if74grehv-logixaflow-9859.vercel.app`); HTTP smoke test of [https://enterprise-ai-dms.vercel.app](https://enterprise-ai-dms.vercel.app) returned **200 OK** and the Doka HTML shell. This verifies delivery of the frontend shell only, not authenticated application workflows.
-> - Render `My Workspace` service listing returned no services. Do not claim a Render backend is deployed unless a service is intentionally created and configured.
-> - Cloudflare account lists only Worker `doka-ai-dms` and D1 database `doka-ai-dms-prod`; its secret inventory contains provider credentials and Supabase publishable key, but secret values were not read. No staging Worker or isolated D1 was created.
-> - Supabase project `jkobgssaqifzrqfirdfu` is `ACTIVE_HEALTHY`; Security Advisor still reports leaked-password protection disabled (plan limitation previously reported by the user). No database changes were made.
-> - The authenticated cloud acceptance run still failed before lifecycle/isolation checks. **Do not run it against production.** Release blockers remain: an isolated staging Supabase project/storage and Worker, disposable User A/B tokens, full authenticated upload/download/50 MiB/isolation evidence, provider recovery tests, and fresh Myanmar/English OCR + local recovery validation. Keep production single-user restrictions and do not mark production-ready until these pass.
->
-> ---
->
-> **Production deployment checkpoint — 2026-10-16 08:32 UTC**
->
-> - Current `main` HEAD: `d3eba2f4ca14e1c99144f3e26e75a6097064b4b6`. PR [#61](https://github.com/logixaflow-commits/doka-ai-dms/pull/61) was merged. Its fix handles the `any` provider input and rejects the known production Worker hostname as a cloud-acceptance target.
-> - Exact-HEAD CI: [Production CI/CD](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874148782) **passed**; [Doka Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874148775) **passed**; [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38874148878) was **in progress at audit time**. Recheck before release sign-off.
-> - [Authenticated Cloud Acceptance run 38872116178](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38872116178) failed at the initial `/health` assertion before lifecycle/isolation checks. This does not identify the exact HTTP status, and does not prove upload/download, 50 MiB, or user-isolation gates.
-> - Cloudflare API currently lists one Worker script, `doka-ai-dms`; no dedicated staging script was listed. The repository's root `wrangler.jsonc` binds `DOKA_DB` to database `doka-ai-dms-prod`. Do **not** clone/deploy this config as staging without first creating isolated resources and verifying bindings; never run acceptance against production.
-> - Supabase project `jkobgssaqifzrqfirdfu` reports `ACTIVE_HEALTHY` with migrations through `20261009083942_doka_trigger_function_least_privilege`. Security advisor still warns that leaked-password protection is disabled (known plan limitation); performance advisor reports three unused indexes, informational only. No schema, data, secrets, routing, or production settings were changed in this audit.
-> - Remaining P0 gates: dedicated isolated acceptance Worker/resources + disposable User A/B access JWTs; authenticated lifecycle and exact 50 MiB byte/hash verification; real two-user API/RLS/Storage/RPC isolation; B2/Cloudinary/Google Drive app-path recovery; fresh browser-based Myanmar/English OCR benchmark and local recovery evidence; confirm Vercel production deployment/live status and intended Render service. Keep production single-user restrictions; do not mark production-ready until evidence passes.
->
-> ---
->
-> **Production release checkpoint — 2026-10-16 (after Vercel root-directory repair)**
->
-> - Current repository `main` HEAD: `72ade0e5abc7a43f018a1165689bf1ff4255db6c`. Production CI/CD, Doka Quality Checks and CodeQL passed for this commit: [Production CI](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617374), [Quality Checks](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617562), [CodeQL](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38851617443).
-> - Vercel project `enterprise-ai-dms`: the previous deployment failed because Root Directory was configured as `web-platform/frontend`, which no longer exists. Project Root Directory was corrected to `apps/web-platform/frontend`, and the ignored-build-step command was reset to the default/null setting.
-> - A fresh preview deployment and a fresh production deployment for the same `main` SHA both reached `READY`. Production deployment: [deployment details](https://vercel.com/logixaflow-9859/enterprise-ai-dms/GL4VFqatCW29koYZMhCb84tM3RV8). Its aliases include `https://enterprise-ai-dms.vercel.app`. Vercel project API still reports `live=false`; canonical-alias HTTP smoke could not be independently confirmed by the available web/runtime network, so do not claim the whole application is fully live solely from build status.
-> - **Release remains partial, not full go-live.** Authenticated upload/download/version/audit lifecycle, two-user isolation, real B2/Google Drive/Cloudinary application-path recovery and a strict Myanmar/English OCR benchmark remain open. Run cloud acceptance only with disposable users in a dedicated acceptance environment. Do not weaken the production single-user restriction.
-> - Required owner input for authenticated cloud acceptance: add `DOKA_CLOUD_USER_A_TOKEN` and `DOKA_CLOUD_USER_B_TOKEN` as GitHub Actions secrets. The workflow pins `DOKA_CLOUD_BASE_URL` to the exact staging Worker. A/B values must be distinct Supabase staging-user **access JWTs**, not UUIDs. Never send tokens in chat.
-> - OCR branch review: the current `apps/web-platform/backend` OCR code/tests and current `.github/workflows/myanmar-ocr-regression.yml` contain the useful Myanmar identifier/numeral, Unicode normalization, original-image fallback, PDFium fallback and safety-limit regressions. The old branch's Google Drive digest-property assertion is not safe to port because current main verifies the actual object bytes. The branch is stale/diverged and should be deleted only after the owner confirms no uncommitted/unique work is needed.
->
-> ---
->
-> **Production checkpoint — 2026-10-15 10:10 UTC (fresh verification)**
->
-> - Cloudflare Worker deploy [run 38706138555](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706138555) and live infrastructure smoke [run 38706261696](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38706261696): **success**. Health/config return HTTP 200, unauthenticated document listing returns HTTP 401, trusted CORS passes and an untrusted origin is denied.
-> - Doka Quality Checks on the latest docs HEAD [run 38707844647](https://github.com/logixaflow-commits/doka-ai-dms/actions/runs/38707844647): **success**. CodeQL also passed on the Worker release commit.
-> - Canonical Vercel alias https://enterprise-ai-dms.vercel.app returned HTTP 200 and the expected `Doka — Secure Document Workspace` title on 2026-10-15. This confirms basic page availability only.
-> - Vercel project `enterprise-ai-dms` reports `live=false`. Recent production deployment attempts for `main` (including commit `4ce4036`) are `CANCELED`; the deployment API points to the **Ignored Build Step** configuration. The workflow explicitly says Vercel production is paused/manual-only. Do not silently change that setting or promote a deployment; owner must explicitly approve re-enabling production deployments. Latest READY deployment remains commit `1dd3ace`, so current frontend source publication is not yet proven.
-> - Full cloud release is **not signed off**: authenticated upload/download/version/audit lifecycle, two-user isolation, real B2 / Google Drive / Cloudinary recovery, strict Myanmar/English OCR benchmark and recovery evidence remain open. Use disposable users and a dedicated acceptance environment; never disable `DOKA_SINGLE_USER_EMAIL` on production to make tests pass.
->
-> ---
->
-> **Cloudflare deployment follow-up — 2026-10-15**
->
-> Direct deployment/version API confirms latest listed Worker deployment `d894b59e-4aca-4fa2-86b2-9750055749eb`, version 724 (`75e436b2-2009-4779-b659-5421bea0843a`), at 100% traffic. The account currently lists zero zones and no custom Worker domains. This verifies the deployment traffic assignment only; it does not verify external health, custom-domain routing, secrets, CORS in a real browser, or provider application-path recovery.
-
----
 
 > **Live provider inventory — 2026-10-15 (read-only API inspection)**
 >
