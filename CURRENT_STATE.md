@@ -32,6 +32,10 @@
 
 ---
 
+## Historical checkpoints (superseded; audit trail only)
+
+The dated notes below preserve prior observations and may conflict with the authoritative owner-approved release decision at the top of this file. They are retained for audit traceability and must not be interpreted as current status.
+
 > **Repository/provider re-audit — 2026-10-15 (read-only; supersedes older provider snapshots where they conflict)**
 >
 > - Latest observed `main` SHA at audit time: `6c1fe995c807382cbe3c1000e893e678d621f83b` (UI toast notifications). Exact-SHA CI for this SHA must be checked before claiming current-HEAD CI is green; older successful runs are not transferable to this commit.
