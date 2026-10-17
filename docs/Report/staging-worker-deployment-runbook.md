@@ -26,7 +26,7 @@ The staging deploy workflow requires only:
 
 The staging Supabase publishable key is a public client key (not a service-role secret) and is configured only in `wrangler.staging.jsonc`. The workflow generates a fresh random `DOKA_STORAGE_SESSION_SECRET` inside the GitHub runner for the staging Worker; it is never printed or committed. This rotates only in-flight signed upload sessions on each staging deploy.
 
-Separate **authenticated acceptance** still requires two distinct disposable staging-user JWTs (`DOKA_CLOUD_USER_A_TOKEN`, `DOKA_CLOUD_USER_B_TOKEN`), `DOKA_CLOUD_BASE_URL`, and the exact-50-MiB fixture. Provider recovery also requires staging-only B2, Cloudinary and Google Drive credentials. Never use production user tokens, a production service-role key, or production document data.
+Separate **authenticated acceptance** still requires two distinct disposable staging-user JWTs (`DOKA_CLOUD_USER_A_TOKEN`, `DOKA_CLOUD_USER_B_TOKEN`) and the exact-50-MiB fixture. The GitHub workflow pins the base URL to the exact staging Worker. Provider recovery also requires staging-only B2, Cloudinary and Google Drive credentials. Never use production user tokens, a production service-role key, or production document data.
 
 ## Deployment and verification
 
@@ -34,7 +34,7 @@ Separate **authenticated acceptance** still requires two distinct disposable sta
 2. The workflow runs a Python Worker dry-run build before deployment.
 3. It deploys only the `doka-ai-dms-staging` Worker and sets a fresh staging-only upload-session secret.
 4. It checks `/health`, `/api/config`, preview-origin CORS response headers, and `OPTIONS` preflight. The latest guarded run passed preflight using browser-like request headers; bare automation probes may be blocked by Cloudflare edge error 1010.
-5. For authenticated acceptance, configure `DOKA_CLOUD_BASE_URL` and two distinct disposable staging-user JWTs, then run `scripts/cloud_acceptance.py` with the exact 50-MiB fixture. The runner refuses the known production Worker host.
+5. For authenticated acceptance, configure two distinct disposable staging-user JWTs in `DOKA_CLOUD_USER_A_TOKEN` and `DOKA_CLOUD_USER_B_TOKEN`, then run `scripts/cloud_acceptance.py` with the exact 50-MiB fixture. The GitHub workflow pins the base URL to staging and the runner refuses production.
 6. Save scrubbed evidence and only mark the release candidate ready after real A/B isolation, 50 MiB, byte-integrity, lifecycle, provider recovery and OCR tests pass.
 
 ## Current status
