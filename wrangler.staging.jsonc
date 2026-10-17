@@ -16,6 +16,7 @@
     "SUPABASE_URL": "https://gzxybtqquzycogaowdbj.supabase.co",
     "SUPABASE_STORAGE_BUCKET": "doka-documents",
     "DOKA_STORAGE_MAX_OBJECT_BYTES": "52428800",
-    "DOKA_CORS_ORIGINS": "https://enterprise-ai-dms-git-docs-staging-infra-bff8d1-logixaflow-9859.vercel.app"
+    "DOKA_CORS_ORIGINS": "https://enterprise-ai-dms.vercel.app,https://enterprise-ai-dms-logixaflow-9859.vercel.app,https://enterprise-ai-dms-git-main-logixaflow-9859.vercel.app",
+    "DOKA_CORS_ALLOW_PREVIEW_ORIGINS": "true"
   }
 }
