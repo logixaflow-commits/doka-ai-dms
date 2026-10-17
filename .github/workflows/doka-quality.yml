@@ -461,8 +461,8 @@ jobs:
       - name: Verify Electron and packager versions
         working-directory: apps/desktop
         run: |
-          node -e 'const p=require("./package.json"); if(p.devDependencies.electron !== "44.9.0" || p.devDependencies["electron-builder"] !== "26.15.3") process.exit(1);'
-          npx electron --version
+          node -e 'const p=require("./package.json"); if(p.devDependencies.electron !== "44.9.0" || p.devDependencies["electron-builder"] !== "26.17.0") process.exit(1);'
+          npx electron --no-sandbox --version
           npx electron-builder --version
       - name: Validate desktop main and preload syntax
         working-directory: apps/desktop
