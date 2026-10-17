@@ -1,3 +1,15 @@
+> **Production-acceptance checkpoint — 2026-10-17 (supersedes earlier state below)**
+>
+> - Production app remains live: `https://enterprise-ai-dms.vercel.app` returned HTTP 200. Its built JavaScript references only the production Worker and production Supabase project; the current Preview build references only the staging Worker and staging Supabase project.
+> - PR #68 is merged at `3b29176a6329298205aa896eae7864ae4a8df4d9`. Production Worker deploy workflow and production single-user readiness smoke passed.
+> - Staging Supabase `gzxybtqquzycogaowdbj` has the new RPC hardening migration applied; all four sensitive RPCs have fixed search paths and explicit `auth.uid()` ownership checks, and negative SQL checks reject calls without an authenticated identity. Production database was not modified.
+> - The dedicated `doka-ai-dms-staging` Worker is now deployed using staging Supabase and staging D1. `/health` and `/api/config` pass. GitHub-runner OPTIONS requests receive Cloudflare edge error 1010 before reaching the app; this is recorded as **inconclusive**, not as a CORS pass. The current workflow separately checks the CORS header on a GET and retains real browser preflight as a release gate.
+> - Production RPC definitions still differ from the new staging migration. Do not apply the RPC migration to production until authenticated staging lifecycle and A/B isolation tests pass and a rollback is reviewed.
+> - **Not fully production-accepted:** strict OCR benchmark remains FAIL; full browser approval → final copy/apply → backup → isolated restore/undo remains incomplete; real restore RTO/RPO needs reproducible evidence; Gate 9 authenticated lifecycle and exact 50 MiB test, Gate 10 real A/B isolation, and Gate 11 B2/Cloudinary/Google Drive application-path recovery remain pending; Gate 12 remains blocked.
+> - Production Supabase leaked-password protection remains a plan-blocked warning. The generic staging Security Advisor warning for authenticated-callable SECURITY DEFINER RPCs requires review with the explicit owner checks and authenticated tests.
+>
+> ---
+>
 > **Production-acceptance recheck — 2026-10-17 (supersedes older checkpoints below)**
 >
 > - Main release candidate: `3b29176a6329298205aa896eae7864ae4a8df4d9`. PR #68 is merged. Exact-HEAD Production CI/CD, Doka Quality Checks, CodeQL, Myanmar OCR Regression, Live Infrastructure Smoke, Cloudflare Worker Production Deploy, and Vercel Production deployment completed successfully. Production Worker `/health` and `/api/config` checks passed; Vercel canonical homepage returned HTTP 200. These are deployment/smoke results, not full acceptance.
