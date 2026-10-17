@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Authenticated Cloud release acceptance runner.
 
-Uses the production direct-upload session contract; file bytes never pass
+Uses the staging direct-upload session contract; file bytes never pass
 through the Cloudflare Worker. Requires two pre-created Supabase users and
 access tokens. Evidence is privacy-safe and never records tokens or emails.
 """
