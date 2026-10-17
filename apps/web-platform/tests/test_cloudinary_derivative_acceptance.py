@@ -56,7 +56,7 @@ def test_cloudinary_cleanup_uses_signed_authenticated_destroy_without_logging_se
         )
     assert result == "ok"
     request = seen[0]
-    assert request.url.hostname == "api.cloudinary.com"
+    assert request.url.host == "api.cloudinary.com"
     assert request.url.path.endswith("/image/destroy")
     form = parse_qs(request.content.decode("utf-8"))
     assert form["type"] == ["authenticated"]
