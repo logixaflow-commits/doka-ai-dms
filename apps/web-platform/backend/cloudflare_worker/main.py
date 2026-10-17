@@ -1277,7 +1277,7 @@ def _cors_origin_regex(scope: dict | None = None) -> str | None:
     """Allow Vercel branch aliases only when explicitly enabled for staging."""
     enabled = _worker_config_value("DOKA_CORS_ALLOW_PREVIEW_ORIGINS", scope).strip().casefold()
     if enabled == "true":
-        return r"^https://enterprise-ai-dms-git-[a-z0-9-]+-logixaflow-9859\.vercel\.app$"
+        return r"^https://enterprise-ai-[a-z0-9-]+-logixaflow-9859\.vercel\.app$"
     return None
 
 

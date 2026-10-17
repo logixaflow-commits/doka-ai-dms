@@ -79,7 +79,7 @@ jobs:
               raise SystemExit("Staging Storage bucket is not configured.")
           if config.get("single_user_configured") is True:
               raise SystemExit("Staging unexpectedly has a single-user production gate.")
-          origin = "https://enterprise-ai-dms-git-docs-staging-infra-bff8d1-logixaflow-9859.vercel.app"
+          origin = "https://enterprise-ai-9wanj6xsb-logixaflow-9859.vercel.app"
           request = Request(
               base + "/api/documents",
               headers={

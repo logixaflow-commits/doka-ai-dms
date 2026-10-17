@@ -19,7 +19,7 @@ def test_preview_origin_regex_is_opt_in_and_staging_only():
     assert 'DOKA_CORS_ALLOW_PREVIEW_ORIGINS": "true"' in STAGING_CONFIG
     assert "DOKA_CORS_ALLOW_PREVIEW_ORIGINS" not in PRODUCTION_CONFIG
     assert 'if enabled == "true"' in WORKER
-    assert r"^https://enterprise-ai-dms-git-[a-z0-9-]+-logixaflow-9859\.vercel\.app$" in WORKER
+    assert r"^https://enterprise-ai-[a-z0-9-]+-logixaflow-9859\.vercel\.app$" in WORKER
 
 
 def test_staging_config_uses_only_staging_supabase_and_d1():
