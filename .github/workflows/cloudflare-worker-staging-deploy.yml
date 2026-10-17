@@ -60,7 +60,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
-          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError\n          from urllib.request import Request, urlopen
 
           base = "https://doka-ai-dms-staging.logixaflow.workers.dev"
           def get(path):
@@ -89,13 +89,18 @@ jobs:
               },
               method="OPTIONS",
           )
-          with urlopen(request, timeout=20) as response:
-              if response.status not in (200, 204):
-                  raise SystemExit(f"CORS preflight returned HTTP {response.status}")
-              if response.headers.get("Access-Control-Allow-Origin") != origin:
-                  raise SystemExit("Staging CORS did not return the exact configured preview origin.")
-              allowed_headers = response.headers.get("Access-Control-Allow-Headers", "").lower()
-              if "authorization" not in allowed_headers or "content-type" not in allowed_headers:
-                  raise SystemExit("Staging CORS did not allow required auth/content-type headers.")
+          try:
+              with urlopen(request, timeout=20) as response:
+                  if response.status not in (200, 204):
+                      raise SystemExit(f"CORS preflight returned HTTP {response.status}")
+                  if response.headers.get("Access-Control-Allow-Origin") != origin:
+                      raise SystemExit("Staging CORS did not return the exact configured preview origin.")
+                  allowed_headers = response.headers.get("Access-Control-Allow-Headers", "").lower()
+                  if "authorization" not in allowed_headers or "content-type" not in allowed_headers:
+                      raise SystemExit("Staging CORS did not allow required auth/content-type headers.")
+          except HTTPError as exc:
+              print(f"CORS preflight returned HTTP {exc.code}; response headers={dict(exc.headers)!r}")
+              print(f"CORS preflight response body={exc.read(1000).decode('utf-8', errors='replace')!r}")
+              raise
           print("Staging health/config/CORS checks passed; no credentials emitted.")
           PY

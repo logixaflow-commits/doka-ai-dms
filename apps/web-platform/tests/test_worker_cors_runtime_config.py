@@ -24,6 +24,6 @@ def test_preview_origin_regex_is_opt_in_and_staging_only():
 
 def test_staging_config_uses_only_staging_supabase_and_d1():
     assert "gzxybtqquzycogaowdbj.supabase.co" in STAGING_CONFIG
-    assert "11baa497-e6f7-4054-8e9f-3a21baec93f3" in STAGING_CONFIG
+    assert "11baa497-e6f7-4054-8e9f-3a21baec93f3" in STAGING_CONFIG\n    assert "https://enterprise-ai-9wanj6xsb-logixaflow-9859.vercel.app" in STAGING_CONFIG
     assert "jkobgssaqifzrqfirdfu.supabase.co" not in STAGING_CONFIG
     assert "4f3a294b-11ae-4ba7-903b-6f32539cebce" not in STAGING_CONFIG
