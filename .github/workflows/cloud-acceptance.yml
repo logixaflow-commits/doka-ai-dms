@@ -42,6 +42,15 @@ jobs:
       - name: Install acceptance runner dependency
         run: python -m pip install "httpx>=0.28,<1.0"
 
+      - name: Validate distinct staging-only user tokens
+        env:
+          DOKA_CLOUD_USER_A_TOKEN: ${{ secrets.DOKA_CLOUD_USER_A_TOKEN }}
+          DOKA_CLOUD_USER_B_TOKEN: ${{ secrets.DOKA_CLOUD_USER_B_TOKEN }}
+        run: |
+          test -n "$DOKA_CLOUD_USER_A_TOKEN" || { echo "::error::Missing DOKA_CLOUD_USER_A_TOKEN staging secret."; exit 1; }
+          test -n "$DOKA_CLOUD_USER_B_TOKEN" || { echo "::error::Missing DOKA_CLOUD_USER_B_TOKEN staging secret."; exit 1; }
+          test "$DOKA_CLOUD_USER_A_TOKEN" != "$DOKA_CLOUD_USER_B_TOKEN" || { echo "::error::User A and User B tokens must be distinct."; exit 1; }
+
       - name: Create exact 50 MiB acceptance fixture
         run: |
           mkdir -p artifacts/fixtures
@@ -54,7 +63,7 @@ jobs:
 
       - name: Run authenticated document lifecycle and isolation acceptance
         env:
-          DOKA_CLOUD_BASE_URL: ${{ secrets.DOKA_CLOUD_BASE_URL }}
+          DOKA_CLOUD_BASE_URL: https://doka-ai-dms-staging.logixaflow.workers.dev
           DOKA_CLOUD_USER_A_TOKEN: ${{ secrets.DOKA_CLOUD_USER_A_TOKEN }}
           DOKA_CLOUD_USER_B_TOKEN: ${{ secrets.DOKA_CLOUD_USER_B_TOKEN }}
           DOKA_CLOUD_EXPECTED_PROVIDER: ${{ inputs.expected_provider }}
@@ -67,10 +76,10 @@ jobs:
           from urllib.parse import urlparse
           url = os.environ.get("DOKA_CLOUD_BASE_URL", "").strip()
           host = (urlparse(url).hostname or "").lower()
-          if host == "doka-ai-dms.logixaflow.workers.dev":
-              raise SystemExit("Refusing cloud acceptance against the production Worker. Configure a dedicated non-production acceptance Worker URL.")
-          if urlparse(url).scheme != "https" or not host:
-              raise SystemExit("DOKA_CLOUD_BASE_URL must be a valid HTTPS URL for a dedicated non-production acceptance Worker.")
+          if host != "doka-ai-dms-staging.logixaflow.workers.dev":
+              raise SystemExit("Refusing cloud acceptance unless the exact dedicated staging Worker is configured.")
+          if urlparse(url).scheme != "https":
+              raise SystemExit("DOKA_CLOUD_BASE_URL must be HTTPS.")
           PY
           python scripts/cloud_acceptance.py \
             --output artifacts/cloud-acceptance.json \
