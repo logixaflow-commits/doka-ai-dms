@@ -2,7 +2,7 @@ name: Cloudflare Worker Staging Deploy
 
 on:
   push:
-    branches: [fix/staging-rpc-security-parity]
+    branches: [fix/staging-rpc-security-parity, fix/cloudinary-private-derivatives]
     paths:
       - 'apps/web-platform/backend/cloudflare_worker/**'
       - 'apps/web-platform/backend/requirements-local.txt'
@@ -28,7 +28,7 @@ jobs:
   deploy-staging:
     if: |
       (github.event_name == 'workflow_dispatch' && inputs.confirm_nonproduction == true && github.ref != 'refs/heads/main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/fix/staging-rpc-security-parity')
+      (github.event_name == 'push' && (github.ref == 'refs/heads/fix/staging-rpc-security-parity' || github.ref == 'refs/heads/fix/cloudinary-private-derivatives'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
