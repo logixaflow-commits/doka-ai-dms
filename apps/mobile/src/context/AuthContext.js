@@ -7,7 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const AuthContext = createContext(null);
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+  process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8002/api';
 
 export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
         await SecureStore.deleteItemAsync('userToken');
         await SecureStore.deleteItemAsync('userData');
       } catch (error) {
-        console.error('Unable to clear stored mobile session:', error);
+        console.error('Unable to clear stored session:', error);
       }
     }
   };

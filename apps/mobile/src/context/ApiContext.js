@@ -7,7 +7,7 @@ import { useAuth } from './AuthContext';
 
 const ApiContext = createContext(null);
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+  process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8002/api';
 
 export const ApiProvider = ({ children }) => {
   const { userToken } = useAuth();
