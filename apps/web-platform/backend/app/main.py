@@ -92,7 +92,7 @@ def create_app() -> FastAPI:
         try:
             response = await call_next(request)
         except Exception as exc:
-            logger.error(f"Unhandled request error: {exc}")
+            logger.error("Unhandled request error type=%s request_id=%s", type(exc).__name__, request_id)
             return JSONResponse(
                 status_code=500,
                 content={"error": "Internal Server Error", "request_id": request_id},
