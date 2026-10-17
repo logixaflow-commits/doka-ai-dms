@@ -1,22 +1,13 @@
 > **Repository and provider reconciliation — 2026-10-17**
 >
-> - Main HEAD is `ca38d52a3155785e83720edcb18e3de9497a0b86`. Exact-HEAD Doka Quality Checks, Production CI/CD and CodeQL passed. The separate desktop Electron Dependabot security-update job failed because no lockfile or pinned dependency requirement was present; follow-up pins Electron and enables desktop dependency updates.
-> - Vercel production for main is READY and the canonical homepage returns HTTP 200. Production Worker health/config/single-user smoke passed on deployed source `3b29176a6329298205aa896eae7864ae4a8df4d9`; the request-scoped CORS fix now in main still needs its guarded production rollout.
+> - Latest verified production release SHA is `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Its exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, desktop Electron smoke, and Live Infrastructure Smoke passed.
+> - Vercel production is READY on this main SHA; canonical homepage and built JS asset return HTTP 200. Production bundle points only to production Worker/Supabase; Preview points only to staging Worker/Supabase.
+> - Production Worker was redeployed from this main SHA; guarded dry-run, health/config/single-user checks and live CORS/auth smoke passed. Untrusted origins are denied and unauthenticated document listing returns HTTP 401.
 > - Staging Supabase `gzxybtqquzycogaowdbj`, staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, and Worker `doka-ai-dms-staging` are provisioned. Staging-only RPC hardening and transaction-scoped SQL lifecycle/isolation checks passed; all fixtures rolled back. The staging Security Advisor still warns on authenticated-callable SECURITY DEFINER RPCs.
 > - Production Supabase remains unchanged by the staging RPC migration. Its leaked-password protection warning is plan-blocked.
-> - **Still required before full acceptance:** disposable staging User A/B access JWTs for authenticated HTTP lifecycle/isolation and exact 50 MiB checks; B2/Cloudinary/Google Drive application-path recovery; strict fresh Myanmar/English OCR benchmark; real browser approval/final-copy/backup/isolated-restore; reproducible measured RTO/RPO; review and disposition of the staging RPC advisor warning. Keep Gate 12 blocked until evidence passes.
+> - **Still required before full acceptance:** distinct staging User A/B access JWTs for authenticated HTTP lifecycle/isolation and exact 50 MiB checks; B2/Cloudinary/Google Drive application-path recovery; strict fresh Myanmar/English OCR benchmark; real browser approval/final-copy/backup/isolated-restore; reproducible measured RTO/RPO; review and disposition of the staging RPC advisor warning. Keep Gate 12 blocked until evidence passes.
 > - Render returned no services in the connected workspace and is intentionally unused because Cloudflare Worker is the documented cloud API runtime. Never use production users, production objects, or the production Worker for acceptance.
 >
-
-> **Current handoff order — 2026-10-14**
->
-> Work cloud-side first where possible: run Gate 9 authenticated lifecycle, Gate 10 two-user isolation, and Gate 11 provider recovery using disposable test identities and objects. Do not paste tokens into chat, command history, logs, or Git. Render service discovery still returns no service in the connected workspace; confirm the intended runtime in the owner's dashboard rather than creating a replacement service.
->
-> Current candidate `960923a656ffaf2739b21c7cebdb48c83456fef1` has passing exact-SHA Doka Quality Checks, CodeQL, and Myanmar OCR Regression. This does not substitute for real-user/provider acceptance. Local OCR/browser/recovery tasks should be queued for the authorized local machine. Vercel production remains intentionally paused; do not reactivate without explicit approval. Supabase leaked-password protection remains deferred under the current owner decision unless changed.
->
-> This current handoff overrides contradictory historical checkbox/status entries below; preserve historical evidence, but do not treat old checkboxes as proof of a new release candidate.
-
----
 
 # Doka Owner-Run Local Checklist and Remaining Work
 
@@ -95,8 +86,9 @@ These cannot be fabricated or safely substituted with synthetic credentials. Use
 - [ ] Verify signed QStash delivery, QStash-to-workflow completion, duplicate-delivery protection, workflow retry/recovery, and scheduled workflow behavior where these are part of the deployed path.
 
 ### B4. Gate 12 — deployment/runtime and final go-live
-- [ ] Confirm the intended Vercel project/environment and whether the latest production deployment being CANCELED with `live=false` is intentional; the current connector does not prove an explicit paused state.
-- [ ] Resolve the production deployment/build failure or record a deliberate owner-approved pause; confirm domain, environment variables, health checks, and rollback target without exposing secrets.
+- [x] Verify the canonical Vercel production alias, READY deployment on the exact main SHA, and production/Preview bundle environment isolation. The legacy `live=false` field is not used alone to determine whether the alias is serving.
+- [x] Confirm the production Worker deploy dry-run/deploy, health/config/single-user gate, exact-origin CORS, untrusted-origin denial, and unauthenticated HTTP 401 smoke all passed.
+- [ ] Run the real authenticated browser workflow and complete provider, OCR, recovery, isolation and security gates before final sign-off.
 - [ ] Run authenticated production/acceptance smoke tests, monitoring/failure-mode checks, and final runtime/provider acceptance on the exact candidate SHA.
 - [ ] Require an explicit `passed: true` sign-off after Gates 8–11 and evidence links. Gate 12 remains BLOCKED until then.
 - [ ] Do not activate production/enterprise traffic solely because CI is green.
@@ -105,7 +97,7 @@ These cannot be fabricated or safely substituted with synthetic credentials. Use
 
 **Repository/CI-side:** code fixes, tests, documentation, self-audit, dependency/secret/lockfile workflows, unit/contract tests, test harness hardening, review of migration scripts, and CI validation.
 
-**Owner/local or authorized live-environment work:** real Tesseract benchmark and source dataset; copied-office pilot; local authenticated browser acceptance; timed restore/RTO/RPO; two real test users/tokens; B2/Drive credentials; actual provider recovery; security dashboard settings that the connector cannot change; Vercel ownership/paused-state confirmation; final production sign-off.
+**Owner/local or authorized live-environment work:** real Tesseract benchmark and source dataset; copied-office pilot; local authenticated browser acceptance; timed restore/RTO/RPO; two real test users/tokens; B2/Drive credentials; actual provider recovery; security dashboard settings that the connector cannot change; final production sign-off.
 
 Do not commit evidence containing document content, access tokens, private URLs, personal data, or provider secrets. Prefer scrubbed JSON summaries, hashes, versions, timestamps, run IDs, and pass/fail results.
 
@@ -177,7 +169,7 @@ This section records the connected-service state actually inspected during the c
 - [ ] Performance Advisor reports three unused indexes as INFO. Do not remove them just because they are currently unused; the observed document table is empty and these indexes may serve expected future workloads. Reassess after representative traffic and query-plan evidence.
 - [ ] RLS policy inspection is not equivalent to two-authenticated-user proof. Gate 10 requires User A/B runtime tests against actual REST/RPC/Storage routes.
 
-### Vercel — project `enterprise-ai-dms`
+### Vercel — project `enterprise-ai-dms` (historical 2026-10-16 snapshot; superseded by the current checkpoint above)
 - [x] Project uses Vite and Node 24.x.
 - [ ] Project reports `live=false`; latest deployment is `CANCELED`.
 - [x] The 30 most recent deployments filtered to production were `CANCELED`; the latest deployment links to Vercel's `ignored-build-step` documentation. The repository's `.github/workflows/vercel-production.yml` explicitly says production is intentionally paused and its smoke check is manual-only. Thus these cancellations may be the configured intentional pause/ignored-build behavior, not a failed application build. Keep production paused unless the owner explicitly authorizes reactivation.

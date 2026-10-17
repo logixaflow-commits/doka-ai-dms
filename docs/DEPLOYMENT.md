@@ -1,8 +1,8 @@
 > **Latest deployment evidence — 2026-10-17**
 >
-> - Vercel production deployment for main `ca38d52a3155785e83720edcb18e3de9497a0b86` is READY and the canonical homepage returns HTTP 200. The current Preview bundle uses staging Worker/Supabase; production bundle uses production Worker/Supabase.
-> - Production Worker health/config/single-user checks passed on deployed source `3b29176a6329298205aa896eae7864ae4a8df4d9`. The tested request-scoped CORS middleware present in main `ca38d52` has not yet been deployed to production because the guarded push workflow requires `[deploy-worker]`; the follow-up PR includes a Worker-path change to trigger the controlled deployment after exact-head checks pass.
-> - The staging Worker is deployed and bound to staging Supabase/D1, with a staging-only session secret. Guarded staging health/config, preview-origin CORS response headers and OPTIONS preflight checks passed.
+> - Vercel production deployment for main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9` is READY; canonical homepage and production JS asset returned HTTP 200. The production bundle references production Worker/Supabase only; Preview references staging Worker/Supabase only.
+> - Production Worker was redeployed from main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Guarded dry-run/deploy, health/config/single-user checks, and live infrastructure smoke passed. The smoke confirms allowed production CORS origins, rejects an untrusted origin, and requires HTTP 401 for unauthenticated document listing.
+> - The staging Worker is deployed and bound to staging Supabase/D1 with a staging-only session secret. Guarded staging health/config, preview-origin CORS GET headers and OPTIONS preflight checks passed.
 > - Staging-only RPC hardening was applied to staging Supabase. Transaction-scoped SQL acceptance passed version replacement, previous-version preservation, restore, legacy replacement, bulk trash and cross-user rejection; all temporary fixtures rolled back. Production database remains unchanged pending authenticated HTTP lifecycle/A/B isolation acceptance and rollback review.
 > - Gates 3, 4, 6, 9, 10, 11 and 12 remain open/pending as described in `CURRENT_STATE.md`. Deployment success does not close OCR, browser, recovery, two-user isolation, provider recovery or security-review gates.
 >
@@ -116,7 +116,7 @@
 - Personal Local: FastAPI + React/Vite on the user's machine.
 - Personal Cloud API: Cloudflare Worker doka-ai-dms.
 - Supabase: Auth, Postgres/RLS and private Storage.
-- Vercel: project is inactive in the connected account; explicit paused-state field is not exposed by the connected API, so owner-paused remains VERIFY.
+- Vercel: Git integration is the deployment owner. The current production deployment is READY on main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`; the canonical alias returns HTTP 200. Do not infer service status from the legacy `live=false` field alone; use deployment metadata and live HTTP smoke.
 - Render: the connected `My Workspace` service-list requests returned `null` on 2026-10-09 (with preview services both enabled and disabled); no service ID/configuration was visible to inspect. This is a connector visibility result, not proof that no service exists elsewhere. The repository contains Railway configuration files, but no evidence confirms Railway is the active runtime.
 
 ## Cloudflare Worker
@@ -158,8 +158,7 @@ No B2, Supabase, or Google Drive credentials were printed or changed as part of 
 
 ## Vercel
 Connected Vercel project: enterprise-ai-dms.
-Current observed state: live=false. Latest production deployment state: CANCELED.
-The connected API did not expose an explicit paused-state property. Do not upgrade the historical owner-paused statement to VERIFIED without explicit dashboard/API evidence.
+Current verified state: latest production deployment is READY on main `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`; canonical alias and built JS asset return HTTP 200. The production bundle references production Worker/Supabase only. The project API's legacy `live=false` field is not treated as the release authority when deployment metadata and live smoke prove the alias is serving. The GitHub smoke workflow runs after main frontend/config changes and can also be dispatched manually.
 
 ## Render
 The connected `My Workspace` service-list requests returned `null` on 2026-10-09, even with previews enabled. No service ID or environment configuration was returned, so the connected account view cannot currently support a safe Render change/deploy. Confirm the intended service in the Render Dashboard before adding secrets or deploying. Repository `infrastructure/railway/*` files are not proof that Railway is active and must not be used as the runtime authority without owner confirmation.

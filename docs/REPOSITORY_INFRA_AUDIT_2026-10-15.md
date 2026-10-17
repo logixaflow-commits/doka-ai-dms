@@ -1,13 +1,13 @@
 > **Latest infrastructure and acceptance checkpoint — 2026-10-17 (supersedes older snapshots below)**
 >
-> - Main HEAD: `ca38d52a3155785e83720edcb18e3de9497a0b86`. Doka Quality Checks, Production CI/CD and CodeQL passed at exact HEAD. The separate Electron Dependabot job failed because the desktop package had no lockfile and an unpinned range; a follow-up pins Electron and adds the desktop npm ecosystem.
-> - Vercel production is READY on current main and the canonical homepage returns HTTP 200. Preview/production bundles must remain bound to their respective staging/production services.
-> - Cloudflare has both `doka-ai-dms` and `doka-ai-dms-staging` scripts, plus production and staging D1 databases. Staging Worker settings were freshly checked and use only staging Supabase `gzxybtqquzycogaowdbj`, staging D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, a 50 MiB limit, preview CORS opt-in and a staging-only storage-session secret. Production Worker last passed health/config/single-user checks on source `3b29176a6329298205aa896eae7864ae4a8df4d9`; main's newer request-scoped CORS fix awaits its guarded production rollout.
+> - Latest verified production release SHA: `777b37cc1f443fd367b81e0b38aacd7e1b9f16b9`. Exact-HEAD Doka Quality Checks, Production CI/CD, CodeQL, Dependency Review, desktop Electron smoke and Live Infrastructure Smoke passed.
+> - Vercel production deployment is READY on this main SHA. Canonical homepage and production JS asset returned HTTP 200; the production bundle references only production Worker/Supabase, while Preview references only staging Worker/Supabase.
+> - Cloudflare production Worker `doka-ai-dms` was redeployed from this SHA. Guarded dry-run/deploy, health/config/single-user smoke and live infrastructure smoke passed. CORS permits the two explicit production origins, does not reflect `https://evil.example`, and unauthenticated document listing returns HTTP 401.
+> - Cloudflare also has `doka-ai-dms-staging` and staging D1. Staging Worker settings use only Supabase `gzxybtqquzycogaowdbj`, D1 `11baa497-e6f7-4054-8e9f-3a21baec93f3`, the 50 MiB limit, preview CORS opt-in and a staging-only session secret.
 > - Supabase production `jkobgssaqifzrqfirdfu` and staging `gzxybtqquzycogaowdbj` are ACTIVE_HEALTHY. Staging-only RPC hardening is applied and SQL lifecycle/owner-check tests passed transactionally with no fixtures persisted. Production has not received the staging RPC migration.
 > - Production Security Advisor still warns that leaked-password protection is disabled due to the current plan. Staging Security Advisor flags four authenticated-callable SECURITY DEFINER RPCs; review the warning alongside fixed search paths, owner checks and real authenticated A/B tests.
 > - **Release blockers remain:** authenticated staging User A/B JWTs; HTTP lifecycle and cross-user denial; exact 50 MiB byte/hash integrity; B2/Cloudinary/Google Drive application-path recovery; strict fresh Myanmar/English OCR benchmark; real browser approval/final-copy/backup/isolated restore; measured RTO/RPO; and final security review. Gate 12 remains BLOCKED until all evidence is recorded.
 > - Render has no service in the connected workspace and is intentionally not used by the documented Cloudflare Worker cloud runtime. Never run acceptance against production.
->
 > ---
 >
 
