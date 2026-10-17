@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$BaseUrl = "https://doka-ai-dms.logixaflow.workers.dev",
+    [string]$BaseUrl = "https://doka-ai-dms-staging.logixaflow.workers.dev",
     [ValidateSet("supabase", "b2", "both")]
     [string]$Provider = "both",
     [string]$OutputDirectory = "docs/Report"
@@ -23,6 +23,9 @@ function ConvertFrom-SecureToken {
 $parsed = $null
 if (-not [Uri]::TryCreate($BaseUrl, [UriKind]::Absolute, [ref]$parsed) -or $parsed.Scheme -ne "https") {
     throw "BaseUrl must be an absolute HTTPS URL."
+}
+if ($parsed.Host -ne "doka-ai-dms-staging.logixaflow.workers.dev") {
+    throw "Refusing provider acceptance unless BaseUrl is the exact dedicated staging Worker URL."
 }
 
 $tokenSecure = Read-Host "Enter the Supabase access token for the authorized Doka test user (input is hidden)" -AsSecureString
