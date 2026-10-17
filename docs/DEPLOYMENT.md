@@ -1,3 +1,12 @@
+> **Latest release evidence — 2026-10-17**
+>
+> - PR #68 merged at `3b29176a6329298205aa896eae7864ae4a8df4d9`. Exact-HEAD Production CI/CD, Doka Quality Checks, CodeQL, Myanmar OCR Regression, Live Infrastructure Smoke, and Cloudflare Worker Production Deploy succeeded. Vercel production is `READY`; the canonical homepage returned HTTP 200. The Worker health/config and single-user readiness checks passed. This does not close authenticated cloud acceptance or OCR/recovery gates.
+> - The latest staging Supabase audit found that the four live Doka RPCs did not match the hardened migration history. The new branch `fix/staging-rpc-security-parity` adds an owner-checked RPC hardening migration; it has been applied to staging only and unauthenticated calls fail closed. Production database was not changed.
+> - Staging remains blocked on deploying `doka-ai-dms-staging` with staging-only secrets, exact-origin CORS/health verification, distinct disposable User A/B accounts, authenticated lifecycle and exact-50-MiB integrity tests, provider recovery, fresh OCR benchmark and real restore RTO/RPO evidence. Never run these tests against production.
+> - Production Supabase Security Advisor still warns that leaked-password protection is disabled; the current plan limitation is unresolved. The staging advisor has no lints before the RPC hardening migration; it now emits a generic warning for the intentionally authenticated-callable SECURITY DEFINER RPCs, which must be reviewed with their explicit ownership checks and real authenticated tests.
+>
+> ---
+>
 > **Latest production-readiness checkpoint — 2026-10-16 (post PR #65)**
 >
 > - Current `main` HEAD: `b8392362384bed478e6867dccad7fd8e5b605e5e`. PR [#64](https://github.com/logixaflow-commits/doka-ai-dms/pull/64) and PR [#65](https://github.com/logixaflow-commits/doka-ai-dms/pull/65) are merged.
