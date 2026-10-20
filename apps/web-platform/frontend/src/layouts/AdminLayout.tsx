@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router';
 import { Activity, Cloud, FolderKanban, LayoutDashboard, LogOut, ShieldCheck, Sparkles, ChevronRight, Cpu, FileText, Sliders, Shield, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { DokaLogo } from '@/components/DokaLogo';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -40,8 +41,7 @@ export default function AdminLayout() {
       <Sidebar collapsible="icon" className="doka-sidebar">
         <SidebarHeader className="px-4 pb-5 pt-5 group-data-[collapsible=icon]:px-2">
           <button type="button" onClick={() => navigate(localMode ? '/admin/workspace' : '/admin/dashboard')} className="flex items-center gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 group-data-[collapsible=icon]:justify-center">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-cyan-300 to-blue-500 text-slate-950 shadow-lg shadow-blue-950/30"><span className="text-lg font-black">D</span></span>
-            <span className="min-w-0 group-data-[collapsible=icon]:hidden"><span className="block text-[17px] font-semibold tracking-tight text-white">Doka</span><span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[.19em] text-slate-500">Document intelligence</span></span>
+            <DokaLogo size={38} />
           </button>
           <div className="mt-5 rounded-2xl border border-white/[.08] bg-white/[.045] p-3.5 group-data-[collapsible=icon]:hidden">
             <div className="flex items-center gap-2 text-xs font-semibold text-cyan-200"><ShieldCheck className="h-4 w-4" /> Private workspace</div>

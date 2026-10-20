@@ -24,6 +24,7 @@ from app.api.routes import (
     permissions,
     audit,
     brain_soul,
+    smart_receipt,
 )
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -122,6 +123,7 @@ def create_app() -> FastAPI:
     app.include_router(permissions.router, prefix="/api/permissions", tags=["Permissions"])
     app.include_router(audit.router, prefix="/api/audit", tags=["Audit Trail"])
     app.include_router(brain_soul.router, prefix="/api/brain-soul", tags=["Brain Soul"])
+    app.include_router(smart_receipt.router, prefix="/api/documents", tags=["Smart Receipt Vision"])
 
     @app.get("/health", tags=["System"])
     async def health():
