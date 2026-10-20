@@ -1,26 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
   <defs>
-    <linearGradient id="dkBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22d3ee" />
+    <!-- Deep Dark Cobalt Gradient -->
+    <linearGradient id="dkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#071b2d" />
+      <stop offset="100%" stop-color="#040d18" />
+    </linearGradient>
+
+    <linearGradient id="dkBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
       <stop offset="100%" stop-color="#0284c7" />
     </linearGradient>
+
     <filter id="dkGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feGaussianBlur stdDeviation="2.2" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Squircle App Tile -->
-  <rect x="5" y="5" width="90" height="90" rx="24" fill="#081120" stroke="url(#dkBorderGrad)" stroke-width="3.5" />
+  <!-- Squircle App Container Tile -->
+  <rect x="5" y="5" width="90" height="90" rx="24" fill="url(#dkBg)" stroke="url(#dkBorder)" stroke-width="3" />
 
-  <!-- Inner Ambient Cyan Fill -->
-  <rect x="5" y="5" width="90" height="90" rx="24" fill="rgba(34, 211, 238, 0.05)" />
-
-  <!-- Exact Scaled ShieldCheck Glyph (Transform from 24x24) -->
-  <g transform="translate(18, 18) scale(2.666)" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#dkGlow)">
-    <!-- Security Shield -->
+  <!-- Monoline Security Shield & Document Glyph (Scaled to 100x100) -->
+  <g transform="translate(18, 18) scale(2.666)" stroke="#38bdf8" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#dkGlow)">
+    <!-- Clean Outline Shield -->
     <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-    <!-- Checkmark Verification (Emerald Green Tint) -->
+    
+    <!-- Clean Verification Checkmark (Emerald Accent) -->
     <path d="m9 12 2 2 4-4" stroke="#10b981" stroke-width="2.2" />
   </g>
 </svg>
