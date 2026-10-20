@@ -1,4 +1,4 @@
-﻿"""
+"""
 Office DMS - Security Module
 Password hashing (bcrypt), JWT token management, and RBAC dependencies.
 """
@@ -126,7 +126,7 @@ class RoleChecker:
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions. Required: {', '.join(self.allowed_roles)}"
+                detail="Access denied."
             )
         return user
 
@@ -192,8 +192,18 @@ def get_client_info(request: Request) -> dict:
 
 # =============================================================================
 # Login Rate Limiting (Simple In-Memory)
+# NOTE: In-memory only — not shared across multiple workers.
+# For multi-worker deployments, replace with Redis-backed storage.
 # =============================================================================
+_MAX_TRACKED_IPS = 10_000  # FIFO cap to prevent unbounded memory growth
 _login_attempts: dict = {}  # ip -> {count, locked_until}
+
+
+def _evict_oldest_if_needed() -> None:
+    """Remove the oldest entry when the cap is reached (FIFO eviction)."""
+    if len(_login_attempts) >= _MAX_TRACKED_IPS:
+        oldest_ip = next(iter(_login_attempts))
+        del _login_attempts[oldest_ip]
 
 
 def check_login_allowed(ip: str) -> tuple[bool, Optional[int]]:
@@ -227,6 +237,7 @@ def record_login_attempt(ip: str, success: bool):
         return
 
     if ip not in _login_attempts:
+        _evict_oldest_if_needed()
         _login_attempts[ip] = {"count": 0, "locked_until": None}
 
     _login_attempts[ip]["count"] += 1
