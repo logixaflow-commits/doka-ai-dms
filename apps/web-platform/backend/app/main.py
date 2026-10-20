@@ -5,7 +5,8 @@ by this runtime until their deferred ORM/model stack is restored.
 """
 import os
 import time
-from datetime import datetime
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request
@@ -64,12 +65,21 @@ def parse_cors_origins(raw_origins: str) -> list[str]:
     return normalized
 
 
+@asynccontextmanager
+async def lifespan(_: "FastAPI"):
+    """Modern lifespan context manager — replaces deprecated @app.on_event('startup')."""
+    logger.info("Doka Personal Local Edition starting")
+    init_observability()
+    yield
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Doka — Personal Local Edition",
         description="Safe local document workspace with read-only source protection.",
         version="2.0.0-personal-local",
         docs_url="/api/docs" if settings.DEBUG else None,
+        lifespan=lifespan,
     )
     cors_origins = parse_cors_origins(os.getenv(
         "CORS_ORIGINS",
@@ -84,6 +94,7 @@ def create_app() -> FastAPI:
     )
 
     app.middleware("http")(rate_limit_middleware)
+
     @app.middleware("http")
     async def request_context(request: Request, call_next):
         start = time.time()
@@ -117,7 +128,7 @@ def create_app() -> FastAPI:
         return {
             "status": "healthy",
             "edition": "personal-local",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "ai_enabled": bool(settings.AI_ENABLED),
             "ai_external_processing_consent": bool(settings.AI_EXTERNAL_PROCESSING_CONSENT),
             "source_read_only": bool(settings.ORIGINAL_READ_ONLY and not settings.ALLOW_SOURCE_WRITE),
@@ -137,12 +148,6 @@ def create_app() -> FastAPI:
         """Consolidated endpoint for AI key usage, status, and active provider chains."""
         from app.services.ai_usage_tracker import get_ai_usage_summary
         return get_ai_usage_summary("Doka-AI-DMS")
-
-
-    @app.on_event("startup")
-    async def startup_event():
-        logger.info("Doka Personal Local Edition starting")
-        init_observability()
 
     return app
 

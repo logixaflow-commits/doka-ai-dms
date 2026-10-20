@@ -1,4 +1,4 @@
-"""
+﻿"""
 Office DMS - Security Module
 Password hashing (bcrypt), JWT token management, and RBAC dependencies.
 """
@@ -29,7 +29,7 @@ security_bearer = HTTPBearer(auto_error=False)
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire, "type": "access"})
     encoded = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
     return encoded
@@ -38,7 +38,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict) -> str:
     """Create a JWT refresh token with longer expiry."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
     return encoded

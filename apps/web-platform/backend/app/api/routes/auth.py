@@ -1,4 +1,4 @@
-"""
+﻿"""
 Office DMS - Authentication Routes
 Login, logout, registration, JWT token management.
 """
@@ -128,7 +128,7 @@ async def logout(request: Request, response: Response, user: User = Depends(get_
 
 
 @router.post("/refresh")
-async def refresh_token(request: Request, response: Response):
+async def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
     """Refresh access token using refresh token from cookie."""
     # Try to get refresh token from cookie first
     refresh_token = request.cookies.get("refresh_token")
@@ -161,10 +161,8 @@ async def refresh_token(request: Request, response: Response):
             detail="Invalid refresh token payload"
         )
     
-    # Get user from database
-    db: Session = next(get_db())
+    # Get user from database — use injected session (no manual lifecycle needed)
     user = db.query(User).filter(User.id == int(user_id)).first()
-    db.close()
     
     if not user or not user.is_active:
         raise HTTPException(

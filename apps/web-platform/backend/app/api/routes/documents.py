@@ -1,4 +1,4 @@
-"""
+﻿"""
 Office DMS - Document Routes
 CRUD, approve, reject, preview, upload endpoints with RBAC.
 """
@@ -6,7 +6,7 @@ import os
 import uuid
 import anyio
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from pathlib import Path
 
@@ -253,7 +253,7 @@ async def approve_document(
     doc.status = "approved"
     doc.suggested_folder = approve_data.target_folder
     doc.approved_by = current_user.id
-    doc.approved_at = datetime.utcnow()
+    doc.approved_at = datetime.now(timezone.utc)
 
     db.commit()
 
@@ -292,7 +292,7 @@ async def reject_document(
     doc.status = "rejected"
     doc.rejection_reason = reject_data.reason
     doc.approved_by = current_user.id
-    doc.approved_at = datetime.utcnow()
+    doc.approved_at = datetime.now(timezone.utc)
 
     db.commit()
 
@@ -344,7 +344,7 @@ async def update_document(
         old_values["expiry_notes"] = doc.expiry_notes
         doc.expiry_notes = update_data.expiry_notes
 
-    doc.updated_at = datetime.utcnow()
+    doc.updated_at = datetime.now(timezone.utc)
     db.commit()
 
     client = get_client_info(request)
@@ -376,7 +376,7 @@ async def update_ocr_text(
 
     old_ocr_text = doc.ocr_text
     doc.ocr_text = ocr_text
-    doc.updated_at = datetime.utcnow()
+    doc.updated_at = datetime.now(timezone.utc)
     db.commit()
 
     client = get_client_info(request)
@@ -402,12 +402,12 @@ async def get_expiring_soon(
     db: Session = Depends(get_db),
 ):
     """Get documents expiring within the specified number of days."""
-    cutoff_date = datetime.utcnow() + timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc) + timedelta(days=days)
     
     expiring_docs = db.query(Document).filter(
         Document.expiry_date.isnot(None),
         Document.expiry_date <= cutoff_date,
-        Document.expiry_date >= datetime.utcnow()
+        Document.expiry_date >= datetime.now(timezone.utc)
     ).order_by(Document.expiry_date).all()
 
     return {
@@ -578,12 +578,15 @@ async def bulk_approve_documents(
             original_name = Path(doc.original_filename).stem
             new_filename = f"{supplier}_{category}_{date_str}_{original_name}.pdf"
 
+            # Capture old filename BEFORE mutation for accurate audit trail
+            old_filename = doc.original_filename
+
             # Update document
             doc.previous_status = doc.status
             doc.status = "approved"
             doc.suggested_folder = bulk_data.target_folder
             doc.approved_by = current_user.id
-            doc.approved_at = datetime.utcnow()
+            doc.approved_at = datetime.now(timezone.utc)
             doc.original_filename = new_filename  # Auto-rename
 
             db.commit()
@@ -591,7 +594,7 @@ async def bulk_approve_documents(
             success_count += 1
             details.append({
                 "document_id": doc_id,
-                "old_filename": doc.original_filename,
+                "old_filename": old_filename,
                 "new_filename": new_filename,
                 "status": "approved"
             })
@@ -649,7 +652,7 @@ async def bulk_reject_documents(
             doc.status = "rejected"
             doc.rejection_reason = bulk_data.reason
             doc.approved_by = current_user.id
-            doc.approved_at = datetime.utcnow()
+            doc.approved_at = datetime.now(timezone.utc)
 
             db.commit()
 
@@ -721,7 +724,7 @@ async def lock_document(
 
     # Lock the document
     doc.locked_by = current_user.id
-    doc.locked_at = datetime.utcnow()
+    doc.locked_at = datetime.now(timezone.utc)
     db.commit()
 
     client = get_client_info(request)
