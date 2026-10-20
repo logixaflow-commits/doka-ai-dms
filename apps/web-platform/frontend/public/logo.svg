@@ -1,31 +1,180 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
   <defs>
-    <!-- Deep Dark Cobalt Gradient -->
-    <linearGradient id="dkBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#071b2d" />
-      <stop offset="100%" stop-color="#040d18" />
+    <!-- Dark Tech Radial Glow -->
+    <radialGradient id="dokaGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#0369a1" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#030712" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Pillar 3D Gradients -->
+    <linearGradient id="dokaPillarFront" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="40%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
 
-    <linearGradient id="dkBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="dokaPillarSide" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+
+    <!-- Holographic Loop Gradients -->
+    <linearGradient id="dokaLoopTop" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#67e8f9" />
+    </linearGradient>
+
+    <linearGradient id="dokaLoopOuter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="40%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+
+    <linearGradient id="dokaLoopBottom" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="60%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- Floating Document Glass Facets -->
+    <linearGradient id="dokaDoc1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5f3fc" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.4" />
+    </linearGradient>
+    <linearGradient id="dokaDoc2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.3" />
+    </linearGradient>
+
+    <!-- Core Quantum Crystal Gradients -->
+    <linearGradient id="crystTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#67e8f9" />
+    </linearGradient>
+    <linearGradient id="crystLeft" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#38bdf8" />
       <stop offset="100%" stop-color="#0284c7" />
     </linearGradient>
+    <linearGradient id="crystRight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0f766e" />
+    </linearGradient>
 
-    <filter id="dkGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="2.2" result="blur" />
+    <!-- Neon Glow Filter -->
+    <filter id="dokaNeonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="dokaSparkle" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Squircle App Container Tile -->
-  <rect x="5" y="5" width="90" height="90" rx="24" fill="url(#dkBg)" stroke="url(#dkBorder)" stroke-width="3" />
+  <!-- Ambient Backdrop Glow -->
+  <circle cx="250" cy="250" r="220" fill="url(#dokaGlow)" />
 
-  <!-- Monoline Security Shield & Document Glyph (Scaled to 100x100) -->
-  <g transform="translate(18, 18) scale(2.666)" stroke="#38bdf8" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#dkGlow)">
-    <!-- Clean Outline Shield -->
-    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  <!-- Outer Isometric Tech Accents (Cybernetic Frame Brackets) -->
+  <g stroke="#38bdf8" stroke-width="2" stroke-linecap="round" opacity="0.4" fill="none">
+    <!-- Top Left Bracket -->
+    <path d="M 120 160 L 120 130 L 150 115" />
+    <!-- Top Right Bracket -->
+    <path d="M 350 115 L 380 130 L 380 160" />
+    <!-- Bottom Right Bracket -->
+    <path d="M 380 340 L 380 370 L 350 385" />
+    <!-- Bottom Left Bracket -->
+    <path d="M 150 385 L 120 370 L 120 340" />
+  </g>
+
+  <!-- Cybernetic Grid Points -->
+  <circle cx="120" cy="250" r="2.5" fill="#38bdf8" opacity="0.6" />
+  <circle cx="380" cy="250" r="2.5" fill="#38bdf8" opacity="0.6" />
+  <circle cx="250" cy="115" r="2.5" fill="#38bdf8" opacity="0.6" />
+  <circle cx="250" cy="385" r="2.5" fill="#38bdf8" opacity="0.6" />
+
+  <!-- ================= 3D DIMENSIONAL "D" EMBLEM ================= -->
+  <g transform="translate(10, 0)">
+    <!-- LEFT MONOLITH PILLAR (Data Spine / Document Vault) -->
+    <!-- Pillar Main Face -->
+    <path d="M 140 140 L 195 110 L 195 350 L 140 380 Z" fill="url(#dokaPillarFront)" />
     
-    <!-- Clean Verification Checkmark (Emerald Accent) -->
-    <path d="m9 12 2 2 4-4" stroke="#10b981" stroke-width="2.2" />
+    <!-- Pillar Top Face -->
+    <path d="M 140 140 L 195 110 L 230 130 L 175 160 Z" fill="#7dd3fc" opacity="0.9" />
+    
+    <!-- Pillar Right Shadow Edge -->
+    <path d="M 195 110 L 230 130 L 230 370 L 195 350 Z" fill="url(#dokaPillarSide)" opacity="0.8" />
+
+    <!-- Strata Lines on Pillar (Stacked Document Volumes / AI Layers) -->
+    <g stroke="#e0f2fe" stroke-width="1.5" opacity="0.75" stroke-linecap="round">
+      <line x1="148" y1="180" x2="187" y2="158" />
+      <line x1="148" y1="220" x2="187" y2="198" />
+      <line x1="148" y1="260" x2="187" y2="238" />
+      <line x1="148" y1="300" x2="187" y2="278" />
+      <line x1="148" y1="340" x2="187" y2="318" />
+    </g>
+
+    <!-- RIGHT HOLOGRAPHIC VAULT ARCH (The Loop of 'D') -->
+    <!-- Top Sweeping Glass Arc -->
+    <path d="M 195 110 
+             C 270 70, 360 110, 375 190 
+             C 380 220, 360 250, 315 250
+             C 280 250, 260 230, 260 200
+             C 260 170, 290 145, 230 130 Z" 
+          fill="url(#dokaLoopTop)" 
+          opacity="0.95" />
+
+    <!-- Bottom Anchoring Power Arc -->
+    <path d="M 195 350 
+             C 270 390, 360 350, 375 270 
+             C 385 220, 340 210, 305 230
+             C 270 250, 250 280, 240 310
+             C 230 330, 210 340, 195 350 Z" 
+          fill="url(#dokaLoopBottom)" 
+          opacity="0.9" />
+
+    <!-- Outer Bevel Rim of Loop (Giving 3D thickness) -->
+    <path d="M 195 110 
+             C 290 65, 395 120, 395 240 
+             C 395 345, 290 400, 195 350
+             L 195 370
+             C 305 425, 420 365, 420 240
+             C 420 100, 305 45, 195 90 Z" 
+          fill="url(#dokaLoopOuter)" />
+
+    <!-- Inner Floating Holographic Document Panes (Floating Pages / Knowledge Cards) -->
+    <!-- Document Card 1 (Back angled layer) -->
+    <polygon points="275,175 335,145 335,215 275,245" fill="url(#dokaDoc2)" stroke="#38bdf8" stroke-width="1.5" opacity="0.6" />
+    
+    <!-- Document Card 2 (Front floating luminous layer) -->
+    <polygon points="255,195 320,160 320,235 255,270" fill="url(#dokaDoc1)" stroke="#e0f2fe" stroke-width="2" opacity="0.85" filter="url(#dokaNeonGlow)" />
+    
+    <!-- Fine Data Lines on Front Card -->
+    <g stroke="#ffffff" stroke-width="1.8" opacity="0.9" stroke-linecap="round">
+      <line x1="268" y1="213" x2="305" y2="192" />
+      <line x1="268" y1="228" x2="300" y2="209" />
+      <line x1="268" y1="243" x2="290" y2="230" />
+    </g>
+
+    <!-- ================= FLOATING QUANTUM AI CRYSTAL ================= -->
+    <!-- Centered in the inner core of the D -->
+    <g transform="translate(230, 215)" filter="url(#dokaSparkle)">
+      <!-- Top diamond facet -->
+      <polygon points="0,-22 24,-10 0,2 -24,-10" fill="url(#crystTop)" />
+      <!-- Left bottom facet -->
+      <polygon points="-24,-10 0,2 0,26 -24,14" fill="url(#crystLeft)" />
+      <!-- Right bottom facet -->
+      <polygon points="0,2 24,-10 24,14 0,26" fill="url(#crystRight)" />
+      <!-- Radiant Center Spark -->
+      <circle cx="0" cy="2" r="4" fill="#ffffff" />
+    </g>
+
+    <!-- Laser Connection Lines (Neural Indexing Synapses) -->
+    <path d="M 195 230 L 206 217" stroke="#67e8f9" stroke-width="2" stroke-dasharray="2 3" opacity="0.9" />
+    <path d="M 254 217 L 275 210" stroke="#67e8f9" stroke-width="2" stroke-dasharray="2 3" opacity="0.9" />
+    <circle cx="195" cy="230" r="3" fill="#67e8f9" />
+    <circle cx="275" cy="210" r="3" fill="#67e8f9" />
   </g>
 </svg>
