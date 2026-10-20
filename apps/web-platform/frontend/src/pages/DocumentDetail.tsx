@@ -64,7 +64,7 @@ function StatusBadge({ status }: { status: string }) {
     failed: 'bg-red-100 text-red-800',
   };
   const cls = statusColors[status] || statusColors.unknown;
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{(status || 'UNKNOWN').toUpperCase()}</span>;
+  return <span className={`px-2.5 py-1 rounded-full text-xs leading-snug font-semibold ${cls}`}>{(status || 'UNKNOWN').toUpperCase()}</span>;
 }
 
 function formatDate(iso: string | null) {
