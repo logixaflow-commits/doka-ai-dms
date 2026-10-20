@@ -15,6 +15,7 @@ import TemplatesPage from '@/pages/admin/Templates';
 import RulesPage from '@/pages/admin/Rules';
 import PermissionsPage from '@/pages/admin/Permissions';
 import AuditPage from '@/pages/admin/Audit';
+import WorkflowsPage from '@/pages/Workflows';
 import {
   getCurrentUser,
   isSupabaseConfigured,
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="usage" element={isLocalAuthEnabled() ? <Navigate to="/admin/workspace" replace /> : <AiUsage />} />
           <Route path="templates" element={<TemplatesPage />} />
           <Route path="rules" element={<RulesPage />} />
+          <Route path="workflows" element={<WorkflowsPage />} />
           <Route path="permissions" element={<PermissionsPage />} />
           <Route path="audit" element={<AuditPage />} />
           <Route path="" element={<Navigate to={isLocalAuthEnabled() ? 'workspace' : 'dashboard'} replace />} />

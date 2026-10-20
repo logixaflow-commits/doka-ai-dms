@@ -19,6 +19,7 @@ const localMenuItem = { title: 'Safe Workspace', description: 'On-device tools',
 const extraMenuItems = [
   { title: 'SOP Templates', description: 'Rule blueprints', url: '/admin/templates', icon: FileText },
   { title: 'Rules Engine', description: 'Document automations', url: '/admin/rules', icon: Sliders },
+  { title: 'Workflow Canvas', description: 'n8n Document Pipeline', url: '/admin/workflows', icon: Sliders },
   { title: 'Permissions', description: 'Folder access control', url: '/admin/permissions', icon: Shield },
   { title: 'Audit Trail', description: 'Actions and compliance', url: '/admin/audit', icon: History },
 ];
