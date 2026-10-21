@@ -1,78 +1,63 @@
-"""
-Doka AI DMS: Vision AI Receipt & Invoice Auto-Scanner Router.
-Uses Multimodal Vision parsing to extract structured billing data
-from camera photos or scanned documents.
-"""
+"""Receipt upload boundary.
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
-import datetime
-import re
+The vision extraction implementation is intentionally disabled until a real OCR
+pipeline is wired in. Never return fabricated invoice totals as verified data.
+"""
+from __future__ import annotations
+
+from typing import Optional
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+
+from app.core.local_security import require_local_staff
 
 router = APIRouter(prefix="/receipt", tags=["receipt-vision"])
 
-class LineItem(BaseModel):
-    description: str
-    quantity: float
-    unit_price: float
-    total: float
+MAX_RECEIPT_UPLOAD_BYTES = 20 * 1024 * 1024
+UPLOAD_CHUNK_BYTES = 1024 * 1024
+ALLOWED_RECEIPT_MIME_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/tiff",
+    "image/webp",
+}
 
-class ReceiptScanResult(BaseModel):
-    status: str
-    merchant_name: str
-    receipt_number: str
-    date: str
-    currency: str
-    items: List[LineItem]
-    subtotal: float
-    tax_amount: float
-    total_amount: float
-    category: str
-    confidence_score: float
-    ocr_mode: str
-    raw_preview_text: str
 
-@router.post("/scan-vision", response_model=ReceiptScanResult)
+@router.post("/scan-vision")
 async def scan_receipt_image(
     file: UploadFile = File(...),
-    language: Optional[str] = Form("bilingual")
+    language: Optional[str] = Form("bilingual"),
+    subject_id: str = Depends(require_local_staff),
 ):
+    """Validate and bound receipt uploads; return 501 until OCR is real.
+
+    Authentication is required because receipts contain sensitive financial data.
+    The route deliberately does not synthesize merchant names, dates, or totals.
     """
-    Parses an uploaded receipt/invoice photo into structured financial data.
-    """
-    if not file.content_type.startswith("image/") and not file.content_type == "application/pdf":
-        raise HTTPException(status_code=400, detail="Only images or PDFs are supported")
+    del language, subject_id  # Accepted for API compatibility; extraction is not enabled.
+    try:
+        mime_type = (file.content_type or "").split(";", 1)[0].strip().lower()
+        if mime_type not in ALLOWED_RECEIPT_MIME_TYPES:
+            raise HTTPException(status_code=415, detail="Only PDF or supported image uploads are accepted.")
 
-    content = await file.read()
-    filename = file.filename or "receipt.jpg"
+        if file.size is not None and file.size > MAX_RECEIPT_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Receipt upload exceeds the 20 MiB limit.")
 
-    # Simulated intelligent multimodal vision parser
-    # In production, this pipes bytes to Gemini 2.5 Flash Multimodal / Tesseract
-    merchant = "City Mart Supermarket (Yangon)" if "mm" in filename.lower() or "receipt" in filename.lower() else "Office Tech Supplies Ltd."
-    currency = "MMK" if "mm" in filename.lower() or language == "burmese" else "USD"
-    total = 38500.0 if currency == "MMK" else 124.50
-    subtotal = total * 0.95
-    tax = total * 0.05
+        # Do not trust Content-Length or UploadFile.size alone. Count actual bytes
+        # in bounded chunks so an unknown/misreported size cannot bypass the cap.
+        total = 0
+        while True:
+            chunk = await file.read(min(UPLOAD_CHUNK_BYTES, MAX_RECEIPT_UPLOAD_BYTES - total + 1))
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > MAX_RECEIPT_UPLOAD_BYTES:
+                raise HTTPException(status_code=413, detail="Receipt upload exceeds the 20 MiB limit.")
 
-    items = [
-        LineItem(description="A4 Copy Paper (500 sheets)", quantity=2.0, unit_price=total * 0.35, total=total * 0.70),
-        LineItem(description="Gel Pen 0.5mm (Black Pack)", quantity=1.0, unit_price=total * 0.15, total=total * 0.15),
-        LineItem(description="Thermal Receipt Roll 80mm", quantity=1.0, unit_price=total * 0.10, total=total * 0.10),
-    ]
-
-    return ReceiptScanResult(
-        status="success",
-        merchant_name=merchant,
-        receipt_number=f"REC-{int(datetime.datetime.now().timestamp())}",
-        date=datetime.date.today().isoformat(),
-        currency=currency,
-        items=items,
-        subtotal=round(subtotal, 2),
-        tax_amount=round(tax, 2),
-        total_amount=round(total, 2),
-        category="Office Supplies & Utilities",
-        confidence_score=0.97,
-        ocr_mode="Gemini 2.5 Vision + Tesseract Neural",
-        raw_preview_text=f"*** {merchant} ***\nDate: {datetime.date.today()}\nTotal: {total:,.2f} {currency}\nStatus: Verified"
-    )
+        raise HTTPException(
+            status_code=501,
+            detail="Receipt extraction is not configured. No receipt data was processed or verified.",
+        )
+    finally:
+        await file.close()
