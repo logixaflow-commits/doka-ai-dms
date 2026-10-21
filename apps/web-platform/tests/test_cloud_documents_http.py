@@ -208,7 +208,7 @@ def test_multipart_upload_stores_object_before_creating_metadata(
         {
             "owner_id": TEST_USER_ID,
             "object_key": f"users/{TEST_USER_ID}/documents/{digest}/quarterly_report.pdf",
-            "filename": "quarterly report.pdf",
+            "filename": "quarterly_report.pdf",
             "content_type": "application/pdf",
             "size_bytes": len(content),
             "sha256": digest,
