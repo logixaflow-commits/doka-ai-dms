@@ -1,18 +1,22 @@
 from __future__ import annotations
 
+import html
+import hmac
 import logging
 import os
+import re
 from typing import Any
-from fastapi import APIRouter, Request
+
+from fastapi import APIRouter, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from ...services.telegram import send_telegram_message
 
-logger = logging.getLogger("doka.telegram")
-
+logger = logging.getLogger("doka.telegram.action")
 router = APIRouter(prefix="/api/telegram", tags=["Telegram"])
-
 FRONTEND_URL = os.getenv("FRONTEND_BASE_URL", "https://doka-ai-dms-frontend.onrender.com")
+_DOCUMENT_ACTIONS = {"doka_cat_appr", "doka_quar", "doka_dup_archive", "doka_dup_keep"}
+_DOCUMENT_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 
 
 class TelegramActionPayload(BaseModel):
@@ -24,143 +28,155 @@ class TelegramActionPayload(BaseModel):
     raw_message: str | None = Field(default=None, max_length=4000)
 
 
-# ------------------------------------------------------------------------------
-# 1. ACTION HANDLER
-# ------------------------------------------------------------------------------
+def _authorize_secret(secret_header: str | None, env_name: str, service_name: str) -> None:
+    """Fail closed unless a dedicated shared secret is configured and presented."""
+    configured = os.getenv(env_name, "").strip()
+    if not configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"{service_name} is not configured.",
+        )
+    if not secret_header or not hmac.compare_digest(secret_header, configured):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid gateway authentication.",
+        )
+
+
+def _authorize_gateway(secret_header: str | None) -> None:
+    _authorize_secret(secret_header, "TELEGRAM_ACTION_WEBHOOK_SECRET", "Telegram action gateway")
+
+
+def _authorize_telegram_webhook(secret_header: str | None) -> None:
+    _authorize_secret(secret_header, "TELEGRAM_WEBHOOK_SECRET", "Telegram webhook")
+
+
+async def _process_action(payload: TelegramActionPayload) -> dict[str, Any]:
+    """Process only actions supported by this runtime; never fake a document mutation."""
+    action_type, separator, action_value = payload.action.partition(":")
+    logger.info("Doka received Telegram action type: %s", action_type)
+
+    if action_type in _DOCUMENT_ACTIONS:
+        if not separator or not _DOCUMENT_ID.fullmatch(action_value):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Invalid document action identifier.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Document actions are not enabled in this runtime; no document was changed.",
+        )
+
+    if payload.action == "doka_receipt_scan" and payload.raw_message:
+        from ...services.receipt_extractor import ReceiptExtractorService
+
+        extracted = ReceiptExtractorService.extract_financial_data(payload.raw_message)
+        vendor = html.escape(str(extracted.get("vendor", "")))
+        currency = html.escape(str(extracted.get("currency", "")))
+        category = html.escape(str(extracted.get("category", "")))
+        date_value = html.escape(str(extracted.get("date") or "N/A"))
+        try:
+            total = float(extracted.get("total_amount", 0))
+        except (TypeError, ValueError):
+            total = 0.0
+        try:
+            confidence = int(float(extracted.get("confidence", 0)) * 100)
+        except (TypeError, ValueError):
+            confidence = 0
+        reply = (
+            "🧾 <b>Instant Receipt Extracted:</b>\n"
+            f"🏪 <b>Vendor:</b> {vendor}\n"
+            f"💰 <b>Total:</b> {currency} {total:,.2f}\n"
+            f"🏷️ <b>Category:</b> {category}\n"
+            f"📅 <b>Date:</b> {date_value}\n"
+            f"🎯 <b>Confidence:</b> {confidence}%"
+        )
+        await send_telegram_message(reply, topic_id=payload.topic_id)
+        return {"status": "ok", "action": "receipt_scanned", "data": extracted}
+
+    return {"status": "ignored", "action": action_type}
+
+
 @router.post("/action")
-async def handle_telegram_action(payload: TelegramActionPayload) -> dict[str, Any]:
-    """Handle inbound Telegram action callback for Doka DMS."""
-    action = payload.action
-    logger.info("Doka received Telegram action: %s", action)
-
-    if action.startswith("doka_cat_appr:"):
-        doc_id = action.split(":", 1)[1]
-        msg = f"✅ <b>Category Approved:</b> Document <code>{doc_id}</code> verified into production vault."
-        await send_telegram_message(msg, topic_id=payload.topic_id)
-        return {"status": "ok", "action": "category_approved", "id": doc_id}
-
-    elif action.startswith("doka_quar:"):
-        doc_id = action.split(":", 1)[1]
-        msg = f"🛡️ <b>Document Quarantined:</b> <code>{doc_id}</code> moved to quarantine sandbox for security review."
-        await send_telegram_message(msg, topic_id=payload.topic_id)
-        return {"status": "ok", "action": "quarantined", "id": doc_id}
-
-    elif action.startswith("doka_dup_archive:"):
-        doc_id = action.split(":", 1)[1]
-        msg = f"🗄️ <b>Duplicate Archived:</b> <code>{doc_id}</code> deduplicated and archived to R2 cold storage."
-        await send_telegram_message(msg, topic_id=payload.topic_id)
-        return {"status": "ok", "action": "dup_archived", "id": doc_id}
-
-    return {"status": "ignored", "action": action}
+async def handle_telegram_action(
+    payload: TelegramActionPayload,
+    x_doka_action_secret: str | None = Header(default=None, alias="X-Doka-Action-Secret"),
+) -> dict[str, Any]:
+    """Authenticated internal gateway endpoint, not a public Telegram webhook."""
+    _authorize_gateway(x_doka_action_secret)
+    return await _process_action(payload)
 
 
-# ------------------------------------------------------------------------------
-# 2. AI MORNING DIGEST GENERATOR
-# ------------------------------------------------------------------------------
-async def send_doka_morning_digest(topic_id: int | None = None) -> dict[str, Any] | None:
-    """Generate and send an AI Morning Document Intake Briefing for Doka DMS."""
-    msg = (
-        "☀️ <b>[Doka-DMS] AI Morning Intake & OCR Briefing</b>\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "📄 <b>Document Vault:</b> 100% Synced (Backblaze B2 & Cloudflare R2)\n"
-        "🔍 <b>OCR Engine:</b> Tesseract & Vision OCR Ready (Zero Backlog)\n"
-        "🛡️ <b>Security Posture:</b> SHA-256 Deduplication Active | Zero Quarantines\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "<i>Access your Document Vault directly via the Mini App below:</i>"
-    )
-    keyboard = [
-        [
-            {"text": "📄 Open Document Vault (Mini App)", "web_app": {"url": FRONTEND_URL}},
-        ],
-        [
-            {"text": "📊 Ingestion Metrics", "callback_data": "doka_cat_appr:metrics"},
-        ]
-    ]
-    return await send_telegram_message(msg, topic_id=topic_id, inline_keyboard=keyboard)
-
-
-# ------------------------------------------------------------------------------
-# 3. NATIVE TELEGRAM WEBHOOK & SLASH COMMANDS ROUTER
-# ------------------------------------------------------------------------------
 @router.post("/webhook")
-async def telegram_webhook(request: Request) -> dict[str, Any]:
-    """Native Telegram Webhook handler for Doka DMS."""
+async def telegram_webhook(
+    request: Request,
+    x_telegram_bot_api_secret_token: str | None = Header(
+        default=None, alias="X-Telegram-Bot-Api-Secret-Token"
+    ),
+) -> dict[str, Any]:
+    """Receive Telegram updates only when Telegram's configured webhook token is valid."""
+    _authorize_telegram_webhook(x_telegram_bot_api_secret_token)
     try:
         update = await request.json()
-    except Exception:
-        return {"ok": False, "error": "Invalid JSON"}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload.") from exc
+    if not isinstance(update, dict):
+        raise HTTPException(status_code=400, detail="Invalid Telegram update.")
 
-    # Callback Query
-    if "callback_query" in update:
-        cq = update["callback_query"]
-        action = cq.get("data", "")
-        message = cq.get("message", {})
-        topic_id = message.get("message_thread_id")
+    callback = update.get("callback_query")
+    if isinstance(callback, dict):
+        message = callback.get("message") or {}
+        chat = message.get("chat") or {}
+        sender = callback.get("from") or {}
         payload = TelegramActionPayload(
-            action=action,
-            chat_id=message.get("chat", {}).get("id"),
-            topic_id=topic_id,
-            user_id=cq.get("from", {}).get("id"),
-            username=cq.get("from", {}).get("username"),
+            action=str(callback.get("data") or "invalid"),
+            chat_id=chat.get("id"),
+            topic_id=message.get("message_thread_id"),
+            user_id=sender.get("id"),
+            username=sender.get("username"),
         )
-        return await handle_telegram_action(payload)
+        return await _process_action(payload)
 
-    # Message Text (Slash Commands)
-    if "message" in update:
-        msg = update["message"]
-        text = msg.get("text", "").strip()
-        topic_id = msg.get("message_thread_id")
+    message = update.get("message")
+    if not isinstance(message, dict):
+        return {"ok": True, "status": "ignored"}
+    text = message.get("text")
+    if not isinstance(text, str):
+        return {"ok": True, "status": "ignored"}
+    text = text.strip()
+    topic_id = message.get("message_thread_id")
 
-        if not text:
-            return {"ok": True}
+    if text.startswith(("/start", "/help")):
+        help_text = (
+            "📄 <b>Doka-AI-DMS Document Commands:</b>\n\n"
+            "• <code>/status</code> — Check service status\n"
+            "• <code>/morning_brief</code> — Today's intake briefing\n"
+            "• <code>/ask [query]</code> — Ask about document search availability\n\n"
+            "👇 Open the Document Vault from the configured Mini App."
+        )
+        buttons = [[{"text": "📄 Open Document Vault", "web_app": {"url": FRONTEND_URL}}]]
+        await send_telegram_message(help_text, topic_id=topic_id, inline_keyboard=buttons)
+        return {"ok": True, "command": "help"}
 
-        # Command: /start or /help
-        if text.startswith("/start") or text.startswith("/help"):
-            help_text = (
-                "📄 <b>Doka-AI-DMS Document Commands:</b>\n\n"
-                "• <code>/status</code> — Check Document Vault & OCR Engine\n"
-                "• <code>/morning_brief</code> — Today's intake & OCR summary\n"
-                "• <code>/ask [query]</code> — Ask AI about documents\n\n"
-                "👇 Click below to open Document Vault inside Telegram:"
-            )
-            buttons = [
-                [{"text": "📄 Open Document Vault", "web_app": {"url": FRONTEND_URL}}]
-            ]
-            await send_telegram_message(help_text, topic_id=topic_id, inline_keyboard=buttons)
-            return {"ok": True, "command": "help"}
+    if text.startswith("/status"):
+        await send_telegram_message(
+            "ℹ️ <b>Doka-DMS:</b> This bot cannot independently verify live database, storage, or OCR health.",
+            topic_id=topic_id,
+        )
+        return {"ok": True, "command": "status"}
 
-        # Command: /status
-        elif text.startswith("/status"):
-            status_text = (
-                "🟢 <b>[Doka-DMS] Live Vault Status:</b>\n\n"
-                "• <b>API Service:</b> <code>Online (Port 8000)</code>\n"
-                "• <b>Database:</b> <code>Supabase Postgres Connected</code>\n"
-                "• <b>Storage:</b> <code>Cloudflare R2 + B2 Active</code>\n"
-                "• <b>OCR Pipeline:</b> <code>Tesseract & Cloud Vision Ready</code>"
-            )
-            buttons = [
-                [{"text": "📄 Open Document Vault", "web_app": {"url": FRONTEND_URL}}]
-            ]
-            await send_telegram_message(status_text, topic_id=topic_id, inline_keyboard=buttons)
-            return {"ok": True, "command": "status"}
+    if text.startswith(("/morning_brief", "/digest")):
+        await send_telegram_message(
+            "ℹ️ The automated morning briefing is not connected to a verified live document query yet.",
+            topic_id=topic_id,
+        )
+        return {"ok": True, "command": "morning_brief", "status": "not_configured"}
 
-        # Command: /morning_brief
-        elif text.startswith("/morning_brief") or text.startswith("/digest"):
-            await send_doka_morning_digest(topic_id=topic_id)
-            return {"ok": True, "command": "morning_brief"}
+    if text.startswith("/ask"):
+        await send_telegram_message(
+            "ℹ️ Document search is not connected to this Telegram command yet.",
+            topic_id=topic_id,
+        )
+        return {"ok": True, "command": "ask", "status": "not_configured"}
 
-        # Command: /ask <query>
-        elif text.startswith("/ask"):
-            query = text[len("/ask"):].strip()
-            if not query:
-                await send_telegram_message("⚠️ Please supply a query: <code>/ask [question]</code>", topic_id=topic_id)
-                return {"ok": True}
-            
-            reply = (
-                f"📄 <b>Document Knowledge Query:</b>\n<i>\"{query}\"</i>\n\n"
-                "✅ <b>Summary:</b> Matches retrieved across 3 verified PDF records in your Doka vault."
-            )
-            await send_telegram_message(reply, topic_id=topic_id)
-            return {"ok": True, "command": "ask"}
-
-    return {"ok": True}
+    return {"ok": True, "status": "ignored"}

@@ -9,18 +9,11 @@ import {
   FileText,
   ScanText,
   ShieldCheck,
-  Send,
   Cloud,
-  CheckCircle2,
-  Clock,
   Sparkles,
-  Layers,
   X,
   Activity,
   Sliders,
-  Lock,
-  Eye,
-  FileCheck
 } from 'lucide-react';
 
 export interface WorkflowNode {
@@ -31,7 +24,7 @@ export interface WorkflowNode {
   x: number;
   y: number;
   status: 'idle' | 'running' | 'success' | 'error';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   icon: string;
 }
 
@@ -148,7 +141,15 @@ const AVAILABLE_MODULES = [
   { title: 'Document Deduplicator', category: 'ai', type: 'SHA-256 & Perceptual Hash', icon: 'FileCheck', desc: 'Detects duplicates before saving to storage' },
   { title: 'PDF Splitter & Merger', category: 'trigger', type: 'Batch Processor', icon: 'Layers', desc: 'Splits multi-page bulk scans into individual vouchers' },
   { title: 'ERP/Accounting Webhook', category: 'storage', type: 'REST API Dispatcher', icon: 'Send', desc: 'Posts structured invoice JSON to SAP/QuickBooks' },
-];
+] as const;
+
+
+function createWorkflowNodeId(existingIds: string[]): string {
+  const used = new Set(existingIds);
+  let index = 1;
+  while (used.has(`node-${index}`)) index += 1;
+  return `node-${index}`;
+}
 
 export default function WorkflowsPage() {
   const [nodes, setNodes] = useState<WorkflowNode[]>(INITIAL_NODES);
@@ -189,15 +190,16 @@ export default function WorkflowsPage() {
     setDraggingNodeId(null);
   };
 
-  const handleAddModule = (module: typeof AVAILABLE_MODULES[0]) => {
-    const newId = `node-${Date.now()}`;
+  const handleAddModule = (module: typeof AVAILABLE_MODULES[number]) => {
+    const newId = createWorkflowNodeId(nodes.map(node => node.id));
+    const positionIndex = nodes.length;
     const newNode: WorkflowNode = {
       id: newId,
       title: module.title,
-      category: module.category as any,
+      category: module.category,
       type: module.type,
-      x: 350 + Math.random() * 200,
-      y: 200 + Math.random() * 150,
+      x: 350 + (positionIndex % 4) * 60,
+      y: 200 + Math.floor(positionIndex / 4) * 80,
       status: 'idle',
       config: { note: 'Added via Doka Visual Canvas' },
       icon: module.icon,
@@ -243,13 +245,13 @@ export default function WorkflowsPage() {
 
       setNodes(prev => prev.map(n => n.id === currentId ? { ...n, status: 'success' } : n));
       setLogs(prev => [
-        { timestamp: new Date().toLocaleTimeString(), nodeTitle: targetNode?.title || currentId, message: `Stage completed with 0 errors. Forwarding data.`, type: 'success' },
+        { timestamp: new Date().toLocaleTimeString(), nodeTitle: targetNode?.title || currentId, message: 'Simulation stage completed; no external side effects occurred.', type: 'success' },
         ...prev,
       ]);
     }
 
     setLogs(prev => [
-      { timestamp: new Date().toLocaleTimeString(), nodeTitle: 'DOKA-CORE', message: 'Document indexed into Cloud Vault & Telegram notification dispatched!', type: 'success' },
+      { timestamp: new Date().toLocaleTimeString(), nodeTitle: 'DOKA-CORE', message: 'Workflow simulation completed. No document was uploaded, indexed, or sent to Telegram.', type: 'success' },
       ...prev,
     ]);
     setIsRunning(false);
@@ -422,7 +424,7 @@ export default function WorkflowsPage() {
 
                 <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[10px] text-slate-400">
                   <span className="truncate max-w-[150px]">
-                    {node.config.pollInterval || node.config.model || node.config.targetTopic || node.config.destination || 'Active'}
+                    {String(node.config.pollInterval ?? node.config.model ?? node.config.targetTopic ?? node.config.destination ?? 'Active')}
                   </span>
                   <button
                     onClick={e => {

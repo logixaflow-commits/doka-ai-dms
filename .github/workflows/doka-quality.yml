@@ -329,6 +329,11 @@ jobs:
             apps/web-platform/tests/test_cloudflare_storage_router.py \
             apps/web-platform/tests/test_doka_storage_metadata_migration.py \
             apps/web-platform/tests/test_doka_rpc_security_hardening_migration.py \
+            apps/web-platform/tests/test_doka_version_rpc_migration.py \
+            apps/web-platform/tests/test_cloudflare_worker_contract.py \
+            apps/web-platform/tests/test_cloudflare_authorization_schema.py \
+            apps/web-platform/tests/test_telegram_action_security.py \
+            apps/web-platform/tests/test_webhook_security_contract.py \
             apps/web-platform/tests/test_worker_cors_runtime_config.py \
             apps/web-platform/tests/test_cloud_storage.py \
             apps/web-platform/tests/test_cloudflare_jobs.py \
