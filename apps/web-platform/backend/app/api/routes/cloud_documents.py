@@ -71,7 +71,7 @@ async def create_document(
 
     digest = hashlib.sha256(data).hexdigest()
     raw_name = (file.filename or "document").replace("\\", "/").rsplit("/", 1)[-1]
-    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name).strip("._") or "document"
+    safe_name = (re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name).strip("._") or "document")[:180]
     object_key = f"users/{user_id}/documents/{digest}/{safe_name}"
     storage = None
     upload_completed = False
@@ -88,7 +88,7 @@ async def create_document(
         document = service.create_document(
             owner_id=user_id,
             object_key=stored.key,
-            filename=file.filename or "document",
+            filename=safe_name,
             content_type=stored.content_type,
             size_bytes=stored.size,
             sha256=stored.sha256,

@@ -208,7 +208,7 @@ def test_multipart_upload_stores_object_before_creating_metadata(
         {
             "owner_id": TEST_USER_ID,
             "object_key": f"users/{TEST_USER_ID}/documents/{digest}/quarterly_report.pdf",
-            "filename": "quarterly report.pdf",
+            "filename": "quarterly_report.pdf",
             "content_type": "application/pdf",
             "size_bytes": len(content),
             "sha256": digest,
@@ -218,6 +218,26 @@ def test_multipart_upload_stores_object_before_creating_metadata(
         ("put", storage.uploads[0][0]),
         ("create", service.created[0]),
     ]
+
+
+def test_upload_metadata_uses_sanitized_filename_not_untrusted_client_name(
+    authenticated_client, fakes
+):
+    service, storage, _ = fakes
+    content = b"safe metadata filename"
+    digest = hashlib.sha256(content).hexdigest()
+
+    response = authenticated_client.post(
+        "/api/documents",
+        headers=AUTH_HEADERS,
+        files={"file": ("../../private\\quarterly report.pdf", content, "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    assert storage.uploads[0][0] == (
+        f"users/{TEST_USER_ID}/documents/{digest}/quarterly_report.pdf"
+    )
+    assert service.created[0]["filename"] == "quarterly_report.pdf"
 
 
 def test_oversized_upload_returns_current_413_without_storage_calls(
