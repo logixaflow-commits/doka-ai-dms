@@ -33,14 +33,17 @@ The warning is a review signal, not proof of an authorization bypass. Staging mu
 
 Read-only migration inventory returned:
 
-- Production: 32 migrations, including `20261017170027_doka_rpc_security_hardening` and `20261017170133_rollback_doka_rpc_security_hardening`.
-- Staging: 2 entries, `20261016094050_staging_doka_core_schema_rls_storage` and `20261017081123_doka_rpc_security_hardening`.
+- Production: **33** ledger entries (not 32), including `20261017170027_doka_rpc_security_hardening` and `20261017170133_rollback_doka_rpc_security_hardening`.
+- Staging: **2** entries, `20261016094050_staging_doka_core_schema_rls_storage` and `20261017081123_doka_rpc_security_hardening`.
+- Repository `main` contains **30** SQL files under `apps/web-platform/backend/supabase/migrations/`, plus a rollback SQL file under `apps/web-platform/backend/supabase/production-rollback/`.
+- Three production-ledger versions do not have a matching SQL file in the main migrations directory: `20261002162812_harden_public_default_privileges`, `20261005071833_revoke_authenticated_version_rpc_execute`, and `20261005073729_doka_version_rpc_execute_hardening`. The rollback ledger entry does exist in the separate `production-rollback/` directory. The repository instead has `20261005090000_doka_version_rpc_execute_hardening.sql`, whose version differs from the production ledger's `20261005073729` entry. This is a concrete migration-history/source-of-truth mismatch that needs reconciliation.
+- Neither of the two staging ledger versions matches a versioned SQL file in the main migrations directory, suggesting staging uses a baseline/squashed history that must be explained by its deployment records.
 
-Do not reconcile this by blindly replaying migrations, rewriting migration history, or pushing SQL to production. First compare local migration files with both ledgers; determine which staging migrations are represented by the existing baseline; then run the documented authenticated lifecycle and A/B isolation acceptance on disposable staging users/data. Record results and reviewed forward/rollback plans before changing either database.
+Do not reconcile this by blindly replaying migrations, rewriting migration history, or pushing SQL to production. First establish the intended baseline and the provenance of the three absent production migrations, compare their effects to current schema/functions/grants, and document a forward/rollback plan. Then run the authenticated lifecycle and A/B isolation acceptance on disposable staging users/data. Record results before changing either database.
 
 ## Storage review — no changes made
 
-Prior live inventory found the `doka-documents` bucket is private with a 52,428,800-byte (50 MiB) limit. Its bucket-scoped SELECT/INSERT/DELETE policies target authenticated users and `users/<auth.uid()>/...` object paths. The bucket's `allowed_mime_types` is NULL. Global `storage.objects` grants include anon privileges, but the inspected policy inventory did not show an anon policy for this bucket; no bypass was confirmed.
+Read-only staging inventory found one bucket: `doka-documents`, private, `file_size_limit=52,428,800` bytes (50 MiB), `allowed_mime_types=NULL`. The staging policy inventory returned three bucket-scoped Storage policies—SELECT, INSERT, DELETE—restricted to `authenticated` and `users/<auth.uid()>/...` object paths, plus owner-scoped RLS policies on `doka_documents`, `doka_document_versions`, and `doka_audit_events`. No anonymous policy for this bucket was present in the inspected policy inventory; this is not a substitute for runtime anonymous and cross-user negative tests. Global `storage.objects` grants include anon privileges, so retain the staging test gate before changing grants or bucket configuration.
 
 Before changing global grants or bucket configuration:
 
@@ -67,8 +70,8 @@ Tracking issue: [#93](https://github.com/logixaflow-commits/doka-ai-dms/issues/9
 
 ## Next execution order
 
-1. Complete a read-only inventory of all staging buckets, policies, and upload consumers.
-2. Reconcile migration files against the two live ledgers without applying migrations.
+1. Map the only currently observed staging bucket and all three bucket-scoped policies to every upload consumer; run anonymous and cross-user negative tests.
+2. Reconcile the 33-entry production ledger, the 2-entry staging ledger, the 30 main migration SQL files, and the separately stored rollback file without applying migrations.
 3. Run disposable-user authenticated staging HTTP tests for document create/upload/read/version-replace/restore/bulk-status/trash plus cross-user negative cases.
 4. Fix only the failures demonstrated by those tests in a reviewed candidate migration; validate rollback and ledger parity.
 5. Implement actual receipt OCR only when a safe configured provider boundary and consent requirements are available; keep 501 otherwise.
