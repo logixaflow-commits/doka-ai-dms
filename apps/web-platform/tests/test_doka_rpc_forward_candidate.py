@@ -47,6 +47,7 @@ def test_protected_version_pointer_rpcs_are_definer_with_owner_checks():
         assert "set search_path = pg_catalog, public, pg_temp" in definition
         assert "v_user is null" in definition
         assert "owner_id = v_user" in definition
+        assert "current_doc.object_key is null" in definition
 
 
 def test_version_object_keys_bind_owner_hash_and_safe_single_segment():

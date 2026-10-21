@@ -80,6 +80,7 @@ BEGIN
   WHERE id = p_document_id AND owner_id = v_user AND deleted_at IS NULL FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Document not found' USING errcode = 'P0002'; END IF;
   IF current_doc.sha256 IS NULL OR current_doc.sha256 !~ '^[0-9a-fA-F]{64}$'
+     OR current_doc.object_key IS NULL
      OR current_doc.object_key !~ ('^users/' || v_user::text || '/documents/' || pg_catalog.lower(current_doc.sha256) || '/[A-Za-z0-9-][A-Za-z0-9._-]{0,254}$') THEN
     RAISE EXCEPTION 'Current document storage key is invalid' USING errcode = '22023';
   END IF;
@@ -135,6 +136,7 @@ BEGIN
   WHERE id = p_document_id AND owner_id = v_user AND deleted_at IS NULL FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Document not found' USING errcode = 'P0002'; END IF;
   IF current_doc.sha256 IS NULL OR current_doc.sha256 !~ '^[0-9a-fA-F]{64}$'
+     OR current_doc.object_key IS NULL
      OR current_doc.object_key !~ ('^users/' || v_user::text || '/documents/' || pg_catalog.lower(current_doc.sha256) || '/[A-Za-z0-9-][A-Za-z0-9._-]{0,254}$') THEN
     RAISE EXCEPTION 'Current document storage key is invalid' USING errcode = '22023';
   END IF;
@@ -181,6 +183,7 @@ BEGIN
   WHERE id = p_document_id AND owner_id = v_user AND deleted_at IS NULL FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Document not found' USING errcode = 'P0002'; END IF;
   IF current_doc.sha256 IS NULL OR current_doc.sha256 !~ '^[0-9a-fA-F]{64}$'
+     OR current_doc.object_key IS NULL
      OR current_doc.object_key !~ ('^users/' || v_user::text || '/documents/' || pg_catalog.lower(current_doc.sha256) || '/[A-Za-z0-9-][A-Za-z0-9._-]{0,254}$') THEN
     RAISE EXCEPTION 'Current document storage key is invalid' USING errcode = '22023';
   END IF;
