@@ -1,6 +1,15 @@
 # Doka Database
 
-> **Live migration and RPC reconciliation — 2026-10-17**
+> **Live read-only RPC recheck — 2026-10-21 05:16 UTC**
+>
+> - Both production (`jkobgssaqifzrqfirdfu`) and staging (`gzxybtqquzycogaowdbj`) have RLS enabled on `doka_documents`, `doka_document_versions`, and `doka_audit_events`.
+> - Production's four sensitive RPCs are `SECURITY INVOKER`; EXECUTE is granted to `authenticated` only (not `anon` or `service_role`). Their existing search paths are `public` or `public, pg_temp`. Authenticated users cannot directly update storage-pointer columns, so version replacement/restore runtime acceptance remains unverified and may fail.
+> - Staging's four sensitive RPCs are `SECURITY DEFINER`; EXECUTE is available to `authenticated` and `service_role`, not `anon`. Search path is `pg_catalog, public, pg_temp`. Security Advisor reports four authenticated-callable SECURITY DEFINER warnings; owner checks and least-privilege behavior require real staging A/B evidence.
+> - Production's migration ledger lists 32 entries, including the RPC hardening apply and compensating rollback. Staging's ledger lists only `20261016094050_staging_doka_core_schema_rls_storage` and `20261017081123_doka_rpc_security_hardening`. This divergence is material: **freeze database pushes** until the ledger reconciliation is explicitly verified.
+> - PR [#90](https://github.com/logixaflow-commits/doka-ai-dms/pull/90) is a review candidate stored outside the executable migrations directory. No candidate SQL has been applied to either database.
+> - Production Security Advisor reports the known leaked-password-protection plan limitation. No auth settings were changed during this audit.
+>
+> **Historical migration and RPC reconciliation — 2026-10-17**
 >
 > - Production project `jkobgssaqifzrqfirdfu` remains ACTIVE_HEALTHY. On 2026-10-17, `20261017170027_doka_rpc_security_hardening` was briefly applied, then compensated by `20261017170133_rollback_doka_rpc_security_hardening` because the repository's staging HTTP lifecycle/A-B prerequisite had not been met. No document rows or storage objects were changed.
 > - Production's four sensitive RPCs are back to `SECURITY INVOKER`; `authenticated` can execute them, while `anon` and `service_role` cannot. `authenticated` cannot create objects in `public`. Production Security Advisor now reports the known leaked-password-protection warning only.
@@ -13,7 +22,7 @@
 
 > **Owner:** How is Doka's database, migration, ownership and RLS boundary maintained?
 > **Update when:** Schema, migration heads, RLS, RPC/function privileges, ownership checks or database providers change.
-> **Last Updated:** 2026-10-08
+> **Last Updated:** 2026-10-21
 > **Do NOT put here:** Release-gate status, deployment credentials, or provider-specific recovery runbooks.
 
 ## Current authority
