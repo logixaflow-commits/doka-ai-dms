@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Eye, Download, Trash2, Lock, Unlock, Clock, FileText, Tag, Calendar, HardDrive, CheckCircle, XCircle, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Eye, Download, Trash2, Lock, Unlock, Clock, FileText, Tag, Calendar, HardDrive, CheckCircle, XCircle, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, Maximize2, Minimize2, Link, Copy, Check } from 'lucide-react';
 
 const API_BASE = '/api';
 
@@ -87,6 +87,17 @@ export default function DocumentDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Copy-link state
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleCopyLink = useCallback(() => {
+    const url = `${window.location.origin}/admin/documents/${id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }).catch(() => {});
+  }, [id]);
+
   // Preview state
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
@@ -242,6 +253,10 @@ export default function DocumentDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button onClick={handleCopyLink} size="sm" variant="outline" title="Copy shareable link">
+            {linkCopied ? <Check className="w-4 h-4 mr-2 text-emerald-500" /> : <Link className="w-4 h-4 mr-2" />}
+            {linkCopied ? 'Copied!' : 'Copy Link'}
+          </Button>
           <Button onClick={handleApprove} size="sm" variant="default" disabled={document.status === 'approved'}>
             <CheckCircle className="w-4 h-4 mr-2" />
             Approve
