@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1] / "backend"
 BASELINE = ROOT / "cloudflare_worker" / "migrations" / "0001_doka_cloud_baseline.sql"
 AUTHZ = ROOT / "cloudflare_worker" / "migrations" / "0002_authorization_integrity.sql"
 HASH = "a" * 64

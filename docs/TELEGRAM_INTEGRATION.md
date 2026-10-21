@@ -15,7 +15,7 @@ Doka DMS uses the Telegram Supergroup to monitor document ingestion, optical cha
 * Alerts for duplicate documents with one-click cleanup options.
 * Backup verification logs.
 
-Users can also verify or re-route documents using Telegram buttons.
+Telegram notifications may contain document-action buttons, but document-mutating actions are currently disabled in the active runtime and are not performed by clicking a button.
 
 ---
 
@@ -38,6 +38,7 @@ Configure these variables in `apps/web-platform/backend/.env` or in Cloud/Worker
 | `TELEGRAM_TOPIC_ID` | Integer | `None` | Thread ID for `#Doka-DMS` topic |
 | `TELEGRAM_ENABLED` | Boolean | `false` | Master toggle (`true` to enable delivery) |
 | `TELEGRAM_ACTION_WEBHOOK_SECRET` | Secret | empty | Required shared secret for trusted gateway requests to `POST /api/telegram/action`; send it in `X-Doka-Action-Secret`. The endpoint fails closed when unset. Never commit or expose this value. |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret | empty | Required Telegram Bot API webhook secret; configure the same value with Telegram `setWebhook` and send it in `X-Telegram-Bot-Api-Secret-Token` to `POST /api/telegram/webhook`. The endpoint fails closed when unset. Never reuse the bot token as this secret. |
 
 ---
 
@@ -106,14 +107,14 @@ await notify_backup_status(
 ## 6. Cloud / Local Deployment Checklist
 
 1. In Local mode: Add the variables into `apps/web-platform/backend/.env`.
-2. In Cloud mode (Render / Cloudflare Worker): Add the keys to your project's Environment Secrets.
+2. In Cloud mode, configure the secrets only in the backend service that actually mounts these FastAPI routes. A Cloudflare Worker secret does not automatically configure a separate FastAPI runtime. Configure `TELEGRAM_WEBHOOK_SECRET` with Telegram webhook setup and `TELEGRAM_ACTION_WEBHOOK_SECRET` only for the trusted internal gateway.
 3. Set `TELEGRAM_ENABLED=true` to go live.
 
 ---
 
 ## 7. Inbound Action Handler API
 
-This project includes an inbound endpoint for trusted gateway messages. It requires `TELEGRAM_ACTION_WEBHOOK_SECRET` configured on the backend and the matching `X-Doka-Action-Secret` request header. Missing configuration returns HTTP 503; missing/invalid authentication returns HTTP 401.
+This project includes two separate inbound boundaries. `POST /api/telegram/action` requires `TELEGRAM_ACTION_WEBHOOK_SECRET` and the matching `X-Doka-Action-Secret` request header. `POST /api/telegram/webhook` requires `TELEGRAM_WEBHOOK_SECRET` and Telegram's `X-Telegram-Bot-Api-Secret-Token` header. Both fail closed when their secret is missing; the public Telegram webhook must not be treated as the trusted internal gateway. Missing configuration returns HTTP 503; missing/invalid authentication returns HTTP 401.
 * **Endpoint:** `POST /api/telegram/action`
 * **Supported Actions:**
   * `doka_cat_appr:<id>`
@@ -121,7 +122,7 @@ This project includes an inbound endpoint for trusted gateway messages. It requi
   * `doka_dup_archive:<id>`
   * `doka_dup_keep:<id>`
 
-The four document-mutation action types currently return HTTP 501 because the active Personal Local runtime does not wire them to an authorization-checked mutation service. They must not be treated as successful document changes. Implement the actual service and its ownership/approval checks before enabling these actions in production. The receipt-scan action remains available behind the shared-secret boundary.
+The four document-mutation action types currently return HTTP 501 because the active Personal Local runtime does not wire them to an authorization-checked mutation service. They must not be treated as successful document changes. Implement the actual service and its ownership/approval checks before enabling these actions in production. The receipt-scan action remains available behind the shared-secret boundary. Telegram webhook commands that are not connected to verified live document queries return a not-configured response instead of claiming database/storage/OCR health or inventing document search results.
 
 ---
 

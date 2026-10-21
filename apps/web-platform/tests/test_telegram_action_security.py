@@ -115,3 +115,36 @@ def test_receipt_fields_are_escaped_before_rendering_telegram_html(client, monke
     assert "<img" not in sent_message
     assert "&lt;script&gt;" in sent_message
     assert "&lt;b&gt;USD&lt;/b&gt;" in sent_message
+
+
+def test_telegram_webhook_fails_closed_when_secret_is_not_configured(client, monkeypatch):
+    monkeypatch.delenv("TELEGRAM_WEBHOOK_SECRET", raising=False)
+    response = client.post("/api/telegram/webhook", json={"message": {"text": "/help"}})
+
+    assert response.status_code == 503
+
+
+def test_telegram_webhook_rejects_missing_or_invalid_secret(client, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_WEBHOOK_SECRET", "telegram-test-secret")
+    missing = client.post("/api/telegram/webhook", json={"message": {"text": "/help"}})
+    invalid = client.post(
+        "/api/telegram/webhook",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "wrong"},
+        json={"message": {"text": "/help"}},
+    )
+
+    assert missing.status_code == 401
+    assert invalid.status_code == 401
+
+
+def test_telegram_webhook_does_not_claim_document_mutation_succeeded(client, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_WEBHOOK_SECRET", "telegram-test-secret")
+    response = client.post(
+        "/api/telegram/webhook",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-test-secret"},
+        json={"callback_query": {"data": "doka_quar:doc_123", "from": {"id": 5}, "message": {"chat": {"id": 7}}}},
+    )
+
+    assert response.status_code == 501
+    assert "no document was changed" in response.json()["detail"].lower()
+    telegram.send_telegram_message.assert_not_awaited()

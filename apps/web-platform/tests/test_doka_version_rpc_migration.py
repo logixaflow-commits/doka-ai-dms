@@ -1,9 +1,9 @@
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+BACKEND_ROOT = Path(__file__).resolve().parents[1] / "backend"
 MIGRATION = (
-    REPO_ROOT / "supabase" / "migrations"
+    BACKEND_ROOT / "supabase" / "migrations"
     / "20261002100658_doka_version_object_key_pattern.sql"
 ).read_text(encoding="utf-8")
 

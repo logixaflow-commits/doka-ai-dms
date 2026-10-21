@@ -4,7 +4,7 @@ import re
 
 
 WORKER_SOURCE = (
-    Path(__file__).resolve().parents[2] / "cloudflare_worker" / "main.py"
+    Path(__file__).resolve().parents[1] / "backend" / "cloudflare_worker" / "main.py"
 ).read_text(encoding="utf-8")
 
 
@@ -57,7 +57,8 @@ def test_worker_version_events_use_distinct_audit_actions():
     assert '_audit(request, user_id, "version_restore"' in WORKER_SOURCE
 
 VERSION_RPC_MIGRATION = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parents[1]
+    / "backend"
     / "supabase"
     / "migrations"
     / "20261002100658_doka_version_object_key_pattern.sql"
@@ -85,7 +86,8 @@ def test_version_rpc_privilege_boundary_and_input_guards_are_explicit():
 
 def test_version_rpc_does_not_grant_direct_storage_pointer_updates():
     least_privilege = (
-        Path(__file__).resolve().parents[2]
+        Path(__file__).resolve().parents[1]
+        / "backend"
         / "supabase"
         / "migrations"
         / "20261001100118_doka_least_privilege_grants.sql"
@@ -115,7 +117,8 @@ def test_worker_route_method_and_path_pairs_are_unique():
 
 
 AUDIT_ACL_MIGRATION = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parents[1]
+    / "backend"
     / "supabase"
     / "migrations"
     / "20261002114801_doka_audit_least_privilege.sql"
@@ -128,7 +131,8 @@ def test_audit_table_is_append_only_for_authenticated_users():
 
 
 VERSION_HISTORY_ACL_MIGRATION = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parents[1]
+    / "backend"
     / "supabase"
     / "migrations"
     / "20261002115107_doka_version_history_append_only.sql"
@@ -161,7 +165,7 @@ def test_worker_config_exposes_single_user_readiness_without_exposing_identity()
 
 
 
-WRANGLER = (Path(__file__).resolve().parents[2] / "wrangler.jsonc").read_text(encoding="utf-8")
+WRANGLER = (Path(__file__).resolve().parents[3] / "wrangler.jsonc").read_text(encoding="utf-8")
 
 def test_worker_rate_limit_binding_is_declared_and_user_scoped():
     assert '"ratelimits"' in WRANGLER

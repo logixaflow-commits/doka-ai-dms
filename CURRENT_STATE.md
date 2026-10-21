@@ -1,3 +1,15 @@
+> **BACKEND SECURITY RE-AUDIT — 2026-10-21 (active `main` checkout)**
+>
+> - Re-auditing the actual current `main` tree found a regression after commit `8133f0d`: the active FastAPI Telegram route had reintroduced an unauthenticated `/api/telegram/action`, reported document actions as successful without changing documents, and exposed `/api/telegram/webhook` without Telegram webhook-secret validation. Earlier security commit `18fff2e` was not sufficient protection because a later feature commit replaced its route implementation.
+> - A corrective candidate restores constant-time `TELEGRAM_ACTION_WEBHOOK_SECRET` authentication, adds fail-closed `TELEGRAM_WEBHOOK_SECRET` validation for Telegram's `X-Telegram-Bot-Api-Secret-Token`, validates document-action IDs, returns HTTP 501 for unsupported document mutations, escapes receipt fields for Telegram HTML, and removes unverified claims from `/status`, `/morning_brief`, and `/ask` responses.
+> - Regression coverage now includes missing/invalid gateway secrets, missing/invalid Telegram webhook secrets, invalid document-action identifiers, no-false-success behavior, HTML escaping, webhook contract checks, CORS config checks, and RPC migration contract checks. Focused local suite: 24 passed. This is branch-local evidence; PR checks and deployment verification are still required. No production deploy or database mutation was performed.
+> - The version-RPC migration contract test had a broken repository path and was not independently runnable; the candidate fixes the test path and adds it to the cloud storage contract CI job.
+> - Desktop external-link IPC still validates the sender is the main application frame and only permits credential-free HTTP(S) URLs. Historical AI-provider key rotation and Gemini assignment review remain skipped per owner instruction.
+>
+> **Status:** corrective branch pending review/CI; do not claim the regression is fixed in production until merge and runtime verification.
+
+---
+
 > **AUTHORITATIVE OWNER-APPROVED RELEASE CHECKPOINT — 2026-10-17**
 >
 > **Official decision:** **Production Ready — Conditional Sign-Off (Owner-approved launch with explicitly deferred post-launch work)**
