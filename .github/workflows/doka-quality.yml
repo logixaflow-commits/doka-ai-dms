@@ -336,6 +336,7 @@ jobs:
             apps/web-platform/tests/test_webhook_security_contract.py \
             apps/web-platform/tests/test_worker_cors_runtime_config.py \
             apps/web-platform/tests/test_cloud_storage.py \
+            apps/web-platform/tests/test_cloud_documents_http.py \
             apps/web-platform/tests/test_cloudflare_jobs.py \
             apps/web-platform/tests/test_cloudflare_outbox.py \
             apps/web-platform/tests/test_unified_ai_fallback.py \
