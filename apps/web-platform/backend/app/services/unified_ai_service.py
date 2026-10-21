@@ -299,9 +299,17 @@ class UnifiedAIService:
     async def _call_gemini(self, provider: Dict[str, Any], prompt: str, system_prompt: Optional[str]) -> str:
         full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
         async with httpx.AsyncClient(timeout=settings.AI_PROVIDER_TIMEOUT_SECONDS) as client:
+            api_k = provider['api_key']
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{provider['model']}:generateContent"
+            if not api_k.startswith("AQ"):
+                url += f"?key={api_k}"
             response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{provider['model']}:generateContent?key={provider['api_key']}",
-                headers={"Content-Type": "application/json"},
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": api_k,
+                    "Authorization": f"Bearer {api_k}",
+                },
                 json={
                     "contents": [{"parts": [{"text": full_prompt}]}],
                     "generationConfig": {"temperature": 0.2, "maxOutputTokens": 1200},

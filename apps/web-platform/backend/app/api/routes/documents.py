@@ -865,3 +865,45 @@ async def extract_receipt_data(
         "extracted_data": extracted,
     }
 
+
+
+@router.post("/{document_id}/batch-ocr", summary="Start background Batch PDF OCR Queue")
+async def start_batch_pdf_ocr(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Enqueues multi-page PDF for background OCR with page-by-page progress tracking."""
+    doc = db.query(Document).filter(Document.id == document_id, Document.is_deleted == False).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    from app.services.pdf_batch_ocr import batch_ocr_manager
+    existing_job = batch_ocr_manager.get_job_by_doc(doc.id)
+    if existing_job and existing_job.status in ("queued", "processing"):
+        return {"status": existing_job.status, "job": existing_job.to_dict()}
+
+    file_path = doc.file_path
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=400, detail="Physical document file not found on disk")
+
+    job = batch_ocr_manager.create_job(doc.id, file_path)
+    import asyncio
+    asyncio.create_task(batch_ocr_manager.run_batch_ocr(job.job_id))
+
+    return {"status": "started", "job": job.to_dict()}
+
+
+@router.get("/{document_id}/batch-ocr-progress", summary="Get live Batch PDF OCR progress")
+async def get_batch_pdf_ocr_progress(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns real-time page progress, percentage, and OCR status."""
+    from app.services.pdf_batch_ocr import batch_ocr_manager
+    job = batch_ocr_manager.get_job_by_doc(document_id)
+    if not job:
+        return {"status": "idle", "document_id": document_id, "message": "No active batch OCR job"}
+
+    return job.to_dict()

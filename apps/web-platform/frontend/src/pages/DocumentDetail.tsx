@@ -200,6 +200,48 @@ export default function DocumentDetail() {
     }
   }
 
+    // Batch PDF OCR State
+  const [batchProgress, setBatchProgress] = useState<{
+    status: string;
+    progress_percent: number;
+    current_page: number;
+    total_pages: number;
+  } | null>(null);
+  const [batchLoading, setBatchLoading] = useState(false);
+
+  const handleStartBatchOCR = async () => {
+    if (!document) return;
+    try {
+      setBatchLoading(true);
+      const res = await apiFetch(`${API_BASE}/documents/${document.id}/batch-ocr`, { method: 'POST' });
+      if (res.ok) {
+        pollBatchProgress(document.id);
+      }
+    } catch (e) {
+      console.error('Batch OCR start failed', e);
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const pollBatchProgress = (docId: number) => {
+    const timer = setInterval(async () => {
+      try {
+        const res = await apiFetch(`${API_BASE}/documents/${docId}/batch-ocr-progress`);
+        if (res.ok) {
+          const data = await res.json();
+          setBatchProgress(data);
+          if (data.status === 'completed' || data.status === 'failed') {
+            clearInterval(timer);
+            loadDocument(docId);
+          }
+        }
+      } catch {
+        clearInterval(timer);
+      }
+    }, 1200);
+  };
+
   // Preview controls
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 50));
@@ -253,6 +295,10 @@ export default function DocumentDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button onClick={handleStartBatchOCR} size="sm" variant="outline" disabled={batchLoading || batchProgress?.status === 'processing'} className="border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10">
+            <RotateCw className={`w-4 h-4 mr-2 ${batchProgress?.status === 'processing' ? 'animate-spin' : ''}`} />
+            {batchProgress?.status === 'processing' ? `OCR: ${batchProgress.progress_percent}% (Page ${batchProgress.current_page}/${batchProgress.total_pages})` : '⚡ Batch PDF OCR'}
+          </Button>
           <Button onClick={handleCopyLink} size="sm" variant="outline" title="Copy shareable link">
             {linkCopied ? <Check className="w-4 h-4 mr-2 text-emerald-500" /> : <Link className="w-4 h-4 mr-2" />}
             {linkCopied ? 'Copied!' : 'Copy Link'}
