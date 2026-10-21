@@ -1,3 +1,13 @@
+> **BACKEND UPLOAD RE-AUDIT — 2026-10-21 (PR #94 pending CI; no production changes)**
+>
+> - Current main base for this audit: `d17e8949b805636e28d0a931ec53807dd665ea78`. This supersedes older checkpoint SHA references below where they differ.
+> - Found a legacy FastAPI version-upload route that read the entire uploaded file into memory without enforcing the existing 100 MiB ceiling and passed the raw filename into a storage-key builder. PR [#94](https://github.com/logixaflow-commits/doka-ai-dms/pull/94) proposes bounded 1 MiB chunk streaming, a server-side 100 MiB cap, basename/control-character sanitization, guaranteed temp-file cleanup, and regression coverage. Local helper tests: 5 passed; PR CI is still running, so the remediation is not yet merged or production-verified.
+> - Live production Storage inventory returned exactly one bucket, `doka-documents`: private, 52,428,800-byte limit, `allowed_mime_types=NULL`. Its three bucket-scoped SELECT/INSERT/DELETE policies target `authenticated` users and `users/<auth.uid()>/...` paths. Global `storage.objects` grants include anon privileges, but the live policy inventory shows no anon policy for this bucket; no bypass was confirmed. No grants, policies, bucket settings, or data were changed. Keep MIME allowlist and global grant changes behind a complete upload-path compatibility review and staging tests.
+> - The live RPC/migration mismatch remains unchanged: production has the apply+rollback pair and INVOKER functions; staging has four DEFINER functions and a two-entry ledger. Keep database pushes frozen until issue #82's staging A/B lifecycle and ledger reconciliation criteria are satisfied. PR #90 remains an unmerged SQL candidate and has not been applied.
+> - Per owner instruction, historical Hugging Face/Groq/OpenRouter credential rotation and Gemini assignment review remain skipped; this is not evidence of remediation.
+>
+> ---
+
 > **LIVE BACKEND/RPC RECHECK — 2026-10-21 05:16 UTC (read-only)**
 >
 > - Current `main` checkpoint: `a612dbd0672656f6e3e0ef1717cc7b297753b0c1`. Exact-commit GitHub Actions checks: 13 successful and Supabase Preview skipped; combined Vercel status is success. This supersedes the earlier PR #88 note below that its merge-commit Vercel status was still pending.
