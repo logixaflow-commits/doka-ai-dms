@@ -329,6 +329,7 @@ jobs:
             apps/web-platform/tests/test_cloudflare_storage_router.py \
             apps/web-platform/tests/test_doka_storage_metadata_migration.py \
             apps/web-platform/tests/test_doka_rpc_security_hardening_migration.py \
+            apps/web-platform/tests/test_doka_rpc_forward_candidate.py \
             apps/web-platform/tests/test_doka_version_rpc_migration.py \
             apps/web-platform/tests/test_cloudflare_worker_contract.py \
             apps/web-platform/tests/test_cloudflare_authorization_schema.py \
