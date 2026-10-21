@@ -68,3 +68,14 @@ def test_execute_acl_is_authenticated_only_and_revokes_service_role():
         assert f"revoke all on function {signature} from public, anon, service_role;" in CANDIDATE
         assert f"grant execute on function {signature} to authenticated;" in CANDIDATE
     assert "to authenticated, service_role;" not in CANDIDATE
+
+def test_storage_aware_rpc_rejects_mock_provider_in_cloud_database():
+    definition = function_definition("doka_replace_document_version_storage")
+    assert "p_storage_provider not in ('supabase', 'b2')" in definition
+    assert "'mock'" not in definition
+
+
+def test_restore_requires_ready_supported_storage_version():
+    definition = function_definition("doka_restore_document_version")
+    assert "chosen.storage_provider not in ('supabase', 'b2')" in definition
+    assert "chosen.storage_status <> 'ready'" in definition
