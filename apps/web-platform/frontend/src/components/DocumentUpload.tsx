@@ -182,17 +182,25 @@ export default function DocumentUpload({ onUploadComplete }: DocumentUploadProps
             setOverallProgress((completedCount / pendingFiles.length) * 100);
             resolve();
           } else {
-            const errorData = JSON.parse(xhr.responseText);
+            let errorMessage = 'Upload failed';
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              if (typeof errorData?.detail === 'string' && errorData.detail.trim()) {
+                errorMessage = errorData.detail;
+              }
+            } catch {
+              // Keep a safe fallback when the server/proxy returns non-JSON errors.
+            }
             setFiles((prev) =>
               prev.map((f) =>
                 f.file === fileWithProgress.file
-                  ? { ...f, status: 'error', error: errorData.detail || 'Upload failed' }
+                  ? { ...f, status: 'error', error: errorMessage }
                   : f
               )
             );
             completedCount++;
             setOverallProgress((completedCount / pendingFiles.length) * 100);
-            reject(errorData.detail || 'Upload failed');
+            reject(errorMessage);
           }
         };
 
@@ -216,9 +224,15 @@ export default function DocumentUpload({ onUploadComplete }: DocumentUploadProps
     };
 
     try {
-      await Promise.allSettled(pendingFiles.map(uploadFile));
-      setSuccess(true);
-      if (onUploadComplete) onUploadComplete();
+      const results = await Promise.allSettled(pendingFiles.map(uploadFile));
+      const failedCount = results.filter((result) => result.status === 'rejected').length;
+      if (failedCount > 0) {
+        setSuccess(false);
+        setError(`${failedCount} file(s) failed to upload. Review the errors and retry.`);
+      } else {
+        setSuccess(true);
+        if (onUploadComplete) onUploadComplete();
+      }
     } catch {
       setError('Some files failed to upload');
     } finally {
