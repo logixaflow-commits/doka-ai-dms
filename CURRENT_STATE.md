@@ -1,3 +1,15 @@
+> **LIVE BACKEND/RPC RECHECK — 2026-10-21 05:16 UTC (read-only)**
+>
+> - Current `main` checkpoint: `a612dbd0672656f6e3e0ef1717cc7b297753b0c1`. Exact-commit GitHub Actions checks: 13 successful and Supabase Preview skipped; combined Vercel status is success. This supersedes the earlier PR #88 note below that its merge-commit Vercel status was still pending.
+> - **Production Supabase** (`jkobgssaqifzrqfirdfu)): the four sensitive RPCs are `SECURITY INVOKER`; `authenticated` can execute them, while `anon` and `service_role` cannot. Function search-path settings are still the older `public` / `public, pg_temp` values, not the candidate's fixed `pg_catalog, public, pg_temp`. Authenticated column grants still deny direct updates to storage-pointer columns, so version replace/restore runtime success is not established.
+> - **Staging Supabase** (`gzxybtqquzycogaowdbj`): all four sensitive RPCs are `SECURITY DEFINER` with `search_path=pg_catalog, public, pg_temp`; `authenticated` and `service_role` have EXECUTE, while `anon` does not. Security Advisor reports four authenticated-callable SECURITY DEFINER warnings; verify owner checks with real positive/negative A/B tests rather than suppressing the warnings.
+> - Both projects have RLS enabled on `doka_documents`, `doka_document_versions`, and `doka_audit_events`. Production Security Advisor reports the known leaked-password-protection limitation only.
+> - Migration ledgers diverge: production lists 32 migrations, including the RPC hardening apply+rollback pair; staging lists only `20261016094050_staging_doka_core_schema_rls_storage` and `20261017081123_doka_rpc_security_hardening`. **Database pushes remain frozen** until ledger reconciliation and staging lifecycle/isolation evidence are reviewed.
+> - PR [#90](https://github.com/logixaflow-commits/doka-ai-dms/pull/90) is an unmerged SQL candidate under `supabase/candidates/`; no SQL was applied to either database. Its core CI/backend/frontend/dependency checks passed, but CodeQL is neutral because a workflow configuration present on `main` is missing on the PR branch, and Supabase Preview was skipped. The PR must not be treated as live acceptance.
+> - Historical AI-provider credential rotation and Gemini assignment review remain skipped per owner instruction. This is not evidence that historical credential exposure is remediated.
+>
+> ---
+>
 > **BACKEND SECURITY RE-AUDIT — 2026-10-21 (active `main` checkout)**
 >
 > - Re-auditing the actual current `main` tree found a regression after commit `8133f0d`: the active FastAPI Telegram route had reintroduced an unauthenticated `/api/telegram/action`, reported document actions as successful without changing documents, and exposed `/api/telegram/webhook` without Telegram webhook-secret validation. Earlier security commit `18fff2e` was not sufficient protection because a later feature commit replaced its route implementation.
