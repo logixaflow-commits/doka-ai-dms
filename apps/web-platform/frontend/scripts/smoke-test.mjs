@@ -56,6 +56,24 @@ console.log('ThemeContext storage, system-theme and memoization smoke test passe
 
 console.log('Frontend smoke test passed.');
 
+const documentUpload = fs.readFileSync(path.resolve('src/components/DocumentUpload.tsx'), 'utf8');
+for (const required of [
+  'const results = await Promise.allSettled(pendingFiles.map(uploadFile));',
+  "const failedCount = results.filter((result) => result.status === 'rejected').length;",
+  "setSuccess(false);",
+  'if (onUploadComplete) onUploadComplete();',
+  "let errorMessage = 'Upload failed';",
+  'reject(errorMessage);',
+]) {
+  if (!documentUpload.includes(required)) {
+    throw new Error(`Document upload failure-state handling is missing ${required}.`);
+  }
+}
+if (!documentUpload.includes('if (failedCount > 0)')) {
+  throw new Error('Document upload must not report success when any file failed.');
+}
+console.log('Document upload partial-failure and error parsing smoke test passed.');
+
 const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
 for (const required of [
   'VITE_API_BASE_URL',
