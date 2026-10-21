@@ -72,7 +72,7 @@ BEGIN
      OR p_size_bytes IS NULL OR p_size_bytes < 0
      OR p_sha256 IS NULL OR p_sha256 !~ '^[0-9a-fA-F]{64}$'
      OR p_object_key !~ ('^users/' || v_user::text || '/documents/' || v_sha || '/[A-Za-z0-9-][A-Za-z0-9._-]{0,254}$')
-     OR p_storage_provider IS NULL OR p_storage_provider NOT IN ('supabase', 'b2', 'mock')
+     OR p_storage_provider IS NULL OR p_storage_provider NOT IN ('supabase', 'b2')
      OR (p_storage_region IS NOT NULL AND pg_catalog.length(p_storage_region) > 128) THEN
     RAISE EXCEPTION 'Invalid version object metadata' USING errcode = '22023';
   END IF;
@@ -193,6 +193,8 @@ BEGIN
   IF chosen.object_key IS NULL OR chosen.sha256 IS NULL OR chosen.sha256 !~ '^[0-9a-fA-F]{64}$'
      OR chosen.object_key !~ ('^users/' || v_user::text || '/documents/' || pg_catalog.lower(chosen.sha256) || '/[A-Za-z0-9-][A-Za-z0-9._-]{0,254}$')
      OR chosen.size_bytes IS NULL OR chosen.size_bytes < 0
+     OR chosen.storage_provider NOT IN ('supabase', 'b2')
+     OR chosen.storage_status <> 'ready'
      OR (chosen.filename IS NOT NULL AND (
        pg_catalog.btrim(chosen.filename) IN ('', '.', '..') OR pg_catalog.length(chosen.filename) > 255
        OR pg_catalog.strpos(chosen.filename, '/') > 0 OR pg_catalog.strpos(chosen.filename, pg_catalog.chr(92)) > 0
