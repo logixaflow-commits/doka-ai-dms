@@ -190,7 +190,9 @@ export async function exportCloudDocumentToGoogleDrive(documentId: string) {
     provider: 'google_drive';
     source_document: { id: string; size_bytes: number; sha256: string; download_url: string };
     upload: { method: string; url: string; headers: Record<string, string>; fields: Record<string, string> };
-  }>(`/documents/${encodeURIComponent(documentId)}/export/google-drive/upload-session`);
+  }>(`/documents/${encodeURIComponent(documentId)}/export/google-drive/upload-session`, {
+    method: 'POST',
+  });
 
   const source = await fetch(session.source_document.download_url);
   if (!source.ok || !source.body) throw new Error('Unable to read the source document for Google Drive export.');
