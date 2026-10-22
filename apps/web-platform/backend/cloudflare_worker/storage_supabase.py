@@ -114,9 +114,9 @@ class SupabaseDirectStorageProvider:
         if len(expected_sha) != 64:
             raise ValueError("Supabase completion requires the client SHA-256 fingerprint")
 
-        # Storage object metadata is not proof of content integrity: fetch the
-        # stored bytes through the authenticated Storage API and hash the stream
-        # incrementally before marking the document ready.
+        # Storage metadata alone is not proof of content integrity. Fetch the stored
+        # object through the authenticated API, hash the stream incrementally,
+        # and verify both digest and byte count before marking it ready.
         bucket = quote(self.config.bucket, safe="")
         path = quote(session.object_ref.object_key, safe="/")
         status, actual = await self.fetcher(
