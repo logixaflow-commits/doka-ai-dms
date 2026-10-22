@@ -113,10 +113,27 @@ class SupabaseDirectStorageProvider:
             raise ValueError("Supabase upload failed authoritative size verification")
         if len(expected_sha) != 64:
             raise ValueError("Supabase completion requires the client SHA-256 fingerprint")
-        # Supabase signed uploads do not expose custom metadata fields through the
-        # signed-upload helper, so the content hash is bound to the object key and
-        # client completion payload rather than re-streamed through the Worker.
-        return StoredObjectResult(session.object_ref, result.size_bytes, expected_sha, result.content_type)
+
+        # Storage object metadata is not proof of content integrity: fetch the
+        # stored bytes through the authenticated Storage API and hash the stream
+        # incrementally before marking the document ready.
+        bucket = quote(self.config.bucket, safe="")
+        path = quote(session.object_ref.object_key, safe="/")
+        status, actual = await self.fetcher(
+            f"{self._storage_base()}/object/authenticated/{bucket}/{path}",
+            headers=self.auth_headers,
+            return_sha256=True,
+            max_bytes=max(SUPABASE_SOURCE_MAX_BYTES, expected_size),
+        )
+        if status != 200 or not isinstance(actual, dict):
+            raise RuntimeError("Supabase stored object content verification failed")
+        actual_size = int(actual.get("size_bytes", -1))
+        actual_sha = str(actual.get("sha256") or "").lower()
+        if actual_size != expected_size:
+            raise ValueError("Supabase upload failed content size verification")
+        if actual_sha != expected_sha:
+            raise ValueError("Supabase upload failed content SHA-256 verification")
+        return StoredObjectResult(session.object_ref, actual_size, actual_sha, result.content_type)
 
     async def get_signed_download(self, object_ref: StorageObjectRef, expires_seconds: int = 300) -> str:
         if not 1 <= expires_seconds <= 3600:
