@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Eye, Download, Trash2, Lock, Unlock, Clock, FileText, Tag, Calendar, HardDrive, CheckCircle, XCircle, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, Maximize2, Minimize2, Link, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Eye, Download, Trash2, Lock, Unlock, Clock, FileText, Tag, Calendar, HardDrive, CheckCircle, XCircle, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, Maximize2, Minimize2, Link, Check } from 'lucide-react';
 
 const API_BASE = '/api';
 
