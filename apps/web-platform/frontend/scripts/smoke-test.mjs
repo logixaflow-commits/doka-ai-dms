@@ -78,7 +78,7 @@ const googleDriveExport = cloudDocuments.slice(
   cloudDocuments.indexOf('export async function exportCloudDocumentToGoogleDrive'),
   cloudDocuments.indexOf('export async function getCloudDocumentDownloadUrl')
 );
-if (!googleDriveExport.includes("/export/google-drive/upload-session', {\n    method: 'POST',")) {
+if (!googleDriveExport.includes("export/google-drive/upload-session`, {\n    method: 'POST',")) {
   throw new Error('Google Drive export upload-session request must use POST to match the Worker route.');
 }
 console.log('Google Drive export upload-session HTTP method regression test passed.');
