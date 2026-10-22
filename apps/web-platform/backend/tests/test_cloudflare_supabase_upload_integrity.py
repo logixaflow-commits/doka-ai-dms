@@ -38,7 +38,7 @@ async def test_supabase_completion_rejects_wrong_stored_content_hash():
 async def test_supabase_completion_rejects_wrong_stored_content_size():
     body = b"actual stored bytes"
     digest = hashlib.sha256(body).hexdigest()
-    provider = _provider(body, digest)
+    provider = _provider(body, digest, head_size=len(body) + 1)
 
     with pytest.raises(ValueError, match="content size"):
         await provider.complete_upload(_session(), {"size_bytes": len(body) + 1, "sha256": digest})
@@ -55,17 +55,18 @@ def _session():
     )
 
 
-def _provider(body: bytes, stored_digest: str):
+def _provider(body: bytes, stored_digest: str, head_size: int | None = None):
     async def fetcher(url, *, method="GET", headers=None, body=None, return_headers=False,
                       return_sha256=False, max_bytes=50 * 1024 * 1024):
         if "/object/info/" in url:
-            return 200, {"size": len(_body), "contentType": "application/octet-stream"}
+            return 200, {"size": _head_size, "contentType": "application/octet-stream"}
         if "/object/authenticated/" in url and return_sha256:
             return 200, {"size_bytes": len(_body), "sha256": _digest}
         raise AssertionError(f"Unexpected storage request: {method} {url}")
 
     _body = body
     _digest = stored_digest
+    _head_size = len(body) if head_size is None else head_size
     return SupabaseDirectStorageProvider(
         SupabaseStorageConfig(base_url="https://supabase.example", bucket="doka-documents"),
         fetcher,
