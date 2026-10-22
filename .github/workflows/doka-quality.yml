@@ -319,6 +319,7 @@ jobs:
       - name: Run cloud storage provider contracts
         run: |
           PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/apps/web-platform/backend" python -m pytest -q \
+            apps/web-platform/backend/tests/test_cloudflare_supabase_upload_integrity.py \
             apps/web-platform/tests/test_cloud_storage_routing.py \
             apps/web-platform/tests/test_cloudflare_storage_direct_upload.py \
             apps/web-platform/tests/test_cloudflare_b2_storage.py \
@@ -343,6 +344,7 @@ jobs:
             apps/web-platform/tests/test_vector_search_ocr.py \
             apps/web-platform/tests/test_release_gate_check.py \
             apps/web-platform/tests/test_cloud_acceptance.py \
+          apps/web-platform/backend/tests/test_cloudflare_supabase_upload_integrity.py \
             apps/web-platform/tests/test_staging_test_auth.py \
             apps/web-platform/tests/test_d1_migrations.py
 

@@ -75,6 +75,29 @@ if (!documentUpload.includes('if (failedCount > 0)')) {
 console.log('Document upload partial-failure and error parsing smoke test passed.');
 
 const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
+const googleDriveExport = cloudDocuments.slice(
+  cloudDocuments.indexOf('export async function exportCloudDocumentToGoogleDrive'),
+  cloudDocuments.indexOf('export async function getCloudDocumentDownloadUrl')
+);
+if (!googleDriveExport.includes("export/google-drive/upload-session`, {\n    method: 'POST',")) {
+  throw new Error('Google Drive export upload-session request must use POST to match the Worker route.');
+}
+console.log('Google Drive export upload-session HTTP method regression test passed.');
+
+const supabaseStorage = fs.readFileSync(path.resolve('../backend/cloudflare_worker/storage_supabase.py'), 'utf8');
+for (const required of [
+  'return_sha256=True',
+  'actual_size != expected_size',
+  'actual_sha != expected_sha',
+  '/object/authenticated/',
+]) {
+  if (!supabaseStorage.includes(required)) {
+    throw new Error(`Supabase upload integrity verification is missing ${required}.`);
+  }
+}
+console.log('Supabase stored-object size and SHA-256 verification smoke test passed.');
+
+
 for (const required of [
   'VITE_API_BASE_URL',
   'getAccessToken',
