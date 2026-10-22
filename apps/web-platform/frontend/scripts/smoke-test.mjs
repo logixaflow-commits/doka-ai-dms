@@ -74,6 +74,7 @@ if (!documentUpload.includes('if (failedCount > 0)')) {
 }
 console.log('Document upload partial-failure and error parsing smoke test passed.');
 
+const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
 const googleDriveExport = cloudDocuments.slice(
   cloudDocuments.indexOf('export async function exportCloudDocumentToGoogleDrive'),
   cloudDocuments.indexOf('export async function getCloudDocumentDownloadUrl')
@@ -83,7 +84,6 @@ if (!googleDriveExport.includes("export/google-drive/upload-session`, {\n    met
 }
 console.log('Google Drive export upload-session HTTP method regression test passed.');
 
-const cloudDocuments = fs.readFileSync(path.resolve('src/lib/cloudDocuments.ts'), 'utf8');
 for (const required of [
   'VITE_API_BASE_URL',
   'getAccessToken',
