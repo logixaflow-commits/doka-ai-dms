@@ -84,6 +84,20 @@ if (!googleDriveExport.includes("export/google-drive/upload-session`, {\n    met
 }
 console.log('Google Drive export upload-session HTTP method regression test passed.');
 
+const supabaseStorage = fs.readFileSync(path.resolve('../backend/cloudflare_worker/storage_supabase.py'), 'utf8');
+for (const required of [
+  'return_sha256=True',
+  'actual_size != expected_size',
+  'actual_sha != expected_sha',
+  '/object/authenticated/',
+]) {
+  if (!supabaseStorage.includes(required)) {
+    throw new Error(`Supabase upload integrity verification is missing ${required}.`);
+  }
+}
+console.log('Supabase stored-object size and SHA-256 verification smoke test passed.');
+
+
 for (const required of [
   'VITE_API_BASE_URL',
   'getAccessToken',
