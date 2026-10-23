@@ -165,3 +165,23 @@ def test_telegram_webhook_does_not_claim_document_mutation_succeeded(client, mon
     assert response.status_code == 501
     assert "no document was changed" in response.json()["detail"].lower()
     telegram.send_telegram_message.assert_not_awaited()
+
+
+
+def test_telegram_webhook_ignores_messages_outside_the_configured_topic(client, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_WEBHOOK_SECRET", "telegram-test-secret")
+    response = client.post(
+        "/api/telegram/webhook",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-test-secret"},
+        json={
+            "message": {
+                "text": "/help",
+                "chat": {"id": -1003992125718},
+                "message_thread_id": 19,
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reason"] == "outside_configured_topic"
+    telegram.send_telegram_message.assert_not_awaited()
