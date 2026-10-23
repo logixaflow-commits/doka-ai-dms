@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import html
 import hmac
+import html
 import logging
 import os
 import re
@@ -49,6 +49,53 @@ def _authorize_gateway(secret_header: str | None) -> None:
 
 def _authorize_telegram_webhook(secret_header: str | None) -> None:
     _authorize_secret(secret_header, "TELEGRAM_WEBHOOK_SECRET", "Telegram webhook")
+
+
+def _format_live_status(
+    database_status: dict[str, Any],
+    ocr_counts: dict[str, int] | None,
+) -> tuple[str, dict[str, Any]]:
+    database_label = "healthy" if database_status.get("status") == "connected" else "unavailable"
+    if ocr_counts is None:
+        ocr_label = "unavailable"
+        normalized_counts = None
+    else:
+        normalized_counts = {
+            name: max(0, int(ocr_counts.get(name, 0)))
+            for name in ("queued", "processing", "completed", "failed")
+        }
+        ocr_label = (
+            f"{normalized_counts['processing']} processing, "
+            f"{normalized_counts['queued']} queued; "
+            f"{normalized_counts['completed']} completed, "
+            f"{normalized_counts['failed']} failed"
+        )
+    message = (
+        "ℹ️ <b>Doka-DMS live status</b>\n"
+        f"• Database: {database_label}\n"
+        f"• OCR queue: {ocr_label}\n"
+        "• Storage: not checked by this command"
+    )
+    return message, {"database": database_label, "ocr_queue": normalized_counts}
+
+
+def _get_ocr_queue_counts() -> dict[str, int] | None:
+    """Read aggregate OCR status only; never expose database errors to Telegram."""
+    from sqlalchemy import text
+
+    from ...core.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            text("SELECT status, COUNT(*) FROM ocr_batch_jobs GROUP BY status")
+        )
+        return {str(row[0]): int(row[1]) for row in rows}
+    except Exception:  # noqa: BLE001 - schema may be absent until the migration is deployed
+        logger.warning("OCR queue status unavailable; database migration may be pending.")
+        return None
+    finally:
+        db.close()
 
 
 async def _process_action(payload: TelegramActionPayload) -> dict[str, Any]:
@@ -159,11 +206,13 @@ async def telegram_webhook(
         return {"ok": True, "command": "help"}
 
     if text.startswith("/status"):
-        await send_telegram_message(
-            "ℹ️ <b>Doka-DMS:</b> This bot cannot independently verify live database, storage, or OCR health.",
-            topic_id=topic_id,
-        )
-        return {"ok": True, "command": "status"}
+        from ...core.database import get_db_status
+
+        database_status = get_db_status()
+        ocr_counts = _get_ocr_queue_counts() if database_status.get("status") == "connected" else None
+        reply, snapshot = _format_live_status(database_status, ocr_counts)
+        await send_telegram_message(reply, topic_id=topic_id)
+        return {"ok": True, "command": "status", **snapshot}
 
     if text.startswith(("/morning_brief", "/digest")):
         await send_telegram_message(
