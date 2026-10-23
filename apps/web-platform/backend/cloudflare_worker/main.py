@@ -289,6 +289,34 @@ async def register_telegram_webhook(request: Request):
     if not token or not secret:
         raise HTTPException(status_code=503, detail="Telegram webhook credentials are not configured.")
 
+    async def send_delivery_probe() -> tuple[bool, dict]:
+        chat_id = _env(request, "TELEGRAM_CHAT_ID").strip()
+        raw_topic_id = _env(request, "TELEGRAM_TOPIC_ID").strip()
+        if not chat_id or not raw_topic_id.isdigit() or int(raw_topic_id) <= 0:
+            return False, {"reason": "target_topic_configuration_missing"}
+        payload = {
+            "chat_id": chat_id,
+            "message_thread_id": int(raw_topic_id),
+            "text": "✅ <b>Doka-AI-DMS live check</b>: webhook is registered and topic delivery works.",
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        }
+        status, data = await _fetch(
+            request,
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            body=json.dumps(payload),
+        )
+        if status != 200 or not isinstance(data, dict) or not data.get("ok"):
+            detail = {
+                "http_status": status,
+                "telegram_error_code": data.get("error_code") if isinstance(data, dict) else None,
+                "telegram_description": str(data.get("description") or "Telegram rejected the message")[:180] if isinstance(data, dict) else "invalid_telegram_response",
+            }
+            return False, detail
+        return True, {}
+
     # Never derive the destination from request headers or overwrite an unrelated webhook.
     webhook_url = "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook"
     try:
@@ -301,12 +329,9 @@ async def register_telegram_webhook(request: Request):
             raise HTTPException(status_code=502, detail="Could not inspect current Telegram webhook.")
         current_url = str(info.get("url") or "")
         if current_url == webhook_url:
-            sent = await _send_telegram_message(
-                request,
-                "✅ <b>Doka-AI-DMS live check</b>: webhook is registered and topic delivery works.",
-            )
+            sent, delivery_detail = await send_delivery_probe()
             if not sent:
-                raise HTTPException(status_code=502, detail="Webhook is registered but the Telegram topic delivery test failed.")
+                raise HTTPException(status_code=502, detail=f"Telegram topic delivery failed: {json.dumps(delivery_detail)}")
             return {
                 "ok": True,
                 "webhook_registered": True,
@@ -344,12 +369,9 @@ async def register_telegram_webhook(request: Request):
             or info.get("url") != webhook_url
         ):
             raise HTTPException(status_code=502, detail="Webhook registration could not be verified.")
-        sent = await _send_telegram_message(
-            request,
-            "✅ <b>Doka-AI-DMS live check</b>: webhook is registered and topic delivery works.",
-        )
+        sent, delivery_detail = await send_delivery_probe()
         if not sent:
-            raise HTTPException(status_code=502, detail="Webhook is registered but the Telegram topic delivery test failed.")
+            raise HTTPException(status_code=502, detail=f"Telegram topic delivery failed: {json.dumps(delivery_detail)}")
         return {
             "ok": True,
             "webhook_registered": True,
