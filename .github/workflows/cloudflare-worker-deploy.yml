@@ -96,7 +96,7 @@ jobs:
           from urllib.request import Request, urlopen
 
           url = "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/register-webhook"
-          request = Request(url, data=b"{}", headers={"Content-Type": "application/json"}, method="POST")
+          request = Request(url, data=b"{}", headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", "Accept": "application/json", "Content-Type": "application/json"}, method="POST")
           try:
               with urlopen(request, timeout=30) as response:
                   payload = json.load(response)
