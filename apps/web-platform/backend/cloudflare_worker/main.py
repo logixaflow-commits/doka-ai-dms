@@ -308,7 +308,10 @@ async def telegram_webhook(request: Request):
     text = message.get("text")
     if not isinstance(text, str):
         return {"ok": True, "status": "ignored"}
-    command = text.strip().split(maxsplit=1)[0].split("@", 1)[0].lower()
+    normalized_text = text.strip()
+    if not normalized_text:
+        return {"ok": True, "status": "ignored"}
+    command = normalized_text.split(maxsplit=1)[0].split("@", 1)[0].lower()
     if command in {"/start", "/help"}:
         reply = (
             "📄 <b>Doka-AI-DMS</b>\n"
