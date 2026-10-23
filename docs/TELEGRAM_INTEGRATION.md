@@ -29,7 +29,15 @@ Telegram notifications may contain document-action buttons, but document-mutatin
 
 ## 3. Environment Variables
 
-Configure these variables in `apps/web-platform/backend/.env` or in Cloud/Worker environment settings:
+Owner-provided target configuration:
+
+```dotenv
+TELEGRAM_CHAT_ID=-1003992125718
+TELEGRAM_TOPIC_ID=18
+TELEGRAM_ENABLED=true
+```
+
+The bot token and webhook secrets must be provisioned separately in the active runtime's secret store; never commit them. Configure these variables in `apps/web-platform/backend/.env` or in Cloud/Worker environment settings:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
