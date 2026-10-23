@@ -184,3 +184,18 @@ def test_worker_permanent_delete_is_provider_aware_and_retains_metadata_on_clean
     assert 'provider.delete(StorageObjectRef(provider_name, object_key, user_id))' in WORKER_SOURCE
     assert 'Stored file cleanup failed; document metadata was retained.' in WORKER_SOURCE
     assert 'deleted_version_objects": len(objects) - 1' in WORKER_SOURCE
+
+
+def test_worker_telegram_status_reports_topic_and_secret_readiness_without_exposing_values():
+    status_block = WORKER_SOURCE.split('elif command == "/status":', 1)[1].split(
+        'elif command in {"/morning_brief", "/digest"}:', 1
+    )[0]
+    assert '"TELEGRAM_BOT_TOKEN"' in status_block
+    assert '"TELEGRAM_CHAT_ID"' in status_block
+    assert '"TELEGRAM_TOPIC_ID"' in status_block
+    assert '"TELEGRAM_WEBHOOK_SECRET"' in status_block
+    assert "Telegram target topic" in status_block
+    assert "Telegram outbound" in status_block
+    assert "Telegram inbound webhook" in status_block
+    assert "message_thread_id" not in status_block
+    assert "token}" not in status_block
