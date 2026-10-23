@@ -377,7 +377,8 @@ def main() -> int:
             document = _upload_document(
                 client, user_a, payload, filename, "text/plain", expected_provider=expected_provider
             )
-            evidence["selected_storage_providers"].append(document.pop("_acceptance_provider"))
+            selected_provider = str(document.pop("_acceptance_provider"))
+            evidence["selected_storage_providers"].append(selected_provider)
             document_id = str(document["id"])
             created_document_ids.append(document_id)
             evidence["checks"]["user_a_upload"] = True
@@ -420,7 +421,7 @@ def main() -> int:
             _assert_cross_user_mutations_denied(client, user_b, document_id)
             supabase_url = _require("SUPABASE_STAGING_URL")
             publishable_key = _require("SUPABASE_STAGING_PUBLISHABLE_KEY")
-            if document.get("storage_provider") == "supabase":
+            if selected_provider == "supabase":
                 object_key = str(document.get("object_key") or "")
                 if not object_key:
                     raise AssertionError("Supabase-backed document did not expose its object key for boundary tests")
@@ -431,8 +432,10 @@ def main() -> int:
                     object_key=object_key,
                 )
                 evidence["checks"]["anonymous_and_cross_user_storage_denied"] = True
-            else:
+            elif selected_provider == "b2":
                 evidence["checks"]["anonymous_and_cross_user_storage_denied"] = "not_applicable_b2"
+            else:
+                raise AssertionError("acceptance selected an unsupported storage provider")
             _assert_rpc_owner_checks(
                 project_url=supabase_url,
                 publishable_key=publishable_key,
