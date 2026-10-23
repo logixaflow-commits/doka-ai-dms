@@ -301,10 +301,17 @@ async def register_telegram_webhook(request: Request):
             raise HTTPException(status_code=502, detail="Could not inspect current Telegram webhook.")
         current_url = str(info.get("url") or "")
         if current_url == webhook_url:
+            sent = await _send_telegram_message(
+                request,
+                "✅ <b>Doka-AI-DMS live check</b>: webhook is registered and topic delivery works.",
+            )
+            if not sent:
+                raise HTTPException(status_code=502, detail="Webhook is registered but the Telegram topic delivery test failed.")
             return {
                 "ok": True,
                 "webhook_registered": True,
                 "already_registered": True,
+                "test_message_sent": True,
                 "pending_update_count": info.get("pending_update_count", 0),
                 "last_error_date": info.get("last_error_date"),
                 "last_error_message": info.get("last_error_message"),
@@ -337,10 +344,17 @@ async def register_telegram_webhook(request: Request):
             or info.get("url") != webhook_url
         ):
             raise HTTPException(status_code=502, detail="Webhook registration could not be verified.")
+        sent = await _send_telegram_message(
+            request,
+            "✅ <b>Doka-AI-DMS live check</b>: webhook is registered and topic delivery works.",
+        )
+        if not sent:
+            raise HTTPException(status_code=502, detail="Webhook is registered but the Telegram topic delivery test failed.")
         return {
             "ok": True,
             "webhook_registered": True,
             "already_registered": False,
+            "test_message_sent": True,
             "pending_update_count": info.get("pending_update_count", 0),
             "last_error_date": info.get("last_error_date"),
             "last_error_message": info.get("last_error_message"),
