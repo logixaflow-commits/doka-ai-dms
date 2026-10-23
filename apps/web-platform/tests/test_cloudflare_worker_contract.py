@@ -218,3 +218,5 @@ def test_telegram_webhook_registration_is_fixed_target_idempotent_and_verified()
     assert 'request.headers.get("host"' not in registration
     assert 'Authorization' not in registration
     assert 'bot{token}' in registration
+    assert '_send_telegram_message' in registration
+    assert 'test_message_sent' in registration
