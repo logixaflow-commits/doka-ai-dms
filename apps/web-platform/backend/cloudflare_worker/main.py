@@ -279,6 +279,66 @@ async def health():
     return {"status": "healthy", "edition": "cloudflare-workers", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
+@app.post("/api/telegram/register-webhook")
+async def register_telegram_webhook(request: Request):
+    """Temporarily register the Telegram webhook using Worker-held credentials."""
+    if not _telegram_enabled(request):
+        raise HTTPException(status_code=503, detail="Telegram integration is disabled.")
+    token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
+    secret = _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
+    if not token or not secret:
+        raise HTTPException(status_code=503, detail="Telegram webhook credentials are not configured.")
+    supplied = request.headers.get("Authorization", "")
+    prefix = "Bearer "
+    if not supplied.startswith(prefix) or not hmac.compare_digest(supplied[len(prefix):], secret):
+        raise HTTPException(status_code=401, detail="Invalid setup authorization.")
+
+    # Use the canonical production endpoint; do not derive webhook destinations from Host headers.
+    webhook_url = "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook"
+    payload = {
+        "url": webhook_url,
+        "secret_token": secret,
+        "allowed_updates": ["message"],
+        "drop_pending_updates": False,
+    }
+    try:
+        status, data = await _fetch(
+            request,
+            f"https://api.telegram.org/bot{token}/setWebhook",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            body=json.dumps(payload),
+        )
+        if status != 200 or not isinstance(data, dict) or not data.get("ok"):
+            logger.warning("Telegram webhook registration failed with HTTP status %s.", status)
+            raise HTTPException(status_code=502, detail="Telegram rejected webhook registration.")
+        info_status, info_data = await _fetch(
+            request,
+            f"https://api.telegram.org/bot{token}/getWebhookInfo",
+        )
+        info = info_data.get("result", {}) if isinstance(info_data, dict) else {}
+        if (
+            info_status != 200
+            or not isinstance(info_data, dict)
+            or not info_data.get("ok")
+            or info.get("url") != webhook_url
+        ):
+            raise HTTPException(status_code=502, detail="Webhook registration could not be verified.")
+        return {
+            "ok": True,
+            "webhook_registered": True,
+            "webhook_url": webhook_url,
+            "pending_update_count": info.get("pending_update_count", 0),
+            "last_error_date": info.get("last_error_date"),
+            "last_error_message": info.get("last_error_message"),
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Telegram webhook registration request failed.")
+        raise HTTPException(status_code=502, detail="Telegram webhook registration request failed.") from exc
+
+
 @app.post("/api/telegram/webhook")
 async def telegram_webhook(request: Request):
     """Receive Telegram commands only from the configured group/topic."""
