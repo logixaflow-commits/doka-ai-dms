@@ -323,6 +323,7 @@ async def telegram_webhook(request: Request):
             "• <code>/ask query</code> — Document search status\n"
             "• <code>/morning_brief</code> — Intake briefing status"
         )
+    # Report Telegram readiness without revealing secrets or routing identifiers.
     elif command == "/status":
         supabase_ready = bool(_env(request, "SUPABASE_URL") and _env(request, "SUPABASE_PUBLISHABLE_KEY"))
         bucket_ready = bool(_env(request, "SUPABASE_STORAGE_BUCKET"))
