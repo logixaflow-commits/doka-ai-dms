@@ -281,27 +281,43 @@ async def health():
 
 @app.post("/api/telegram/register-webhook")
 async def register_telegram_webhook(request: Request):
-    """Temporarily register the Telegram webhook using Worker-held credentials."""
+    """Bootstrap the fixed Telegram webhook without exposing the bot token."""
     if not _telegram_enabled(request):
         raise HTTPException(status_code=503, detail="Telegram integration is disabled.")
     token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
     secret = _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
     if not token or not secret:
         raise HTTPException(status_code=503, detail="Telegram webhook credentials are not configured.")
-    supplied = request.headers.get("Authorization", "")
-    prefix = "Bearer "
-    if not supplied.startswith(prefix) or not hmac.compare_digest(supplied[len(prefix):], secret):
-        raise HTTPException(status_code=401, detail="Invalid setup authorization.")
 
-    # Use the canonical production endpoint; do not derive webhook destinations from Host headers.
+    # Never derive the destination from request headers or overwrite an unrelated webhook.
     webhook_url = "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook"
-    payload = {
-        "url": webhook_url,
-        "secret_token": secret,
-        "allowed_updates": ["message"],
-        "drop_pending_updates": False,
-    }
     try:
+        info_status, info_data = await _fetch(
+            request,
+            f"https://api.telegram.org/bot{token}/getWebhookInfo",
+        )
+        info = info_data.get("result", {}) if isinstance(info_data, dict) else {}
+        if info_status != 200 or not isinstance(info_data, dict) or not info_data.get("ok"):
+            raise HTTPException(status_code=502, detail="Could not inspect current Telegram webhook.")
+        current_url = str(info.get("url") or "")
+        if current_url == webhook_url:
+            return {
+                "ok": True,
+                "webhook_registered": True,
+                "already_registered": True,
+                "pending_update_count": info.get("pending_update_count", 0),
+                "last_error_date": info.get("last_error_date"),
+                "last_error_message": info.get("last_error_message"),
+            }
+        if current_url:
+            raise HTTPException(status_code=409, detail="A different Telegram webhook is already configured; refusing to overwrite it.")
+
+        payload = {
+            "url": webhook_url,
+            "secret_token": secret,
+            "allowed_updates": ["message"],
+            "drop_pending_updates": False,
+        }
         status, data = await _fetch(
             request,
             f"https://api.telegram.org/bot{token}/setWebhook",
@@ -327,7 +343,7 @@ async def register_telegram_webhook(request: Request):
         return {
             "ok": True,
             "webhook_registered": True,
-            "webhook_url": webhook_url,
+            "already_registered": False,
             "pending_update_count": info.get("pending_update_count", 0),
             "last_error_date": info.get("last_error_date"),
             "last_error_message": info.get("last_error_message"),
