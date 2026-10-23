@@ -309,9 +309,6 @@ async def register_telegram_webhook(request: Request):
                 "last_error_date": info.get("last_error_date"),
                 "last_error_message": info.get("last_error_message"),
             }
-        if current_url:
-            raise HTTPException(status_code=409, detail="A different Telegram webhook is already configured; refusing to overwrite it.")
-
         payload = {
             "url": webhook_url,
             "secret_token": secret,

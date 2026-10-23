@@ -212,7 +212,9 @@ def test_telegram_webhook_registration_is_fixed_target_idempotent_and_verified()
     assert 'setWebhook' in registration
     assert 'allowed_updates' in registration
     assert 'drop_pending_updates": False' in registration
-    assert 'refusing to overwrite it' in registration
+    assert 'current_url = str(info.get("url") or "")' in registration
+    assert 'if current_url == webhook_url:' in registration
+    assert 'if current_url:' not in registration
     assert 'request.headers.get("host"' not in registration
     assert 'Authorization' not in registration
     assert 'bot{token}' in registration
