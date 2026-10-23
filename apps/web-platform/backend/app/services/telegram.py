@@ -27,7 +27,9 @@ async def send_telegram_message(
     settings = get_settings()
     token = settings.TELEGRAM_BOT_TOKEN
     chat_id = settings.TELEGRAM_CHAT_ID
-    effective_topic = topic_id if topic_id is not None else settings.TELEGRAM_TOPIC_ID
+    # Pin all outbound notifications to the configured topic. Incoming update IDs
+    # must never redirect Doka messages into another topic.
+    effective_topic = settings.TELEGRAM_TOPIC_ID
 
     if not token or not chat_id:
         logger.info("[Telegram:Doka:DryRun] %s", text.replace("\n", " "))
@@ -36,6 +38,13 @@ async def send_telegram_message(
     if not settings.TELEGRAM_ENABLED:
         logger.debug("[Telegram:Doka:Disabled] %s", text.replace("\n", " "))
         return None
+
+    if effective_topic is None or effective_topic <= 0:
+        logger.error("Telegram delivery blocked: TELEGRAM_TOPIC_ID must target the configured forum topic.")
+        return None
+
+    if topic_id is not None and topic_id != effective_topic:
+        logger.debug("Ignoring requested Telegram topic override; using configured topic only.")
 
     url = f"{TELEGRAM_API_BASE}/bot{token}/sendMessage"
     payload: dict[str, Any] = {

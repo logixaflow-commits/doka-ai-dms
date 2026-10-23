@@ -20,6 +20,9 @@ def client(monkeypatch):
     app = FastAPI()
     app.include_router(telegram.router)
     monkeypatch.setenv("TELEGRAM_ACTION_WEBHOOK_SECRET", "test-only-gateway-secret")
+    monkeypatch.setenv("TELEGRAM_ENABLED", "true")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "-1003992125718")
+    monkeypatch.setenv("TELEGRAM_TOPIC_ID", "18")
     monkeypatch.setattr(telegram, "send_telegram_message", AsyncMock(return_value={"ok": True}))
     return TestClient(app)
 
@@ -47,7 +50,7 @@ def test_document_mutation_actions_are_not_falsely_reported_as_completed(client)
     response = client.post(
         "/api/telegram/action",
         headers={"X-Doka-Action-Secret": "test-only-gateway-secret"},
-        json={"action": "doka_cat_appr:doc_8831"},
+        json={"action": "doka_cat_appr:doc_8831", "chat_id": -1003992125718, "topic_id": 18},
     )
 
     assert response.status_code == 501
@@ -68,7 +71,7 @@ def test_document_action_identifier_is_validated_before_processing(client, actio
     response = client.post(
         "/api/telegram/action",
         headers={"X-Doka-Action-Secret": "test-only-gateway-secret"},
-        json={"action": action},
+        json={"action": action, "chat_id": -1003992125718, "topic_id": 18},
     )
 
     assert response.status_code == 422
@@ -79,7 +82,7 @@ def test_unknown_authenticated_action_is_ignored(client):
     response = client.post(
         "/api/telegram/action",
         headers={"X-Doka-Action-Secret": "test-only-gateway-secret"},
-        json={"action": "unrecognized"},
+        json={"action": "unrecognized", "chat_id": -1003992125718, "topic_id": 18},
     )
 
     assert response.status_code == 200
@@ -106,7 +109,12 @@ def test_receipt_fields_are_escaped_before_rendering_telegram_html(client, monke
     response = client.post(
         "/api/telegram/action",
         headers={"X-Doka-Action-Secret": "test-only-gateway-secret"},
-        json={"action": "doka_receipt_scan", "raw_message": "receipt text"},
+        json={
+            "action": "doka_receipt_scan",
+            "raw_message": "receipt text",
+            "chat_id": -1003992125718,
+            "topic_id": 18,
+        },
     )
 
     assert response.status_code == 200
@@ -142,9 +150,38 @@ def test_telegram_webhook_does_not_claim_document_mutation_succeeded(client, mon
     response = client.post(
         "/api/telegram/webhook",
         headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-test-secret"},
-        json={"callback_query": {"data": "doka_quar:doc_123", "from": {"id": 5}, "message": {"chat": {"id": 7}}}},
+        json={
+            "callback_query": {
+                "data": "doka_quar:doc_123",
+                "from": {"id": 5},
+                "message": {
+                    "chat": {"id": -1003992125718},
+                    "message_thread_id": 18,
+                },
+            }
+        },
     )
 
     assert response.status_code == 501
     assert "no document was changed" in response.json()["detail"].lower()
+    telegram.send_telegram_message.assert_not_awaited()
+
+
+
+def test_telegram_webhook_ignores_messages_outside_the_configured_topic(client, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_WEBHOOK_SECRET", "telegram-test-secret")
+    response = client.post(
+        "/api/telegram/webhook",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-test-secret"},
+        json={
+            "message": {
+                "text": "/help",
+                "chat": {"id": -1003992125718},
+                "message_thread_id": 19,
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reason"] == "outside_configured_topic"
     telegram.send_telegram_message.assert_not_awaited()
