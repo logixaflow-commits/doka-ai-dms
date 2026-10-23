@@ -90,7 +90,7 @@ async def _send_telegram_message(request: Request, text: str) -> bool:
     chat_id = _env(request, "TELEGRAM_CHAT_ID").strip()
     raw_topic_id = _env(request, "TELEGRAM_TOPIC_ID").strip()
     if not token or not chat_id or not raw_topic_id.isdigit() or int(raw_topic_id) <= 0:
-        logger.warning("Telegram delivery unavailable: required bot/topic configuration is missing.")
+        logger.info("Telegram notification skipped: required bot/topic configuration is missing.")
         return False
 
     payload = {
