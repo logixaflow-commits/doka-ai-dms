@@ -301,28 +301,24 @@ async def register_telegram_webhook(request: Request):
         "allowed_updates": ["message"],
         "drop_pending_updates": False,
     }
-    options = {
-        "method": "POST",
-        "headers": to_js({"Content-Type": "application/json"}, dict_converter=Object.fromEntries),
-        "body": json.dumps(payload),
-    }
     try:
-        response = await js_fetch(
+        status, data = await _fetch(
+            request,
             f"https://api.telegram.org/bot{token}/setWebhook",
-            to_js(options, dict_converter=Object.fromEntries),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            body=json.dumps(payload),
         )
-        data = await response.json()
-        if int(response.status) != 200 or not isinstance(data, dict) or not data.get("ok"):
-            logger.warning("Telegram webhook registration failed with HTTP status %s.", int(response.status))
+        if status != 200 or not isinstance(data, dict) or not data.get("ok"):
+            logger.warning("Telegram webhook registration failed with HTTP status %s.", status)
             raise HTTPException(status_code=502, detail="Telegram rejected webhook registration.")
-        info_response = await js_fetch(
+        info_status, info_data = await _fetch(
+            request,
             f"https://api.telegram.org/bot{token}/getWebhookInfo",
-            to_js({"method": "GET"}, dict_converter=Object.fromEntries),
         )
-        info_data = await info_response.json()
         info = info_data.get("result", {}) if isinstance(info_data, dict) else {}
         if (
-            int(info_response.status) != 200
+            info_status != 200
             or not isinstance(info_data, dict)
             or not info_data.get("ok")
             or info.get("url") != webhook_url
