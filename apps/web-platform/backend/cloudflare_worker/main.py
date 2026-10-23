@@ -69,7 +69,10 @@ def _telegram_enabled(request: Request) -> bool:
 
 
 def _telegram_context_allowed(request: Request, chat_id, topic_id) -> bool:
-    """Accept only the configured Telegram supergroup forum topic."""
+    """Accept only the configured Telegram supergroup forum topic.
+
+    Production rollout is gated on bot token and webhook secret bindings.
+    """
     if not _telegram_enabled(request):
         return False
     expected_chat_id = _env(request, "TELEGRAM_CHAT_ID").strip()
