@@ -326,11 +326,25 @@ async def telegram_webhook(request: Request):
     elif command == "/status":
         supabase_ready = bool(_env(request, "SUPABASE_URL") and _env(request, "SUPABASE_PUBLISHABLE_KEY"))
         bucket_ready = bool(_env(request, "SUPABASE_STORAGE_BUCKET"))
+        telegram_enabled = _telegram_enabled(request)
+        telegram_token_ready = bool(_env(request, "TELEGRAM_BOT_TOKEN").strip())
+        telegram_topic_ready = bool(
+            _env(request, "TELEGRAM_CHAT_ID").strip()
+            and _env(request, "TELEGRAM_TOPIC_ID").strip().isdigit()
+            and int(_env(request, "TELEGRAM_TOPIC_ID").strip()) > 0
+        )
+        telegram_webhook_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready and bool(
+            _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
+        )
+        telegram_outbound_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready
         reply = (
-            "ℹ️ <b>Doka-DMS live status</b>\n"
-            "• Worker: healthy\n"
-            f"• Supabase configuration: {'configured' if supabase_ready else 'missing'}\n"
-            f"• Storage bucket configuration: {'configured' if bucket_ready else 'missing'}\n"
+            "ℹ️ <b>Doka-DMS live status</b>\\n"
+            "• Worker: healthy\\n"
+            f"• Supabase configuration: {'configured' if supabase_ready else 'missing'}\\n"
+            f"• Storage bucket configuration: {'configured' if bucket_ready else 'missing'}\\n"
+            f"• Telegram target topic: {'configured' if telegram_topic_ready else 'missing'}\\n"
+            f"• Telegram outbound: {'ready' if telegram_outbound_ready else 'not configured'}\\n"
+            f"• Telegram inbound webhook: {'ready' if telegram_webhook_ready else 'not configured'}\\n"
             "• Live document/OCR database query: not performed"
         )
     elif command in {"/morning_brief", "/digest"}:
