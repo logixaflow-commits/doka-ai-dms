@@ -201,17 +201,18 @@ def test_worker_telegram_status_reports_topic_and_secret_readiness_without_expos
     assert "token}" not in status_block
 
 
-def test_telegram_webhook_registration_is_guarded_and_verifies_telegram_response():
+def test_telegram_webhook_registration_is_fixed_target_idempotent_and_verified():
     registration = WORKER_SOURCE.split(
         '@app.post("/api/telegram/register-webhook")', 1
     )[1].split('@app.post("/api/telegram/webhook")', 1)[0]
-    assert 'Authorization' in registration
-    assert 'hmac.compare_digest' in registration
+    assert 'TELEGRAM_BOT_TOKEN' in registration
     assert 'TELEGRAM_WEBHOOK_SECRET' in registration
     assert 'https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook' in registration
-    assert 'setWebhook' in registration
     assert 'getWebhookInfo' in registration
+    assert 'setWebhook' in registration
     assert 'allowed_updates' in registration
     assert 'drop_pending_updates": False' in registration
+    assert 'refusing to overwrite it' in registration
     assert 'request.headers.get("host"' not in registration
+    assert 'Authorization' not in registration
     assert 'bot{token}' in registration
