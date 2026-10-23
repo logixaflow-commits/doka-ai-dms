@@ -51,6 +51,22 @@ def _authorize_telegram_webhook(secret_header: str | None) -> None:
     _authorize_secret(secret_header, "TELEGRAM_WEBHOOK_SECRET", "Telegram webhook")
 
 
+def _telegram_context_allowed(chat_id: int | str | None, topic_id: int | None) -> bool:
+    """Fail closed unless an update comes from the one configured group topic."""
+    if os.getenv("TELEGRAM_ENABLED", "false").strip().lower() != "true":
+        return False
+
+    expected_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    configured_topic = os.getenv("TELEGRAM_TOPIC_ID", "").strip()
+    if not expected_chat_id or not configured_topic.isdigit() or topic_id is None:
+        return False
+
+    try:
+        return str(chat_id) == expected_chat_id and int(topic_id) == int(configured_topic)
+    except (TypeError, ValueError):
+        return False
+
+
 def _format_live_status(
     database_status: dict[str, Any],
     ocr_counts: dict[str, int] | None,
@@ -151,6 +167,11 @@ async def handle_telegram_action(
 ) -> dict[str, Any]:
     """Authenticated internal gateway endpoint, not a public Telegram webhook."""
     _authorize_gateway(x_doka_action_secret)
+    if not _telegram_context_allowed(payload.chat_id, payload.topic_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Telegram actions are restricted to the configured group topic.",
+        )
     return await _process_action(payload)
 
 
@@ -174,11 +195,14 @@ async def telegram_webhook(
     if isinstance(callback, dict):
         message = callback.get("message") or {}
         chat = message.get("chat") or {}
+        topic_id = message.get("message_thread_id")
+        if not _telegram_context_allowed(chat.get("id"), topic_id):
+            return {"ok": True, "status": "ignored", "reason": "outside_configured_topic"}
         sender = callback.get("from") or {}
         payload = TelegramActionPayload(
             action=str(callback.get("data") or "invalid"),
             chat_id=chat.get("id"),
-            topic_id=message.get("message_thread_id"),
+            topic_id=topic_id,
             user_id=sender.get("id"),
             username=sender.get("username"),
         )
@@ -187,11 +211,14 @@ async def telegram_webhook(
     message = update.get("message")
     if not isinstance(message, dict):
         return {"ok": True, "status": "ignored"}
+    chat = message.get("chat") or {}
+    topic_id = message.get("message_thread_id")
+    if not _telegram_context_allowed(chat.get("id"), topic_id):
+        return {"ok": True, "status": "ignored", "reason": "outside_configured_topic"}
     text = message.get("text")
     if not isinstance(text, str):
         return {"ok": True, "status": "ignored"}
     text = text.strip()
-    topic_id = message.get("message_thread_id")
 
     if text.startswith(("/start", "/help")):
         help_text = (
