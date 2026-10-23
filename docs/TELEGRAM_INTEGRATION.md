@@ -37,7 +37,7 @@ TELEGRAM_TOPIC_ID=18
 TELEGRAM_ENABLED=true
 ```
 
-The bot token and webhook secrets must be provisioned separately in the active runtime's secret store; never commit them. Configure these variables in `apps/web-platform/backend/.env` or in Cloud/Worker environment settings:
+The bot token and webhook secret must be provisioned separately in the production Cloudflare Worker secret store; never commit them. Production variables are declared in `wrangler.jsonc`, while staging intentionally keeps `TELEGRAM_ENABLED=false`. Configure the same target values in `apps/web-platform/backend/.env` for local use:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
