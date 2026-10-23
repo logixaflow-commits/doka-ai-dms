@@ -45,7 +45,6 @@ def test_telegram_context_fails_closed_when_target_is_not_configured(
     assert not telegram._telegram_context_allowed(-1003992125718, 18)
 
 
-
 def test_outbound_messages_are_pinned_to_configured_topic(monkeypatch):
     calls = []
     monkeypatch.setattr(
