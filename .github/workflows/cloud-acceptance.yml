@@ -80,6 +80,8 @@ jobs:
         env:
           DOKA_CLOUD_BASE_URL: https://doka-ai-dms-staging.logixaflow.workers.dev
           DOKA_CLOUD_EXPECTED_PROVIDER: ${{ inputs.expected_provider }}
+          SUPABASE_STAGING_URL: https://gzxybtqquzycogaowdbj.supabase.co
+          SUPABASE_STAGING_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_STAGING_PUBLISHABLE_KEY }}
         run: |
           if [ "$DOKA_CLOUD_EXPECTED_PROVIDER" = "any" ]; then
             unset DOKA_CLOUD_EXPECTED_PROVIDER
