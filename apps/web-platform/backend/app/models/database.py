@@ -1,15 +1,17 @@
 """SQLAlchemy ORM models for DOKA Personal Local Edition."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
-    JSON,
     String,
     Text,
     func,
@@ -20,7 +22,7 @@ Base = declarative_base()
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class User(Base):
@@ -166,3 +168,29 @@ class AuditLog(Base):
     timestamp = Column(DateTime(timezone=True), default=_now, server_default=func.now())
 
     document = relationship("Document")
+
+
+class OCRBatchJobRecord(Base):
+    """Durable state for background PDF OCR jobs.
+
+    The worker process may restart while OCR is running, so progress must not
+    live only in a process-local dictionary.
+    """
+
+    __tablename__ = "ocr_batch_jobs"
+
+    job_id = Column(String(64), primary_key=True)
+    document_id = Column(Integer, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    file_path = Column(String(1000), nullable=False)
+    status = Column(String(20), nullable=False, default="queued", index=True)
+    total_pages = Column(Integer, nullable=False, default=0)
+    current_page = Column(Integer, nullable=False, default=0)
+    percent = Column(Float, nullable=False, default=0.0)
+    worker_id = Column(String(100), nullable=True)
+    heartbeat_at = Column(Float, nullable=True)
+    started_at = Column(Float, nullable=False)
+    completed_at = Column(Float, nullable=True)
+    error = Column(Text, nullable=True)
+    pages_text = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), default=_now, server_default=func.now(), index=True)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now, server_default=func.now())
