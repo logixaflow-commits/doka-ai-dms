@@ -178,6 +178,138 @@ def _assert_cross_user_mutations_denied(
     )
     _assert_status(permanently_deleted, 404, "user B cross-user permanent delete")
 
+
+def _jwt_subject(token: str) -> str:
+    """Read the subject claim from the already-authenticated staging JWT."""
+    import base64
+
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise AssertionError("staging access token is not a JWT")
+    try:
+        payload = parts[1] + "=" * (-len(parts[1]) % 4)
+        claims = json.loads(base64.urlsafe_b64decode(payload.encode("ascii")))
+    except (ValueError, UnicodeError, json.JSONDecodeError) as exc:
+        raise AssertionError("staging access token claims could not be decoded") from exc
+    subject = claims.get("sub") if isinstance(claims, dict) else None
+    if not isinstance(subject, str) or not subject:
+        raise AssertionError("staging access token has no subject claim")
+    return subject
+
+
+def _assert_denied(response: httpx.Response, label: str) -> None:
+    """Require a denial response and reject success or a missing-RPC false positive."""
+    if response.status_code in (200, 201, 204):
+        raise AssertionError(f"{label}: unauthorized operation unexpectedly succeeded")
+    try:
+        body = response.json()
+    except ValueError:
+        body = {}
+    if isinstance(body, dict) and body.get("code") == "PGRST202":
+        raise AssertionError(f"{label}: required RPC function is missing")
+    if response.status_code not in (400, 401, 403, 404, 409, 422):
+        raise AssertionError(f"{label}: unexpected HTTP status {response.status_code}")
+
+
+def _assert_rpc_denied(response: httpx.Response, label: str) -> None:
+    """Require a callable RPC to reject the foreign document, not a missing function/permission."""
+    if response.status_code not in (400, 404, 409, 422):
+        raise AssertionError(f"{label}: expected ownership/argument rejection, got HTTP {response.status_code}")
+    try:
+        body = response.json()
+    except ValueError:
+        body = {}
+    if isinstance(body, dict) and body.get("code") == "PGRST202":
+        raise AssertionError(f"{label}: required RPC function is missing")
+    if isinstance(body, dict) and body.get("code") == "42501":
+        raise AssertionError(f"{label}: RPC execute permission is missing for authenticated user")
+
+
+def _assert_supabase_storage_boundary(
+    *,
+    project_url: str,
+    publishable_key: str,
+    other_token: str,
+    object_key: str,
+    transport: httpx.BaseTransport | None = None,
+) -> None:
+    """Probe private Storage with anonymous and cross-user requests; never mutate owner data."""
+    base = project_url.rstrip("/")
+    headers = {"apikey": publishable_key}
+    encoded_key = "/".join(httpx.URL("https://example.invalid/" + object_key).path.split("/")[1:])
+    # Anonymous listing must not reveal objects in the owner's prefix.
+    with httpx.Client(timeout=30.0, follow_redirects=False, transport=transport) as storage:
+        listed = storage.post(
+            f"{base}/storage/v1/object/list/doka-documents",
+            headers={**headers, "Content-Type": "application/json"},
+            json={"prefix": object_key.rsplit("/", 1)[0], "limit": 10, "offset": 0},
+        )
+        _assert_denied(listed, "anonymous Storage list")
+        anonymous_read = storage.get(
+            f"{base}/storage/v1/object/authenticated/doka-documents/{encoded_key}",
+            headers=headers,
+        )
+        _assert_denied(anonymous_read, "anonymous Storage object read")
+        anonymous_upload = storage.post(
+            f"{base}/storage/v1/object/doka-documents/users/acceptance-anonymous-probe.txt",
+            headers={**headers, "Content-Type": "text/plain", "x-upsert": "false"},
+            content=b"unauthorized storage upload probe",
+        )
+        _assert_denied(anonymous_upload, "anonymous Storage upload")
+        other_read = storage.get(
+            f"{base}/storage/v1/object/authenticated/doka-documents/{encoded_key}",
+            headers={**headers, "Authorization": f"Bearer {other_token}"},
+        )
+        _assert_denied(other_read, "cross-user Storage object read")
+        other_delete = storage.delete(
+            f"{base}/storage/v1/object/authenticated/doka-documents/{encoded_key}",
+            headers={**headers, "Authorization": f"Bearer {other_token}"},
+        )
+        _assert_denied(other_delete, "cross-user Storage object delete")
+
+
+def _assert_rpc_owner_checks(
+    *, project_url: str, publishable_key: str, other_token: str, owner_document_id: str,
+    transport: httpx.BaseTransport | None = None,
+) -> None:
+    """Exercise all sensitive RPCs with user B against user A's document."""
+    owner_b = _jwt_subject(other_token)
+    digest = hashlib.sha256(b"cross-user rpc probe").hexdigest()
+    object_key = f"users/{owner_b}/documents/{digest}/cross-user-probe.txt"
+    base = project_url.rstrip("/")
+    headers = {
+        "apikey": publishable_key,
+        "Authorization": f"Bearer {other_token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    payloads = {
+        "doka_bulk_update_documents": {
+            "p_document_ids": [owner_document_id], "p_action": "status", "p_status": "review"
+        },
+        "doka_replace_document_version": {
+            "p_document_id": owner_document_id, "p_object_key": object_key,
+            "p_filename": "cross-user-probe.txt", "p_content_type": "text/plain",
+            "p_size_bytes": 20, "p_sha256": digest,
+        },
+        "doka_replace_document_version_storage": {
+            "p_document_id": owner_document_id, "p_object_key": object_key,
+            "p_filename": "cross-user-probe.txt", "p_content_type": "text/plain",
+            "p_size_bytes": 20, "p_sha256": digest, "p_storage_provider": "supabase",
+            "p_storage_region": None,
+        },
+        "doka_restore_document_version": {
+            "p_document_id": owner_document_id, "p_version_id": "00000000-0000-4000-8000-000000000001"
+        },
+    }
+    with httpx.Client(timeout=30.0, follow_redirects=False, transport=transport) as client:
+        for function_name, payload in payloads.items():
+            response = client.post(
+                f"{base}/rest/v1/rpc/{function_name}", headers=headers, json=payload
+            )
+            _assert_rpc_denied(response, f"cross-user RPC {function_name}")
+
+
 def _trash_and_permanently_delete(client: httpx.Client, token: str, document_id: str) -> None:
     trashed = _auth(client, token, f"/api/documents/{document_id}", method="DELETE")
     _assert_status(trashed, 200, "trash document before permanent deletion")
@@ -286,6 +418,28 @@ def main() -> int:
             )
             _assert_status(denied_download, 404, "user B cross-user download")
             _assert_cross_user_mutations_denied(client, user_b, document_id)
+            supabase_url = _require("SUPABASE_STAGING_URL")
+            publishable_key = _require("SUPABASE_STAGING_PUBLISHABLE_KEY")
+            if document.get("storage_provider") == "supabase":
+                object_key = str(document.get("object_key") or "")
+                if not object_key:
+                    raise AssertionError("Supabase-backed document did not expose its object key for boundary tests")
+                _assert_supabase_storage_boundary(
+                    project_url=supabase_url,
+                    publishable_key=publishable_key,
+                    other_token=user_b,
+                    object_key=object_key,
+                )
+                evidence["checks"]["anonymous_and_cross_user_storage_denied"] = True
+            else:
+                evidence["checks"]["anonymous_and_cross_user_storage_denied"] = "not_applicable_b2"
+            _assert_rpc_owner_checks(
+                project_url=supabase_url,
+                publishable_key=publishable_key,
+                other_token=user_b,
+                owner_document_id=document_id,
+            )
+            evidence["checks"]["cross_user_sensitive_rpc_denied"] = True
             # Confirm denied mutation attempts did not change the owner's object.
             _download_and_verify(client, user_a, document_id, digest)
             evidence["checks"]["two_user_read_and_mutation_isolation"] = True
@@ -362,6 +516,7 @@ def main() -> int:
         value is True
         for key, value in checks.items()
         if key not in {"exact_50_mib_boundary", "exact_50_mib_download_integrity"}
+        and value != "not_applicable_b2"
     ) and checks["exact_50_mib_boundary"] is True and checks["exact_50_mib_download_integrity"] is True
     evidence["passed"] = evidence["gate9_ready"] is True
     output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
