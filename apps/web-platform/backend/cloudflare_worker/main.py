@@ -6,7 +6,10 @@ verified by Supabase Auth; document metadata and objects remain in Supabase.
 from __future__ import annotations
 
 import hashlib
+import hmac
+import html
 import json
+import logging
 import os
 import re
 from datetime import datetime, timezone
@@ -31,6 +34,7 @@ from stream_hash import hash_response_stream
 
 bearer = HTTPBearer(auto_error=False)
 app = FastAPI(title="Doka Cloud API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
+logger = logging.getLogger("doka.telegram")
 
 
 def _env(request, name: str, default: str = "") -> str:
@@ -59,6 +63,60 @@ def _env(request, name: str, default: str = "") -> str:
             return str(value)
     return os.getenv(name, default)
 
+
+def _telegram_enabled(request: Request) -> bool:
+    return _env(request, "TELEGRAM_ENABLED", "false").strip().lower() == "true"
+
+
+def _telegram_context_allowed(request: Request, chat_id, topic_id) -> bool:
+    """Accept only the configured Telegram supergroup forum topic."""
+    if not _telegram_enabled(request):
+        return False
+    expected_chat_id = _env(request, "TELEGRAM_CHAT_ID").strip()
+    raw_topic_id = _env(request, "TELEGRAM_TOPIC_ID").strip()
+    if not expected_chat_id or not raw_topic_id.isdigit() or topic_id is None:
+        return False
+    try:
+        return str(chat_id) == expected_chat_id and int(topic_id) == int(raw_topic_id)
+    except (TypeError, ValueError):
+        return False
+
+
+async def _send_telegram_message(request: Request, text: str) -> bool:
+    """Send a message only to the configured group/topic; never trust caller routing."""
+    if not _telegram_enabled(request):
+        return False
+    token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
+    chat_id = _env(request, "TELEGRAM_CHAT_ID").strip()
+    raw_topic_id = _env(request, "TELEGRAM_TOPIC_ID").strip()
+    if not token or not chat_id or not raw_topic_id.isdigit() or int(raw_topic_id) <= 0:
+        logger.warning("Telegram delivery unavailable: required bot/topic configuration is missing.")
+        return False
+
+    payload = {
+        "chat_id": chat_id,
+        "message_thread_id": int(raw_topic_id),
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+    options = {
+        "method": "POST",
+        "headers": to_js({"Content-Type": "application/json"}, dict_converter=Object.fromEntries),
+        "body": json.dumps(payload),
+    }
+    try:
+        response = await js_fetch(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            to_js(options, dict_converter=Object.fromEntries),
+        )
+        if int(response.status) != 200:
+            logger.warning("Telegram sendMessage failed with HTTP status %s.", int(response.status))
+            return False
+        return True
+    except Exception:  # noqa: BLE001 - Telegram delivery must not fail a document operation
+        logger.warning("Telegram message delivery failed.")
+        return False
 
 
 def _binding(request: Request, name: str):
@@ -216,6 +274,68 @@ class BulkDocumentAction(BaseModel):
 @app.get("/health")
 async def health():
     return {"status": "healthy", "edition": "cloudflare-workers", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """Receive Telegram commands only from the configured group/topic."""
+    if not _telegram_enabled(request):
+        return {"ok": True, "status": "disabled"}
+
+    token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
+    secret = _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
+    if not token or not secret:
+        raise HTTPException(status_code=503, detail="Telegram webhook is not configured.")
+    supplied_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    if not supplied_secret or not hmac.compare_digest(supplied_secret, secret):
+        raise HTTPException(status_code=401, detail="Invalid Telegram webhook authentication.")
+
+    try:
+        update = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid Telegram update.") from exc
+    if not isinstance(update, dict):
+        raise HTTPException(status_code=400, detail="Invalid Telegram update.")
+
+    message = update.get("message")
+    if not isinstance(message, dict):
+        return {"ok": True, "status": "ignored"}
+    chat = message.get("chat") or {}
+    topic_id = message.get("message_thread_id")
+    if not _telegram_context_allowed(request, chat.get("id"), topic_id):
+        return {"ok": True, "status": "ignored", "reason": "outside_configured_topic"}
+
+    text = message.get("text")
+    if not isinstance(text, str):
+        return {"ok": True, "status": "ignored"}
+    command = text.strip().split(maxsplit=1)[0].split("@", 1)[0].lower()
+    if command in {"/start", "/help"}:
+        reply = (
+            "📄 <b>Doka-AI-DMS</b>\n"
+            "Commands available in this topic:\n"
+            "• <code>/status</code> — Worker/configuration readiness\n"
+            "• <code>/ask query</code> — Document search status\n"
+            "• <code>/morning_brief</code> — Intake briefing status"
+        )
+    elif command == "/status":
+        supabase_ready = bool(_env(request, "SUPABASE_URL") and _env(request, "SUPABASE_PUBLISHABLE_KEY"))
+        bucket_ready = bool(_env(request, "SUPABASE_STORAGE_BUCKET"))
+        reply = (
+            "ℹ️ <b>Doka-DMS live status</b>\n"
+            "• Worker: healthy\n"
+            f"• Supabase configuration: {'configured' if supabase_ready else 'missing'}\n"
+            f"• Storage bucket configuration: {'configured' if bucket_ready else 'missing'}\n"
+            "• Live document/OCR database query: not performed"
+        )
+    elif command in {"/morning_brief", "/digest"}:
+        reply = "ℹ️ Morning briefing is not connected to a verified live document query yet."
+    elif command == "/ask":
+        reply = "ℹ️ Document search is not connected to this Telegram command yet; no search was performed."
+    else:
+        return {"ok": True, "status": "ignored"}
+
+    sent = await _send_telegram_message(request, reply)
+    return {"ok": sent, "status": "sent" if sent else "delivery_unavailable"}
 
 
 @app.get("/api/config")
@@ -963,6 +1083,13 @@ async def complete_storage_upload(
             "size_bytes": stored.size_bytes,
             "storage_provider": stored.object_ref.provider,
         })
+        await _send_telegram_message(
+            request,
+            "🗂️ <b>Document version uploaded</b>\\n"
+            f"• File: <code>{html.escape(metadata.filename)}</code>\\n"
+            f"• Document ID: <code>{html.escape(str(signed['document_id']))}</code>\\n"
+            f"• Size: {stored.size_bytes} bytes",
+        )
         return {"document": document, "warnings": []}
 
     record = {
@@ -1000,6 +1127,13 @@ async def complete_storage_upload(
         "sha256": metadata.sha256,
         "storage_provider": stored.object_ref.provider,
     })
+    await _send_telegram_message(
+        request,
+        "📄 <b>Document uploaded</b>\\n"
+        f"• File: <code>{html.escape(metadata.filename)}</code>\\n"
+        f"• Document ID: <code>{html.escape(str(rows[0].get('id') or ''))}</code>\\n"
+        f"• Size: {stored.size_bytes} bytes",
+    )
     return {"document": rows[0], "warnings": []}
 
 
