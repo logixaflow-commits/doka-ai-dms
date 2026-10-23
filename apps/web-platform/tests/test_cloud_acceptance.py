@@ -108,16 +108,15 @@ def test_upload_rejects_provider_mismatch_before_upload():
 
     with httpx.Client(
         base_url="https://cloud.example", transport=httpx.MockTransport(handler)
-    ) as client:
-        with pytest.raises(AssertionError, match="expected 'b2'"):
-            _upload_document(
-                client,
-                "user-token",
-                b"provider mismatch",
-                "acceptance.txt",
-                "text/plain",
-                expected_provider="b2",
-            )
+    ) as client, pytest.raises(AssertionError, match="expected 'b2'"):
+        _upload_document(
+            client,
+            "user-token",
+            b"provider mismatch",
+            "acceptance.txt",
+            "text/plain",
+            expected_provider="b2",
+        )
 
     # Fail before any provider upload or completion request is attempted.
     assert seen == ["cloud.example/api/storage/upload-session"]
@@ -253,3 +252,112 @@ def test_provider_powershell_wrapper_defaults_to_staging():
     assert '[string]$BaseUrl = "https://doka-ai-dms-staging.logixaflow.workers.dev"' in wrapper
     assert '$parsed.Host -ne "doka-ai-dms-staging.logixaflow.workers.dev"' in wrapper
     assert '[string]$BaseUrl = "https://doka-ai-dms.logixaflow.workers.dev"' not in wrapper
+
+
+def test_supabase_storage_boundary_probes_anonymous_and_cross_user_access():
+    calls: list[tuple[str, str, str | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path, request.headers.get("authorization")))
+        return httpx.Response(403, json={"message": "row/object access denied"})
+
+    DOKA_CLOUD_ACCEPTANCE._assert_supabase_storage_boundary(
+        project_url="https://staging.supabase.example",
+        publishable_key="public-test-key",
+        other_token="user-b-token",
+        object_key="users/user-a/documents/abc123/acceptance.txt",
+        transport=httpx.MockTransport(handler),
+    )
+
+    assert [method for method, _, _ in calls] == ["POST", "GET", "POST", "GET", "DELETE"]
+    assert calls[0][1].endswith("/storage/v1/object/list/doka-documents")
+    assert calls[1][1].endswith("/storage/v1/object/authenticated/doka-documents/users/user-a/documents/abc123/acceptance.txt")
+    assert calls[1][2] is None
+    assert calls[2][1].endswith("/storage/v1/object/doka-documents/users/acceptance-anonymous-probe.txt")
+    assert calls[3][2] == "Bearer user-b-token"
+    assert calls[4][0] == "DELETE" and calls[4][2] == "Bearer user-b-token"
+
+
+def test_supabase_storage_boundary_fails_if_anonymous_access_succeeds():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path.endswith("/object/list/doka-documents"):
+            return httpx.Response(200, json=[])
+        return httpx.Response(403, json={"message": "denied"})
+
+    with pytest.raises(AssertionError, match="anonymous Storage list"):
+        DOKA_CLOUD_ACCEPTANCE._assert_supabase_storage_boundary(
+            project_url="https://staging.supabase.example",
+            publishable_key="public-test-key",
+            other_token="user-b-token",
+            object_key="users/user-a/documents/abc123/acceptance.txt",
+            transport=httpx.MockTransport(handler),
+        )
+
+
+def test_sensitive_rpc_probes_use_user_b_and_fail_closed_on_missing_rpc():
+    import base64
+
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"sub": "user-b-uuid"}).encode()
+    ).decode().rstrip("=")
+    token = "header." + payload + ".signature"
+    seen: list[tuple[str, dict]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers.get("authorization") == f"Bearer {token}"
+        seen.append((request.url.path, json.loads(request.content)))
+        return httpx.Response(404, json={"code": "P0002", "message": "Document not found"})
+
+    DOKA_CLOUD_ACCEPTANCE._assert_rpc_owner_checks(
+        project_url="https://staging.supabase.example",
+        publishable_key="public-test-key",
+        other_token=token,
+        owner_document_id="owner-a-document-uuid",
+        transport=httpx.MockTransport(handler),
+    )
+
+    assert len(seen) == 4
+    assert {path.rsplit("/", 1)[-1] for path, _ in seen} == {
+        "doka_bulk_update_documents",
+        "doka_replace_document_version",
+        "doka_replace_document_version_storage",
+        "doka_restore_document_version",
+    }
+    assert all(
+        "users/user-b-uuid/documents/" in str(payload)
+        for path, payload in seen
+        if path.endswith(("doka_replace_document_version", "doka_replace_document_version_storage"))
+    )
+
+
+def test_sensitive_rpc_probes_reject_missing_function_false_positive():
+    import base64
+
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"sub": "user-b-uuid"}).encode()
+    ).decode().rstrip("=")
+    token = "header." + payload + ".signature"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"code": "PGRST202", "message": "function not found"})
+
+    with pytest.raises(AssertionError, match="required RPC function is missing"):
+        DOKA_CLOUD_ACCEPTANCE._assert_rpc_owner_checks(
+            project_url="https://staging.supabase.example",
+            publishable_key="public-test-key",
+            other_token=token,
+            owner_document_id="owner-a-document-uuid",
+            transport=httpx.MockTransport(handler),
+        )
+
+
+def test_storage_denial_probe_does_not_treat_server_error_as_access_control():
+    response = httpx.Response(500, json={"message": "internal error"})
+    with pytest.raises(AssertionError, match="unexpected HTTP status 500"):
+        DOKA_CLOUD_ACCEPTANCE._assert_denied(response, "anonymous Storage read")
+
+
+def test_rpc_owner_probe_rejects_permission_error_as_false_positive():
+    response = httpx.Response(403, json={"code": "42501", "message": "permission denied"})
+    with pytest.raises(AssertionError, match="ownership/argument rejection"):
+        DOKA_CLOUD_ACCEPTANCE._assert_rpc_denied(response, "cross-user RPC")
