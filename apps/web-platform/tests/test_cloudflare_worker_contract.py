@@ -199,3 +199,18 @@ def test_worker_telegram_status_reports_topic_and_secret_readiness_without_expos
     assert "Telegram inbound webhook" in status_block
     assert "message_thread_id" not in status_block
     assert "token}" not in status_block
+
+
+def test_worker_telegram_diagnostic_is_secret_gated_and_never_returns_token():
+    route = WORKER_SOURCE.split('@app.post("/api/telegram/diagnostic")', 1)[1].split(
+        'Default = asgi.entrypoint(app)', 1
+    )[0]
+    assert 'X-Doka-Diagnostic-Secret' in route
+    assert 'hmac.compare_digest' in route
+    assert 'TELEGRAM_WEBHOOK_SECRET' in route
+    assert 'api.telegram.org/bot{token}/getMe' in route
+    assert '"telegram_http_status": status' in route
+    assert '"bot_username"' in route
+    assert '"description"' in route
+    assert 'return {"token": token}' not in route
+    assert 'logger.warning("Telegram token diagnostic request failed.")' in route
