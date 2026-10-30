@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import hmacimport logging
+import hmac
+import logging
 import os
 import re
 from typing import Any
