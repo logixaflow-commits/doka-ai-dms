@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hmac
-import html
 import logging
 import os
 import re
@@ -130,32 +129,11 @@ async def _process_action(payload: TelegramActionPayload) -> dict[str, Any]:
             detail="Document actions are not enabled in this runtime; no document was changed.",
         )
 
-    if payload.action == "doka_receipt_scan" and payload.raw_message:
-        from ...services.receipt_extractor import ReceiptExtractorService
-
-        extracted = ReceiptExtractorService.extract_financial_data(payload.raw_message)
-        vendor = html.escape(str(extracted.get("vendor", "")))
-        currency = html.escape(str(extracted.get("currency", "")))
-        category = html.escape(str(extracted.get("category", "")))
-        date_value = html.escape(str(extracted.get("date") or "N/A"))
-        try:
-            total = float(extracted.get("total_amount", 0))
-        except (TypeError, ValueError):
-            total = 0.0
-        try:
-            confidence = int(float(extracted.get("confidence", 0)) * 100)
-        except (TypeError, ValueError):
-            confidence = 0
-        reply = (
-            "🧾 <b>Instant Receipt Extracted:</b>\n"
-            f"🏪 <b>Vendor:</b> {vendor}\n"
-            f"💰 <b>Total:</b> {currency} {total:,.2f}\n"
-            f"🏷️ <b>Category:</b> {category}\n"
-            f"📅 <b>Date:</b> {date_value}\n"
-            f"🎯 <b>Confidence:</b> {confidence}%"
+    if action_type == "doka_receipt_scan":
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Receipt OCR is not connected to a verified OCR provider; no receipt data was extracted or saved.",
         )
-        await send_telegram_message(reply, topic_id=payload.topic_id)
-        return {"status": "ok", "action": "receipt_scanned", "data": extracted}
 
     return {"status": "ignored", "action": action_type}
 
