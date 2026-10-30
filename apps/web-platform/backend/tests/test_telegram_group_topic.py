@@ -83,3 +83,25 @@ def test_outbound_messages_are_pinned_to_configured_topic(monkeypatch):
     assert result == {"ok": True}
     assert calls[0]["payload"]["chat_id"] == "-1003992125718"
     assert calls[0]["payload"]["message_thread_id"] == 18
+
+
+def test_telegram_receipt_scan_fails_closed_without_verified_ocr(monkeypatch):
+    sent_messages = []
+    monkeypatch.setattr(
+        telegram,
+        "send_telegram_message",
+        lambda *args, **kwargs: sent_messages.append((args, kwargs)),
+    )
+    payload = telegram.TelegramActionPayload(
+        action="doka_receipt_scan",
+        chat_id="-1003992125718",
+        topic_id=18,
+        raw_message="ACME STORE\\nTOTAL 12500 MMK",
+    )
+
+    with pytest.raises(telegram.HTTPException) as exc_info:
+        asyncio.run(telegram._process_action(payload))
+
+    assert exc_info.value.status_code == 501
+    assert sent_messages == []
+
