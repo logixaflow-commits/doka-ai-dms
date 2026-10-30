@@ -1465,4 +1465,43 @@ class WorkerAwareCORSMiddleware:
 # Production must use explicit configured origins; preview regex is opt-in in staging only.
 app.add_middleware(WorkerAwareCORSMiddleware)
 
+
+@app.post("/api/telegram/diagnostic")
+async def telegram_diagnostic(request: Request):
+    """Verify the configured Telegram token without returning or logging it."""
+    expected_secret = _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
+    supplied_secret = request.headers.get("X-Doka-Diagnostic-Secret", "")
+    if not expected_secret or not supplied_secret or not hmac.compare_digest(supplied_secret, expected_secret):
+        raise HTTPException(status_code=404, detail="Not found.")
+    if not _telegram_enabled(request):
+        raise HTTPException(status_code=503, detail="Telegram integration is disabled.")
+    token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
+    if not token:
+        raise HTTPException(status_code=503, detail="Telegram bot token is not configured.")
+    try:
+        response = await js_fetch(
+            f"https://api.telegram.org/bot{token}/getMe",
+            to_js({"method": "GET"}, dict_converter=Object.fromEntries),
+        )
+        status = int(response.status)
+        try:
+            payload = await response.json()
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
+        # Deliberately return only Telegram's status and non-sensitive bot identity.
+        return {
+            "ok": bool(payload.get("ok")) and status == 200,
+            "telegram_http_status": status,
+            "bot_username": result.get("username") if isinstance(result, dict) else None,
+            "error_code": payload.get("error_code"),
+            "description": payload.get("description") if not payload.get("ok") else None,
+        }
+    except Exception:
+        logger.warning("Telegram token diagnostic request failed.")
+        raise HTTPException(status_code=502, detail="Telegram diagnostic request failed.")
+
+
 Default = asgi.entrypoint(app)
