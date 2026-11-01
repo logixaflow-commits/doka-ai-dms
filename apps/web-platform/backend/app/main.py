@@ -30,6 +30,7 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.observability import init_observability
 from app.core.rate_limiter import rate_limit_middleware
+from app.services.telegram_webhook_setup import configure_telegram_webhook
 
 logger = get_logger(__name__)
 
@@ -71,6 +72,7 @@ async def lifespan(_: "FastAPI"):
     """Modern lifespan context manager — replaces deprecated @app.on_event('startup')."""
     logger.info("Doka Personal Local Edition starting")
     init_observability()
+    await configure_telegram_webhook()
     yield
 
 
