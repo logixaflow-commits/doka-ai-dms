@@ -1,4 +1,4 @@
-﻿"""
+"""
 Office DMS - Document Routes
 CRUD, approve, reject, preview, upload endpoints with RBAC.
 """

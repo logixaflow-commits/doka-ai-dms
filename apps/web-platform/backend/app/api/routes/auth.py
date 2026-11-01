@@ -1,4 +1,4 @@
-﻿"""
+"""
 Office DMS - Authentication Routes
 Login, logout, registration, JWT token management.
 """
