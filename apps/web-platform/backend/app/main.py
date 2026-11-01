@@ -73,6 +73,18 @@ async def lifespan(_: "FastAPI"):
     logger.info("Doka Personal Local Edition starting")
     init_observability()
     await configure_telegram_webhook()
+    # Startup Telegram notification
+    try:
+        from app.services.telegram import send_telegram_message
+        import os as _os
+        _topic = int(_os.getenv("TELEGRAM_TOPIC_ID", "0")) or None
+        if _topic:
+            await send_telegram_message(
+                "🟢 <b>Doka AI DMS Backend</b> is now online and ready!",
+                topic_id=_topic,
+            )
+    except Exception:
+        pass
     yield
 
 
@@ -162,3 +174,36 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+# =============================================================================
+# Global Error Handler → Telegram Alert
+# =============================================================================
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import logging
+    _logger = logging.getLogger("doka.error")
+    path = str(request.url.path)[:200] if hasattr(request, "url") else "unknown"
+    error_type = type(exc).__name__
+    _logger.error("Unhandled error: %s %s — %s", path, error_type, str(exc)[:500])
+    try:
+        import asyncio
+        async def _alert():
+            try:
+                from app.services.telegram import send_telegram_message
+                import os
+                topic_id = int(os.getenv("TELEGRAM_TOPIC_ID", "0")) or None
+                alert = (
+                    "🚨 <b>Doka AI DMS Error</b>\n\n"
+                    f"📍 Path: <code>{path[:100]}</code>\n"
+                    f"❌ Error: <code>{error_type}</code>\n"
+                    f"📝 {str(exc)[:300]}"
+                )
+                await send_telegram_message(alert, topic_id=topic_id)
+            except Exception:
+                pass
+        asyncio.ensure_future(_alert())
+    except Exception:
+        pass
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})

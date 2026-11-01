@@ -230,11 +230,36 @@ async def telegram_webhook(
         return {"ok": True, "command": "status", **snapshot}
 
     if text.startswith(("/morning_brief", "/digest")):
-        await send_telegram_message(
-            "ℹ️ The automated morning briefing is not connected to a verified live document query yet.",
-            topic_id=topic_id,
-        )
-        return {"ok": True, "command": "morning_brief", "status": "not_configured"}
+        from ...core.database import SessionLocal
+        _db = SessionLocal()
+        try:
+            from sqlalchemy import func as sa_func
+            total_docs = _db.query(sa_func.count(Document.id)).scalar() or 0
+            imported = _db.query(sa_func.count(Document.id)).filter(Document.status == "imported").scalar() or 0
+            processed = _db.query(sa_func.count(Document.id)).filter(Document.status == "processed").scalar() or 0
+            active_rules = _db.query(sa_func.count(AutomationRule.id)).filter(AutomationRule.enabled.is_(True)).scalar() or 0
+            ocr_queued = _db.query(sa_func.count(OCRBatchJobRecord.job_id)).filter(OCRBatchJobRecord.status == "queued").scalar() or 0
+            ocr_processing = _db.query(sa_func.count(OCRBatchJobRecord.job_id)).filter(OCRBatchJobRecord.status == "processing").scalar() or 0
+
+            brief = (
+                "☀️ <b>Doka DMS — Morning Brief</b>\n\n"
+                f"📄 Documents: <b>{total_docs}</b> total\n"
+                f"📥 Imported: <b>{imported}</b> | ✅ Processed: <b>{processed}</b>\n"
+                f"⚙️ Active Rules: <b>{active_rules}</b>\n"
+                f"🔎 OCR Queue: <b>{ocr_queued}</b> queued, <b>{ocr_processing}</b> processing\n\n"
+                "Have a productive day! 📋"
+            )
+            await send_telegram_message(brief, topic_id=topic_id)
+            return {"ok": True, "command": "morning_brief"}
+        except Exception:
+            logger.warning("Morning brief failed", exc_info=True)
+            await send_telegram_message(
+                "⚠️ Morning brief data unavailable. Database may be unreachable.",
+                topic_id=topic_id,
+            )
+            return {"ok": True, "command": "morning_brief", "status": "error"}
+        finally:
+            _db.close()
 
     if text.startswith("/ask"):
         await send_telegram_message(
