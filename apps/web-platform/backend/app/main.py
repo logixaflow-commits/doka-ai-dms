@@ -113,6 +113,11 @@ def create_app() -> FastAPI:
             )
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Response-Time"] = f"{time.time() - start:.3f}s"
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         return response
 
     app.include_router(local_auth.router, prefix="/api/auth", tags=["Authentication"])
