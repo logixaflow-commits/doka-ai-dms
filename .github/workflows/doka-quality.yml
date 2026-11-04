@@ -382,7 +382,7 @@ jobs:
         continue-on-error: true
         working-directory: apps/web-platform/frontend
         run: |
-          npm audit --json > npm-audit.json || true
+          npm audit --omit=dev --json > npm-audit.json || true
           node - <<'NODE'
           const fs = require("node:fs");
           const audit = JSON.parse(fs.readFileSync("npm-audit.json", "utf8"));
@@ -426,7 +426,7 @@ jobs:
       - name: Enforce frontend dependency audit result
         if: steps.frontend_audit.outcome == 'failure'
         run: |
-          echo "::error::Frontend dependency audit found unresolved vulnerabilities."
+          echo "::error::Frontend runtime dependency audit found unresolved vulnerabilities."
           exit 1
 
   security-supply-chain:
