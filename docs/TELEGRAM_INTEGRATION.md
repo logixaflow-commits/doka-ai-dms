@@ -47,6 +47,7 @@ The bot token and webhook secret must be provisioned separately in the productio
 | `TELEGRAM_CHAT_ID` | String | `""` | Supergroup ID (e.g. `-100xxxxxxxxxx`) |
 | `TELEGRAM_TOPIC_ID` | Integer | `None` | Thread ID for `#Doka-DMS` topic |
 | `TELEGRAM_ENABLED` | Boolean | `false` | Master toggle (`true` to enable delivery) |
+| `TELEGRAM_WEBHOOK_AUTOREGISTER` | Boolean | `false` | Set `true` only when this FastAPI runtime is the sole owner of Telegram `setWebhook`; keep `false` when Cloudflare Worker owns the inbound webhook. |
 | `TELEGRAM_ACTION_WEBHOOK_SECRET` | Secret | empty | Required shared secret for trusted gateway requests to `POST /api/telegram/action`; send it in `X-Doka-Action-Secret`. The endpoint fails closed when unset. Never commit or expose this value. |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret | empty | Required Telegram Bot API webhook secret; configure the same value with Telegram `setWebhook` and send it in `X-Telegram-Bot-Api-Secret-Token` to `POST /api/telegram/webhook`. The endpoint fails closed when unset. Never reuse the bot token as this secret. |
 
@@ -118,7 +119,7 @@ await notify_backup_status(
 
 1. In Local mode: Add the variables into `apps/web-platform/backend/.env`.
 2. In Cloud mode, configure the secrets only in the backend service that actually mounts these FastAPI routes. A Cloudflare Worker secret does not automatically configure a separate FastAPI runtime. Configure `TELEGRAM_WEBHOOK_SECRET` with Telegram webhook setup and `TELEGRAM_ACTION_WEBHOOK_SECRET` only for the trusted internal gateway.
-3. Set `TELEGRAM_ENABLED=true` to go live.
+3. Set `TELEGRAM_ENABLED=true` to enable delivery. Keep `TELEGRAM_WEBHOOK_AUTOREGISTER=false` when Cloudflare Worker owns the inbound webhook; set it to `true` only for a deliberately backend-owned webhook deployment.
 
 ---
 
