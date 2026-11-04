@@ -218,13 +218,13 @@ def test_worker_telegram_diagnostic_is_secret_gated_and_never_returns_token():
     assert 'logger.warning("Telegram token diagnostic request failed.")' in route
 
 
-def test_worker_telegram_webhook_registration_is_admin_gated_and_verifies_remote_state():
-    route = WORKER_SOURCE.split('@app.post("/api/telegram/admin/register-webhook")', 1)[1].split(
+
+def test_worker_telegram_webhook_registration_is_opt_in_and_verifies_remote_state():
+    route = WORKER_SOURCE.split('@app.post("/api/telegram/webhook/register")', 1)[1].split(
         "\n\nDefault = asgi.entrypoint(app)", 1
     )[0]
-    assert "TELEGRAM_WEBHOOK_ADMIN_SECRET" in route
-    assert "X-Doka-Telegram-Admin" in route
-    assert "hmac.compare_digest" in route
+    assert 'TELEGRAM_WEBHOOK_AUTOREGISTER' in route
+    assert '!= "true"' in route
     assert 'api.telegram.org/bot{token}/setWebhook' in route
     assert 'api.telegram.org/bot{token}/getWebhookInfo' in route
     assert 'api.telegram.org/bot{token}/getMe' in route
@@ -232,5 +232,4 @@ def test_worker_telegram_webhook_registration_is_admin_gated_and_verifies_remote
     assert '"drop_pending_updates": False' in route
     assert '"webhook_url_matches": bool(url_matches)' in route
     assert '"bot_username": me.get("username") if identity_ok else None' in route
-    assert "TELEGRAM_WEBHOOK_ADMIN_SECRET" not in route.split("if not admin_secret", 1)[1].split("if not _telegram_enabled", 1)[0]
-    assert 'return {"token": token}' not in route
+    assert "TELEGRAM_WEBHOOK_ADMIN_SECRET" not in route
