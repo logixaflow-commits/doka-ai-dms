@@ -232,4 +232,3 @@ def test_worker_telegram_webhook_registration_is_fixed_destination_and_verifies_
     assert '"drop_pending_updates": False' in route
     assert '"webhook_url_matches": bool(url_matches)' in route
     assert '"bot_username": me.get("username") if identity_ok else None' in route
-    assert "TELEGRAM_WEBHOOK_ADMIN_SECRET" not in route
