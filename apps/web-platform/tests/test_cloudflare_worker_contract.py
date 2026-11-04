@@ -236,3 +236,18 @@ def test_worker_telegram_webhook_registration_is_fixed_destination_and_verifies_
     assert '"drop_pending_updates": False' in route
     assert '"webhook_url_matches": bool(url_matches)' in route
     assert '"bot_username": me.get("username") if identity_ok else None' in route
+
+
+def test_telegram_api_responses_are_parsed_from_text_for_pyodide_compatibility():
+    helper = WORKER_SOURCE.split("async def _telegram_response_payload", 1)[1].split(
+        "async def _telegram_bot_identity", 1
+    )[0]
+    assert "await response.text()" in helper
+    assert "json.loads(raw)" in helper
+    assert "return payload if isinstance(payload, dict) else {}" in helper
+    registration = WORKER_SOURCE.split('@app.post("/api/telegram/webhook/register")', 1)[1].split(
+        "\n\nDefault = asgi.entrypoint(app)", 1
+    )[0]
+    assert "await _telegram_response_payload(set_response)" in registration
+    assert "await _telegram_response_payload(info_response)" in registration
+    assert "await _telegram_response_payload(me_response)" in registration
