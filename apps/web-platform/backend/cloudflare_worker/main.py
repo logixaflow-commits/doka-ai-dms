@@ -1612,6 +1612,8 @@ async def telegram_register_webhook(request: Request):
             "bot_verified": bool(identity_ok),
             "bot_username": me.get("username") if identity_ok else None,
             "telegram_description": set_result.get("description") if not set_ok else None,
+            "webhook_info_description": info_payload.get("description") if not info_ok else None,
+            "bot_api_description": me_payload.get("description") if not identity_ok else None,
         }
     except Exception:
         logger.warning("Telegram webhook registration or verification failed.")
