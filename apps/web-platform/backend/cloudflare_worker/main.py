@@ -1546,8 +1546,10 @@ async def telegram_diagnostic(request: Request):
 @app.post("/api/telegram/webhook/register")
 async def telegram_register_webhook(request: Request):
     """Register and verify the fixed production webhook without accepting a redirect."""
-    # This operation has a fixed production destination and is invoked by the
-    # production deployment workflow. It never accepts a caller-supplied URL.
+    admin_secret = _env(request, "TELEGRAM_WEBHOOK_ADMIN_SECRET").strip()
+    supplied_secret = request.headers.get("X-Doka-Telegram-Admin", "")
+    if not admin_secret or not supplied_secret or not hmac.compare_digest(supplied_secret, admin_secret):
+        raise HTTPException(status_code=404, detail="Not found.")
     if not _telegram_enabled(request):
         raise HTTPException(status_code=503, detail="Telegram integration is disabled.")
     token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
