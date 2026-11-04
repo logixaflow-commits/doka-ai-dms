@@ -15,7 +15,11 @@ def get_settings():
 
 
 async def configure_telegram_webhook() -> None:
-    """Register the Telegram webhook URL and secret with the Bot API."""
+    """Register a webhook only when this runtime is explicitly designated its owner."""
+    if os.getenv("TELEGRAM_WEBHOOK_AUTOREGISTER", "false").strip().lower() != "true":
+        logger.info("Telegram webhook auto-registration skipped; another gateway may own the webhook.")
+        return
+
     settings = get_settings()
 
     if not settings.TELEGRAM_ENABLED:
