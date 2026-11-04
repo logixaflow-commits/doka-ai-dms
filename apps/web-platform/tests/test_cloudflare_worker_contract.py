@@ -219,12 +219,12 @@ def test_worker_telegram_diagnostic_is_secret_gated_and_never_returns_token():
 
 
 
-def test_worker_telegram_webhook_registration_is_opt_in_and_verifies_remote_state():
+def test_worker_telegram_webhook_registration_is_fixed_destination_and_verifies_remote_state():
     route = WORKER_SOURCE.split('@app.post("/api/telegram/webhook/register")', 1)[1].split(
         "\n\nDefault = asgi.entrypoint(app)", 1
     )[0]
-    assert 'TELEGRAM_WEBHOOK_AUTOREGISTER' in route
-    assert '!= "true"' in route
+    assert 'webhook_url = "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook"' in route
+    assert 'request.json' not in route
     assert 'api.telegram.org/bot{token}/setWebhook' in route
     assert 'api.telegram.org/bot{token}/getWebhookInfo' in route
     assert 'api.telegram.org/bot{token}/getMe' in route
