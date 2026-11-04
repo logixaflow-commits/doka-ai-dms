@@ -1543,4 +1543,95 @@ async def telegram_diagnostic(request: Request):
         raise HTTPException(status_code=502, detail="Telegram diagnostic request failed.")
 
 
+@app.post("/api/telegram/admin/register-webhook")
+async def telegram_register_webhook(request: Request):
+    """Register and verify the one production Telegram webhook using Worker-held secrets."""
+    admin_secret = _env(request, "TELEGRAM_WEBHOOK_ADMIN_SECRET").strip()
+    supplied_secret = request.headers.get("X-Doka-Telegram-Admin", "")
+    if not admin_secret or not supplied_secret or not hmac.compare_digest(supplied_secret, admin_secret):
+        raise HTTPException(status_code=404, detail="Not found.")
+
+    if not _telegram_enabled(request):
+        raise HTTPException(status_code=503, detail="Telegram integration is disabled.")
+    token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
+    webhook_secret = _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
+    if not token or not webhook_secret:
+        raise HTTPException(status_code=503, detail="Telegram bot or webhook secret is not configured.")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,256}", webhook_secret):
+        raise HTTPException(status_code=503, detail="Telegram webhook secret has an unsupported format.")
+
+    webhook_url = "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook"
+    set_payload = {
+        "url": webhook_url,
+        "secret_token": webhook_secret,
+        "allowed_updates": ["message"],
+        "drop_pending_updates": False,
+    }
+    options = {
+        "method": "POST",
+        "headers": to_js({"Content-Type": "application/json"}, dict_converter=Object.fromEntries),
+        "body": json.dumps(set_payload),
+    }
+    try:
+        set_response = await js_fetch(
+            f"https://api.telegram.org/bot{token}/setWebhook",
+            to_js(options, dict_converter=Object.fromEntries),
+        )
+        set_status = int(set_response.status)
+        try:
+            set_result = await set_response.json()
+        except Exception:
+            set_result = {}
+        if not isinstance(set_result, dict):
+            set_result = {}
+
+        info_response = await js_fetch(
+            f"https://api.telegram.org/bot{token}/getWebhookInfo",
+            to_js({"method": "GET"}, dict_converter=Object.fromEntries),
+        )
+        info_status = int(info_response.status)
+        try:
+            info_payload = await info_response.json()
+        except Exception:
+            info_payload = {}
+        if not isinstance(info_payload, dict):
+            info_payload = {}
+        info = info_payload.get("result") if isinstance(info_payload.get("result"), dict) else {}
+
+        me_response = await js_fetch(
+            f"https://api.telegram.org/bot{token}/getMe",
+            to_js({"method": "GET"}, dict_converter=Object.fromEntries),
+        )
+        me_status = int(me_response.status)
+        try:
+            me_payload = await me_response.json()
+        except Exception:
+            me_payload = {}
+        if not isinstance(me_payload, dict):
+            me_payload = {}
+        me = me_payload.get("result") if isinstance(me_payload.get("result"), dict) else {}
+
+        set_ok = set_status == 200 and set_result.get("ok") is True
+        info_ok = info_status == 200 and info_payload.get("ok") is True
+        identity_ok = me_status == 200 and me_payload.get("ok") is True and bool(me.get("username"))
+        url_matches = info_ok and info.get("url") == webhook_url
+        return {
+            "ok": bool(set_ok and url_matches and identity_ok),
+            "set_webhook_ok": bool(set_ok),
+            "telegram_http_status": set_status,
+            "webhook_info_verified": bool(info_ok),
+            "webhook_url_matches": bool(url_matches),
+            "pending_update_count": info.get("pending_update_count") if info_ok else None,
+            "last_error_date": info.get("last_error_date") if info_ok else None,
+            "last_error_message": info.get("last_error_message") if info_ok else None,
+            "allowed_updates": info.get("allowed_updates") if info_ok else None,
+            "bot_verified": bool(identity_ok),
+            "bot_username": me.get("username") if identity_ok else None,
+            "telegram_description": set_result.get("description") if not set_ok else None,
+        }
+    except Exception:
+        logger.warning("Telegram webhook registration or verification failed.")
+        raise HTTPException(status_code=502, detail="Telegram webhook registration or verification failed.")
+
+
 Default = asgi.entrypoint(app)
