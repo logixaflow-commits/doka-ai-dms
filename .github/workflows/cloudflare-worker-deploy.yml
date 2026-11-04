@@ -55,10 +55,24 @@ jobs:
         run: uvx --from workers-py==1.17.7 pywrangler deploy --dry-run --config wrangler.jsonc
       - name: Deploy Python Worker from repository source
         run: uvx --from workers-py==1.17.7 pywrangler deploy --config wrangler.jsonc
+      - name: Create ephemeral Telegram webhook registration credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          admin_secret="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          echo "::add-mask::$admin_secret"
+          response="$(curl --fail --silent --show-error --request PUT \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data "{\"name\":\"TELEGRAM_WEBHOOK_ADMIN_SECRET\",\"type\":\"secret_text\",\"text\":\"$admin_secret\"}" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/doka-ai-dms/secrets")"
+          printf '%s' "$response" | python -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d.get("errors")'
+          printf 'TELEGRAM_WEBHOOK_ADMIN_SECRET=%s\n' "$admin_secret" >> "$GITHUB_ENV"
       - name: Verify production Worker health
         run: |
           python - <<'PY'
           import json
+          import os
           from urllib.error import HTTPError, URLError
           from urllib.request import Request, urlopen
 
@@ -85,5 +99,32 @@ jobs:
           config = get_json("https://doka-ai-dms.logixaflow.workers.dev/api/config", "Worker config")
           if not config.get("single_user_configured"):
               raise SystemExit("Single-user production gate is not configured; refusing deployment verification.")
+          registration_request = Request(
+              "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook/register",
+              data=b"{}",
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "Doka-Worker-Deploy",
+                  "X-Doka-Telegram-Admin": os.environ["TELEGRAM_WEBHOOK_ADMIN_SECRET"],
+              },
+              method="POST",
+          )
+          try:
+              with urlopen(registration_request, timeout=30) as response:
+                  registration = json.load(response)
+                  if response.status != 200:
+                      raise SystemExit(f"Telegram webhook registration returned HTTP {response.status}")
+          except HTTPError as exc:
+              body = exc.read(2000).decode("utf-8", errors="replace")
+              raise SystemExit(f"Telegram webhook registration failed with HTTP {exc.code}: {body}") from exc
+          if not registration.get("ok") or not registration.get("webhook_url_matches"):
+              raise SystemExit(f"Telegram webhook registration/verification failed: {registration!r}")
+          if registration.get("bot_username") != "DokaAiDmsBot":
+              raise SystemExit(f"Unexpected Telegram bot identity: {registration.get('bot_username')!r}")
+          print(
+              "Telegram webhook registered and verified for "
+              f"@{registration['bot_username']}; "
+              f"pending updates={registration.get('pending_update_count')}."
+          )
           print("Production Worker health and single-user readiness checks passed.")
           PY

@@ -194,6 +194,7 @@ def test_worker_telegram_status_reports_topic_and_secret_readiness_without_expos
     assert '"TELEGRAM_CHAT_ID"' in status_block
     assert "TELEGRAM_ALLOWED_CHAT_ID = \"-1003992125718\"" in WORKER_SOURCE
     assert "TELEGRAM_ALLOWED_TOPIC_ID = 8" in WORKER_SOURCE
+    assert '"TELEGRAM_TOPIC_ID": "8"' in WRANGLER
     assert "TELEGRAM_TOPIC_ID" not in status_block
     assert '"TELEGRAM_WEBHOOK_SECRET"' in status_block
     assert "Telegram target topic" in status_block
@@ -216,3 +217,22 @@ def test_worker_telegram_diagnostic_is_secret_gated_and_never_returns_token():
     assert '"description"' in route
     assert 'return {"token": token}' not in route
     assert 'logger.warning("Telegram token diagnostic request failed.")' in route
+
+
+
+def test_worker_telegram_webhook_registration_is_fixed_destination_and_verifies_remote_state():
+    route = WORKER_SOURCE.split('@app.post("/api/telegram/webhook/register")', 1)[1].split(
+        "\n\nDefault = asgi.entrypoint(app)", 1
+    )[0]
+    assert "TELEGRAM_WEBHOOK_ADMIN_SECRET" in route
+    assert "X-Doka-Telegram-Admin" in route
+    assert "hmac.compare_digest" in route
+    assert 'webhook_url = "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook"' in route
+    assert 'request.json' not in route
+    assert 'api.telegram.org/bot{token}/setWebhook' in route
+    assert 'api.telegram.org/bot{token}/getWebhookInfo' in route
+    assert 'api.telegram.org/bot{token}/getMe' in route
+    assert '"secret_token": webhook_secret' in route
+    assert '"drop_pending_updates": False' in route
+    assert '"webhook_url_matches": bool(url_matches)' in route
+    assert '"bot_username": me.get("username") if identity_ok else None' in route
