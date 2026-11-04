@@ -85,6 +85,36 @@ def _telegram_context_allowed(request: Request, chat_id, topic_id) -> bool:
         return False
 
 
+async def _telegram_bot_identity(request: Request) -> dict:
+    """Verify the existing bot token without exposing it or logging Telegram URLs."""
+    token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
+    if not token:
+        return {"verified": False, "http_status": None, "username": None, "error": "token_missing"}
+    try:
+        response = await js_fetch(
+            f"https://api.telegram.org/bot{token}/getMe",
+            to_js({"method": "GET"}, dict_converter=Object.fromEntries),
+        )
+        status = int(response.status)
+        try:
+            payload = await response.json()
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
+        verified = status == 200 and payload.get("ok") is True and bool(result.get("username"))
+        return {
+            "verified": verified,
+            "http_status": status,
+            "username": result.get("username") if verified else None,
+            "error": None if verified else "telegram_api_rejected_token",
+        }
+    except Exception:
+        logger.warning("Telegram getMe diagnostic request failed.")
+        return {"verified": False, "http_status": None, "username": None, "error": "request_failed"}
+
+
 async def _send_telegram_message(request: Request, text: str) -> bool:
     """Send a message only to the configured group/topic; never trust caller routing."""
     if not _telegram_enabled(request):
@@ -338,6 +368,14 @@ async def telegram_webhook(request: Request):
             _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
         )
         telegram_outbound_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready
+        bot_identity = await _telegram_bot_identity(request)
+        bot_api_status = (
+            f"verified (@{bot_identity['username']})"
+            if bot_identity["verified"]
+            else f"not verified (HTTP {bot_identity['http_status']})"
+            if bot_identity["http_status"] is not None
+            else "not verified (request failed or token missing)"
+        )
         reply = (
             "ℹ️ <b>Doka-DMS live status</b>\n"
             "• Worker: healthy\n"
@@ -345,6 +383,7 @@ async def telegram_webhook(request: Request):
             f"• Storage bucket configuration: {'configured' if bucket_ready else 'missing'}\n"
             f"• Telegram target topic: {'configured' if telegram_topic_ready else 'missing'}\n"
             f"• Telegram outbound: {'ready' if telegram_outbound_ready else 'not configured'}\n"
+            f"• Telegram Bot API: {bot_api_status}\n"
             f"• Telegram inbound webhook: {'ready' if telegram_webhook_ready else 'not configured'}\n"
             "• Live document/OCR database query: not performed"
         )
