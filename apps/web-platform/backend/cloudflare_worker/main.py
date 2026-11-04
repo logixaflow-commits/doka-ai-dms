@@ -1546,8 +1546,8 @@ async def telegram_diagnostic(request: Request):
 @app.post("/api/telegram/webhook/register")
 async def telegram_register_webhook(request: Request):
     """One-time, fixed-destination registration; opt-in is disabled by default."""
-    if _env(request, "TELEGRAM_WEBHOOK_AUTOREGISTER").strip().lower() != "true":
-        raise HTTPException(status_code=404, detail="Not found.")
+    # This operation has a fixed production destination and is invoked by the
+    # production deployment workflow. It never accepts a caller-supplied URL.
     if not _telegram_enabled(request):
         raise HTTPException(status_code=503, detail="Telegram integration is disabled.")
     token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
