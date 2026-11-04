@@ -85,5 +85,28 @@ jobs:
           config = get_json("https://doka-ai-dms.logixaflow.workers.dev/api/config", "Worker config")
           if not config.get("single_user_configured"):
               raise SystemExit("Single-user production gate is not configured; refusing deployment verification.")
+          registration_request = Request(
+              "https://doka-ai-dms.logixaflow.workers.dev/api/telegram/webhook/register",
+              data=b"{}",
+              headers={"Content-Type": "application/json", "User-Agent": "Doka-Worker-Deploy"},
+              method="POST",
+          )
+          try:
+              with urlopen(registration_request, timeout=30) as response:
+                  registration = json.load(response)
+                  if response.status != 200:
+                      raise SystemExit(f"Telegram webhook registration returned HTTP {response.status}")
+          except HTTPError as exc:
+              body = exc.read(2000).decode("utf-8", errors="replace")
+              raise SystemExit(f"Telegram webhook registration failed with HTTP {exc.code}: {body}") from exc
+          if not registration.get("ok") or not registration.get("webhook_url_matches"):
+              raise SystemExit(f"Telegram webhook registration/verification failed: {registration!r}")
+          if registration.get("bot_username") != "DokaAiDmsBot":
+              raise SystemExit(f"Unexpected Telegram bot identity: {registration.get('bot_username')!r}")
+          print(
+              "Telegram webhook registered and verified for "
+              f"@{registration['bot_username']}; "
+              f"pending updates={registration.get('pending_update_count')}."
+          )
           print("Production Worker health and single-user readiness checks passed.")
           PY
