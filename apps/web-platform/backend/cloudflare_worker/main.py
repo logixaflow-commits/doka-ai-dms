@@ -88,6 +88,16 @@ def _telegram_context_allowed(request: Request, chat_id, topic_id) -> bool:
         return False
 
 
+async def _telegram_response_payload(response) -> dict:
+    """Parse Telegram JSON through response.text() for Pyodide/JS interop safety."""
+    try:
+        raw = str(await response.text())
+        payload = json.loads(raw) if raw else {}
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 async def _telegram_bot_identity(request: Request) -> dict:
     """Verify the existing bot token without exposing it or logging Telegram URLs."""
     token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
@@ -99,12 +109,7 @@ async def _telegram_bot_identity(request: Request) -> dict:
             to_js({"method": "GET"}, dict_converter=Object.fromEntries),
         )
         status = int(response.status)
-        try:
-            payload = await response.json()
-        except Exception:
-            payload = {}
-        if not isinstance(payload, dict):
-            payload = {}
+        payload = await _telegram_response_payload(response)
         result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
         verified = status == 200 and payload.get("ok") is True and bool(result.get("username"))
         return {
@@ -1523,12 +1528,7 @@ async def telegram_diagnostic(request: Request):
             to_js({"method": "GET"}, dict_converter=Object.fromEntries),
         )
         status = int(response.status)
-        try:
-            payload = await response.json()
-        except Exception:
-            payload = {}
-        if not isinstance(payload, dict):
-            payload = {}
+        payload = await _telegram_response_payload(response)
         result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
         # Deliberately return only Telegram's status and non-sensitive bot identity.
         return {
@@ -1577,24 +1577,14 @@ async def telegram_register_webhook(request: Request):
             to_js(options, dict_converter=Object.fromEntries),
         )
         set_status = int(set_response.status)
-        try:
-            set_result = await set_response.json()
-        except Exception:
-            set_result = {}
-        if not isinstance(set_result, dict):
-            set_result = {}
+        set_result = await _telegram_response_payload(set_response)
 
         info_response = await js_fetch(
             f"https://api.telegram.org/bot{token}/getWebhookInfo",
             to_js({"method": "GET"}, dict_converter=Object.fromEntries),
         )
         info_status = int(info_response.status)
-        try:
-            info_payload = await info_response.json()
-        except Exception:
-            info_payload = {}
-        if not isinstance(info_payload, dict):
-            info_payload = {}
+        info_payload = await _telegram_response_payload(info_response)
         info = info_payload.get("result") if isinstance(info_payload.get("result"), dict) else {}
 
         me_response = await js_fetch(
@@ -1602,12 +1592,7 @@ async def telegram_register_webhook(request: Request):
             to_js({"method": "GET"}, dict_converter=Object.fromEntries),
         )
         me_status = int(me_response.status)
-        try:
-            me_payload = await me_response.json()
-        except Exception:
-            me_payload = {}
-        if not isinstance(me_payload, dict):
-            me_payload = {}
+        me_payload = await _telegram_response_payload(me_response)
         me = me_payload.get("result") if isinstance(me_payload.get("result"), dict) else {}
 
         set_ok = set_status == 200 and set_result.get("ok") is True
