@@ -1545,7 +1545,7 @@ async def telegram_diagnostic(request: Request):
 
 @app.post("/api/telegram/webhook/register")
 async def telegram_register_webhook(request: Request):
-    """One-time, fixed-destination registration; opt-in is disabled by default."""
+    """Register and verify the fixed production webhook without accepting a redirect."""
     # This operation has a fixed production destination and is invoked by the
     # production deployment workflow. It never accepts a caller-supplied URL.
     if not _telegram_enabled(request):
