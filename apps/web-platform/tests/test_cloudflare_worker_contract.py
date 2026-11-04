@@ -194,6 +194,7 @@ def test_worker_telegram_status_reports_topic_and_secret_readiness_without_expos
     assert '"TELEGRAM_CHAT_ID"' in status_block
     assert "TELEGRAM_ALLOWED_CHAT_ID = \"-1003992125718\"" in WORKER_SOURCE
     assert "TELEGRAM_ALLOWED_TOPIC_ID = 8" in WORKER_SOURCE
+    assert '"TELEGRAM_TOPIC_ID": "8"' in WRANGLER
     assert "TELEGRAM_TOPIC_ID" not in status_block
     assert '"TELEGRAM_WEBHOOK_SECRET"' in status_block
     assert "Telegram target topic" in status_block
