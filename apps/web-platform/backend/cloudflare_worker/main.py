@@ -1543,14 +1543,11 @@ async def telegram_diagnostic(request: Request):
         raise HTTPException(status_code=502, detail="Telegram diagnostic request failed.")
 
 
-@app.post("/api/telegram/admin/register-webhook")
+@app.post("/api/telegram/webhook/register")
 async def telegram_register_webhook(request: Request):
-    """Register and verify the one production Telegram webhook using Worker-held secrets."""
-    admin_secret = _env(request, "TELEGRAM_WEBHOOK_ADMIN_SECRET").strip()
-    supplied_secret = request.headers.get("X-Doka-Telegram-Admin", "")
-    if not admin_secret or not supplied_secret or not hmac.compare_digest(supplied_secret, admin_secret):
+    """One-time, fixed-destination registration; opt-in is disabled by default."""
+    if _env(request, "TELEGRAM_WEBHOOK_AUTOREGISTER").strip().lower() != "true":
         raise HTTPException(status_code=404, detail="Not found.")
-
     if not _telegram_enabled(request):
         raise HTTPException(status_code=503, detail="Telegram integration is disabled.")
     token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
