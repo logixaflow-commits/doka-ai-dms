@@ -36,6 +36,10 @@ bearer = HTTPBearer(auto_error=False)
 app = FastAPI(title="Doka Cloud API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 logger = logging.getLogger("doka.telegram")
 
+# This deployment is intentionally pinned to the single authorized Telegram forum topic.
+TELEGRAM_ALLOWED_CHAT_ID = "-1003992125718"
+TELEGRAM_ALLOWED_TOPIC_ID = 8
+
 
 def _env(request, name: str, default: str = "") -> str:
     bindings = request.scope.get("env")
@@ -75,12 +79,11 @@ def _telegram_context_allowed(request: Request, chat_id, topic_id) -> bool:
     """
     if not _telegram_enabled(request):
         return False
-    expected_chat_id = _env(request, "TELEGRAM_CHAT_ID").strip()
-    raw_topic_id = _env(request, "TELEGRAM_TOPIC_ID").strip()
-    if not expected_chat_id or not raw_topic_id.isdigit() or topic_id is None:
+    # Fail closed to the one explicitly authorized group/topic.
+    if topic_id is None:
         return False
     try:
-        return str(chat_id) == expected_chat_id and int(topic_id) == int(raw_topic_id)
+        return str(chat_id) == TELEGRAM_ALLOWED_CHAT_ID and int(topic_id) == TELEGRAM_ALLOWED_TOPIC_ID
     except (TypeError, ValueError):
         return False
 
@@ -120,15 +123,13 @@ async def _send_telegram_message(request: Request, text: str) -> bool:
     if not _telegram_enabled(request):
         return False
     token = _env(request, "TELEGRAM_BOT_TOKEN").strip()
-    chat_id = _env(request, "TELEGRAM_CHAT_ID").strip()
-    raw_topic_id = _env(request, "TELEGRAM_TOPIC_ID").strip()
-    if not token or not chat_id or not raw_topic_id.isdigit() or int(raw_topic_id) <= 0:
-        logger.info("Telegram notification skipped: required bot/topic configuration is missing.")
+    if not token:
+        logger.info("Telegram notification skipped: bot token configuration is missing.")
         return False
 
     payload = {
-        "chat_id": chat_id,
-        "message_thread_id": int(raw_topic_id),
+        "chat_id": TELEGRAM_ALLOWED_CHAT_ID,
+        "message_thread_id": TELEGRAM_ALLOWED_TOPIC_ID,
         "text": text,
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
@@ -359,10 +360,9 @@ async def telegram_webhook(request: Request):
         bucket_ready = bool(_env(request, "SUPABASE_STORAGE_BUCKET"))
         telegram_enabled = _telegram_enabled(request)
         telegram_token_ready = bool(_env(request, "TELEGRAM_BOT_TOKEN").strip())
-        telegram_topic_ready = bool(
-            _env(request, "TELEGRAM_CHAT_ID").strip()
-            and _env(request, "TELEGRAM_TOPIC_ID").strip().isdigit()
-            and int(_env(request, "TELEGRAM_TOPIC_ID").strip()) > 0
+        telegram_topic_ready = (
+            _env(request, "TELEGRAM_CHAT_ID").strip() == TELEGRAM_ALLOWED_CHAT_ID
+            and TELEGRAM_ALLOWED_TOPIC_ID == 8
         )
         telegram_webhook_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready and bool(
             _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
