@@ -251,3 +251,4 @@ def test_telegram_api_responses_are_parsed_from_text_for_pyodide_compatibility()
     assert "await _telegram_response_payload(set_response)" in registration
     assert "await _telegram_response_payload(info_response)" in registration
     assert "await _telegram_response_payload(me_response)" in registration
+    assert '"bot_api_description": me_payload.get("description") if not identity_ok else None' in registration
