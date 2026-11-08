@@ -11,8 +11,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Database is reachable only by services on dms-network. Use an SSH tunnel
+    # or a separate, access-controlled maintenance override for operator access.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dms_user -d dms_db"]
       interval: 10s
@@ -29,10 +29,8 @@ services:
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,7 +40,8 @@ services:
 
   # MinIO Object Storage
   minio:
-    image: minio/minio:latest
+    # Supply an immutable, reviewed tag or digest from deployment configuration.
+    image: ${MINIO_IMAGE:?Set MINIO_IMAGE to a reviewed immutable tag or digest}
     container_name: dms-minio
     command: server /data --console-address ":9001"
     environment:
@@ -50,9 +49,6 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY}
     volumes:
       - minio_data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -70,6 +66,10 @@ services:
     container_name: dms-backend
     environment:
       - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY to a 32+ character random value}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?Set ENCRYPTION_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:?Set CORS_ORIGINS to the HTTPS frontend origin}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:?Set TRUSTED_HOSTS to the public API hostname}
       - DATABASE_URL=postgresql://dms_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/dms_db
       - REDIS_URL=redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/0
       - MINIO_ENDPOINT=minio:9000
@@ -77,11 +77,8 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY}
       - MINIO_SECURE=false
     volumes:
-      - ../../apps/web-platform/backend:/app
       - uploads:/app/uploads
       - logs:/app/logs
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,13 +104,16 @@ services:
     command: celery -A app.core.celery_app worker --loglevel=info --concurrency=4
     environment:
       - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY to a 32+ character random value}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?Set ENCRYPTION_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:?Set CORS_ORIGINS to the HTTPS frontend origin}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:?Set TRUSTED_HOSTS to the public API hostname}
       - DATABASE_URL=postgresql://dms_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/dms_db
       - REDIS_URL=redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/0
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY}
     volumes:
-      - ../../apps/web-platform/backend:/app
       - uploads:/app/uploads
       - logs:/app/logs
     depends_on:
@@ -133,10 +133,12 @@ services:
     command: celery -A app.core.celery_app beat --loglevel=info
     environment:
       - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY to a 32+ character random value}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?Set ENCRYPTION_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:?Set CORS_ORIGINS to the HTTPS frontend origin}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:?Set TRUSTED_HOSTS to the public API hostname}
       - DATABASE_URL=postgresql://dms_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/dms_db
       - REDIS_URL=redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/0
-    volumes:
-      - ../../apps/web-platform/backend:/app
     depends_on:
       - redis
     restart: unless-stopped

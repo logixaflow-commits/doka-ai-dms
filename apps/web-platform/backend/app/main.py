@@ -105,7 +105,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -131,10 +131,15 @@ def create_app() -> FastAPI:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = "default-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+        if os.getenv("ENVIRONMENT", "development").lower() in {"production", "prod"}:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
     # Trusted hosts: reject forged Host headers in production
     _trusted_hosts = [h.strip() for h in os.getenv("TRUSTED_HOSTS", "*").split(",") if h.strip()]
+    if os.getenv("ENVIRONMENT", "development").lower() in {"production", "prod"} and _trusted_hosts == ["*"]:
+        raise ValueError("TRUSTED_HOSTS must be an explicit allowlist in production.")
     if _trusted_hosts != ["*"]:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=_trusted_hosts)
 

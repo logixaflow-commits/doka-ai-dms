@@ -16,7 +16,9 @@ import {
   RefreshCw, 
   AlertCircle,
   CheckCircle,
+  Pencil,
   Settings,
+  TestTube2,
   Zap,
   ArrowRight,
   FileText,
@@ -542,16 +544,17 @@ export default function RulesEngine() {
                       onClick={() => toggleRule(rule.id, !rule.enabled)}
                       variant="ghost"
                       size="icon"
+                      aria-label={rule.enabled ? `Pause ${rule.name}` : `Enable ${rule.name}`}
                     >
                       {rule.enabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </Button>
-                    <Button onClick={() => testRule(rule.id)} variant="ghost" size="icon">
-                      <Settings className="w-4 h-4" />
+                    <Button onClick={() => testRule(rule.id)} variant="ghost" size="icon" aria-label={`Test ${rule.name}`}>
+                      <TestTube2 className="w-4 h-4" />
                     </Button>
-                    <Button onClick={() => startEditing(rule)} variant="ghost" size="icon">
-                      <Settings className="w-4 h-4" />
+                    <Button onClick={() => startEditing(rule)} variant="ghost" size="icon" aria-label={`Edit ${rule.name}`}>
+                      <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button onClick={() => deleteRule(rule.id)} variant="ghost" size="icon" className="text-red-600">
+                    <Button onClick={() => deleteRule(rule.id)} variant="ghost" size="icon" className="text-red-600" aria-label={`Delete ${rule.name}`}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
