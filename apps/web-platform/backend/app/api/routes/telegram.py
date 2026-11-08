@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import hmac
+import json
 import logging
 import os
 import re
@@ -10,6 +12,7 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from ...services.telegram import send_telegram_message
+from ...core.logging import log_audit
 
 # Models for Telegram command queries
 from ...models.database import Document, SOPTemplate, AutomationRule, AuditLog, OCRBatchJobRecord, DocumentVersion
@@ -18,7 +21,7 @@ logger = logging.getLogger("doka.telegram.action")
 router = APIRouter(prefix="/api/telegram", tags=["Telegram"])
 FRONTEND_URL = os.getenv("FRONTEND_BASE_URL", "https://doka-ai-dms-frontend.onrender.com")
 _DOCUMENT_ACTIONS = {"doka_cat_appr", "doka_quar", "doka_dup_archive", "doka_dup_keep"}
-_DOCUMENT_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+_DOCUMENT_ID = re.compile(r"^[0-9]{1,18}$")
 
 
 class TelegramActionPayload(BaseModel):
@@ -51,6 +54,30 @@ def _authorize_gateway(secret_header: str | None) -> None:
 
 def _authorize_telegram_webhook(secret_header: str | None) -> None:
     _authorize_secret(secret_header, "TELEGRAM_WEBHOOK_SECRET", "Telegram webhook")
+
+
+def _allowed_operator_ids() -> set[int]:
+    raw_value = os.getenv("TELEGRAM_ALLOWED_USER_IDS", "")
+    return {
+        int(value)
+        for value in (item.strip() for item in raw_value.split(","))
+        if value.isdigit() and int(value) > 0
+    }
+
+
+def _authorize_document_operator(user_id: int | None) -> None:
+    """Require a configured Telegram operator for every mutating action."""
+    allowed_ids = _allowed_operator_ids()
+    if not allowed_ids:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Telegram document-action operators are not configured.",
+        )
+    if user_id is None or user_id not in allowed_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Telegram user is not authorized for document actions.",
+        )
 
 
 def _telegram_context_allowed(chat_id: int | str | None, topic_id: int | None) -> bool:
@@ -127,10 +154,79 @@ async def _process_action(payload: TelegramActionPayload) -> dict[str, Any]:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Invalid document action identifier.",
             )
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Document actions are not enabled in this runtime; no document was changed.",
-        )
+        _authorize_document_operator(payload.user_id)
+        from app.core.database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            doc_id = int(action_value)
+            doc = db.query(Document).filter(Document.id == doc_id).first()
+            if not doc:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Document was not found.",
+                )
+
+            action_status_map = {
+                "doka_cat_appr": "approved",
+                "doka_quar": "quarantined",
+                "doka_dup_archive": "archived",
+                "doka_dup_keep": "kept",
+            }
+            new_status = action_status_map.get(action_type, "processed")
+            doc.status = new_status
+            db.add(
+                AuditLog(
+                    user_id=payload.user_id,
+                    action="TELEGRAM_DOCUMENT_ACTION",
+                    resource_type="document",
+                    resource_id=str(doc.id),
+                    document_id=doc.id,
+                    details=json.dumps(
+                        {"action": action_type, "new_status": new_status},
+                        separators=(",", ":"),
+                    ),
+                )
+            )
+            db.commit()
+
+            log_audit(
+                "TELEGRAM_DOCUMENT_ACTION",
+                payload.user_id or 0,
+                {
+                    "document_id": doc.id,
+                    "filename": doc.filename,
+                    "action": action_type,
+                    "new_status": new_status,
+                },
+            )
+            # Send confirmation into Telegram
+            notify_text = (
+                f"📄 <b>Document Action Applied</b>\n"
+                f"Document <code>#{doc.id}</code> (<b>{doc.filename}</b>) status updated to <b>{new_status.upper()}</b>."
+            )
+            asyncio.create_task(
+                send_telegram_message(notify_text, topic_id=payload.topic_id or _configured_topic_id())
+            )
+
+            return {
+                "status": "success",
+                "action": action_type,
+                "document_id": doc.id,
+                "new_status": new_status,
+            }
+        except HTTPException:
+            db.rollback()
+            raise
+        except Exception:
+            db.rollback()
+            logger.exception("Telegram document action failed action=%s document_id=%s", action_type, action_value)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Document action could not be completed.",
+            )
+        finally:
+            db.close()
 
     if action_type == "doka_receipt_scan":
         raise HTTPException(
@@ -216,7 +312,9 @@ async def telegram_webhook(
             "• <code>/metrics</code> — System metrics\n"
             "👇 Open the Document Vault from the configured Mini App."
         )
-        buttons = [[{"text": "📄 Open Document Vault", "web_app": {"url": FRONTEND_URL}}]]
+        # Group topics do not accept Telegram Web App inline buttons.  A normal
+        # HTTPS URL button works consistently in group topics and desktop/web.
+        buttons = [[{"text": "📄 Open Flow Dashboard", "url": FRONTEND_URL}]]
         await send_telegram_message(help_text, topic_id=topic_id, inline_keyboard=buttons)
         return {"ok": True, "command": "help"}
 

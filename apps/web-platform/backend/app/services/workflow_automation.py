@@ -5,9 +5,10 @@ Provides custom approval workflows, conditional routing, and automated task assi
 import uuid
 import os
 import tempfile
+import threading
 from contextlib import contextmanager
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from enum import Enum
 import json
@@ -81,6 +82,11 @@ class WorkflowAutomationService:
         self.workflows_storage_path.mkdir(parents=True, exist_ok=True)
         self.instances_storage_path = Path("storage/workflow_instances")
         self.instances_storage_path.mkdir(parents=True, exist_ok=True)
+        # ``fcntl`` is unavailable on Windows. Keep a per-instance in-process
+        # lock as the first layer so concurrent local approvals cannot race;
+        # POSIX deployments add the file lock below for multi-process safety.
+        self._instance_locks: dict[str, threading.RLock] = {}
+        self._instance_locks_guard = threading.Lock()
         
     def create_workflow(
         self,
@@ -131,7 +137,7 @@ class WorkflowAutomationService:
                 steps=workflow_steps,
                 status=WorkflowStatus.DRAFT,
                 created_by=created_by,
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             
             # Save workflow
@@ -168,7 +174,7 @@ class WorkflowAutomationService:
                 current_step=0,
                 status="in_progress",
                 started_by=started_by,
-                started_at=datetime.utcnow(),
+                started_at=datetime.now(timezone.utc),
                 data=initial_data or {}
             )
             
@@ -224,7 +230,7 @@ class WorkflowAutomationService:
             "step_name": step.name,
             "assigned_to": step.assigned_to,
             "status": "pending",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat()
         })
     
     def _handle_task_step(self, instance: WorkflowInstance, step: WorkflowStep):
@@ -241,7 +247,7 @@ class WorkflowAutomationService:
             "step_name": step.name,
             "assigned_to": step.assigned_to,
             "status": "pending",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat()
         })
     
     def _handle_notification_step(self, instance: WorkflowInstance, step: WorkflowStep):
@@ -256,7 +262,7 @@ class WorkflowAutomationService:
         instance.data["notifications"].append({
             "step_id": step.id,
             "step_name": step.name,
-            "sent_at": datetime.utcnow().isoformat()
+            "sent_at": datetime.now(timezone.utc).isoformat()
         })
     
     def _handle_condition_step(self, instance: WorkflowInstance, step: WorkflowStep):
@@ -274,7 +280,7 @@ class WorkflowAutomationService:
                 "step_name": step.name,
                 "conditions": step.conditions,
                 "result": condition_met,
-                "evaluated_at": datetime.utcnow().isoformat()
+                "evaluated_at": datetime.now(timezone.utc).isoformat()
             })
     
     def _evaluate_conditions(self, conditions: Dict[str, Any], data: Dict[str, Any]) -> bool:
@@ -371,11 +377,11 @@ class WorkflowAutomationService:
                 "user_id": user_id,
                 "idempotency_key": effective_key,
                 "result": result,
-                "completed_at": datetime.utcnow().isoformat()
+                "completed_at": datetime.now(timezone.utc).isoformat()
             })
             if instance.current_step >= len(workflow.steps):
                 instance.status = "completed"
-                instance.completed_at = datetime.utcnow()
+                instance.completed_at = datetime.now(timezone.utc)
             else:
                 self._execute_step(instance, workflow.steps[instance.current_step])
                 if instance.status == "failed":
@@ -402,23 +408,26 @@ class WorkflowAutomationService:
     @contextmanager
     def _lock_workflow_instance(self, instance_id: str):
         """Serialize instance transitions and keep the lock durable across processes on POSIX."""
+        with self._instance_locks_guard:
+            thread_lock = self._instance_locks.setdefault(instance_id, threading.RLock())
         lock_path = self.instances_storage_path / f"{instance_id}.lock"
         lock_path.parent.mkdir(parents=True, exist_ok=True)
-        lock_file = open(lock_path, "a+")
-        try:
+        with thread_lock:
+            lock_file = open(lock_path, "a+")
             try:
-                import fcntl
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-            except ImportError:
-                pass
-            yield
-        finally:
-            try:
-                import fcntl
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-            except ImportError:
-                pass
-            lock_file.close()
+                try:
+                    import fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                except ImportError:
+                    pass
+                yield
+            finally:
+                try:
+                    import fcntl
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                except ImportError:
+                    pass
+                lock_file.close()
 
     def get_workflow(self, workflow_id: str) -> Optional[Workflow]:
         """Get workflow by ID"""

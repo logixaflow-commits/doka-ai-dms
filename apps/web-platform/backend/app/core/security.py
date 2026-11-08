@@ -16,6 +16,8 @@ from app.models.database import User
 from app.models.schemas import UserRole
 from app.core.logging import get_logger
 from app.core.passwords import hash_password, verify_password
+get_password_hash = hash_password
+verify_password_hash = verify_password
 
 logger = get_logger(__name__)
 

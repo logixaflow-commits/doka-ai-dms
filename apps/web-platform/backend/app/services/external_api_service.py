@@ -8,7 +8,7 @@ import os
 import hmac
 import hashlib
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import UTC, datetime
 from loguru import logger
 
 from sqlalchemy.orm import Session
@@ -72,7 +72,7 @@ class ExternalAPIService:
                 endpoints=endpoints,
                 enabled=True,
                 webhook_secret=encryption_manager.encrypt(webhook_secret) if webhook_secret else None,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(UTC),
                 last_used=None
             )
             
@@ -244,7 +244,7 @@ class ExternalAPIService:
                 response=None,
                 status_code=None,
                 error=None,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(UTC)
             )
             self.db.add(log_entry)
 
@@ -340,7 +340,7 @@ class ExternalAPIService:
             # Update log with response
             log_entry.status_code = response.status_code if response else None
             log_entry.response = json.dumps(response.json()) if response and response.content else None
-            provider.last_used = datetime.utcnow()
+            provider.last_used = datetime.now(UTC)
             self.db.commit()
 
             return {

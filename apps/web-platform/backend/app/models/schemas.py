@@ -48,7 +48,7 @@ class RuleActionSchema(BaseModel):
 class RuleCreate(BaseModel):
     name: str = Field(..., max_length=100)
     description: Optional[str] = None
-    condition: Dict[str, Any]
+    condition: List[Dict[str, Any]] = Field(min_length=1)
     actions: List[Dict[str, Any]]
     enabled: bool = True
     priority: int = 0
@@ -58,7 +58,7 @@ class RuleCreate(BaseModel):
 class RuleUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    condition: Optional[Dict[str, Any]] = None
+    condition: Optional[List[Dict[str, Any]]] = None
     actions: Optional[List[Dict[str, Any]]] = None
     enabled: Optional[bool] = None
     priority: Optional[int] = None

@@ -126,10 +126,20 @@ export default function AuditLogsPage() {
       if (dateFrom) params.append('date_from', dateFrom);
       if (dateTo) params.append('date_to', dateTo);
       
-      const response = await apiFetch(`${API_BASE}/admin/audit?${params.toString()}`);
+      const response = await apiFetch(`${API_BASE}/audit/logs?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setLogs(data.logs || []);
+        setLogs((data.items || []).map((item: { id: number; timestamp: string; username: string; action: string; document_id: number | null; details: string; ip_address: string; endpoint?: string | null }) => ({
+          id: item.id,
+          timestamp: item.timestamp,
+          user: item.username,
+          action: item.action.toLowerCase(),
+          resource_type: item.document_id ? 'document' : 'system',
+          resource_id: item.document_id?.toString() || null,
+          details: item.details || '',
+          ip_address: item.ip_address || '',
+          status: 'success',
+        })));
       }
     } catch (e) {
       console.error('Failed to load audit logs:', e);
@@ -151,9 +161,7 @@ export default function AuditLogsPage() {
       if (dateFrom) params.append('date_from', dateFrom);
       if (dateTo) params.append('date_to', dateTo);
 
-      const response = await apiFetch(`${API_BASE}/admin/audit/export?${params.toString()}`, {
-        method: 'POST',
-      });
+      const response = await apiFetch(`${API_BASE}/audit/export?${params.toString()}`);
 
       if (response.ok) {
         const blob = await response.blob();

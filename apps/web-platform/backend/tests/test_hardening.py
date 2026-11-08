@@ -325,7 +325,20 @@ class TestExternalAPIRetry:
     
     @pytest.fixture
     def external_api(self):
-        return ExternalAPIService()
+        db = MagicMock()
+        provider = MagicMock(
+            id=1,
+            enabled=True,
+            base_url="https://api.example.com",
+            endpoints={"health": "/health"},
+            auth_type="api_key",
+            auth_config="encrypted-config",
+        )
+        db.query.return_value.filter.return_value.first.return_value = provider
+        service = ExternalAPIService(db)
+        service.max_retries = 3
+        service.retry_delays = [0, 0, 0]
+        return service
     
     def test_retry_on_failure(self, external_api):
         """Test that API calls are retried on failure"""
@@ -335,11 +348,16 @@ class TestExternalAPIRetry:
             nonlocal call_count
             call_count += 1
             if call_count < 3:
-                raise Exception("API error")
-            return {"success": True}
+                import requests
+                raise requests.exceptions.ConnectionError("API unavailable")
+            response = MagicMock(status_code=200, content=b'{}', headers={})
+            response.json.return_value = {"ok": True}
+            return response
         
-        with patch.object(external_api, '_make_request', side_effect=mock_request):
-            result = external_api.call_api("https://api.example.com/endpoint")
+        with patch("app.services.external_api_service.encryption_manager.decrypt", return_value='{}'), \
+             patch("app.services.external_api_service.requests.get", side_effect=mock_request), \
+             patch("app.services.external_api_service.time.sleep"):
+            result = external_api.call_api(1, "health")
             assert result["success"] is True
             assert call_count == 3  # Should have retried twice
     
@@ -350,11 +368,15 @@ class TestExternalAPIRetry:
         def mock_request(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            raise Exception("API error")
+            import requests
+            raise requests.exceptions.ConnectionError("API unavailable")
         
-        with patch.object(external_api, '_make_request', side_effect=mock_request):
-            with pytest.raises(Exception):
-                external_api.call_api("https://api.example.com/endpoint")
+        with patch("app.services.external_api_service.encryption_manager.decrypt", return_value='{}'), \
+             patch("app.services.external_api_service.requests.get", side_effect=mock_request), \
+             patch("app.services.external_api_service.time.sleep"):
+            result = external_api.call_api(1, "health")
+            assert result["success"] is False
+            assert "Connection error" in result["error"]
             assert call_count == 3  # Should have tried max 3 times
 
 

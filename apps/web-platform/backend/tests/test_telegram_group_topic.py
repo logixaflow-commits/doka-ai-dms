@@ -7,7 +7,7 @@ from app.api.routes import telegram
 from app.services import telegram as telegram_service
 
 
-def _configure_target(monkeypatch, *, enabled="true", chat_id="-1003992125718", topic_id="18"):
+def _configure_target(monkeypatch, *, enabled="true", chat_id="-1003992125718", topic_id="8"):
     monkeypatch.setenv("TELEGRAM_ENABLED", enabled)
     monkeypatch.setenv("TELEGRAM_CHAT_ID", chat_id)
     monkeypatch.setenv("TELEGRAM_TOPIC_ID", topic_id)
@@ -16,18 +16,18 @@ def _configure_target(monkeypatch, *, enabled="true", chat_id="-1003992125718", 
 def test_telegram_context_accepts_only_configured_group_topic(monkeypatch):
     _configure_target(monkeypatch)
 
-    assert telegram._telegram_context_allowed(-1003992125718, 18)
-    assert telegram._telegram_context_allowed("-1003992125718", 18)
-    assert not telegram._telegram_context_allowed(-1003992125719, 18)
-    assert not telegram._telegram_context_allowed(-1003992125718, 19)
+    assert telegram._telegram_context_allowed(-1003992125718, 8)
+    assert telegram._telegram_context_allowed("-1003992125718", 8)
+    assert not telegram._telegram_context_allowed(-1003992125719, 8)
+    assert not telegram._telegram_context_allowed(-1003992125718, 18)
     assert not telegram._telegram_context_allowed(-1003992125718, None)
 
 
 @pytest.mark.parametrize(
     ("enabled", "chat_id", "topic_id"),
     [
-        ("false", "-1003992125718", "18"),
-        ("true", "", "18"),
+        ("false", "-1003992125718", "8"),
+        ("true", "", "8"),
         ("true", "-1003992125718", ""),
         ("true", "-1003992125718", "general"),
     ],
@@ -42,7 +42,7 @@ def test_telegram_context_fails_closed_when_target_is_not_configured(
         topic_id=topic_id,
     )
 
-    assert not telegram._telegram_context_allowed(-1003992125718, 18)
+    assert not telegram._telegram_context_allowed(-1003992125718, 8)
 
 
 def test_outbound_messages_are_pinned_to_configured_topic(monkeypatch):
@@ -53,7 +53,7 @@ def test_outbound_messages_are_pinned_to_configured_topic(monkeypatch):
         lambda: SimpleNamespace(
             TELEGRAM_BOT_TOKEN="test-token",
             TELEGRAM_CHAT_ID="-1003992125718",
-            TELEGRAM_TOPIC_ID=18,
+            TELEGRAM_TOPIC_ID=8,
             TELEGRAM_ENABLED=True,
         ),
     )
@@ -82,7 +82,7 @@ def test_outbound_messages_are_pinned_to_configured_topic(monkeypatch):
 
     assert result == {"ok": True}
     assert calls[0]["payload"]["chat_id"] == "-1003992125718"
-    assert calls[0]["payload"]["message_thread_id"] == 18
+    assert calls[0]["payload"]["message_thread_id"] == 8
 
 
 def test_telegram_receipt_scan_fails_closed_without_verified_ocr(monkeypatch):
@@ -95,7 +95,7 @@ def test_telegram_receipt_scan_fails_closed_without_verified_ocr(monkeypatch):
     payload = telegram.TelegramActionPayload(
         action="doka_receipt_scan",
         chat_id="-1003992125718",
-        topic_id=18,
+        topic_id=8,
         raw_message="ACME STORE\\nTOTAL 12500 MMK",
     )
 

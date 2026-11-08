@@ -3,7 +3,11 @@ Office DMS - Audit Log Routes
 View audit trail with filtering and pagination (admin only).
 """
 
+import csv
+import io
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import Optional
@@ -14,6 +18,21 @@ from app.core.security import require_admin
 from app.models.database import AuditLog, User
 
 router = APIRouter()
+
+
+def _filtered_audit_query(db: Session, user_id: Optional[int], document_id: Optional[int], action: Optional[str], from_date: Optional[str], to_date: Optional[str]):
+    query = db.query(AuditLog)
+    if user_id:
+        query = query.filter(AuditLog.user_id == user_id)
+    if document_id:
+        query = query.filter(AuditLog.document_id == document_id)
+    if action:
+        query = query.filter(AuditLog.action == action.upper())
+    if from_date:
+        query = query.filter(AuditLog.timestamp >= from_date)
+    if to_date:
+        query = query.filter(AuditLog.timestamp <= to_date + " 23:59:59")
+    return query
 
 
 @router.get("/logs")
@@ -29,18 +48,7 @@ async def list_audit_logs(
     db: Session = Depends(get_db),
 ):
     """List audit logs with filtering (admin only)."""
-    query = db.query(AuditLog)
-
-    if user_id:
-        query = query.filter(AuditLog.user_id == user_id)
-    if document_id:
-        query = query.filter(AuditLog.document_id == document_id)
-    if action:
-        query = query.filter(AuditLog.action == action.upper())
-    if from_date:
-        query = query.filter(AuditLog.timestamp >= from_date)
-    if to_date:
-        query = query.filter(AuditLog.timestamp <= to_date + " 23:59:59")
+    query = _filtered_audit_query(db, user_id, document_id, action, from_date, to_date)
 
     total = query.count()
     logs = (
@@ -70,6 +78,38 @@ async def list_audit_logs(
         "page_size": page_size,
         "pages": (total + page_size - 1) // page_size,
     }
+
+
+@router.get("/export")
+async def export_audit_logs_csv(
+    user_id: Optional[int] = Query(None),
+    document_id: Optional[int] = Query(None),
+    action: Optional[str] = Query(None),
+    from_date: Optional[str] = Query(None),
+    to_date: Optional[str] = Query(None),
+    admin_user=Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Download filtered audit events as a local CSV; no third-party delivery is used."""
+    logs = _filtered_audit_query(db, user_id, document_id, action, from_date, to_date).order_by(desc(AuditLog.timestamp)).limit(10000).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["timestamp", "username", "action", "document_id", "details", "ip_address", "endpoint"])
+    for log in logs:
+        writer.writerow([
+            log.timestamp.isoformat() if log.timestamp else "",
+            log.user.username if log.user else "Unknown",
+            log.action,
+            log.document_id or "",
+            log.details or "",
+            log.ip_address or "",
+            log.endpoint or "",
+        ])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=audit-logs.csv"},
+    )
 
 
 @router.get("/logs/{log_id}")

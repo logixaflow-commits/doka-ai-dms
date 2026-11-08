@@ -423,7 +423,15 @@ export default function CloudDocuments() {
             <div className="flex items-start gap-3"><span className="rounded-2xl bg-primary/10 p-3 text-primary"><UploadCloud className="h-5 w-5" /></span><div><h2 className="font-semibold">Add files to your library</h2><p className="mt-1 text-sm text-muted-foreground">Direct-to-cloud upload · Private storage · SHA-256 fingerprint</p></div></div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <label htmlFor="doka-cloud-file" className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"><File className="mr-2 h-4 w-4" /> Choose file</label>
-              <input id="doka-cloud-file" type="file" className="sr-only" onChange={event => chooseFile(event.target.files?.[0] || null)} disabled={busy} />
+              <input id="doka-cloud-file" type="file" multiple className="sr-only" onChange={event => {
+                const fl = event.target.files;
+                if (!fl || fl.length === 0) return;
+                if (fl.length > 1) {
+                  queueBatchFiles(fl);
+                } else {
+                  chooseFile(fl[0]);
+                }
+              }} disabled={busy} />
               <Button onClick={() => void upload()} disabled={!file || busy} className="h-10 rounded-xl px-5"><CloudUpload className="mr-2 h-4 w-4" />{busy ? 'Working…' : 'Upload securely'}</Button>
             </div>
           </div>

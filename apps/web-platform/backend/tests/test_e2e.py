@@ -3,7 +3,12 @@ End-to-End Tests for Enterprise AI DMS
 Tests for complete user workflows using Playwright
 """
 import pytest
-from playwright.sync_api import sync_playwright
+# Browser E2E tests require a separately running application and Playwright's
+# browser runtime.  Keep the unit suite runnable on a clean local checkout.
+sync_playwright = pytest.importorskip(
+    "playwright.sync_api",
+    reason="install Playwright and its browser runtime to run E2E tests",
+).sync_playwright
 import json
 import time
 import sys

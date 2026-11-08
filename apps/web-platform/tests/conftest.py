@@ -1,4 +1,12 @@
 import os
+import sys
+from pathlib import Path
+
+# Add cloudflare_worker helper directory to sys.path so tests can import worker modules
+_worker_dir = Path(__file__).resolve().parent.parent / 'backend' / 'cloudflare_worker'
+if str(_worker_dir) not in sys.path:
+    sys.path.insert(0, str(_worker_dir))
+
 from pathlib import Path
 
 import pytest

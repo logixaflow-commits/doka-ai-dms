@@ -17,6 +17,41 @@ from app.models.schemas import RuleCreate, RuleUpdate, RuleResponse
 router = APIRouter()
 
 
+@router.get("/logs")
+async def get_all_logs(
+    document_id: int | None = None,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get all rule execution logs before the dynamic ``/{rule_id}`` route.
+
+    Route declaration order matters in FastAPI/Starlette.  Keeping this static
+    route first prevents the literal word ``logs`` being parsed as an integer
+    rule ID.
+    """
+    try:
+        logs = rule_manager_service.get_rule_execution_logs(
+            document_id=document_id,
+            limit=min(max(limit, 1), 100),
+            db=db,
+        )
+        return [
+            {
+                "id": log.id,
+                "rule_id": log.rule_id,
+                "document_id": log.document_id,
+                "executed": log.executed,
+                "message": log.message,
+                "timestamp": log.timestamp,
+            }
+            for log in logs
+        ]
+    except Exception as e:
+        logger.error(f"Failed to get logs: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get logs")
+
+
 @router.get("", response_model=list)
 async def list_rules(
     enabled_only: bool = False,
@@ -53,7 +88,6 @@ async def list_rules(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list rules"
         )
-
 
 @router.post("", response_model=dict)
 async def create_rule(
@@ -255,37 +289,5 @@ async def get_rule_logs(
             detail="Failed to get rule logs"
         )
 
+# Static routes are declared before dynamic rule-id routes above.
 
-@router.get("/logs")
-async def get_all_logs(
-    document_id: int = None,
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get all rule execution logs (filtered by document if provided)."""
-    try:
-        logs = rule_manager_service.get_rule_execution_logs(
-            document_id=document_id,
-            limit=limit,
-            db=db
-        )
-        
-        return [
-            {
-                "id": log.id,
-                "rule_id": log.rule_id,
-                "document_id": log.document_id,
-                "executed": log.executed,
-                "message": log.message,
-                "timestamp": log.timestamp
-            }
-            for log in logs
-        ]
-        
-    except Exception as e:
-        logger.error(f"Failed to get logs: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get logs"
-        )

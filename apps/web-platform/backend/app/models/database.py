@@ -170,6 +170,51 @@ class AuditLog(Base):
     document = relationship("Document")
 
 
+class ExternalAPIProvider(Base):
+    """Configuration for an administrator-managed external API provider.
+
+    Sensitive configuration is encrypted by ``ExternalAPIService`` before it
+    reaches this table.  Keeping the provider and its request audit records in
+    the local schema makes the optional integration module importable and
+    migratable without enabling any external integration by default.
+    """
+
+    __tablename__ = "external_api_providers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(120), nullable=False, unique=True, index=True)
+    provider_type = Column(String(50), nullable=False, index=True)
+    base_url = Column(String(500), nullable=False)
+    auth_type = Column(String(30), nullable=False)
+    auth_config = Column(Text, nullable=False)
+    endpoints = Column(JSON, nullable=False, default=dict)
+    webhook_secret = Column(Text, nullable=True)
+    enabled = Column(Boolean, nullable=False, default=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now, server_default=func.now(), nullable=False)
+    last_used = Column(DateTime(timezone=True), nullable=True)
+
+    logs = relationship("ExternalAPILog", back_populates="provider", cascade="all, delete-orphan")
+
+
+class ExternalAPILog(Base):
+    """Auditable outcome of an external API request (without decrypted secrets)."""
+
+    __tablename__ = "external_api_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    provider_id = Column(Integer, ForeignKey("external_api_providers.id", ondelete="CASCADE"), nullable=False, index=True)
+    document_id = Column(Integer, ForeignKey("documents.id"), nullable=True, index=True)
+    endpoint = Column(String(255), nullable=False)
+    request = Column(Text, nullable=True)
+    response = Column(Text, nullable=True)
+    status_code = Column(Integer, nullable=True)
+    error = Column(Text, nullable=True)
+    timestamp = Column(DateTime(timezone=True), default=_now, server_default=func.now(), nullable=False, index=True)
+
+    provider = relationship("ExternalAPIProvider", back_populates="logs")
+    document = relationship("Document")
+
+
 class OCRBatchJobRecord(Base):
     """Durable state for background PDF OCR jobs.
 

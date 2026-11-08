@@ -47,11 +47,10 @@ interface Rule {
   description: string;
   enabled: boolean;
   priority: number;
-  conditions: RuleCondition[];
+  condition: RuleCondition[];
   actions: RuleAction[];
   created_at: string;
-  execution_count: number;
-  last_executed: string | null;
+  last_triggered: string | null;
 }
 
 const FIELD_OPTIONS = [
@@ -123,7 +122,7 @@ export default function RulesEngine() {
       const response = await apiFetch(`${API_BASE}/rules`);
       if (response.ok) {
         const data = await response.json();
-        setRules(data.rules || []);
+        setRules(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Failed to load rules:', err);
@@ -141,7 +140,7 @@ export default function RulesEngine() {
           name: ruleName,
           description: ruleDescription,
           priority: rulePriority,
-          conditions: ruleConditions,
+          condition: ruleConditions,
           actions: ruleActions,
         }),
       });
@@ -171,7 +170,7 @@ export default function RulesEngine() {
           name: ruleName,
           description: ruleDescription,
           priority: rulePriority,
-          conditions: ruleConditions,
+          condition: ruleConditions,
           actions: ruleActions,
         }),
       });
@@ -194,9 +193,8 @@ export default function RulesEngine() {
 
   async function toggleRule(ruleId: number, enabled: boolean) {
     try {
-      const response = await apiFetch(`${API_BASE}/rules/${ruleId}/toggle`, {
+      const response = await apiFetch(`${API_BASE}/rules/${ruleId}/${enabled ? 'enable' : 'disable'}`, {
         method: 'POST',
-        body: JSON.stringify({ enabled }),
       });
 
       if (response.ok) {
@@ -226,12 +224,12 @@ export default function RulesEngine() {
   async function testRule(ruleId: number) {
     try {
       const response = await apiFetch(`${API_BASE}/rules/${ruleId}/test`, {
-        method: 'POST',
+        method: 'POST', body: JSON.stringify({}),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setSuccess(`Rule test completed: ${data.matched_count} documents matched`);
+        setSuccess(data.matches ? `Rule test matched. ${data.actions_count} action(s) would run.` : 'Rule test did not match the sample document.');
         setTimeout(() => setSuccess(null), 3000);
       }
     } catch (err) {
@@ -272,6 +270,20 @@ export default function RulesEngine() {
     setRuleActions(newActions);
   }
 
+  function actionParamsForType(type: string, value: string): Record<string, string> {
+    if (type === 'set_folder') return { target_folder: value }
+    if (type === 'assign_user') return { target_user: value }
+    if (type === 'send_email') return { recipient: value, template: 'default' }
+    if (type === 'create_reminder') return { message: value, days: '7' }
+    if (type === 'set_status') return { status: value }
+    if (type === 'set_urgency') return { urgency: value }
+    return { tag: value }
+  }
+
+  function actionValue(action: RuleAction): string {
+    return action.params.tag || action.params.target_folder || action.params.target_user || action.params.recipient || action.params.message || action.params.status || action.params.urgency || ''
+  }
+
   function resetForm() {
     setRuleName('');
     setRuleDescription('');
@@ -285,7 +297,7 @@ export default function RulesEngine() {
     setRuleName(rule.name);
     setRuleDescription(rule.description);
     setRulePriority(rule.priority);
-    setRuleConditions(rule.conditions);
+    setRuleConditions(rule.condition);
     setRuleActions(rule.actions);
     setShowCreateDialog(true);
   }
@@ -465,13 +477,8 @@ export default function RulesEngine() {
                       </SelectContent>
                     </Select>
                     <Input
-                      value={action.params.tag || action.params.folder || action.params.status || action.params.urgency || ''}
-                      onChange={(e) => updateAction(index, 'params', { 
-                        tag: action.type === 'set_tag' ? e.target.value : action.params.tag,
-                        folder: action.type === 'set_folder' ? e.target.value : action.params.folder,
-                        status: action.type === 'set_status' ? e.target.value : action.params.status,
-                        urgency: action.type === 'set_urgency' ? e.target.value : action.params.urgency,
-                      })}
+                      value={actionValue(action)}
+                      onChange={(e) => updateAction(index, 'params', actionParamsForType(action.type, e.target.value))}
                       placeholder="Parameter value"
                       className="flex-1"
                     />
@@ -560,7 +567,7 @@ export default function RulesEngine() {
 
                   <TabsContent value="conditions" className="mt-4">
                     <div className="space-y-2">
-                      {rule.conditions.map((condition, index) => (
+                      {rule.condition.map((condition, index) => (
                         <div key={index} className="flex items-center gap-2 text-sm">
                           <span className="font-medium">{index + 1}.</span>
                           <span>{FIELD_OPTIONS.find(f => f.value === condition.field)?.label}</span>
@@ -579,8 +586,8 @@ export default function RulesEngine() {
                         const actionType = ACTION_TYPES.find(a => a.value === action.type);
                         return (
                           <div key={index} className="flex items-center gap-2 text-sm">
-                            <actionType.icon className="w-4 h-4" />
-                            <span>{actionType.label}</span>
+                            {actionType ? <actionType.icon className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+                            <span>{actionType?.label || action.type}</span>
                             <ArrowRight className="w-4 h-4 text-slate-400" />
                             <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
                               {JSON.stringify(action.params)}
@@ -595,13 +602,13 @@ export default function RulesEngine() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <div className="text-sm text-slate-500">Execution Count</div>
-                        <div className="text-2xl font-bold">{rule.execution_count}</div>
+                        <div className="text-2xl font-bold">{rule.last_triggered ? 'Triggered' : '—'}</div>
                       </div>
                       <div>
                         <div className="text-sm text-slate-500">Last Executed</div>
                         <div className="text-sm">
-                          {rule.last_executed 
-                            ? new Date(rule.last_executed).toLocaleString()
+                          {rule.last_triggered
+                            ? new Date(rule.last_triggered).toLocaleString()
                             : 'Never'}
                         </div>
                       </div>

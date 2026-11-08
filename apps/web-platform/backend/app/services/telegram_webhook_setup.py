@@ -68,6 +68,15 @@ async def configure_telegram_webhook() -> None:
                         {"command": "start", "description": "Connect to Doka DMS topic"},
                         {"command": "help", "description": "Show available commands"},
                         {"command": "status", "description": "Check Doka DMS service status"},
+                        {"command": "morning_brief", "description": "Today's intake briefing"},
+                        {"command": "ask", "description": "Document search availability"},
+                        {"command": "documents", "description": "Show recent documents"},
+                        {"command": "search", "description": "Search indexed documents"},
+                        {"command": "rules", "description": "Show automation rules"},
+                        {"command": "templates", "description": "Show SOP templates"},
+                        {"command": "ocr", "description": "Show OCR queue status"},
+                        {"command": "audit", "description": "Show recent audit activity"},
+                        {"command": "metrics", "description": "Show DMS metrics"},
                     ],
                 }
                 if chat_id:
@@ -85,6 +94,24 @@ async def configure_telegram_webhook() -> None:
                     logger.warning("Telegram command menu setup failed: API returned ok=false")
             except Exception as exc:
                 logger.warning("Telegram command menu setup failed (%s)", type(exc).__name__)
+
+            try:
+                frontend_url = os.getenv("FRONTEND_BASE_URL", "https://doka-dms.vercel.app").strip()
+                if frontend_url.startswith("https://"):
+                    menu_response = await client.post(
+                        f"https://api.telegram.org/bot{token}/setChatMenuButton",
+                        json={
+                            "menu_button": {
+                                "type": "web_app",
+                                "text": "Open Flow",
+                                "web_app": {"url": frontend_url},
+                            }
+                        },
+                    )
+                    menu_response.raise_for_status()
+                    logger.info("Telegram menu button configured for Doka AI DMS")
+            except Exception as exc:
+                logger.warning("Telegram menu button setup failed (%s)", type(exc).__name__)
 
     except Exception as exc:
         logger.error("Telegram webhook setup failed (%s)", type(exc).__name__)
