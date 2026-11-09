@@ -80,6 +80,17 @@ def _authorize_document_operator(user_id: int | None) -> None:
         )
 
 
+def _configured_topic_id() -> int:
+    """Return the configured forum topic ID, or fail closed when it is invalid."""
+    raw_value = os.getenv("TELEGRAM_TOPIC_ID", "").strip()
+    if not raw_value.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Telegram topic is not configured.",
+        )
+    return int(raw_value)
+
+
 def _telegram_context_allowed(chat_id: int | str | None, topic_id: int | None) -> bool:
     """Fail closed unless an update comes from the one configured group topic."""
     if os.getenv("TELEGRAM_ENABLED", "false").strip().lower() != "true":
