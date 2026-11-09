@@ -23,7 +23,7 @@ Telegram notifications may contain document-action buttons, but document-mutatin
 
 * **Configured Group ID:** `-1003992125718`  
 * **Configured Topic Name:** `📄 Doka-DMS`
-* **Configured Topic ID:** `18`  
+* **Configured Topic ID:** `8`  
 * Only accept commands and send notifications in this exact group/topic.
 * **Color / Icon:** 📄 Page / Document
 
