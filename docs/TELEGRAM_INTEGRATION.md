@@ -35,7 +35,7 @@ Owner-provided target configuration:
 
 ```dotenv
 TELEGRAM_CHAT_ID=-1003992125718
-TELEGRAM_TOPIC_ID=18
+TELEGRAM_TOPIC_ID=8
 TELEGRAM_ENABLED=true
 ```
 
