@@ -26,6 +26,7 @@ Current release status: **Production Ready — Conditional Sign-Off (Owner-appro
 | **Backend API** | `http://localhost:8002` | `cd apps/web-platform/backend && uvicorn app.main:app --port 8002 --reload` |
 | **Desktop App** | Native Electron Window | `cd apps/desktop && npm install && npm start` |
 | **Mobile App** | Native Camera Scanner | `cd apps/mobile && npm install && npm start` |
+| **Telegram Ops Bot** | Topic `#8` (`📄 Doka-DMS`) | Scoped supergroup ingest, OCR status, alerts (`@DokaNexusBot`) |
 
 Windows one-click launcher scripts:
 - `start-doka.bat` — Launches Backend (8002) and Web Frontend (5173).
