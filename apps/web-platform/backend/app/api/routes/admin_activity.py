@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, and_
 
 from app.core.database import get_db
+from app.models.database import AuditLog, User
 from app.core.security import require_admin
 from app.core.logging import get_logger
 
