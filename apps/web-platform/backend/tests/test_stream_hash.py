@@ -27,3 +27,19 @@ def test_bulk_conversion_benchmark_for_one_mib_chunk():
     start=time.perf_counter(); bulk=bytes(memoryview(payload)); after=time.perf_counter()-start
     assert legacy==bulk
     print(f'1MiB conversion benchmark legacy={before:.6f}s bulk={after:.6f}s speedup={before/max(after,1e-9):.2f}x')
+
+
+def test_stream_hash_returns_sha256_for_exact_part_boundaries_across_network_chunks():
+    payload = b'a' * 17 + b'b' * 19 + b'c' * 7
+    reader = Reader([payload[:9], payload[9:28], payload[28:]])
+    result = asyncio.run(hash_response_stream(reader, len(payload), part_size_bytes=20))
+    expected_parts = [
+        hashlib.sha256(payload[:20]).hexdigest(),
+        hashlib.sha256(payload[20:40]).hexdigest(),
+        hashlib.sha256(payload[40:]).hexdigest(),
+    ]
+    assert result == {
+        'size_bytes': len(payload),
+        'sha256': hashlib.sha256(payload).hexdigest(),
+        'part_sha256s': expected_parts,
+    }

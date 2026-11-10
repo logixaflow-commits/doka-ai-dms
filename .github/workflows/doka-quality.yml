@@ -320,6 +320,8 @@ jobs:
         run: |
           PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/apps/web-platform/backend" python -m pytest -q \
             apps/web-platform/backend/tests/test_cloudflare_supabase_upload_integrity.py \
+            apps/web-platform/backend/tests/test_b2_multipart_integrity.py \
+            apps/web-platform/backend/tests/test_stream_hash.py \
             apps/web-platform/tests/test_cloud_storage_routing.py \
             apps/web-platform/tests/test_cloudflare_storage_direct_upload.py \
             apps/web-platform/tests/test_cloudflare_b2_storage.py \
@@ -398,6 +400,9 @@ jobs:
           if (!counts) throw new Error("npm audit did not return vulnerability totals.");
           if (counts.total > 0) process.exit(1);
           NODE
+      - name: Run frontend unit tests
+        working-directory: apps/web-platform/frontend
+        run: npm run test:unit
       - name: Enforce frontend lint
         working-directory: apps/web-platform/frontend
         run: npm run lint

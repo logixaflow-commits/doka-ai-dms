@@ -61,6 +61,10 @@ def test_b2_part_presign_does_not_buffer_part():
     from cloudflare_worker.storage_b2 import MultipartUpload
     from storage_contracts_compat import StorageObjectRef
     m = MultipartUpload("u-1", StorageObjectRef("b2", "users/owner/documents/x/huge.bin", "owner"), 100*1024*1024, 9999999999)
-    part = run(provider.uploadPart(m, 1, hashlib.sha256(b"part").hexdigest()))
+    part_bytes = b"part"
+    part_md5 = hashlib.md5(part_bytes, usedforsecurity=False).hexdigest()
+    part = run(provider.uploadPart(m, 1, hashlib.sha256(part_bytes).hexdigest(), part_md5))
     assert part.signed_request.method == "PUT"
-    assert "x-amz-checksum-sha256" in part.signed_request.headers
+    assert part.content_md5 == part_md5
+    assert part.signed_request.headers == {}
+    assert "x-amz-checksum-sha256" not in part.signed_request.headers

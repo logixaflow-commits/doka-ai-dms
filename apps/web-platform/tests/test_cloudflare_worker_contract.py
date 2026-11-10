@@ -144,14 +144,18 @@ def test_version_history_cannot_be_deleted_directly_by_authenticated_users():
     assert "drop policy if exists doka_versions_owner_delete" in VERSION_HISTORY_ACL_MIGRATION
 
 
-def test_worker_document_upload_validates_filename_and_content_type():
+def test_worker_legacy_document_upload_is_disabled_and_session_metadata_is_validated():
     assert '@app.post("/api/documents")' in WORKER_SOURCE
-    assert 'Filename must be a plain file name up to 255 characters.' in WORKER_SOURCE
-    assert 'Invalid content type.' in WORKER_SOURCE
-    assert 'any(ord(character) < 32 or ord(character) == 127 for character in filename)' in WORKER_SOURCE
-    assert 'len(content_type) > 255 or "/" not in content_type' in WORKER_SOURCE
-    assert '"filename": filename' in WORKER_SOURCE
-    assert '"content_type": content_type' in WORKER_SOURCE
+    legacy_route = WORKER_SOURCE.split('@app.post("/api/documents")', 1)[1].split('class UploadSessionRequest', 1)[0]
+    assert 'status_code=410' in legacy_route
+    assert 'Direct upload is required. Create an upload session first.' in legacy_route
+    metadata_guard = WORKER_SOURCE.split('def _validate_upload_metadata', 1)[1].split('async def _check_b2_quota', 1)[0]
+    assert 'Filename must be a plain file name up to 255 characters.' in metadata_guard
+    assert 'Invalid content type.' in metadata_guard
+    assert 'any(ord(character) < 32 or ord(character) == 127 for character in filename)' in metadata_guard
+    assert 'len(content_type) > 255 or "/" not in content_type' in metadata_guard
+    assert 'UploadMetadata(filename, content_type, size_bytes, sha256, user_id, artifact_type)' in metadata_guard
+
 
 
 def test_worker_supports_optional_single_user_allowlist_without_disabling_auth():
@@ -269,7 +273,7 @@ def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_service_on
     assert "revoke insert on table public.doka_document_versions from authenticated" in source
     assert "drop policy if exists doka_audit_owner_insert" in source
     assert "revoke all on function public.doka_record_audit_event" in source
-    assert "to public, anon, authenticated" in source
+    assert "from public, anon, authenticated" in source
     assert "grant execute on function public.doka_record_audit_event" in source
     assert "to service_role" in source
 
@@ -283,7 +287,7 @@ def test_version_rpcs_keep_atomic_database_boundary_and_direct_insert_is_removed
 
 
 def test_worker_audit_fails_closed_uses_trusted_rpc_and_retries_with_structured_logs():
-    assert '"/rest/v1/rpc/doka_record_audit_event"' in WORKER_SOURCE
+    assert "rest/v1/rpc/doka_record_audit_event" in WORKER_SOURCE
     assert 'SUPABASE_SERVICE_ROLE_KEY' in WORKER_SOURCE
     assert "AUDIT_MAX_ATTEMPTS = 3" in WORKER_SOURCE
     assert '"audit_write_retry"' in WORKER_SOURCE
@@ -291,3 +295,17 @@ def test_worker_audit_fails_closed_uses_trusted_rpc_and_retries_with_structured_
     audit_block = WORKER_SOURCE.split("async def _audit", 1)[1].split('@app.post("/api/documents")', 1)[0]
     assert "except Exception:\n        pass" not in audit_block
     assert 'status_code=503' in audit_block
+
+
+def test_b2_multipart_api_is_owner_scoped_and_requires_both_part_hashes_and_abort():
+    assert '@app.post("/api/storage/multipart/initiate")' in WORKER_SOURCE
+    assert '@app.post("/api/storage/multipart/part")' in WORKER_SOURCE
+    assert '@app.post("/api/storage/multipart/complete")' in WORKER_SOURCE
+    assert '@app.post("/api/storage/multipart/abort")' in WORKER_SOURCE
+    assert 'content_md5: str = Field(min_length=32, max_length=32)' in WORKER_SOURCE
+    assert 'await _check_b2_quota(request, user_id, metadata.size_bytes)' in WORKER_SOURCE
+    assert 'checksum: str = Field(min_length=64, max_length=64)' in WORKER_SOURCE
+    assert 'receipt = await router.b2.uploadPart(upload, payload.part_number, payload.checksum, payload.content_md5)' in WORKER_SOURCE
+    assert 'Multipart session is not valid for this user.' in WORKER_SOURCE
+    assert 'expected_size_bytes=int(signed["size_bytes"])' in WORKER_SOURCE
+    assert 'expected_sha256=str(signed["sha256"]).lower()' in WORKER_SOURCE

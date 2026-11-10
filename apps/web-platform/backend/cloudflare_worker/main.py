@@ -236,6 +236,7 @@ async def _fetch(
     return_headers: bool = False,
     return_sha256: bool = False,
     max_bytes: int = 50 * 1024 * 1024,
+    part_size_bytes: int | None = None,
 ):
     options = {"method": method, "headers": to_js(headers or {}, dict_converter=Object.fromEntries)}
     if body is not None:
@@ -249,7 +250,7 @@ async def _fetch(
         if content_length is not None and int(content_length) > max_bytes:
             raise ValueError("Binary response exceeds the configured verification limit")
         reader = response.body.getReader()
-        return int(response.status), await hash_response_stream(reader, max_bytes)
+        return int(response.status), await hash_response_stream(reader, max_bytes, part_size_bytes)
     if return_headers:
         header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
@@ -588,6 +589,7 @@ def _storage_fetcher(request):
         return_headers: bool = False,
         return_sha256: bool = False,
         max_bytes: int = 50 * 1024 * 1024,
+        part_size_bytes: int | None = None,
     ):
         status, payload = await _fetch(
             request,
@@ -598,6 +600,7 @@ def _storage_fetcher(request):
             return_headers=return_headers,
             return_sha256=return_sha256,
             max_bytes=max_bytes,
+            part_size_bytes=part_size_bytes,
         )
         return status, payload
     return fetcher
@@ -838,6 +841,7 @@ async def initiate_storage_multipart(
     router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
     if router.b2 is None:
         raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+    await _check_b2_quota(request, user_id, metadata.size_bytes)
     upload = await router.b2.initiateMultipartUpload(metadata)
     signed_payload = {
         "owner_id": user_id,
@@ -867,6 +871,7 @@ class MultipartPartRequest(BaseModel):
     session_id: str = Field(min_length=20, max_length=4096)
     part_number: int = Field(ge=1, le=10000)
     checksum: str = Field(min_length=64, max_length=64)
+    content_md5: str = Field(min_length=32, max_length=32)
 
 
 @app.post("/api/storage/multipart/part")
@@ -889,11 +894,15 @@ async def sign_storage_multipart_part(
         object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
         part_size_bytes=int(signed["part_size_bytes"]),
         expires_at=int(signed["expires_at"]),
+        expected_size_bytes=int(signed["size_bytes"]),
+        expected_sha256=str(signed["sha256"]).lower(),
+        content_type=str(signed["content_type"]),
     )
-    receipt = await router.b2.uploadPart(upload, payload.part_number, payload.checksum)
+    receipt = await router.b2.uploadPart(upload, payload.part_number, payload.checksum, payload.content_md5)
     return {
         "part_number": receipt.part_number,
         "checksum": receipt.checksum,
+        "content_md5": receipt.content_md5,
         "upload": {
             "method": receipt.signed_request.method,
             "url": receipt.signed_request.url,
@@ -905,8 +914,9 @@ async def sign_storage_multipart_part(
 
 class MultipartCompletePart(BaseModel):
     part_number: int = Field(ge=1, le=10000)
-    etag: str = Field(min_length=1, max_length=1024)
+    etag: str = Field(min_length=1, max_length=128)
     checksum: str = Field(min_length=64, max_length=64)
+    content_md5: str = Field(min_length=32, max_length=32)
 
 
 class MultipartCompleteRequest(BaseModel):
@@ -938,8 +948,14 @@ async def complete_storage_multipart(
         object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
         part_size_bytes=int(signed["part_size_bytes"]),
         expires_at=int(signed["expires_at"]),
+        expected_size_bytes=int(signed["size_bytes"]),
+        expected_sha256=str(signed["sha256"]).lower(),
+        content_type=str(signed["content_type"]),
     )
-    receipts = [B2PartReceipt(p.part_number, p.etag, p.checksum.lower(), SignedUpload("PUT", "", {}, {})) for p in payload.parts]
+    receipts = [
+        B2PartReceipt(p.part_number, p.etag, p.checksum.lower(), p.content_md5.lower(), SignedUpload("PUT", "", {}, {}))
+        for p in payload.parts
+    ]
     try:
         stored = await router.b2.completeMultipartUpload(upload, receipts)
     except (RuntimeError, ValueError) as exc:
@@ -976,6 +992,35 @@ async def complete_storage_multipart(
     return {"document": rows[0], "warnings": []}
 
 
+
+
+@app.post("/api/storage/multipart/abort")
+async def abort_storage_multipart(
+    request: Request,
+    payload: dict,
+    user_id: str = Depends(require_user),
+):
+    session_id = str(payload.get("session_id") or "")
+    try:
+        signed = verify_session(_storage_session_secret(request), session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
+    if signed.get("owner_id") != user_id or signed.get("provider") != "b2":
+        raise HTTPException(status_code=403, detail="Multipart session is not valid for this user.")
+    router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
+    if router.b2 is None:
+        raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+    upload = MultipartUpload(
+        upload_id=str(signed["upload_id"]),
+        object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
+        part_size_bytes=int(signed["part_size_bytes"]),
+        expires_at=int(signed["expires_at"]),
+        expected_size_bytes=int(signed["size_bytes"]),
+        expected_sha256=str(signed["sha256"]).lower(),
+        content_type=str(signed["content_type"]),
+    )
+    await router.b2.abortMultipartUpload(upload)
+    return {"aborted": True}
 
 
 @app.post("/api/documents/{document_id}/export/google-drive/upload-session")

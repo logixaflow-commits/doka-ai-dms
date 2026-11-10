@@ -50,6 +50,9 @@ class MultipartUpload:
     object_ref: StorageObjectRef
     part_size_bytes: int
     expires_at: int
+    expected_size_bytes: int = 0
+    expected_sha256: str = ""
+    content_type: str = "application/octet-stream"
 
 
 @dataclass(frozen=True)
@@ -57,7 +60,21 @@ class B2PartReceipt:
     part_number: int
     etag: str
     checksum: str
+    content_md5: str
     signed_request: SignedUpload
+
+
+def b2_multipart_composite_etag(part_etags: list[str]) -> str:
+    """S3-compatible multipart ETag: MD5(binary part-MD5s) + '-' + part count."""
+    if not part_etags:
+        raise ValueError("At least one B2 multipart part is required")
+    raw_digests = []
+    for etag in part_etags:
+        normalized = str(etag).strip().strip('"').lower()
+        if not re.fullmatch(r"[0-9a-f]{32}", normalized):
+            raise ValueError("B2 part ETag must be a 32-character MD5 hex digest")
+        raw_digests.append(bytes.fromhex(normalized))
+    return hashlib.md5(b"".join(raw_digests), usedforsecurity=False).hexdigest() + f"-{len(raw_digests)}"
 
 
 class B2StorageProvider:
@@ -155,8 +172,12 @@ class B2StorageProvider:
         if metadata.size_bytes <= B2_MULTIPART_THRESHOLD_BYTES:
             raise ValueError("B2 multipart is required only for objects above 5 GiB")
         key = owner_object_key(metadata)
-        url = self._presign(key, method="POST", query={"uploads": ""}, headers={"content-type": metadata.content_type})
-        status, body = await self.fetcher(url, method="POST", headers={"content-type": metadata.content_type})
+        initiation_headers = {
+            "content-type": metadata.content_type,
+            "x-amz-meta-sha256": metadata.sha256.lower(),
+        }
+        url = self._presign(key, method="POST", query={"uploads": ""}, headers=initiation_headers)
+        status, body = await self.fetcher(url, method="POST", headers=initiation_headers)
         if status >= 300:
             raise RuntimeError("B2 multipart initiation failed")
         upload_id = self._xml_text(body, "UploadId")
@@ -167,21 +188,34 @@ class B2StorageProvider:
             object_ref=StorageObjectRef(self.name, key, metadata.owner_id),
             part_size_bytes=self.config.part_size_bytes,
             expires_at=int(time.time()) + min(max(300, self.config.signed_url_ttl_seconds), 604800),
+            expected_size_bytes=metadata.size_bytes,
+            expected_sha256=metadata.sha256.lower(),
+            content_type=metadata.content_type,
         )
 
-    async def uploadPart(self, upload: MultipartUpload, part_number: int, checksum: str, signed_request=None) -> B2PartReceipt:
+    async def uploadPart(self, upload: MultipartUpload, part_number: int, checksum: str, content_md5: str, signed_request=None) -> B2PartReceipt:
         if not 1 <= int(part_number) <= 10000:
             raise ValueError("B2 part number must be between 1 and 10000")
+        if upload.expected_size_bytes and upload.part_size_bytes:
+            max_parts = (upload.expected_size_bytes + upload.part_size_bytes - 1) // upload.part_size_bytes
+            if int(part_number) > max_parts:
+                raise ValueError("B2 part number exceeds the size bound in the signed upload session")
         if not re.fullmatch(r"[0-9a-fA-F]{64}", checksum or ""):
             raise ValueError("part checksum must be SHA-256")
-        headers = {"x-amz-checksum-sha256": checksum.lower()}
+        if not re.fullmatch(r"[0-9a-fA-F]{32}", content_md5 or ""):
+            raise ValueError("part MD5 must be a 32-character hexadecimal digest")
+        md5_hex = content_md5.lower()
+        # B2 S3 UploadPart returns the provider-computed part ETag. Compare it
+        # with this client-computed MD5 at completion; do not send checksum
+        # headers that B2's UploadPart reference does not document.
+        headers = {}
         url = self._presign(
             upload.object_ref.object_key,
             method="PUT",
             query={"partNumber": str(part_number), "uploadId": upload.upload_id},
             headers=headers,
         )
-        return B2PartReceipt(part_number, "", checksum.lower(), SignedUpload("PUT", url, headers=headers))
+        return B2PartReceipt(part_number, "", checksum.lower(), md5_hex, SignedUpload("PUT", url, headers=headers))
 
     async def completeMultipartUpload(self, upload: MultipartUpload, parts: list[B2PartReceipt]) -> StoredObjectResult:
         if not parts:
@@ -189,14 +223,81 @@ class B2StorageProvider:
         ordered = sorted(parts, key=lambda part: part.part_number)
         if [part.part_number for part in ordered] != list(range(1, len(ordered) + 1)):
             raise ValueError("B2 multipart parts must be contiguous and ordered")
-        body = "<CompleteMultipartUpload>" + "".join(
-            f"<Part><PartNumber>{p.part_number}</PartNumber><ETag>{p.etag}</ETag></Part>" for p in ordered
-        ) + "</CompleteMultipartUpload>"
-        url = self._presign(upload.object_ref.object_key, method="POST", query={"uploadId": upload.upload_id}, headers={"content-type": "application/xml"})
-        status, _ = await self.fetcher(url, method="POST", headers={"content-type": "application/xml"}, body=body)
-        if status >= 300:
-            raise RuntimeError("B2 multipart completion failed")
-        return await self.head(upload.object_ref)
+        if not upload.expected_size_bytes or not re.fullmatch(r"[0-9a-f]{64}", upload.expected_sha256):
+            raise ValueError("B2 multipart session is missing expected whole-object integrity values")
+        expected_part_count = (upload.expected_size_bytes + upload.part_size_bytes - 1) // upload.part_size_bytes
+        if len(ordered) != expected_part_count:
+            raise ValueError("B2 multipart part count does not match the signed object size")
+        for part in ordered:
+            if not re.fullmatch(r"[0-9a-f]{64}", part.checksum or ""):
+                raise ValueError("B2 part SHA-256 is invalid")
+            if not re.fullmatch(r"[0-9a-f]{32}", part.content_md5 or ""):
+                raise ValueError("B2 part MD5 is invalid")
+            if str(part.etag).strip().strip('"').lower() != part.content_md5.lower():
+                raise ValueError("B2 part ETag does not match its computed part MD5")
+        expected_etag = b2_multipart_composite_etag([part.etag for part in ordered])
+        body = (
+            '<CompleteMultipartUpload xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
+            + "".join(
+                f'<Part><PartNumber>{part.part_number}</PartNumber><ETag>"{part.etag.strip().strip(chr(34)).lower()}"</ETag></Part>'
+                for part in ordered
+            )
+            + "</CompleteMultipartUpload>"
+        )
+        url = self._presign(
+            upload.object_ref.object_key,
+            method="POST",
+            query={"uploadId": upload.upload_id},
+            headers={"content-type": "application/xml"},
+        )
+        completed = False
+        try:
+            status, response_body = await self.fetcher(
+                url, method="POST", headers={"content-type": "application/xml"}, body=body
+            )
+            if status >= 300:
+                raise RuntimeError("B2 multipart completion failed")
+            completed = True
+            response_etag = self._xml_text(response_body, "ETag").strip().strip('"').lower()
+            if response_etag != expected_etag:
+                raise ValueError("B2 multipart composite ETag mismatch")
+
+            download_url = self._presign(upload.object_ref.object_key, method="GET")
+            read_status, verified = await self.fetcher(
+                download_url,
+                method="GET",
+                return_sha256=True,
+                max_bytes=upload.expected_size_bytes,
+                part_size_bytes=upload.part_size_bytes,
+            )
+            if read_status >= 300 or not isinstance(verified, dict):
+                raise RuntimeError("B2 completed object read-back failed")
+            if int(verified.get("size_bytes", -1)) != upload.expected_size_bytes:
+                raise ValueError("B2 completed object size mismatch")
+            if str(verified.get("sha256", "")).lower() != upload.expected_sha256:
+                raise ValueError("B2 completed object SHA-256 mismatch")
+            if verified.get("part_sha256s") != [part.checksum.lower() for part in ordered]:
+                raise ValueError("B2 completed object part SHA-256 mismatch")
+            return StoredObjectResult(
+                upload.object_ref,
+                upload.expected_size_bytes,
+                upload.expected_sha256,
+                upload.content_type,
+            )
+        except Exception:
+            # A failed completion or verification must not leave a partial or
+            # untrusted final object behind.
+            if completed:
+                try:
+                    await self.delete(upload.object_ref)
+                except Exception:
+                    pass
+            else:
+                try:
+                    await self.abortMultipartUpload(upload)
+                except Exception:
+                    pass
+            raise
 
     async def abortMultipartUpload(self, upload: MultipartUpload) -> None:
         url = self._presign(upload.object_ref.object_key, method="DELETE", query={"uploadId": upload.upload_id})

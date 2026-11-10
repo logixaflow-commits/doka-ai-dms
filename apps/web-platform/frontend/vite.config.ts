@@ -1,11 +1,16 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import { defineConfig } from "vitest/config"
 
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
   plugins: [react()],
+  test: {
+    include: ["src/**/*.test.{ts,tsx}"],
+    exclude: ["e2e/**", "node_modules/**", "dist/**"],
+    environment: "node",
+  },
   server: {
     host: process.env.VITE_HOST || "127.0.0.1",
     port: Number(process.env.VITE_PORT || 5173),

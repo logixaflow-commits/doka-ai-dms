@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sha256 } from '@noble/hashes/sha256';
-import { hashFileChunks } from './hashFileChunks';
+import { createHash } from 'node:crypto';
+import { hashFileChunks, hashFileMultipartParts } from './hashFileChunks';
 
 function mockFile(size: number) {
   let maxRead = 0;
@@ -50,5 +51,25 @@ describe('incremental SHA-256 chunk reader', () => {
     const controller = new AbortController();
     const { file } = mockFile(4 * 65536);
     await expect(hashFileChunks(file, { chunkSize: 65536, signal: controller.signal, onProgress: p => { if (p.loadedBytes >= 65536) controller.abort(); } })).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+
+describe('multipart per-part integrity hashes', () => {
+  it('computes whole-file SHA-256 and per-part SHA-256/MD5 with bounded chunk reads', async () => {
+    const partSize = 5 * 1024 * 1024;
+    const size = partSize + 123;
+    const { file, maxRead } = mockFile(size);
+    const result = await hashFileMultipartParts(file, partSize, { chunkSize: 1024 * 1024 });
+    expect(result.sha256).toBe(expectedDigest(size));
+    expect(result.parts).toHaveLength(2);
+    expect(result.parts[0].part_number).toBe(1);
+    expect(result.parts[0].sha256).toMatch(/^[0-9a-f]{64}$/);
+    const firstPartBytes = new Uint8Array(partSize);
+    for (let i = 0; i < partSize; i++) firstPartBytes[i] = i % 251;
+    expect(result.parts[0].content_md5).toBe(createHash('md5').update(firstPartBytes).digest('hex'));
+    expect(result.parts[0].sha256).toBe(createHash('sha256').update(firstPartBytes).digest('hex'));
+    expect(result.parts[1].part_number).toBe(2);
+    expect(maxRead()).toBeLessThanOrEqual(1024 * 1024);
   });
 });
