@@ -36,6 +36,42 @@ bearer = HTTPBearer(auto_error=False)
 app = FastAPI(title="Doka Cloud API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 logger = logging.getLogger("doka.telegram")
 
+CSP_POLICY = ("default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+              "form-action 'self'; script-src 'self'; style-src 'self'; "
+              "img-src 'self' data: blob: https:; font-src 'self' data:; "
+              "connect-src 'self' https: wss:; worker-src 'self' blob:; "
+              "manifest-src 'self'; upgrade-insecure-requests; report-uri /api/security/csp-report")
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    # Keep CSP report-only until owner approval and SPA compatibility testing.
+    response.headers["Content-Security-Policy-Report-Only"] = CSP_POLICY
+    return response
+
+
+@app.post("/api/security/csp-report")
+async def csp_violation_report(request: Request):
+    raw = await request.body()
+    if len(raw) > 16 * 1024:
+        raise HTTPException(status_code=413, detail="CSP report is too large.")
+    if not raw:
+        return {"accepted": True}
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid CSP report.") from exc
+    if not isinstance(payload, (dict, list)):
+        raise HTTPException(status_code=400, detail="Invalid CSP report.")
+    logger.info("csp_violation_report_received", extra={"report_type": type(payload).__name__})
+    return {"accepted": True}
+
 # This deployment is intentionally pinned to the single authorized Telegram forum topic.
 TELEGRAM_ALLOWED_CHAT_ID = "-1003992125718"
 TELEGRAM_ALLOWED_TOPIC_ID = 8

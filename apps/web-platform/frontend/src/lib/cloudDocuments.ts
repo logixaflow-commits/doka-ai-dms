@@ -174,6 +174,7 @@ async function createDirectStorageUpload(
       provider_result: providerResult,
     }),
   });
+  options.onProgress?.({ phase: 'completing', percent: 100, loadedBytes: file.size, totalBytes: file.size });
   return {
     ...completed,
     warnings: [...(session.warnings || []), ...(completed.warnings || [])],
