@@ -2,7 +2,7 @@ from pathlib import Path
 import yaml
 
 def test_staging_workflow_yaml_parses_and_has_no_feature_branch_triggers():
-    path = Path(__file__).resolve().parents[3] / '.github' / 'workflows' / 'cloudflare-worker-staging-deploy.yml'
+    path = Path(__file__).resolve().parents[4] / '.github' / 'workflows' / 'cloudflare-worker-staging-deploy.yml'
     text = path.read_text(encoding='utf-8')
     workflow = yaml.safe_load(text)
     assert 'workflow_dispatch' in workflow
