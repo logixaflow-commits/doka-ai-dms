@@ -139,8 +139,7 @@ export async function getCurrentUser() {
     const user = await request<SupabaseUser>('/user', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    if (AUTH_STORAGE_MODE === 'cookie-prep') memoryUser = user;
-    else localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
     return user;
   } catch {
     const refreshed = await refreshSession();
@@ -150,8 +149,7 @@ export async function getCurrentUser() {
       const user = await request<SupabaseUser>('/user', {
         headers: { Authorization: `Bearer ${refreshed.access_token}` },
       });
-      if (AUTH_STORAGE_MODE === 'cookie-prep') memoryUser = user;
-    else localStorage.setItem(USER_KEY, JSON.stringify(user));
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
       return user;
     } catch {
       clearSession();

@@ -113,10 +113,34 @@ export interface StorageUploadSession {
   warnings: string[];
 }
 
-async function sha256Hex(file: File): Promise<string> {
-  if (!globalThis.crypto?.subtle) throw new Error('Browser cryptography is unavailable; cannot verify the upload fingerprint.');
-  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-  return Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+export interface HashProgress { phase: 'hashing' | 'uploading' | 'completing'; percent: number; loadedBytes: number; totalBytes: number }
+
+export function hashFileInWorker(
+  file: File,
+  options: { chunkSize?: number; signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('../workers/hash.worker.ts', import.meta.url), { type: 'module' });
+    let settled = false;
+    const finish = (error?: Error, digest?: string) => {
+      if (settled) return;
+      settled = true;
+      options.signal?.removeEventListener('abort', abort);
+      worker.terminate();
+      if (error) reject(error); else resolve(digest!);
+    };
+    const abort = () => { worker.postMessage({ type: 'cancel' }); finish(new DOMException('Hashing cancelled', 'AbortError')); };
+    if (options.signal?.aborted) { finish(new DOMException('Hashing cancelled', 'AbortError')); return; }
+    options.signal?.addEventListener('abort', abort, { once: true });
+    worker.onerror = event => finish(new Error(event.message || 'SHA-256 worker failed.'));
+    worker.onmessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.type === 'progress') options.onProgress?.({ phase: 'hashing', percent: message.percent, loadedBytes: message.loadedBytes, totalBytes: message.totalBytes });
+      else if (message.type === 'complete') finish(undefined, message.sha256);
+      else if (message.type === 'error') finish(new Error(message.message));
+    };
+    worker.postMessage({ type: 'hash', file, chunkSize: options.chunkSize ?? 8 * 1024 * 1024 });
+  });
 }
 
 async function directStorageUpload(session: StorageUploadSession, file: File): Promise<Record<string, unknown>> {
@@ -146,11 +170,12 @@ async function createDirectStorageUpload(
   file: File,
   artifactType: 'source' | 'preview' | 'thumbnail' | 'cover' = 'source',
   documentId?: string,
+  options: { signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
 ) {
   if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
     throw new Error(`This file exceeds the configured upload limit of ${Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
   }
-  const sha256 = await sha256Hex(file);
+  const sha256 = await hashFileInWorker(file, options);
   const session = await request<StorageUploadSession>('/storage/upload-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -163,6 +188,7 @@ async function createDirectStorageUpload(
       ...(documentId ? { document_id: documentId } : {}),
     }),
   });
+  if (options.signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError');
   const providerResult = await directStorageUpload(session, file);
   const completed = await request<{ document?: CloudDocument; stored?: Record<string, unknown>; warnings: string[] }>('/storage/upload-complete', {
     method: 'POST',
@@ -181,8 +207,11 @@ async function createDirectStorageUpload(
   };
 }
 
-export async function uploadCloudDocument(file: File) {
-  return createDirectStorageUpload(file, 'source') as Promise<{ document: CloudDocument; warnings: string[] }>;
+export async function uploadCloudDocument(
+  file: File,
+  options: { signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
+) {
+  return createDirectStorageUpload(file, 'source', undefined, options) as Promise<{ document: CloudDocument; warnings: string[] }>;
 }
 
 export async function exportCloudDocumentToGoogleDrive(documentId: string) {

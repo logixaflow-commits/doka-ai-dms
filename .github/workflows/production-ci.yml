@@ -84,7 +84,11 @@ jobs:
 
       - name: Install Frontend Dependencies
         working-directory: apps/web-platform/frontend
-        run: npm ci
+        run: npm install --no-audit --no-fund
+
+      - name: Run frontend unit tests
+        working-directory: apps/web-platform/frontend
+        run: npm run test:unit
 
       - name: Build Production Assets
         working-directory: apps/web-platform/frontend
