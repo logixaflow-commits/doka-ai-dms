@@ -686,27 +686,78 @@ async def _check_b2_quota(request: Request, user_id: str, requested_bytes: int) 
     }
 
 
+AUDIT_MAX_ATTEMPTS = 3
+
+
 async def _audit(request, user_id: str, action: str, document_id: str | None = None, filename: str | None = None, metadata: dict | None = None) -> None:
-    """Best-effort owner-scoped audit event; never breaks the primary document action."""
-    try:
-        base = _base(request)
-        token = _token_from_request(request)
-        payload = {
-            "owner_id": user_id,
-            "document_id": document_id,
-            "action": action,
-            "filename": filename,
-            "metadata": metadata or {},
-        }
-        await _fetch(
-            request,
-            f"{base}/rest/v1/doka_audit_events",
-            method="POST",
-            headers={**_supabase_headers(request, token, "application/json"), "Prefer": "return=minimal"},
-            body=json.dumps(payload),
+    """Write security-relevant audit events through the trusted database RPC.
+
+    Direct table INSERT is intentionally unavailable to browser users. The Worker
+    uses a service-role binding only for this narrowly scoped RPC. Fail closed
+    after bounded retries so callers never silently succeed without the required
+    audit record.
+    """
+    service_key = _env(request, "SUPABASE_SERVICE_ROLE_KEY").strip()
+    if not service_key:
+        logger.error(
+            "audit_write_failed",
+            extra={"action": action, "document_id": document_id, "reason": "service_role_missing"},
         )
-    except Exception:
-        pass
+        raise HTTPException(status_code=503, detail="Audit service is not configured.")
+
+    payload = {
+        "p_owner_id": user_id,
+        "p_action": action,
+        "p_document_id": document_id,
+        "p_filename": filename,
+        "p_metadata": metadata or {},
+    }
+    last_status = None
+    last_error = None
+    for attempt in range(1, AUDIT_MAX_ATTEMPTS + 1):
+        try:
+            status, _ = await _fetch(
+                request,
+                f"{_base(request)}/rest/v1/rpc/doka_record_audit_event",
+                method="POST",
+                headers={
+                    "apikey": service_key,
+                    "Authorization": f"Bearer {service_key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                body=json.dumps(payload),
+            )
+            last_status = status
+            if 200 <= status < 300:
+                return
+            last_error = f"http_{status}"
+        except Exception as exc:  # noqa: BLE001 - converted to a fail-closed API error below
+            last_error = type(exc).__name__
+
+        logger.warning(
+            "audit_write_retry",
+            extra={
+                "action": action,
+                "document_id": document_id,
+                "attempt": attempt,
+                "max_attempts": AUDIT_MAX_ATTEMPTS,
+                "status": last_status,
+                "error": last_error,
+            },
+        )
+
+    logger.error(
+        "audit_write_failed",
+        extra={
+            "action": action,
+            "document_id": document_id,
+            "attempts": AUDIT_MAX_ATTEMPTS,
+            "status": last_status,
+            "error": last_error,
+        },
+    )
+    raise HTTPException(status_code=503, detail="Security audit recording failed; operation was not acknowledged.")
 
 
 @app.post("/api/documents")

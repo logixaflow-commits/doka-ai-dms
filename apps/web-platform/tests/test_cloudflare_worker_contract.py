@@ -252,3 +252,42 @@ def test_telegram_api_responses_are_parsed_from_text_for_pyodide_compatibility()
     assert "await _telegram_response_payload(info_response)" in registration
     assert "await _telegram_response_payload(me_response)" in registration
     assert '"bot_api_description": me_payload.get("description") if not identity_ok else None' in registration
+
+
+SECURITY_INTEGRITY_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "backend"
+    / "supabase"
+    / "migrations"
+    / "20261110090000_doka_security_integrity_remediation.sql"
+).read_text(encoding="utf-8")
+
+
+def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_service_only():
+    source = SECURITY_INTEGRITY_MIGRATION.lower()
+    assert "revoke insert on table public.doka_audit_events from authenticated" in source
+    assert "revoke insert on table public.doka_document_versions from authenticated" in source
+    assert "drop policy if exists doka_audit_owner_insert" in source
+    assert "revoke all on function public.doka_record_audit_event" in source
+    assert "to public, anon, authenticated" in source
+    assert "grant execute on function public.doka_record_audit_event" in source
+    assert "to service_role" in source
+
+
+def test_version_rpcs_keep_atomic_database_boundary_and_direct_insert_is_removed():
+    source = SECURITY_INTEGRITY_MIGRATION.lower()
+    assert "revoke insert on table public.doka_document_versions from authenticated" in source
+    assert "grant execute on function public.doka_replace_document_version" in source
+    assert "grant execute on function public.doka_replace_document_version_storage" in source
+    assert "grant execute on function public.doka_restore_document_version" in source
+
+
+def test_worker_audit_fails_closed_uses_trusted_rpc_and_retries_with_structured_logs():
+    assert '"/rest/v1/rpc/doka_record_audit_event"' in WORKER_SOURCE
+    assert 'SUPABASE_SERVICE_ROLE_KEY' in WORKER_SOURCE
+    assert "AUDIT_MAX_ATTEMPTS = 3" in WORKER_SOURCE
+    assert '"audit_write_retry"' in WORKER_SOURCE
+    assert '"audit_write_failed"' in WORKER_SOURCE
+    audit_block = WORKER_SOURCE.split("async def _audit", 1)[1].split('@app.post("/api/documents")', 1)[0]
+    assert "except Exception:\n        pass" not in audit_block
+    assert 'status_code=503' in audit_block
