@@ -84,9 +84,11 @@ export default function App() {
           <Route path="workflows" element={<WorkflowsPage />} />
           <Route path="permissions" element={<PermissionsPage />} />
           <Route path="audit" element={<AuditPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="settings/integrations" element={<IntegrationsPage />} />
           <Route index element={<Navigate to={isLocalAuthEnabled() ? 'workspace' : 'dashboard'} replace />} />
+        </Route>
+        <Route path="/admin/settings" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
+          <Route index element={<SettingsPage />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
         </Route>
         <Route path="/" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />
         <Route path="*" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />
