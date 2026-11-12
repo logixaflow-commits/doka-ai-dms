@@ -106,3 +106,12 @@ This validates the tested database ownership and audit boundaries, but it is not
 - The latest `main` commit `a9622f5beeb27e0ded69dea83ae9fb565f2b884d` passed Production CI, Doka Quality Checks, and both CodeQL language analyses.
 - Historical secret scan run `43160801106` failed with zero jobs returned by the Actions jobs endpoint. This is an unexecuted/unverified scan, not a clean scan and not evidence of a detected secret.
 - Dependabot PRs #142 and #143 propose the same Vitest 5.1.0 dependency change. Both passed backend checks and CodeQL/Dependency Review but failed frontend production build because TypeScript could not resolve Node built-in module types in test files (`node:fs`, `node:path`, `node:crypto`, and `process`). Do not merge until this is corrected and all required checks pass.
+
+
+### Final Production verification update (2026-11-12)
+
+- Follow-up documentation commit: `22fc35ac1a985410c0f4595ca2cd1f19862e9b34`.
+- GitHub required checks on that commit completed successfully: Production Release Gate, Supabase Preview, Production CI backend/frontend jobs, Doka Quality Checks (backend dependency audit, backend regression tests, frontend build/smoke, cloud-storage contracts, symlink security, static analysis/SBOM, workflow sanity, Electron smoke, repository preflight), and CodeQL/Dependency Review where applicable.
+- The Production Worker settings were read back without exposing secrets. Telegram routing variables are confirmed as `TELEGRAM_CHAT_ID=-1003992125718`, `TELEGRAM_TOPIC_ID=8`, and `TELEGRAM_ENABLED=true`. Bot token, webhook secret, allowed-user IDs, B2 credentials, and Supabase service-role key remain encrypted/redacted.
+- The Worker was not redeployed for this documentation-only commit; the previously successful Production Worker deployment remains the deployed release.
+- Dependabot PR #142 was closed as an exact duplicate of #143. PR #143 remains open and unmerged because its Vitest 5.1.0 update currently fails the frontend TypeScript build; the failure details were recorded in its PR discussion.
