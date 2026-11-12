@@ -76,9 +76,11 @@ BEGIN
     RAISE EXCEPTION 'Invalid document status' USING errcode = '22023';
   END IF;
 
-  SELECT count(*) INTO matched_count
+  PERFORM 1
   FROM public.doka_documents
-  WHERE id = ANY(p_document_ids) AND owner_id = auth.uid() AND deleted_at IS NULL;
+  WHERE id = ANY(p_document_ids) AND owner_id = auth.uid() AND deleted_at IS NULL
+  FOR UPDATE;
+  GET DIAGNOSTICS matched_count = ROW_COUNT;
   IF matched_count <> cardinality(p_document_ids) THEN
     RAISE EXCEPTION 'One or more documents are unavailable' USING errcode = 'P0002';
   END IF;
