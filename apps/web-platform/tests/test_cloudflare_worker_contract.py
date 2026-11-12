@@ -267,15 +267,16 @@ SECURITY_INTEGRITY_MIGRATION = (
 ).read_text(encoding="utf-8")
 
 
-def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_service_only():
+def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_owner_scoped():
     source = SECURITY_INTEGRITY_MIGRATION.lower()
     assert "revoke insert on table public.doka_audit_events from authenticated" in source
     assert "revoke insert on table public.doka_document_versions from authenticated" in source
     assert "drop policy if exists doka_audit_owner_insert" in source
     assert "revoke all on function public.doka_record_audit_event" in source
-    assert "from public, anon, authenticated" in source
+    assert "from public, anon, service_role" in source
     assert "grant execute on function public.doka_record_audit_event" in source
-    assert "to service_role" in source
+    assert "to authenticated" in source
+    assert "p_owner_id is distinct from auth.uid()" in source
 
 
 def test_version_rpcs_keep_atomic_database_boundary_and_direct_insert_is_removed():
@@ -286,9 +287,11 @@ def test_version_rpcs_keep_atomic_database_boundary_and_direct_insert_is_removed
     assert "grant execute on function public.doka_restore_document_version" in source
 
 
-def test_worker_audit_fails_closed_uses_trusted_rpc_and_retries_with_structured_logs():
+def test_worker_audit_fails_closed_uses_owner_jwt_rpc_and_retries_with_structured_logs():
     assert "rest/v1/rpc/doka_record_audit_event" in WORKER_SOURCE
-    assert 'SUPABASE_SERVICE_ROLE_KEY' in WORKER_SOURCE
+    assert '_token_from_request(request)' in audit_block
+    assert 'headers=_supabase_headers(request, token, "application/json")' in audit_block
+    assert 'SUPABASE_SERVICE_ROLE_KEY' not in WORKER_SOURCE
     assert "AUDIT_MAX_ATTEMPTS = 3" in WORKER_SOURCE
     assert '"audit_write_retry"' in WORKER_SOURCE
     assert '"audit_write_failed"' in WORKER_SOURCE
