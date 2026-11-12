@@ -182,7 +182,7 @@ BEGIN
      OR position('/' in p_filename) > 0 OR position(chr(92) in p_filename) > 0
      OR p_content_type IS NULL OR btrim(p_content_type) = '' OR length(p_content_type) > 255
      OR position('/' in p_content_type) = 0
-     OR p_storage_provider IS NULL OR p_storage_provider NOT IN ('supabase','b2')
+     OR p_storage_provider IS NULL OR p_storage_provider NOT IN ('supabase','b2','mock')
      OR (p_storage_region IS NOT NULL AND length(p_storage_region) > 128) THEN
     RAISE EXCEPTION 'Invalid version object metadata' USING errcode = '22023';
   END IF;
@@ -240,7 +240,7 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Version not found' USING errcode = 'P0002'; END IF;
   IF chosen.sha256 IS NULL OR chosen.sha256 !~ '^[0-9a-f]{64}$'
      OR chosen.object_key !~ ('^users/' || auth.uid()::text || '/documents/' || chosen.sha256 || '/[A-Za-z0-9-][A-Za-z0-9._-]{0,254}$')
-     OR chosen.size_bytes < 0 OR chosen.storage_provider NOT IN ('supabase','b2')
+     OR chosen.size_bytes < 0 OR chosen.storage_provider NOT IN ('supabase','b2','mock')
      OR (chosen.filename IS NOT NULL AND (btrim(chosen.filename) IN ('','.', '..') OR length(chosen.filename) > 255
          OR position('/' in chosen.filename) > 0 OR position(chr(92) in chosen.filename) > 0))
      OR (chosen.content_type IS NOT NULL AND (btrim(chosen.content_type) = '' OR length(chosen.content_type) > 255
