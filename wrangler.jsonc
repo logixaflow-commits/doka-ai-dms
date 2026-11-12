@@ -29,7 +29,7 @@
     "TELEGRAM_TOPIC_ID": "8",
     "TELEGRAM_ENABLED": "true",
     "DOKA_STORAGE_MAX_OBJECT_BYTES": "52428800",
-    "DOKA_CORS_ORIGINS": "https://enterprise-ai-dms.vercel.app,https://enterprise-ai-dms-logixaflow-9859.vercel.app,https://enterprise-ai-dms-git-main-logixaflow-9859.vercel.app",
+    "DOKA_CORS_ORIGINS": "https://enterprise-ai-dms.vercel.app,https://enterprise-ai-dms-logixaflow-9859.vercel.app,https://enterprise-ai-dms-git-main-logixaflow-9859.vercel.app,https://enterprise-ai-dkwhizd7q-logixaflow-9859.vercel.app",
   },
   "previews": {}
 }

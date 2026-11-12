@@ -6,172 +6,77 @@
 
 @layer base {
   :root {
-    /* Modern color palette - Royal Blue primary */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 220 25% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 217 91% 60%; /* Royal Blue */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 262 83% 58%; /* Purple */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 142 76% 36%; /* Emerald */
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 217 91% 60%;
-    --radius: 0.75rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    
-    /* Custom colors */
-    --color-blue: 217 91% 60%;
-    --color-purple: 262 83% 58%;
-    --color-emerald: 142 76% 36%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 212 92% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 18% 94%;
+    --secondary-foreground: 222 38% 18%;
+    --muted: 220 18% 95%;
+    --muted-foreground: 215 16% 45%;
+    --accent: 190 85% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 78% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 18% 90%;
+    --input: 220 18% 88%;
+    --ring: 199 89% 48%;
+    --radius: 0.9rem;
+    --sidebar-background: 222 47% 10%;
+    --sidebar-foreground: 214 32% 91%;
+    --sidebar-primary: 190 85% 48%;
+    --sidebar-primary-foreground: 222 47% 10%;
+    --sidebar-accent: 220 28% 17%;
+    --sidebar-accent-foreground: 214 32% 95%;
+    --sidebar-border: 220 25% 19%;
+    --sidebar-ring: 190 85% 48%;
+    --color-blue: 212 92% 48%;
+    --color-purple: 258 75% 62%;
+    --color-emerald: 155 65% 38%;
     --color-amber: 38 92% 50%;
-    --color-red: 0 84% 60%;
+    --color-red: 0 78% 56%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 222 47% 7%;
+    --foreground: 214 32% 92%;
+    --card: 222 40% 10%;
+    --card-foreground: 214 32% 92%;
+    --popover: 222 40% 10%;
+    --popover-foreground: 214 32% 92%;
+    --primary: 199 89% 56%;
+    --primary-foreground: 222 47% 10%;
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 214 32% 92%;
+    --muted: 220 25% 15%;
+    --muted-foreground: 215 18% 66%;
+    --accent: 190 75% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 42%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 217 25% 19%;
+    --input: 217 25% 22%;
+    --ring: 199 89% 56%;
+    --sidebar-background: 222 52% 7%;
+    --sidebar-foreground: 214 32% 91%;
+    --sidebar-primary: 190 85% 52%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 220 28% 14%;
+    --sidebar-accent-foreground: 214 32% 95%;
+    --sidebar-border: 217 25% 17%;
+    --sidebar-ring: 190 85% 52%;
   }
-}
 
-@layer base {
-  /* Keep Tailwind border reset; components opt in to visible borders. */
-  * {
-    border-color: hsl(var(--border));
-  }
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
-  
-  /* Modern typography */
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
-    letter-spacing: -0.025em;
-  }
-  
-  /* Smooth transitions */
-  button, a, input, select, textarea {
-    transition-property: all;
-    transition-duration: 200ms;
-  }
-  
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background-color: rgb(241 245 249);
-  }
-  .dark ::-webkit-scrollbar-track {
-    background-color: rgb(30 41 59);
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background-color: rgb(203 213 225);
-    border-radius: 9999px;
-  }
-  .dark ::-webkit-scrollbar-thumb {
-    background-color: rgb(71 85 105);
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(148 163 184);
-  }
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(100 116 139);
-  }
-}
-
-@layer utilities {
-  /* Fade in animation */
-  .fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  /* Pulse animation for loading */
-  .pulse-soft {
-    animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulseSoft {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-  }
-  
-  /* Hover lift effect */
-  .hover-lift {
-    transition-property: transform;
-    transition-duration: 200ms;
-  }
-.hover-lift:hover {
-  transform: translateY(-0.125rem);
-}
-}
-
-/* Doka product surface */
-@layer base {
+  * { border-color: hsl(var(--border)); }
   html { min-width: 320px; scroll-behavior: smooth; }
   body {
     min-width: 320px;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
@@ -179,28 +84,109 @@
   }
   button, input, select, textarea { font: inherit; }
   :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
-  ::selection { background: hsl(var(--primary) / 0.18); }
+  ::selection { background: hsl(var(--primary) / .18); }
+  h1, h2, h3, h4, h5, h6 { font-weight: 650; letter-spacing: -.03em; }
 }
 
-.doka-shell { isolation: isolate; }
+@layer utilities {
+  .fade-in { animation: fadeIn .24s ease-out; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .pulse-soft { animation: pulseSoft 2s cubic-bezier(.4, 0, .6, 1) infinite; }
+  @keyframes pulseSoft { 0%, 100% { opacity: 1; } 50% { opacity: .52; } }
+  .hover-lift { transition: transform .18s ease; }
+  .hover-lift:hover { transform: translateY(-2px); }
+}
+
+.doka-shell {
+  isolation: isolate;
+  min-height: 100svh;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+.doka-sidebar [data-sidebar=sidebar] {
+  background: #0b1424;
+  color: #dbe6f5;
+  border-right: 1px solid rgba(148, 163, 184, .13);
+}
+.doka-sidebar [data-sidebar=menu-button] {
+  min-height: 44px;
+  border-radius: 12px;
+  color: #9eafc6;
+  transition: background .16s ease, color .16s ease, transform .16s ease;
+}
+.doka-sidebar [data-sidebar=menu-button]:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, .07);
+}
+.doka-sidebar [data-sidebar=menu-button][data-active=true] {
+  color: #fff;
+  background: linear-gradient(100deg, rgba(14, 165, 233, .22), rgba(59, 130, 246, .12));
+  box-shadow: inset 2px 0 #38bdf8;
+}
+.doka-topbar {
+  background: color-mix(in srgb, white 90%, transparent);
+  border-bottom: 1px solid hsl(var(--border));
+  backdrop-filter: blur(18px);
+}
+.dark .doka-topbar { background: rgba(8, 13, 24, .9); border-color: rgba(148, 163, 184, .14); }
+.doka-panel {
+  border: 1px solid hsl(var(--border));
+  border-radius: 20px;
+  background: hsl(var(--card));
+  box-shadow: 0 2px 10px rgba(15, 23, 42, .025);
+}
+.dark .doka-panel { background: hsl(var(--card)); border-color: rgba(148, 163, 184, .14); box-shadow: none; }
+.doka-stat {
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  background: hsl(var(--card));
+  padding: 20px;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.doka-stat:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / .32);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .055);
+}
+.dark .doka-stat { background: hsl(var(--card)); border-color: rgba(148, 163, 184, .14); }
+.doka-eyebrow { font-size: 11px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
 .doka-hero {
   background:
-    radial-gradient(ellipse at 82% 8%, rgba(56, 189, 248, .23), transparent 34%),
-    radial-gradient(ellipse at 8% 100%, rgba(129, 140, 248, .2), transparent 42%),
-    linear-gradient(120deg, #111d35 0%, #172c50 52%, #1d3d68 100%);
+    radial-gradient(ellipse at 88% 8%, rgba(56, 189, 248, .22), transparent 28%),
+    radial-gradient(ellipse at 0% 100%, rgba(99, 102, 241, .2), transparent 38%),
+    linear-gradient(120deg, #0b1424 0%, #122747 62%, #173d63 100%);
 }
-.doka-stat-card {
-  border-radius: 1.25rem;
-  border-color: hsl(var(--border) / .72);
-  box-shadow: 0 2px 12px rgba(15, 23, 42, .035);
-  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+.doka-dashboard { display: flex; flex-direction: column; gap: 24px; }
+.doka-dashboard h1, .doka-dashboard h2, .doka-dashboard h3 { letter-spacing: -.035em; }
+.doka-table-row { border-bottom: 1px solid hsl(var(--border)); transition: background .15s ease; }
+.doka-table-row:last-child { border-bottom: 0; }
+.doka-table-row:hover { background: hsl(var(--background)); }
+.dark .doka-table-row { border-color: rgba(148, 163, 184, .12); }
+.dark .doka-table-row:hover { background: rgba(148, 163, 184, .05); }
+
+:where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: 10px;
 }
-.doka-stat-card:hover {
-  border-color: hsl(var(--primary) / .28);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, .07);
-  transform: translateY(-1px);
+:where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus-visible {
+  border-color: hsl(var(--ring));
+  outline: 3px solid hsl(var(--ring) / .14);
+  outline-offset: 0;
 }
-.doka-dashboard > section > .doka-stat-card { min-width: 0; }
+:where(table) { width: 100%; border-collapse: separate; border-spacing: 0; }
+:where(th) { color: hsl(var(--muted-foreground)); font-size: 11px; font-weight: 700; letter-spacing: .06em; }
+:where(td, th) { padding: .8rem 1rem; text-align: left; }
+:where(tbody tr + tr td) { border-top: 1px solid hsl(var(--border)); }
+:where(button, a, input, select, textarea) { transition-property: color, background-color, border-color, box-shadow, transform; transition-duration: 160ms; }
+:where(button:disabled, input:disabled, select:disabled) { cursor: not-allowed; opacity: .58; }
+
+@media (max-width: 640px) {
+  .doka-dashboard { gap: 18px; }
+  .doka-stat { padding: 16px; border-radius: 15px; }
+  .doka-panel { border-radius: 16px; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
@@ -208,33 +194,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+  .doka-stat, .doka-sidebar * { transition: none !important; }
 }
-
-/* Doka 2026 workspace system */
-:root { --doka-ink: 222 47% 11%; --doka-muted: 215 16% 47%; --doka-canvas: 220 33% 98%; --doka-line: 220 20% 91%; }
-body { background: hsl(var(--doka-canvas)); }
-.dark body { background: #080d18; }
-.doka-shell { min-height: 100svh; background: hsl(var(--doka-canvas)); color: hsl(var(--doka-ink)); }
-.dark .doka-shell { background: #080d18; color: #e5edf8; }
-.doka-sidebar [data-sidebar=sidebar] { background: #0b1424; color: #dbe6f5; border-right: 1px solid rgba(148,163,184,.13); }
-.doka-sidebar [data-sidebar=menu-button] { min-height: 44px; border-radius: 12px; color: #9eafc6; transition: background .16s ease,color .16s ease; }
-.doka-sidebar [data-sidebar=menu-button]:hover { color: #f8fafc; background: rgba(255,255,255,.07); }
-.doka-sidebar [data-sidebar=menu-button][data-active=true] { color: #fff; background: linear-gradient(100deg,rgba(14,165,233,.22),rgba(59,130,246,.12)); box-shadow: inset 2px 0 #38bdf8; }
-.doka-topbar { background: color-mix(in srgb, white 88%, transparent); border-bottom: 1px solid hsl(var(--doka-line)); backdrop-filter: blur(18px); }
-.dark .doka-topbar { background: rgba(8,13,24,.88); border-color: rgba(148,163,184,.14); }
-.doka-panel { border: 1px solid hsl(var(--doka-line)); border-radius: 18px; background: white; box-shadow: 0 2px 8px rgba(15,23,42,.025); }
-.dark .doka-panel { background: #101827; border-color: rgba(148,163,184,.14); box-shadow: none; }
-.doka-stat { border: 1px solid hsl(var(--doka-line)); border-radius: 18px; background: white; padding: 20px; transition: transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
-.doka-stat:hover { transform: translateY(-2px); border-color: #bfdbfe; box-shadow: 0 12px 28px rgba(15,23,42,.055); }
-.dark .doka-stat { background: #101827; border-color: rgba(148,163,184,.14); }
-.doka-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-.doka-hero { background: radial-gradient(ellipse at 88% 8%,rgba(56,189,248,.22),transparent 28%),radial-gradient(ellipse at 0% 100%,rgba(99,102,241,.2),transparent 38%),linear-gradient(120deg,#0b1424 0%,#122747 62%,#173d63 100%); }
-.doka-dashboard { display:flex; flex-direction:column; gap:24px; }
-.doka-dashboard h1,.doka-dashboard h2,.doka-dashboard h3 { letter-spacing:-.035em; }
-.doka-table-row { border-bottom:1px solid hsl(var(--doka-line)); transition:background .15s ease; }
-.doka-table-row:last-child { border-bottom:0; }
-.doka-table-row:hover { background: hsl(var(--doka-canvas)); }
-.dark .doka-table-row { border-color:rgba(148,163,184,.12); }
-.dark .doka-table-row:hover { background:rgba(148,163,184,.05); }
-@media(max-width:640px) { .doka-dashboard { gap:18px; } .doka-stat { padding:16px; border-radius:15px; } }
-@media(prefers-reduced-motion:reduce) { .doka-stat,.doka-sidebar * { transition:none!important; } }

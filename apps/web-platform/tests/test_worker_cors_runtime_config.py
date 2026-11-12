@@ -20,6 +20,13 @@ def test_preview_origin_regex_is_opt_in_and_disabled_in_production():
     assert r"^https://enterprise-ai-[a-z0-9-]+-logixaflow-9859\.vercel\.app$" in WORKER
 
 
+def test_production_cors_allowlist_includes_active_vercel_deployment():
+    assert (
+        "https://enterprise-ai-dkwhizd7q-logixaflow-9859.vercel.app"
+        in PRODUCTION_CONFIG
+    )
+
+
 def test_production_config_targets_production_supabase_and_d1():
     assert "jkobgssaqifzrqfirdfu.supabase.co" in PRODUCTION_CONFIG
     assert "4f3a294b-11ae-4ba7-903b-6f32539cebce" in PRODUCTION_CONFIG

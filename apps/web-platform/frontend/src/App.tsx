@@ -71,7 +71,7 @@ export default function App() {
           path="/login"
           element={isAuthenticated ? <Navigate to={isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard'} replace /> : <Login onLogin={async () => setUser(isLocalAuthEnabled() ? await getLocalCurrentUser() : await getCurrentUser())} />}
         />
-        <Route path="/admin/*" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
+        <Route path="/admin" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
           <Route path="dashboard" element={isLocalAuthEnabled() ? <Navigate to="/admin/workspace" replace /> : <PersonalDashboard />} />
           <Route path="workspace" element={<WorkspaceReview />} />
           <Route path="cloud-documents" element={isLocalAuthEnabled() ? <Navigate to="/admin/workspace" replace /> : <CloudDocuments />} />
@@ -82,7 +82,7 @@ export default function App() {
           <Route path="workflows" element={<WorkflowsPage />} />
           <Route path="permissions" element={<PermissionsPage />} />
           <Route path="audit" element={<AuditPage />} />
-          <Route path="" element={<Navigate to={isLocalAuthEnabled() ? 'workspace' : 'dashboard'} replace />} />
+          <Route index element={<Navigate to={isLocalAuthEnabled() ? 'workspace' : 'dashboard'} replace />} />
         </Route>
         <Route path="/" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />
         <Route path="*" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />
