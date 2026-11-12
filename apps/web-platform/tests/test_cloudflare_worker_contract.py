@@ -267,7 +267,7 @@ SECURITY_INTEGRITY_MIGRATION = (
 ).read_text(encoding="utf-8")
 
 
-def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_owner_scoped():
+def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_service_only():
     source = SECURITY_INTEGRITY_MIGRATION.lower()
     assert "revoke insert on table public.doka_audit_events from authenticated" in source
     assert "revoke insert on table public.doka_document_versions from authenticated" in source
@@ -330,7 +330,8 @@ def test_forward_migration_uses_service_only_audit_and_owner_checked_definer_rpc
     assert source.count("security definer") >= 5
     assert source.count("set search_path = pg_catalog, public, pg_temp") >= 5
     assert source.count("auth.uid()") >= 10
-    assert "to service_role" in source
+    audit_rpc = source.split("create or replace function public.doka_record_audit_event", 1)[1].split("-- bulk update", 1)[0]
+    assert "to service_role" in audit_rpc
+    assert "to authenticated" not in audit_rpc
     assert "p_object_key !~ ('^users/' || auth.uid()::text || '/documents/' || p_sha256" in source
     assert "chosen.object_key !~ ('^users/' || auth.uid()::text || '/documents/' || chosen.sha256" in source
-    assert "to service_role" not in source
