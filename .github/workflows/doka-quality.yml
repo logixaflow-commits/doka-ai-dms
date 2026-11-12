@@ -311,10 +311,8 @@ jobs:
           scripts/cloud_acceptance.py
           scripts/cloud_provider_acceptance.py
           scripts/cloudinary_derivative_acceptance.py
-          scripts/staging_test_auth.py
           scripts/release_gate_check.py
           apps/web-platform/tests/test_cloud_acceptance.py
-          apps/web-platform/tests/test_staging_test_auth.py
           apps/web-platform/tests/test_release_gate_check.py
       - name: Run cloud storage provider contracts
         run: |
@@ -347,7 +345,6 @@ jobs:
             apps/web-platform/tests/test_release_gate_check.py \
             apps/web-platform/tests/test_cloud_acceptance.py \
           apps/web-platform/backend/tests/test_cloudflare_supabase_upload_integrity.py \
-            apps/web-platform/tests/test_staging_test_auth.py \
             apps/web-platform/tests/test_d1_migrations.py
 
   symlink-security:
