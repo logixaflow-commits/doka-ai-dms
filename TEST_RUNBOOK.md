@@ -41,19 +41,29 @@ python apps/web-platform/backend/cloudflare_worker/bench_stream_hash.py
 
 Measured in the isolated Python 3.13.18 box: 1 MiB 0.089056s vs 0.000600s (148.52x); 10 MiB 0.890030s vs 0.005907s (150.67x); 100 MiB 8.902834s vs 0.058875s (151.22x). Environment-specific only; the script verifies identical digests.
 
-## Production security migration rollout
+## Production security migration rollout — completed 2026-11-12
 
-The forward migration removes direct authenticated INSERT on audit/version tables and installs owner-checked SECURITY DEFINER RPCs with a fixed `pg_catalog, public, pg_temp` search path. The audit RPC is executable only by `service_role`; the Production Worker must have `SUPABASE_SERVICE_ROLE_KEY` stored as an encrypted Cloudflare secret. Never expose it in browser variables, source, logs, or chat.
+The forward migration `doka_security_integrity_remediation` (ledger version `20261112051653`) was applied to Production project `Enterprise AI DMS` after the Production Worker deployment succeeded.
 
-1. Require all CI checks to pass on the exact PR head.
-2. Add `SUPABASE_SERVICE_ROLE_KEY` to the Production Worker as an encrypted secret, sourced directly from the Production Supabase API settings. Do not paste it into chat. Confirm the secret is present without printing its value.
-3. Deploy the reviewed Worker code first. If the audit RPC is not installed yet, the Worker uses a 404-only compatibility fallback to the existing audit INSERT path using the same trusted service-role credential. Other RPC errors do not trigger fallback.
-4. Apply `20261110090000_doka_security_integrity_remediation.sql` as a forward migration only after reviewing the SQL and confirming the Worker deployment is healthy.
-5. Verify the Worker can create an audit event through the service-role-only RPC. Confirm the RPC rejects nonexistent/mismatched document-owner pairs. Verify bulk status/trash, version replacement, and version restore succeed for the owner and reject cross-owner document/version IDs.
-6. Confirm direct authenticated INSERT on `doka_audit_events` and `doka_document_versions` is denied after migration. If the audit RPC is missing from the PostgREST schema cache, the legacy INSERT fallback will fail closed after privileges are revoked; refresh the schema cache rather than broadening grants.
-7. Keep a forward-repair plan. Do not restore direct authenticated INSERT or broaden protected column UPDATE grants as a rollback.
+### Release verification
+1. PR #140 was merged to `main` as commit `62c5a4b9f8146b851417db10dfb74d03b2c7a157`. Production CI, Doka Quality Checks, CodeQL language analysis, Dependency Review, and Vercel production smoke check completed successfully. CodeQL's separate PR configuration notice was neutral, not a failing code analysis.
+2. `SUPABASE_SERVICE_ROLE_KEY` is present as an encrypted secret in the Production Worker. Its value is never exposed to browser code, source, logs, or chat.
+3. Cloudflare Worker Production Deploy completed successfully. The Python Worker dry-run build, deploy, health check, single-user readiness, Telegram bot identity, and webhook registration/verification all passed.
+4. Migration `doka_security_integrity_remediation` was applied only after the Worker deploy passed.
+5. Post-migration SQL verification confirmed:
+   - RLS remains enabled on `doka_audit_events`, `doka_document_versions`, and `doka_documents`.
+   - Authenticated direct INSERT is denied on audit and version tables.
+   - Authenticated execution of `doka_record_audit_event` is denied; `service_role` execution is granted.
+   - The bulk/status/trash and version replace/restore RPCs are SECURITY DEFINER, use a fixed search path, and contain explicit `auth.uid()` owner checks.
+6. The Production database currently has no active document row, so a real owner-vs-cross-owner document operation could not be exercised. Do not claim full live document E2E acceptance until a disposable, approved test document and second owner identity are available.
+7. Do not restore direct authenticated INSERT or broaden protected column UPDATE grants as a rollback. Use a forward repair migration if needed.
 
-Do not deploy or apply the migration if CI is failing, the Worker deployment cannot be verified, or the owner/cross-owner RPC checks cannot be performed.
+### Remaining production acceptance gates
+- B2 5 GiB+ live provider acceptance remains unrun; use a disposable bucket/identity, explicit cost cap, and verified cleanup plan before running it.
+- Storage MIME allowlist remains unset pending an inventory of supported upload types and upload paths.
+- CSP remains report-only pending browser violation collection.
+- OCR and live Telegram document-query/account-linking commands remain incomplete/gated.
+- Supabase Security Advisor reports four intentional SECURITY DEFINER warnings for authenticated owner-checked RPCs; review their function bodies and fixed search paths before changing their grants. Leaked-password protection remains disabled per the user's Free-plan constraint.
 
 ## Multipart integrity
 
