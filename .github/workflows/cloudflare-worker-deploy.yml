@@ -128,3 +128,13 @@ jobs:
           )
           print("Production Worker health and single-user readiness checks passed.")
           PY
+
+      - name: Remove ephemeral Telegram webhook registration credential
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error --request DELETE \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/doka-ai-dms/secrets/TELEGRAM_WEBHOOK_ADMIN_SECRET")"
+          printf '%s' "$response" | python -c 'import json,sys; d=json.load(sys.stdin); assert d.get("success") is True, d.get("errors")'
