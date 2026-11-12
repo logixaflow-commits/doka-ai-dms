@@ -275,8 +275,9 @@ def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_owner_scop
     assert "revoke all on function public.doka_record_audit_event" in source
     assert "from public, anon, authenticated, service_role" in source
     assert "grant execute on function public.doka_record_audit_event" in source
-    assert "to authenticated" in source
-    assert "p_owner_id is distinct from auth.uid()" in source
+    assert "to service_role" in source
+    assert "p_owner_id is null" in source
+    assert "owner_id = p_owner_id" in source
 
 
 def test_version_rpcs_keep_atomic_database_boundary_and_direct_insert_is_removed():
@@ -287,15 +288,16 @@ def test_version_rpcs_keep_atomic_database_boundary_and_direct_insert_is_removed
     assert "grant execute on function public.doka_restore_document_version" in source
 
 
-def test_worker_audit_fails_closed_uses_owner_jwt_rpc_and_retries_with_structured_logs():
+def test_worker_audit_fails_closed_uses_service_role_rpc_and_retries_with_structured_logs():
     audit_block = WORKER_SOURCE.split("async def _audit", 1)[1].split('@app.post("/api/documents")', 1)[0]
     assert "rest/v1/rpc/doka_record_audit_event" in WORKER_SOURCE
-    assert '_token_from_request(request)' in audit_block
-    assert 'headers=_supabase_headers(request, token, "application/json")' in audit_block
+    assert 'service_key = _env(request, "SUPABASE_SERVICE_ROLE_KEY").strip()' in audit_block
+    assert '"Authorization": f"Bearer {service_key}"' in audit_block
+    assert '"apikey": service_key' in audit_block
     assert 'if status == 404:' in audit_block
     assert '/rest/v1/doka_audit_events' in audit_block
     assert '"audit_legacy_insert_fallback"' in audit_block
-    assert 'SUPABASE_SERVICE_ROLE_KEY' not in WORKER_SOURCE
+    assert 'SUPABASE_SERVICE_ROLE_KEY' in WORKER_SOURCE
     assert "AUDIT_MAX_ATTEMPTS = 3" in WORKER_SOURCE
     assert '"audit_write_retry"' in WORKER_SOURCE
     assert '"audit_write_failed"' in WORKER_SOURCE
@@ -323,12 +325,12 @@ def test_worker_telegram_commands_require_an_allowlisted_sender_id():
     assert 'if not _telegram_sender_allowed(sender_id):' in WORKER_SOURCE
     assert '"reason": "unauthorized_sender"' in WORKER_SOURCE
 
-def test_forward_migration_uses_owner_checked_definer_rpcs_and_sha_bound_keys():
+def test_forward_migration_uses_service_only_audit_and_owner_checked_definer_rpcs():
     source = SECURITY_INTEGRITY_MIGRATION.lower()
     assert source.count("security definer") >= 5
     assert source.count("set search_path = pg_catalog, public, pg_temp") >= 5
     assert source.count("auth.uid()") >= 10
-    assert "p_owner_id is distinct from auth.uid()" in source
+    assert "to service_role" in source
     assert "p_object_key !~ ('^users/' || auth.uid()::text || '/documents/' || p_sha256" in source
     assert "chosen.object_key !~ ('^users/' || auth.uid()::text || '/documents/' || chosen.sha256" in source
     assert "to service_role" not in source
