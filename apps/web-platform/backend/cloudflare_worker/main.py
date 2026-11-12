@@ -743,14 +743,18 @@ AUDIT_MAX_ATTEMPTS = 3
 
 
 async def _audit(request, user_id: str, action: str, document_id: str | None = None, filename: str | None = None, metadata: dict | None = None) -> None:
-    """Write audit events through an owner-checked RPC using the caller's JWT.
+    """Write security audit events through a service-role-only database RPC.
 
-    The database function verifies auth.uid() == p_owner_id and runs with a
-    fixed search_path. No service-role credential is required in the Worker.
+    The privileged credential is scoped to this Worker and never sent to the
+    browser. The database RPC validates the owner/document relationship.
     """
-    token = _token_from_request(request)
-    if not token:
-        raise HTTPException(status_code=401, detail="Authentication required for audit recording.")
+    service_key = _env(request, "SUPABASE_SERVICE_ROLE_KEY").strip()
+    if not service_key:
+        logger.error(
+            "audit_write_failed",
+            extra={"action": action, "document_id": document_id, "reason": "service_role_missing"},
+        )
+        raise HTTPException(status_code=503, detail="Audit service is not configured.")
 
     payload = {
         "p_owner_id": user_id,
@@ -758,6 +762,11 @@ async def _audit(request, user_id: str, action: str, document_id: str | None = N
         "p_document_id": document_id,
         "p_filename": filename,
         "p_metadata": metadata or {},
+    }
+    trusted_headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
     }
     last_status = None
     last_error = None
@@ -767,24 +776,21 @@ async def _audit(request, user_id: str, action: str, document_id: str | None = N
                 request,
                 f"{_base(request)}/rest/v1/rpc/doka_record_audit_event",
                 method="POST",
-                headers=_supabase_headers(request, token, "application/json"),
+                headers=trusted_headers,
                 body=json.dumps(payload),
             )
             last_status = status
             if 200 <= status < 300:
                 return
             if status == 404:
-                # Backward-compatible rollout bridge: before the forward migration
-                # exists, the current owner-scoped RLS INSERT policy remains active.
-                # Once the RPC exists, all audit writes use the owner-checked RPC.
+                # Rollout bridge only: before the forward migration installs the
+                # RPC, service_role can still append directly. After migration,
+                # the RPC exists and all writes use that narrow function surface.
                 legacy_status, _ = await _fetch(
                     request,
                     f"{_base(request)}/rest/v1/doka_audit_events",
                     method="POST",
-                    headers={
-                        **_supabase_headers(request, token, "application/json"),
-                        "Prefer": "return=minimal",
-                    },
+                    headers={**trusted_headers, "Prefer": "return=minimal"},
                     body=json.dumps({
                         "owner_id": user_id,
                         "action": action,
