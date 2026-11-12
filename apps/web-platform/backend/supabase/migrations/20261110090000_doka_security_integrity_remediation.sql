@@ -77,8 +77,7 @@ BEGIN
 
   SELECT count(*) INTO matched_count
   FROM public.doka_documents
-  WHERE id = ANY(p_document_ids) AND owner_id = auth.uid() AND deleted_at IS NULL
-  FOR UPDATE;
+  WHERE id = ANY(p_document_ids) AND owner_id = auth.uid() AND deleted_at IS NULL;
   IF matched_count <> cardinality(p_document_ids) THEN
     RAISE EXCEPTION 'One or more documents are unavailable' USING errcode = 'P0002';
   END IF;
@@ -182,7 +181,7 @@ BEGIN
      OR position('/' in p_filename) > 0 OR position(chr(92) in p_filename) > 0
      OR p_content_type IS NULL OR btrim(p_content_type) = '' OR length(p_content_type) > 255
      OR position('/' in p_content_type) = 0
-     OR p_storage_provider NOT IN ('supabase','b2')
+     OR p_storage_provider IS NULL OR p_storage_provider NOT IN ('supabase','b2')
      OR (p_storage_region IS NOT NULL AND length(p_storage_region) > 128) THEN
     RAISE EXCEPTION 'Invalid version object metadata' USING errcode = '22023';
   END IF;
