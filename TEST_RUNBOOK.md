@@ -43,14 +43,15 @@ Measured in the isolated Python 3.13.18 box: 1 MiB 0.089056s vs 0.000600s (148.5
 
 ## Production security migration rollout
 
-The forward migration removes direct authenticated INSERT on audit/version tables and installs owner-checked SECURITY DEFINER RPCs with a fixed `pg_catalog, public, pg_temp` search path. The Worker audit call uses the caller's verified Supabase JWT; no service-role key is required.
+The forward migration removes direct authenticated INSERT on audit/version tables and installs owner-checked SECURITY DEFINER RPCs with a fixed `pg_catalog, public, pg_temp` search path. The audit RPC is executable only by `service_role`; the Production Worker must have `SUPABASE_SERVICE_ROLE_KEY` stored as an encrypted Cloudflare secret. Never expose it in browser variables, source, logs, or chat.
 
 1. Require all CI checks to pass on the exact PR head.
-2. Deploy the reviewed Worker code first. If the audit RPC is not installed yet, the Worker uses a 404-only compatibility fallback to the existing owner-scoped audit INSERT policy. Other RPC errors do not trigger fallback.
-3. Apply `20261110090000_doka_security_integrity_remediation.sql` as a forward migration only after reviewing the SQL and confirming the Worker deployment is healthy.
-4. Verify an authenticated owner can create an audit event, and a mismatched owner ID is denied. Verify bulk status/trash, version replacement, and version restore succeed for the owner and reject cross-owner document/version IDs.
-5. Confirm direct authenticated INSERT on `doka_audit_events` and `doka_document_versions` is denied after migration. If the audit RPC is missing from the PostgREST schema cache, the legacy INSERT fallback will fail closed after privileges are revoked; refresh the schema cache rather than broadening grants.
-6. Keep a forward-repair plan. Do not restore direct authenticated INSERT or broaden protected column UPDATE grants as a rollback.
+2. Add `SUPABASE_SERVICE_ROLE_KEY` to the Production Worker as an encrypted secret, sourced directly from the Production Supabase API settings. Do not paste it into chat. Confirm the secret is present without printing its value.
+3. Deploy the reviewed Worker code first. If the audit RPC is not installed yet, the Worker uses a 404-only compatibility fallback to the existing audit INSERT path using the same trusted service-role credential. Other RPC errors do not trigger fallback.
+4. Apply `20261110090000_doka_security_integrity_remediation.sql` as a forward migration only after reviewing the SQL and confirming the Worker deployment is healthy.
+5. Verify the Worker can create an audit event through the service-role-only RPC. Confirm the RPC rejects nonexistent/mismatched document-owner pairs. Verify bulk status/trash, version replacement, and version restore succeed for the owner and reject cross-owner document/version IDs.
+6. Confirm direct authenticated INSERT on `doka_audit_events` and `doka_document_versions` is denied after migration. If the audit RPC is missing from the PostgREST schema cache, the legacy INSERT fallback will fail closed after privileges are revoked; refresh the schema cache rather than broadening grants.
+7. Keep a forward-repair plan. Do not restore direct authenticated INSERT or broaden protected column UPDATE grants as a rollback.
 
 Do not deploy or apply the migration if CI is failing, the Worker deployment cannot be verified, or the owner/cross-owner RPC checks cannot be performed.
 
