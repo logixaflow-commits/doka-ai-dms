@@ -210,7 +210,7 @@ def test_supabase_storage_boundary_probes_anonymous_and_cross_user_access():
         return httpx.Response(403, json={"message": "row/object access denied"})
 
     DOKA_CLOUD_ACCEPTANCE._assert_supabase_storage_boundary(
-        project_url="https://staging.supabase.example",
+        project_url="https://doka-test.supabase.example",
         publishable_key="public-test-key",
         other_token="user-b-token",
         object_key="users/user-a/documents/abc123/acceptance.txt",
@@ -234,7 +234,7 @@ def test_supabase_storage_boundary_fails_if_anonymous_access_succeeds():
 
     with pytest.raises(AssertionError, match="anonymous Storage list"):
         DOKA_CLOUD_ACCEPTANCE._assert_supabase_storage_boundary(
-            project_url="https://staging.supabase.example",
+            project_url="https://doka-test.supabase.example",
             publishable_key="public-test-key",
             other_token="user-b-token",
             object_key="users/user-a/documents/abc123/acceptance.txt",
@@ -257,7 +257,7 @@ def test_sensitive_rpc_probes_use_user_b_and_fail_closed_on_missing_rpc():
         return httpx.Response(404, json={"code": "P0002", "message": "Document not found"})
 
     DOKA_CLOUD_ACCEPTANCE._assert_rpc_owner_checks(
-        project_url="https://staging.supabase.example",
+        project_url="https://doka-test.supabase.example",
         publishable_key="public-test-key",
         other_token=token,
         owner_document_id="owner-a-document-uuid",
@@ -291,7 +291,7 @@ def test_sensitive_rpc_probes_reject_missing_function_false_positive():
 
     with pytest.raises(AssertionError, match="required RPC function is missing"):
         DOKA_CLOUD_ACCEPTANCE._assert_rpc_owner_checks(
-            project_url="https://staging.supabase.example",
+            project_url="https://doka-test.supabase.example",
             publishable_key="public-test-key",
             other_token=token,
             owner_document_id="owner-a-document-uuid",
