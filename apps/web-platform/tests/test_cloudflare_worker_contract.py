@@ -325,6 +325,8 @@ def test_worker_telegram_commands_require_an_allowlisted_sender_id():
     assert 'if not _telegram_sender_allowed(request, sender_id):' in WORKER_SOURCE
     assert "1686310706" not in WORKER_SOURCE and "6759217947" not in WORKER_SOURCE
     assert '"reason": "unauthorized_sender"' in WORKER_SOURCE
+    assert "telegram_sender_allowlist_ready" in WORKER_SOURCE
+    assert "and telegram_sender_allowlist_ready" in WORKER_SOURCE
 
 def test_forward_migration_uses_service_only_audit_and_owner_checked_definer_rpcs():
     source = SECURITY_INTEGRITY_MIGRATION.lower()
