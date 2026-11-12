@@ -36,9 +36,59 @@ bearer = HTTPBearer(auto_error=False)
 app = FastAPI(title="Doka Cloud API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 logger = logging.getLogger("doka.telegram")
 
+CSP_POLICY = ("default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+              "form-action 'self'; script-src 'self'; style-src 'self'; "
+              "img-src 'self' data: blob: https:; font-src 'self' data:; "
+              "connect-src 'self' https: wss:; worker-src 'self' blob:; "
+              "manifest-src 'self'; upgrade-insecure-requests; report-uri /api/security/csp-report")
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    # Keep CSP report-only until owner approval and SPA compatibility testing.
+    response.headers["Content-Security-Policy-Report-Only"] = CSP_POLICY
+    return response
+
+
+@app.post("/api/security/csp-report")
+async def csp_violation_report(request: Request):
+    raw = await request.body()
+    if len(raw) > 16 * 1024:
+        raise HTTPException(status_code=413, detail="CSP report is too large.")
+    if not raw:
+        return {"accepted": True}
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid CSP report.") from exc
+    if not isinstance(payload, (dict, list)):
+        raise HTTPException(status_code=400, detail="Invalid CSP report.")
+    logger.info("csp_violation_report_received", extra={"report_type": type(payload).__name__})
+    return {"accepted": True}
+
 # This deployment is intentionally pinned to the single authorized Telegram forum topic.
 TELEGRAM_ALLOWED_CHAT_ID = "-1003992125718"
 TELEGRAM_ALLOWED_TOPIC_ID = 8
+
+
+def _telegram_sender_allowed(request, sender_id) -> bool:
+    """Fail closed unless the sender is present in the encrypted Worker allowlist."""
+    if sender_id is None or isinstance(sender_id, bool):
+        return False
+    raw_allowlist = _env(request, "TELEGRAM_ALLOWED_USER_IDS").strip()
+    allowed = {
+        item.strip()
+        for item in raw_allowlist.split(",")
+        if item.strip().isdigit()
+    }
+    value = str(sender_id).strip()
+    return bool(allowed) and value.isdigit() and value in allowed
 
 
 def _env(request, name: str, default: str = "") -> str:
@@ -200,6 +250,7 @@ async def _fetch(
     return_headers: bool = False,
     return_sha256: bool = False,
     max_bytes: int = 50 * 1024 * 1024,
+    part_size_bytes: int | None = None,
 ):
     options = {"method": method, "headers": to_js(headers or {}, dict_converter=Object.fromEntries)}
     if body is not None:
@@ -213,7 +264,7 @@ async def _fetch(
         if content_length is not None and int(content_length) > max_bytes:
             raise ValueError("Binary response exceeds the configured verification limit")
         reader = response.body.getReader()
-        return int(response.status), await hash_response_stream(reader, max_bytes)
+        return int(response.status), await hash_response_stream(reader, max_bytes, part_size_bytes)
     if return_headers:
         header_names = ("content-length", "content-type", "etag", "x-amz-meta-sha256", "location")
         result_headers = {}
@@ -344,6 +395,11 @@ async def telegram_webhook(request: Request):
     if not _telegram_context_allowed(request, chat.get("id"), topic_id):
         return {"ok": True, "status": "ignored", "reason": "outside_configured_topic"}
 
+    sender = message.get("from")
+    sender_id = sender.get("id") if isinstance(sender, dict) else None
+    if not _telegram_sender_allowed(request, sender_id):
+        return {"ok": True, "status": "ignored", "reason": "unauthorized_sender"}
+
     text = message.get("text")
     if not isinstance(text, str):
         return {"ok": True, "status": "ignored"}
@@ -369,8 +425,13 @@ async def telegram_webhook(request: Request):
             _env(request, "TELEGRAM_CHAT_ID").strip() == TELEGRAM_ALLOWED_CHAT_ID
             and TELEGRAM_ALLOWED_TOPIC_ID == 8
         )
-        telegram_webhook_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready and bool(
-            _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
+        telegram_sender_allowlist_ready = bool(_env(request, "TELEGRAM_ALLOWED_USER_IDS").strip())
+        telegram_webhook_ready = (
+            telegram_enabled
+            and telegram_token_ready
+            and telegram_topic_ready
+            and telegram_sender_allowlist_ready
+            and bool(_env(request, "TELEGRAM_WEBHOOK_SECRET").strip())
         )
         telegram_outbound_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready
         bot_identity = await _telegram_bot_identity(request)
@@ -387,6 +448,7 @@ async def telegram_webhook(request: Request):
             f"• Supabase configuration: {'configured' if supabase_ready else 'missing'}\n"
             f"• Storage bucket configuration: {'configured' if bucket_ready else 'missing'}\n"
             f"• Telegram target topic: {'configured' if telegram_topic_ready else 'missing'}\n"
+            f"• Telegram sender allowlist: {'configured' if telegram_sender_allowlist_ready else 'missing'}\n"
             f"• Telegram outbound: {'ready' if telegram_outbound_ready else 'not configured'}\n"
             f"• Telegram Bot API: {bot_api_status}\n"
             f"• Telegram inbound webhook: {'ready' if telegram_webhook_ready else 'not configured'}\n"
@@ -552,6 +614,7 @@ def _storage_fetcher(request):
         return_headers: bool = False,
         return_sha256: bool = False,
         max_bytes: int = 50 * 1024 * 1024,
+        part_size_bytes: int | None = None,
     ):
         status, payload = await _fetch(
             request,
@@ -562,6 +625,7 @@ def _storage_fetcher(request):
             return_headers=return_headers,
             return_sha256=return_sha256,
             max_bytes=max_bytes,
+            part_size_bytes=part_size_bytes,
         )
         return status, payload
     return fetcher
@@ -686,27 +750,99 @@ async def _check_b2_quota(request: Request, user_id: str, requested_bytes: int) 
     }
 
 
+AUDIT_MAX_ATTEMPTS = 3
+
+
 async def _audit(request, user_id: str, action: str, document_id: str | None = None, filename: str | None = None, metadata: dict | None = None) -> None:
-    """Best-effort owner-scoped audit event; never breaks the primary document action."""
-    try:
-        base = _base(request)
-        token = _token_from_request(request)
-        payload = {
-            "owner_id": user_id,
-            "document_id": document_id,
-            "action": action,
-            "filename": filename,
-            "metadata": metadata or {},
-        }
-        await _fetch(
-            request,
-            f"{base}/rest/v1/doka_audit_events",
-            method="POST",
-            headers={**_supabase_headers(request, token, "application/json"), "Prefer": "return=minimal"},
-            body=json.dumps(payload),
+    """Write security audit events through a service-role-only database RPC.
+
+    The privileged credential is scoped to this Worker and never sent to the
+    browser. The database RPC validates the owner/document relationship.
+    """
+    service_key = _env(request, "SUPABASE_SERVICE_ROLE_KEY").strip()
+    if not service_key:
+        logger.error(
+            "audit_write_failed",
+            extra={"action": action, "document_id": document_id, "reason": "service_role_missing"},
         )
-    except Exception:
-        pass
+        raise HTTPException(status_code=503, detail="Audit service is not configured.")
+
+    payload = {
+        "p_owner_id": user_id,
+        "p_action": action,
+        "p_document_id": document_id,
+        "p_filename": filename,
+        "p_metadata": metadata or {},
+    }
+    trusted_headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+    }
+    last_status = None
+    last_error = None
+    for attempt in range(1, AUDIT_MAX_ATTEMPTS + 1):
+        try:
+            status, _ = await _fetch(
+                request,
+                f"{_base(request)}/rest/v1/rpc/doka_record_audit_event",
+                method="POST",
+                headers=trusted_headers,
+                body=json.dumps(payload),
+            )
+            last_status = status
+            if 200 <= status < 300:
+                return
+            if status == 404:
+                # Rollout bridge only: before the forward migration installs the
+                # RPC, service_role can still append directly. After migration,
+                # the RPC exists and all writes use that narrow function surface.
+                legacy_status, _ = await _fetch(
+                    request,
+                    f"{_base(request)}/rest/v1/doka_audit_events",
+                    method="POST",
+                    headers={**trusted_headers, "Prefer": "return=minimal"},
+                    body=json.dumps({
+                        "owner_id": user_id,
+                        "action": action,
+                        "document_id": document_id,
+                        "filename": filename,
+                        "metadata": metadata or {},
+                    }),
+                )
+                last_status = legacy_status
+                if 200 <= legacy_status < 300:
+                    logger.warning("audit_legacy_insert_fallback", extra={"action": action})
+                    return
+                last_error = f"legacy_http_{legacy_status}"
+            else:
+                last_error = f"http_{status}"
+        except Exception as exc:  # noqa: BLE001 - converted to a fail-closed API error below
+            last_error = type(exc).__name__
+
+        logger.warning(
+            "audit_write_retry",
+            extra={
+                "action": action,
+                "document_id": document_id,
+                "attempt": attempt,
+                "max_attempts": AUDIT_MAX_ATTEMPTS,
+                "status": last_status,
+                "error": last_error,
+            },
+        )
+
+    logger.error(
+        "audit_write_failed",
+        extra={
+            "action": action,
+            "document_id": document_id,
+            "attempts": AUDIT_MAX_ATTEMPTS,
+            "status": last_status,
+            "error": last_error,
+        },
+    )
+    raise HTTPException(status_code=503, detail="Security audit recording failed; operation was not acknowledged.")
 
 
 @app.post("/api/documents")
@@ -751,6 +887,7 @@ async def initiate_storage_multipart(
     router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
     if router.b2 is None:
         raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+    await _check_b2_quota(request, user_id, metadata.size_bytes)
     upload = await router.b2.initiateMultipartUpload(metadata)
     signed_payload = {
         "owner_id": user_id,
@@ -780,6 +917,7 @@ class MultipartPartRequest(BaseModel):
     session_id: str = Field(min_length=20, max_length=4096)
     part_number: int = Field(ge=1, le=10000)
     checksum: str = Field(min_length=64, max_length=64)
+    content_md5: str = Field(min_length=32, max_length=32)
 
 
 @app.post("/api/storage/multipart/part")
@@ -802,11 +940,15 @@ async def sign_storage_multipart_part(
         object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
         part_size_bytes=int(signed["part_size_bytes"]),
         expires_at=int(signed["expires_at"]),
+        expected_size_bytes=int(signed["size_bytes"]),
+        expected_sha256=str(signed["sha256"]).lower(),
+        content_type=str(signed["content_type"]),
     )
-    receipt = await router.b2.uploadPart(upload, payload.part_number, payload.checksum)
+    receipt = await router.b2.uploadPart(upload, payload.part_number, payload.checksum, payload.content_md5)
     return {
         "part_number": receipt.part_number,
         "checksum": receipt.checksum,
+        "content_md5": receipt.content_md5,
         "upload": {
             "method": receipt.signed_request.method,
             "url": receipt.signed_request.url,
@@ -818,8 +960,9 @@ async def sign_storage_multipart_part(
 
 class MultipartCompletePart(BaseModel):
     part_number: int = Field(ge=1, le=10000)
-    etag: str = Field(min_length=1, max_length=1024)
+    etag: str = Field(min_length=1, max_length=128)
     checksum: str = Field(min_length=64, max_length=64)
+    content_md5: str = Field(min_length=32, max_length=32)
 
 
 class MultipartCompleteRequest(BaseModel):
@@ -851,8 +994,14 @@ async def complete_storage_multipart(
         object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
         part_size_bytes=int(signed["part_size_bytes"]),
         expires_at=int(signed["expires_at"]),
+        expected_size_bytes=int(signed["size_bytes"]),
+        expected_sha256=str(signed["sha256"]).lower(),
+        content_type=str(signed["content_type"]),
     )
-    receipts = [B2PartReceipt(p.part_number, p.etag, p.checksum.lower(), SignedUpload("PUT", "", {}, {})) for p in payload.parts]
+    receipts = [
+        B2PartReceipt(p.part_number, p.etag, p.checksum.lower(), p.content_md5.lower(), SignedUpload("PUT", "", {}, {}))
+        for p in payload.parts
+    ]
     try:
         stored = await router.b2.completeMultipartUpload(upload, receipts)
     except (RuntimeError, ValueError) as exc:
@@ -889,6 +1038,35 @@ async def complete_storage_multipart(
     return {"document": rows[0], "warnings": []}
 
 
+
+
+@app.post("/api/storage/multipart/abort")
+async def abort_storage_multipart(
+    request: Request,
+    payload: dict,
+    user_id: str = Depends(require_user),
+):
+    session_id = str(payload.get("session_id") or "")
+    try:
+        signed = verify_session(_storage_session_secret(request), session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid request.") from exc
+    if signed.get("owner_id") != user_id or signed.get("provider") != "b2":
+        raise HTTPException(status_code=403, detail="Multipart session is not valid for this user.")
+    router = build_storage_router(request, _token_from_request(request), _storage_fetcher)
+    if router.b2 is None:
+        raise HTTPException(status_code=503, detail="B2 storage is not configured.")
+    upload = MultipartUpload(
+        upload_id=str(signed["upload_id"]),
+        object_ref=StorageObjectRef("b2", str(signed["object_key"]), user_id),
+        part_size_bytes=int(signed["part_size_bytes"]),
+        expires_at=int(signed["expires_at"]),
+        expected_size_bytes=int(signed["size_bytes"]),
+        expected_sha256=str(signed["sha256"]).lower(),
+        content_type=str(signed["content_type"]),
+    )
+    await router.b2.abortMultipartUpload(upload)
+    return {"aborted": True}
 
 
 @app.post("/api/documents/{document_id}/export/google-drive/upload-session")

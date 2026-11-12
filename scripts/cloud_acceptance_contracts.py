@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Authenticated Cloud release acceptance runner.
-
-Uses the staging direct-upload session contract; file bytes never pass
-through the Cloudflare Worker. Requires two pre-created Supabase users and
-access tokens. Evidence is privacy-safe and never records tokens or emails.
-"""
+"""Reusable cloud acceptance contract helpers for isolated automated tests."""
 from __future__ import annotations
 
 import argparse
@@ -20,28 +15,6 @@ import httpx
 
 
 MAX_SOURCE_BYTES = 50 * 1024 * 1024
-STAGING_WORKER_HOST = "doka-ai-dms-staging.logixaflow.workers.dev"
-
-
-def _require(name: str) -> str:
-    value = os.getenv(name, "").strip()
-    if not value:
-        raise SystemExit(f"Missing required environment variable: {name}")
-    return value
-
-
-def _assert_staging_base_url(base_url: str) -> None:
-    """Require the exact dedicated staging Worker before any acceptance request."""
-    parsed = urlparse(base_url)
-    host = (parsed.hostname or "").lower().rstrip(".")
-    if parsed.scheme != "https" or not host:
-        raise SystemExit("DOKA_CLOUD_BASE_URL must be an absolute HTTPS URL")
-    if host != STAGING_WORKER_HOST:
-        raise SystemExit(
-            "Refusing cloud acceptance unless the exact dedicated staging Worker is configured."
-        )
-
-
 def _auth(client: httpx.Client, token: str, path: str, *, method: str = "GET", **kwargs):
     headers = dict(kwargs.pop("headers", {}))
     headers["Authorization"] = f"Bearer {token}"
@@ -180,20 +153,20 @@ def _assert_cross_user_mutations_denied(
 
 
 def _jwt_subject(token: str) -> str:
-    """Read the subject claim from the already-authenticated staging JWT."""
+    """Read the subject claim from the already-authenticated authenticated JWT."""
     import base64
 
     parts = token.split(".")
     if len(parts) != 3:
-        raise AssertionError("staging access token is not a JWT")
+        raise AssertionError("authenticated access token is not a JWT")
     try:
         payload = parts[1] + "=" * (-len(parts[1]) % 4)
         claims = json.loads(base64.urlsafe_b64decode(payload.encode("ascii")))
     except (ValueError, UnicodeError, json.JSONDecodeError) as exc:
-        raise AssertionError("staging access token claims could not be decoded") from exc
+        raise AssertionError("authenticated access token claims could not be decoded") from exc
     subject = claims.get("sub") if isinstance(claims, dict) else None
     if not isinstance(subject, str) or not subject:
-        raise AssertionError("staging access token has no subject claim")
+        raise AssertionError("authenticated access token has no subject claim")
     return subject
 
 
@@ -320,212 +293,3 @@ def _trash_and_permanently_delete(client: httpx.Client, token: str, document_id:
     if deleted.json().get("deleted") is not True:
         raise AssertionError("permanent cleanup was not confirmed")
 
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--base-url", default=os.getenv("DOKA_CLOUD_BASE_URL", "").strip())
-    parser.add_argument("--output", required=True)
-    parser.add_argument(
-        "--fifty-mib-file",
-        default=os.getenv("DOKA_CLOUD_50MIB_FILE", "").strip(),
-        help="Optional exact 50 MiB fixture used for the 50 MiB acceptance boundary.",
-    )
-    parser.add_argument(
-        "--require-provider",
-        choices=("supabase", "b2"),
-        default=None,
-        help="Require the upload session to select this provider; also accepts DOKA_CLOUD_EXPECTED_PROVIDER.",
-    )
-    args = parser.parse_args()
-    expected_provider = args.require_provider or os.getenv("DOKA_CLOUD_EXPECTED_PROVIDER", "").strip().lower() or None
-    if expected_provider not in {None, "supabase", "b2"}:
-        raise SystemExit("DOKA_CLOUD_EXPECTED_PROVIDER must be 'supabase' or 'b2'")
-
-    base_url = (args.base_url or _require("DOKA_CLOUD_BASE_URL")).rstrip("/")
-    _assert_staging_base_url(base_url)
-    user_a = _require("DOKA_CLOUD_USER_A_TOKEN")
-    user_b = _require("DOKA_CLOUD_USER_B_TOKEN")
-    if user_a == user_b:
-        raise SystemExit("DOKA_CLOUD_USER_A_TOKEN and DOKA_CLOUD_USER_B_TOKEN must differ.")
-
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    evidence: dict[str, object] = {
-        "schema_version": 2,
-        "privacy": {"tokens_recorded": False, "emails_recorded": False},
-        "base_url_recorded": False,
-        "expected_storage_provider": expected_provider or "any_supported",
-        "selected_storage_providers": [],
-        "checks": {},
-    }
-    payload = b"Doka cloud acceptance fixture\n"
-    filename = "gate9-acceptance.txt"
-    digest = hashlib.sha256(payload).hexdigest()
-    started = time.monotonic()
-    created_document_ids: list[str] = []
-
-    try:
-        with httpx.Client(base_url=base_url, timeout=90.0, follow_redirects=False) as client:
-            health = client.get("/health")
-            _assert_status(health, 200, "cloud health")
-            evidence["checks"]["health"] = True
-
-            list_a = _auth(client, user_a, "/api/documents")
-            _assert_status(list_a, 200, "user A document list")
-            evidence["checks"]["user_a_list"] = True
-
-            document = _upload_document(
-                client, user_a, payload, filename, "text/plain", expected_provider=expected_provider
-            )
-            selected_provider = str(document.pop("_acceptance_provider"))
-            evidence["selected_storage_providers"].append(selected_provider)
-            document_id = str(document["id"])
-            created_document_ids.append(document_id)
-            evidence["checks"]["user_a_upload"] = True
-            evidence["checks"]["upload_integrity"] = True
-
-            patch = _auth(
-                client,
-                user_a,
-                f"/api/documents/{document_id}",
-                method="PATCH",
-                json={"status": "review", "metadata": {"acceptance": True}},
-            )
-            _assert_status(patch, 200, "user A metadata update")
-            evidence["checks"]["user_a_update"] = True
-
-            _download_and_verify(client, user_a, document_id, digest)
-            evidence["checks"]["user_a_download_integrity"] = True
-
-            trashed = _auth(client, user_a, f"/api/documents/{document_id}", method="DELETE")
-            _assert_status(trashed, 200, "user A trash")
-            restored = _auth(
-                client, user_a, f"/api/documents/{document_id}/restore", method="POST"
-            )
-            _assert_status(restored, 200, "user A restore")
-            evidence["checks"]["user_a_trash_restore"] = True
-
-            list_b = _auth(client, user_b, "/api/documents")
-            _assert_status(list_b, 200, "user B document list")
-            ids_b = {
-                str(item.get("id"))
-                for item in list_b.json().get("documents", [])
-                if isinstance(item, dict)
-            }
-            if document_id in ids_b:
-                raise AssertionError("cross-user document appeared in user B listing")
-            denied_download = _auth(
-                client, user_b, f"/api/documents/{document_id}/download"
-            )
-            _assert_status(denied_download, 404, "user B cross-user download")
-            _assert_cross_user_mutations_denied(client, user_b, document_id)
-            supabase_url = _require("SUPABASE_STAGING_URL")
-            publishable_key = _require("SUPABASE_STAGING_PUBLISHABLE_KEY")
-            if selected_provider == "supabase":
-                object_key = str(document.get("object_key") or "")
-                if not object_key:
-                    raise AssertionError("Supabase-backed document did not expose its object key for boundary tests")
-                _assert_supabase_storage_boundary(
-                    project_url=supabase_url,
-                    publishable_key=publishable_key,
-                    other_token=user_b,
-                    object_key=object_key,
-                )
-                evidence["checks"]["anonymous_and_cross_user_storage_denied"] = True
-            elif selected_provider == "b2":
-                evidence["checks"]["anonymous_and_cross_user_storage_denied"] = "not_applicable_b2"
-            else:
-                raise AssertionError("acceptance selected an unsupported storage provider")
-            _assert_rpc_owner_checks(
-                project_url=supabase_url,
-                publishable_key=publishable_key,
-                other_token=user_b,
-                owner_document_id=document_id,
-            )
-            evidence["checks"]["cross_user_sensitive_rpc_denied"] = True
-            # Confirm denied mutation attempts did not change the owner's object.
-            _download_and_verify(client, user_a, document_id, digest)
-            evidence["checks"]["two_user_read_and_mutation_isolation"] = True
-            evidence["checks"]["owner_object_integrity_after_denied_mutations"] = True
-
-            if args.fifty_mib_file:
-                fixture = Path(args.fifty_mib_file)
-                boundary_payload = _read_fifty_mib_fixture(fixture)
-                boundary_digest = hashlib.sha256(boundary_payload).hexdigest()
-                boundary = _upload_document(
-                    client, user_a, boundary_payload, fixture.name, "application/octet-stream",
-                    expected_provider=expected_provider,
-                )
-                evidence["selected_storage_providers"].append(boundary.pop("_acceptance_provider"))
-                boundary_id = str(boundary["id"])
-                created_document_ids.append(boundary_id)
-                if boundary_digest != str(boundary.get("sha256") or "").lower():
-                    raise AssertionError("exact 50 MiB upload integrity mismatch")
-                _download_and_verify(client, user_a, boundary_id, boundary_digest)
-                evidence["checks"]["exact_50_mib_boundary"] = True
-                evidence["checks"]["exact_50_mib_download_integrity"] = True
-                _trash_and_permanently_delete(client, user_a, boundary_id)
-                created_document_ids.remove(boundary_id)
-            else:
-                evidence["checks"]["exact_50_mib_boundary"] = "pending_fixture"
-                evidence["checks"]["exact_50_mib_download_integrity"] = "pending_fixture"
-
-            _trash_and_permanently_delete(client, user_a, document_id)
-            created_document_ids.remove(document_id)
-            evidence["checks"]["permanent_cleanup"] = True
-    except Exception as exc:
-        evidence["passed"] = False
-        evidence["failure_class"] = type(exc).__name__
-        evidence["elapsed_seconds"] = round(time.monotonic() - started, 3)
-        evidence["gate9_ready"] = False
-        output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print(json.dumps(evidence, indent=2, sort_keys=True))
-        return 2
-    finally:
-        # Best-effort cleanup also runs when any assertion fails midway.
-        if created_document_ids:
-            try:
-                with httpx.Client(base_url=base_url, timeout=30.0, follow_redirects=False) as cleanup_client:
-                    for cleanup_id in reversed(created_document_ids):
-                        try:
-                            trashed = _auth(
-                                cleanup_client, user_a, f"/api/documents/{cleanup_id}", method="DELETE"
-                            )
-                            if trashed.status_code not in (200, 404):
-                                continue
-                            permanent = _auth(
-                                cleanup_client,
-                                user_a,
-                                f"/api/documents/{cleanup_id}/permanent",
-                                method="DELETE",
-                            )
-                            if permanent.status_code not in (200, 404):
-                                print(
-                                    "WARNING: acceptance cleanup did not complete for one test object "
-                                    f"(HTTP {permanent.status_code}).",
-                                    file=sys.stderr,
-                                )
-                        except Exception:
-                            print(
-                                "WARNING: acceptance cleanup encountered a transport error.",
-                                file=sys.stderr,
-                            )
-            except Exception:
-                print("WARNING: acceptance cleanup client could not be opened.", file=sys.stderr)
-
-    checks = evidence["checks"]
-    evidence["elapsed_seconds"] = round(time.monotonic() - started, 3)
-    evidence["gate9_ready"] = all(
-        value is True
-        for key, value in checks.items()
-        if key not in {"exact_50_mib_boundary", "exact_50_mib_download_integrity"}
-        and value != "not_applicable_b2"
-    ) and checks["exact_50_mib_boundary"] is True and checks["exact_50_mib_download_integrity"] is True
-    evidence["passed"] = evidence["gate9_ready"] is True
-    output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps(evidence, indent=2, sort_keys=True))
-    return 0 if evidence["gate9_ready"] else 2
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

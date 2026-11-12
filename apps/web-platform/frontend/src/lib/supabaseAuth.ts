@@ -64,6 +64,16 @@ function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+
+/**
+ * Cookie/BFF migration is deliberately not enabled yet. Keep the active
+ * browser session strategy explicit so tests and callers cannot infer a
+ * partially implemented migration from environment variables.
+ */
+export function getAuthStorageMode(): 'local' {
+  return 'local';
+}
+
 export function isSupabaseConfigured() {
   if (!SUPABASE_URL || !SUPABASE_KEY) return false;
   const placeholders = ['your-project-ref', 'your_public_key'];

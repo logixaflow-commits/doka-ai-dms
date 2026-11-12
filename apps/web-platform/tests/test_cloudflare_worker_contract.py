@@ -144,14 +144,18 @@ def test_version_history_cannot_be_deleted_directly_by_authenticated_users():
     assert "drop policy if exists doka_versions_owner_delete" in VERSION_HISTORY_ACL_MIGRATION
 
 
-def test_worker_document_upload_validates_filename_and_content_type():
+def test_worker_legacy_document_upload_is_disabled_and_session_metadata_is_validated():
     assert '@app.post("/api/documents")' in WORKER_SOURCE
-    assert 'Filename must be a plain file name up to 255 characters.' in WORKER_SOURCE
-    assert 'Invalid content type.' in WORKER_SOURCE
-    assert 'any(ord(character) < 32 or ord(character) == 127 for character in filename)' in WORKER_SOURCE
-    assert 'len(content_type) > 255 or "/" not in content_type' in WORKER_SOURCE
-    assert '"filename": filename' in WORKER_SOURCE
-    assert '"content_type": content_type' in WORKER_SOURCE
+    legacy_route = WORKER_SOURCE.split('@app.post("/api/documents")', 1)[1].split('class UploadSessionRequest', 1)[0]
+    assert 'status_code=410' in legacy_route
+    assert 'Direct upload is required. Create an upload session first.' in legacy_route
+    metadata_guard = WORKER_SOURCE.split('def _validate_upload_metadata', 1)[1].split('async def _check_b2_quota', 1)[0]
+    assert 'Filename must be a plain file name up to 255 characters.' in metadata_guard
+    assert 'Invalid content type.' in metadata_guard
+    assert 'any(ord(character) < 32 or ord(character) == 127 for character in filename)' in metadata_guard
+    assert 'len(content_type) > 255 or "/" not in content_type' in metadata_guard
+    assert 'UploadMetadata(filename, content_type, size_bytes, sha256, user_id, artifact_type)' in metadata_guard
+
 
 
 def test_worker_supports_optional_single_user_allowlist_without_disabling_auth():
@@ -252,3 +256,85 @@ def test_telegram_api_responses_are_parsed_from_text_for_pyodide_compatibility()
     assert "await _telegram_response_payload(info_response)" in registration
     assert "await _telegram_response_payload(me_response)" in registration
     assert '"bot_api_description": me_payload.get("description") if not identity_ok else None' in registration
+
+
+SECURITY_INTEGRITY_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "backend"
+    / "supabase"
+    / "migrations"
+    / "20261110090000_doka_security_integrity_remediation.sql"
+).read_text(encoding="utf-8")
+
+
+def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_service_only():
+    source = SECURITY_INTEGRITY_MIGRATION.lower()
+    assert "revoke insert on table public.doka_audit_events from authenticated" in source
+    assert "revoke insert on table public.doka_document_versions from authenticated" in source
+    assert "drop policy if exists doka_audit_owner_insert" in source
+    assert "revoke all on function public.doka_record_audit_event" in source
+    assert "from public, anon, authenticated, service_role" in source
+    assert "grant execute on function public.doka_record_audit_event" in source
+    assert "to service_role" in source
+    assert "p_owner_id is null" in source
+    assert "owner_id = p_owner_id" in source
+
+
+def test_version_rpcs_keep_atomic_database_boundary_and_direct_insert_is_removed():
+    source = SECURITY_INTEGRITY_MIGRATION.lower()
+    assert "revoke insert on table public.doka_document_versions from authenticated" in source
+    assert "grant execute on function public.doka_replace_document_version" in source
+    assert "grant execute on function public.doka_replace_document_version_storage" in source
+    assert "grant execute on function public.doka_restore_document_version" in source
+
+
+def test_worker_audit_fails_closed_uses_service_role_rpc_and_retries_with_structured_logs():
+    audit_block = WORKER_SOURCE.split("async def _audit", 1)[1].split('@app.post("/api/documents")', 1)[0]
+    assert "rest/v1/rpc/doka_record_audit_event" in WORKER_SOURCE
+    assert 'service_key = _env(request, "SUPABASE_SERVICE_ROLE_KEY").strip()' in audit_block
+    assert '"Authorization": f"Bearer {service_key}"' in audit_block
+    assert '"apikey": service_key' in audit_block
+    assert 'if status == 404:' in audit_block
+    assert '/rest/v1/doka_audit_events' in audit_block
+    assert '"audit_legacy_insert_fallback"' in audit_block
+    assert 'SUPABASE_SERVICE_ROLE_KEY' in WORKER_SOURCE
+    assert "AUDIT_MAX_ATTEMPTS = 3" in WORKER_SOURCE
+    assert '"audit_write_retry"' in WORKER_SOURCE
+    assert '"audit_write_failed"' in WORKER_SOURCE
+    assert "except Exception:\\n        pass" not in audit_block
+    assert 'status_code=503' in audit_block
+
+def test_b2_multipart_api_is_owner_scoped_and_requires_both_part_hashes_and_abort():
+    assert '@app.post("/api/storage/multipart/initiate")' in WORKER_SOURCE
+    assert '@app.post("/api/storage/multipart/part")' in WORKER_SOURCE
+    assert '@app.post("/api/storage/multipart/complete")' in WORKER_SOURCE
+    assert '@app.post("/api/storage/multipart/abort")' in WORKER_SOURCE
+    assert 'content_md5: str = Field(min_length=32, max_length=32)' in WORKER_SOURCE
+    assert 'await _check_b2_quota(request, user_id, metadata.size_bytes)' in WORKER_SOURCE
+    assert 'checksum: str = Field(min_length=64, max_length=64)' in WORKER_SOURCE
+    assert 'receipt = await router.b2.uploadPart(upload, payload.part_number, payload.checksum, payload.content_md5)' in WORKER_SOURCE
+    assert 'Multipart session is not valid for this user.' in WORKER_SOURCE
+    assert 'expected_size_bytes=int(signed["size_bytes"])' in WORKER_SOURCE
+    assert 'expected_sha256=str(signed["sha256"]).lower()' in WORKER_SOURCE
+
+
+def test_worker_telegram_commands_require_an_allowlisted_sender_id():
+    assert 'def _telegram_sender_allowed(request, sender_id) -> bool:' in WORKER_SOURCE
+    assert '_env(request, "TELEGRAM_ALLOWED_USER_IDS")' in WORKER_SOURCE
+    assert 'sender_id is None or isinstance(sender_id, bool)' in WORKER_SOURCE
+    assert 'if not _telegram_sender_allowed(request, sender_id):' in WORKER_SOURCE
+    assert "1686310706" not in WORKER_SOURCE and "6759217947" not in WORKER_SOURCE
+    assert '"reason": "unauthorized_sender"' in WORKER_SOURCE
+    assert "telegram_sender_allowlist_ready" in WORKER_SOURCE
+    assert "and telegram_sender_allowlist_ready" in WORKER_SOURCE
+
+def test_forward_migration_uses_service_only_audit_and_owner_checked_definer_rpcs():
+    source = SECURITY_INTEGRITY_MIGRATION.lower()
+    assert source.count("security definer") >= 5
+    assert source.count("set search_path = pg_catalog, public, pg_temp") >= 5
+    assert source.count("auth.uid()") >= 10
+    audit_rpc = source.split("create or replace function public.doka_record_audit_event", 1)[1].split("-- bulk update", 1)[0]
+    assert "to service_role" in audit_rpc
+    assert "to authenticated" not in audit_rpc
+    assert "p_object_key !~ ('^users/' || auth.uid()::text || '/documents/' || p_sha256" in source
+    assert "chosen.object_key !~ ('^users/' || auth.uid()::text || '/documents/' || chosen.sha256" in source

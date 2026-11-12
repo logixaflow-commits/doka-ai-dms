@@ -113,10 +113,93 @@ export interface StorageUploadSession {
   warnings: string[];
 }
 
-async function sha256Hex(file: File): Promise<string> {
-  if (!globalThis.crypto?.subtle) throw new Error('Browser cryptography is unavailable; cannot verify the upload fingerprint.');
-  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-  return Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+export interface HashProgress { phase: 'hashing' | 'uploading' | 'completing'; percent: number; loadedBytes: number; totalBytes: number }
+
+export function hashFileInWorker(
+  file: File,
+  options: { chunkSize?: number; signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('../workers/hash.worker.ts', import.meta.url), { type: 'module' });
+    let settled = false;
+    const finish = (error?: Error, digest?: string) => {
+      if (settled) return;
+      settled = true;
+      options.signal?.removeEventListener('abort', abort);
+      worker.terminate();
+      if (error) reject(error); else resolve(digest!);
+    };
+    const abort = () => { worker.postMessage({ type: 'cancel' }); finish(new DOMException('Hashing cancelled', 'AbortError')); };
+    if (options.signal?.aborted) { finish(new DOMException('Hashing cancelled', 'AbortError')); return; }
+    options.signal?.addEventListener('abort', abort, { once: true });
+    worker.onerror = event => finish(new Error(event.message || 'SHA-256 worker failed.'));
+    worker.onmessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.type === 'progress') options.onProgress?.({ phase: 'hashing', percent: message.percent, loadedBytes: message.loadedBytes, totalBytes: message.totalBytes });
+      else if (message.type === 'complete') finish(undefined, message.sha256);
+      else if (message.type === 'error') finish(new Error(message.message));
+    };
+    worker.postMessage({ type: 'hash', file, chunkSize: options.chunkSize ?? 8 * 1024 * 1024 });
+  });
+}
+
+interface MultipartPartHash {
+  part_number: number;
+  sha256: string;
+  content_md5: string;
+}
+
+interface MultipartFileHash {
+  sha256: string;
+  parts: MultipartPartHash[];
+}
+
+function hashFileMultipartInWorker(
+  file: File,
+  partSizeBytes: number,
+  options: { chunkSize?: number; signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
+): Promise<MultipartFileHash> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('../workers/hash.worker.ts', import.meta.url), { type: 'module' });
+    let settled = false;
+    const finish = (error?: Error, result?: MultipartFileHash) => {
+      if (settled) return;
+      settled = true;
+      options.signal?.removeEventListener('abort', abort);
+      worker.terminate();
+      if (error) reject(error); else resolve(result!);
+    };
+    const abort = () => {
+      worker.postMessage({ type: 'cancel' });
+      finish(new DOMException('Hashing cancelled', 'AbortError'));
+    };
+    if (options.signal?.aborted) {
+      finish(new DOMException('Hashing cancelled', 'AbortError'));
+      return;
+    }
+    options.signal?.addEventListener('abort', abort, { once: true });
+    worker.onerror = event => finish(new Error(event.message || 'SHA-256 worker failed.'));
+    worker.onmessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.type === 'progress') {
+        options.onProgress?.({
+          phase: 'hashing',
+          percent: message.percent,
+          loadedBytes: message.loadedBytes,
+          totalBytes: message.totalBytes,
+        });
+      } else if (message.type === 'complete') {
+        if (!Array.isArray(message.parts)) {
+          finish(new Error('Multipart hash worker returned no part digests.'));
+          return;
+        }
+        finish(undefined, { sha256: message.sha256, parts: message.parts });
+      } else if (message.type === 'error') {
+        finish(new Error(message.message));
+      }
+    };
+    worker.postMessage({ type: 'hash-multipart', file, partSizeBytes, chunkSize: options.chunkSize ?? 8 * 1024 * 1024 });
+  });
 }
 
 async function directStorageUpload(session: StorageUploadSession, file: File): Promise<Record<string, unknown>> {
@@ -146,11 +229,12 @@ async function createDirectStorageUpload(
   file: File,
   artifactType: 'source' | 'preview' | 'thumbnail' | 'cover' = 'source',
   documentId?: string,
+  options: { signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
 ) {
   if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
     throw new Error(`This file exceeds the configured upload limit of ${Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
   }
-  const sha256 = await sha256Hex(file);
+  const sha256 = await hashFileInWorker(file, options);
   const session = await request<StorageUploadSession>('/storage/upload-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -163,6 +247,7 @@ async function createDirectStorageUpload(
       ...(documentId ? { document_id: documentId } : {}),
     }),
   });
+  if (options.signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError');
   const providerResult = await directStorageUpload(session, file);
   const completed = await request<{ document?: CloudDocument; stored?: Record<string, unknown>; warnings: string[] }>('/storage/upload-complete', {
     method: 'POST',
@@ -174,14 +259,145 @@ async function createDirectStorageUpload(
       provider_result: providerResult,
     }),
   });
+  options.onProgress?.({ phase: 'completing', percent: 100, loadedBytes: file.size, totalBytes: file.size });
   return {
     ...completed,
     warnings: [...(session.warnings || []), ...(completed.warnings || [])],
   };
 }
 
-export async function uploadCloudDocument(file: File) {
-  return createDirectStorageUpload(file, 'source') as Promise<{ document: CloudDocument; warnings: string[] }>;
+const B2_MULTIPART_THRESHOLD_BYTES = 5 * 1024 * 1024 * 1024;
+const B2_MULTIPART_PART_SIZE_BYTES = 100 * 1024 * 1024;
+
+async function createB2MultipartUpload(
+  file: File,
+  options: { signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
+) {
+  if (file.size <= B2_MULTIPART_THRESHOLD_BYTES) {
+    throw new Error('B2 multipart upload is only available for files larger than 5 GiB.');
+  }
+  const partHashes = await hashFileMultipartInWorker(file, B2_MULTIPART_PART_SIZE_BYTES, {
+    signal: options.signal,
+    onProgress: options.onProgress,
+  });
+  const sha256 = partHashes.sha256;
+  if (partHashes.parts.length < 2 || partHashes.parts.length > 10000) {
+    throw new Error('B2 multipart part count is outside the supported range.');
+  }
+  const session = await request<{
+    session_id: string;
+    provider: 'b2';
+    object_key: string;
+    upload_id: string;
+    part_size_bytes: number;
+    expires_at: number;
+  }>('/storage/multipart/initiate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: file.name,
+      content_type: file.type || 'application/octet-stream',
+      size_bytes: file.size,
+      sha256,
+      artifact_type: 'source',
+    }),
+  });
+
+  let completed = false;
+  try {
+    if (session.part_size_bytes !== B2_MULTIPART_PART_SIZE_BYTES) {
+      throw new Error('B2 server multipart part size does not match the frontend hashing configuration.');
+    }
+    const receipts: Array<{ part_number: number; etag: string; checksum: string; content_md5: string }> = [];
+    for (const part of partHashes.parts) {
+      if (options.signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError');
+      const signed = await request<{
+        part_number: number;
+        checksum: string;
+        content_md5: string;
+        upload: { method: string; url: string; headers: Record<string, string> };
+      }>('/storage/multipart/part', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: session.session_id,
+          part_number: part.part_number,
+          checksum: part.sha256,
+          content_md5: part.content_md5,
+        }),
+        signal: options.signal,
+      });
+      if (signed.checksum !== part.sha256 || signed.content_md5 !== part.content_md5) {
+        throw new Error('B2 part ' + part.part_number + ' signing response did not match the computed checksums.');
+      }
+      const start = (part.part_number - 1) * session.part_size_bytes;
+      const end = Math.min(start + session.part_size_bytes, file.size);
+      const response = await fetch(signed.upload.url, {
+        method: signed.upload.method || 'PUT',
+        headers: signed.upload.headers,
+        body: file.slice(start, end),
+        signal: options.signal,
+      });
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '');
+        throw new Error(detail || 'B2 part ' + part.part_number + ' upload failed (' + response.status + ').');
+      }
+      const etag = response.headers.get('etag')?.trim();
+      if (!etag || etag.replaceAll('"', '').toLowerCase() !== part.content_md5) {
+        throw new Error('B2 part ' + part.part_number + ' ETag was missing or did not match the locally computed part MD5. Check B2 CORS ExposeHeaders includes ETag.');
+      }
+      receipts.push({
+        part_number: part.part_number,
+        etag,
+        checksum: part.sha256,
+        content_md5: part.content_md5,
+      });
+      options.onProgress?.({
+        phase: 'uploading',
+        percent: Math.floor((end / file.size) * 100),
+        loadedBytes: end,
+        totalBytes: file.size,
+      });
+    }
+
+    if (options.signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError');
+    const result = await request<{ document: CloudDocument; warnings: string[] }>('/storage/multipart/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: session.session_id,
+        parts: receipts,
+        size_bytes: file.size,
+        sha256,
+      }),
+      signal: options.signal,
+    });
+    completed = true;
+    options.onProgress?.({ phase: 'completing', percent: 100, loadedBytes: file.size, totalBytes: file.size });
+    return result;
+  } catch (error) {
+    if (!completed) {
+      await request('/storage/multipart/abort', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: session.session_id }),
+      }).catch(() => undefined);
+    }
+    throw error;
+  }
+}
+
+export async function uploadCloudDocument(
+  file: File,
+  options: { signal?: AbortSignal; onProgress?: (progress: HashProgress) => void } = {},
+) {
+  if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`This file exceeds the configured upload limit of ${Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
+  }
+  if (file.size > B2_MULTIPART_THRESHOLD_BYTES) {
+    return createB2MultipartUpload(file, options) as Promise<{ document: CloudDocument; warnings: string[] }>;
+  }
+  return createDirectStorageUpload(file, 'source', undefined, options) as Promise<{ document: CloudDocument; warnings: string[] }>;
 }
 
 export async function exportCloudDocumentToGoogleDrive(documentId: string) {
