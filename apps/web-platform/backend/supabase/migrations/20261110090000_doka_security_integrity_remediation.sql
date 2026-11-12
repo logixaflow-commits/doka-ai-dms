@@ -1,6 +1,7 @@
--- Production-first remediation: keep audit/version writes server-controlled
--- while using the caller's verified Supabase JWT (no service-role key in Worker).
--- Every SECURITY DEFINER RPC performs an explicit auth.uid() owner check.
+-- Production-first remediation: keep audit/version writes server-controlled.
+-- The Worker uses its encrypted service-role secret only for the narrowly scoped
+-- audit RPC; authenticated version/bulk RPCs retain the caller JWT and explicitly
+-- verify auth.uid() ownership before privileged writes.
 
 REVOKE INSERT ON TABLE public.doka_audit_events FROM authenticated;
 REVOKE INSERT ON TABLE public.doka_document_versions FROM authenticated;
