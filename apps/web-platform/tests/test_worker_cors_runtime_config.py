@@ -17,7 +17,7 @@ def test_cors_policy_reads_request_scoped_worker_bindings():
 def test_preview_origin_regex_is_opt_in_and_disabled_in_production():
     assert "DOKA_CORS_ALLOW_PREVIEW_ORIGINS" not in PRODUCTION_CONFIG
     assert 'if enabled == "true"' in WORKER
-    assert r"^https://enterprise-ai-[a-z0-9-]+-logixaflow-9859\\.vercel\\.app$" in WORKER
+    assert r"^https://enterprise-ai-[a-z0-9-]+-logixaflow-9859\.vercel\.app$" in WORKER
 
 
 def test_production_config_targets_production_supabase_and_d1():
