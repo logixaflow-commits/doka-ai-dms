@@ -42,7 +42,7 @@ export default function AiUsage() {
       setData(json);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to AI usage endpoint');
+      setError(err instanceof Error && err.message.includes('HTTP 404') ? 'Usage telemetry is not available from the current Cloud API yet. No usage figures are being estimated.' : err instanceof Error ? err.message : 'Failed to connect to AI usage endpoint');
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export default function AiUsage() {
               Multi-Provider AI Quota & Health Tracking
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Live metering across Voyage AI RAG, Groq, Gemini, and Cohere with native Telegram 429 quota alerts.
+              Usage telemetry appears here when the Cloud API exposes verified provider metering. This page never estimates missing usage data.
             </p>
           </div>
           <div className="flex gap-2.5">
@@ -113,7 +113,7 @@ export default function AiUsage() {
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">Unable to fetch live usage statistics</p>
+            <p className="font-semibold">Usage data is currently unavailable</p>
             <p className="mt-1 leading-5">{error}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => void fetchUsage()} className="shrink-0">
@@ -128,11 +128,11 @@ export default function AiUsage() {
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Total Calls Today</p>
+                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Total calls today</p>
                 <p className="mt-3 truncate text-[28px] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-                  {loading ? '—' : (data?.total_calls_today ?? 0).toLocaleString()}
+                  {loading || !data ? '—' : (data.total_calls_today ?? 0).toLocaleString()}
                 </p>
-                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Across active AI chains</p>
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Recorded across AI providers</p>
               </div>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300">
                 <Cpu className="h-[18px] w-[18px]" />
@@ -145,11 +145,11 @@ export default function AiUsage() {
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Active Providers</p>
+                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Active providers</p>
                 <p className="mt-3 truncate text-[28px] font-semibold tracking-tight text-cyan-500">
-                  {loading ? '—' : `${activeCount} / ${providers.length}`}
+                  {loading || !data ? '—' : `${activeCount} / ${providers.length}`}
                 </p>
-                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Operational & ready</p>
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Verified active providers</p>
               </div>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-cyan-50 text-cyan-700 dark:bg-cyan-400/10 dark:text-cyan-300">
                 <ShieldCheck className="h-[18px] w-[18px]" />
@@ -162,15 +162,15 @@ export default function AiUsage() {
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">429 Rate Limits</p>
+                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">429 rate limits</p>
                 <p
                   className={`mt-3 truncate text-[28px] font-semibold tracking-tight ${
                     errorCount > 0 ? 'text-rose-500' : 'text-emerald-500'
                   }`}
                 >
-                  {loading ? '—' : errorCount}
+                  {loading || !data ? '—' : errorCount}
                 </p>
-                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Auto-failover triggers</p>
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Recorded quota events</p>
               </div>
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] ${
@@ -189,12 +189,12 @@ export default function AiUsage() {
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Telegram Direct Alert</p>
+                <p className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Telegram notifications</p>
                 <div className="mt-3 flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">Live Active</span>
+                  <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">Configured route</span>
                 </div>
-                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Direct bot quota monitoring</p>
+                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">End-to-end delivery has not been verified</p>
               </div>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">
                 <Send className="h-[18px] w-[18px]" />
@@ -229,7 +229,7 @@ export default function AiUsage() {
             </span>
           </div>
           <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
-            Upon HTTP 429 or quota exhaustion, requests immediately failover to next provider and notify Telegram.
+            Configured fallback order. Live provider health and delivery are not verified by this display.
           </p>
         </div>
 
@@ -248,7 +248,7 @@ export default function AiUsage() {
             </span>
           </div>
           <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
-            Both models output exactly 512-dimension vectors, allowing zero re-indexing vector failover.
+            Provider order is shown for reference; current runtime availability is not verified here.
           </p>
         </div>
       </section>
@@ -258,7 +258,7 @@ export default function AiUsage() {
         <div className="px-6 py-5">
           <p className="doka-eyebrow text-slate-400">Key Registry</p>
           <h2 className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">
-            Real-Time Provider Usage & Status
+            Provider usage & status
           </h2>
         </div>
         <div className="border-t border-slate-100 dark:border-slate-800">
