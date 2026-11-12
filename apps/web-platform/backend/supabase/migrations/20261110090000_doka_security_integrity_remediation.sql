@@ -65,7 +65,7 @@ BEGIN
     RAISE EXCEPTION 'Authentication required' USING errcode = '42501';
   END IF;
   IF p_document_ids IS NULL OR cardinality(p_document_ids) < 1 OR cardinality(p_document_ids) > 100
-     OR cardinality(p_document_ids) <> (SELECT count(DISTINCT x) FROM unnest(p_document_ids) AS x) THEN
+     OR cardinality(p_document_ids) <> (SELECT count(DISTINCT id) FROM unnest(p_document_ids) AS t(id)) THEN
     RAISE EXCEPTION 'Select between 1 and 100 unique documents' USING errcode = '22023';
   END IF;
   IF p_action IS NULL OR p_action NOT IN ('status','trash') THEN
