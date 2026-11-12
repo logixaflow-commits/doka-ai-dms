@@ -425,8 +425,13 @@ async def telegram_webhook(request: Request):
             _env(request, "TELEGRAM_CHAT_ID").strip() == TELEGRAM_ALLOWED_CHAT_ID
             and TELEGRAM_ALLOWED_TOPIC_ID == 8
         )
-        telegram_webhook_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready and bool(
-            _env(request, "TELEGRAM_WEBHOOK_SECRET").strip()
+        telegram_sender_allowlist_ready = bool(_env(request, "TELEGRAM_ALLOWED_USER_IDS").strip())
+        telegram_webhook_ready = (
+            telegram_enabled
+            and telegram_token_ready
+            and telegram_topic_ready
+            and telegram_sender_allowlist_ready
+            and bool(_env(request, "TELEGRAM_WEBHOOK_SECRET").strip())
         )
         telegram_outbound_ready = telegram_enabled and telegram_token_ready and telegram_topic_ready
         bot_identity = await _telegram_bot_identity(request)
@@ -443,6 +448,7 @@ async def telegram_webhook(request: Request):
             f"• Supabase configuration: {'configured' if supabase_ready else 'missing'}\n"
             f"• Storage bucket configuration: {'configured' if bucket_ready else 'missing'}\n"
             f"• Telegram target topic: {'configured' if telegram_topic_ready else 'missing'}\n"
+            f"• Telegram sender allowlist: {'configured' if telegram_sender_allowlist_ready else 'missing'}\n"
             f"• Telegram outbound: {'ready' if telegram_outbound_ready else 'not configured'}\n"
             f"• Telegram Bot API: {bot_api_status}\n"
             f"• Telegram inbound webhook: {'ready' if telegram_webhook_ready else 'not configured'}\n"
