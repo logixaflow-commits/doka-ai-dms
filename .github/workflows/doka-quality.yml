@@ -92,7 +92,7 @@ jobs:
             -v "$GITHUB_WORKSPACE:/repo:ro" \
             -v "$RUNNER_TEMP:/report" \
             zricethezav/gitleaks:v8.30.1 \
-            git --redact --report-format sarif --report-path /report/gitleaks.sarif --no-banner --exit-code 1 /repo
+            git --log-opts="--all" --redact --report-format sarif --report-path /report/gitleaks.sarif --no-banner --exit-code 1 /repo
       - name: Upload redacted secret scan findings
         if: always()
         uses: actions/upload-artifact@v7
