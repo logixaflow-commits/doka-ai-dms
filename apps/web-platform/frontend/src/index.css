@@ -196,3 +196,38 @@
   }
   .doka-stat, .doka-sidebar * { transition: none !important; }
 }
+
+
+/* Shared component sizing and Myanmar Unicode fallback. */
+:root {
+  font-family: Inter, "Noto Sans Myanmar", ui-sans-serif, system-ui, sans-serif;
+}
+body {
+  font-family: Inter, "Noto Sans Myanmar", ui-sans-serif, system-ui, sans-serif;
+}
+.doka-stat {
+  min-height: 136px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.doka-stat > * {
+  width: 100%;
+}
+.doka-panel {
+  min-width: 0;
+}
+.doka-dashboard > section,
+.doka-dashboard > div {
+  min-width: 0;
+}
+.doka-dashboard :where(button, a) {
+  overflow-wrap: anywhere;
+}
+.doka-dashboard :where(input, select, textarea) {
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .doka-stat { min-height: 120px; }
+  .doka-dashboard { gap: 16px; }
+}
