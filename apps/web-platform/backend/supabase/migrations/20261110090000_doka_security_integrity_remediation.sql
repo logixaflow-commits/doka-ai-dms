@@ -41,7 +41,7 @@ END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.doka_record_audit_event(uuid, text, uuid, text, jsonb)
-  FROM PUBLIC, anon, service_role;
+  FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.doka_record_audit_event(uuid, text, uuid, text, jsonb)
   TO authenticated;
 
