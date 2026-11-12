@@ -19,31 +19,32 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
 AS $function$
 BEGIN
-  IF auth.uid() IS NULL OR p_owner_id IS DISTINCT FROM auth.uid()
+  IF p_owner_id IS NULL
      OR p_action IS NULL
      OR p_action NOT IN ('upload','download','update','trash','restore','permanent_delete',
                          'preview','export','version_create','version_restore')
      OR (p_filename IS NOT NULL AND length(p_filename) > 255)
-     OR p_metadata IS NULL OR jsonb_typeof(p_metadata) <> 'object' THEN
+     OR p_metadata IS NULL OR jsonb_typeof(p_metadata) <> 'object'
+     OR octet_length(p_metadata::text) > 16384 THEN
     RAISE EXCEPTION 'Invalid audit event' USING errcode = '22023';
   END IF;
 
   IF p_document_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM public.doka_documents
-    WHERE id = p_document_id AND owner_id = auth.uid()
+    WHERE id = p_document_id AND owner_id = p_owner_id
   ) THEN
     RAISE EXCEPTION 'Audit document ownership mismatch' USING errcode = '42501';
   END IF;
 
   INSERT INTO public.doka_audit_events(owner_id, document_id, action, filename, metadata)
-  VALUES (auth.uid(), p_document_id, p_action, p_filename, p_metadata);
+  VALUES (p_owner_id, p_document_id, p_action, p_filename, p_metadata);
 END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.doka_record_audit_event(uuid, text, uuid, text, jsonb)
   FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.doka_record_audit_event(uuid, text, uuid, text, jsonb)
-  TO authenticated;
+  TO service_role;
 
 -- Bulk update remains atomic and can append its audit events after direct table
 -- INSERT is revoked. SECURITY DEFINER is safe here because every target row is
