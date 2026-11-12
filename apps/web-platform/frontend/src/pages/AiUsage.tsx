@@ -63,7 +63,7 @@ export default function AiUsage() {
       } catch (err) {
         if (controller.signal.aborted) return;
         console.error(err);
-        setError(err instanceof Error ? err.message : 'Failed to connect to AI usage endpoint');
+        setError(err instanceof Error && err.message.includes('HTTP 404') ? 'Usage telemetry is not available from the current Cloud API yet. No usage figures are being estimated.' : err instanceof Error ? err.message : 'Failed to connect to AI usage endpoint');
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
