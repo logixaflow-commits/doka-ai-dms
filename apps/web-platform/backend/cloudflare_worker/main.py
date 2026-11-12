@@ -75,6 +75,15 @@ async def csp_violation_report(request: Request):
 # This deployment is intentionally pinned to the single authorized Telegram forum topic.
 TELEGRAM_ALLOWED_CHAT_ID = "-1003992125718"
 TELEGRAM_ALLOWED_TOPIC_ID = 8
+# Only these explicitly authorized human Telegram accounts may issue bot commands.
+TELEGRAM_ALLOWED_USER_IDS = frozenset({"1686310706", "6759217947"})
+
+
+def _telegram_sender_allowed(sender_id) -> bool:
+    if sender_id is None or isinstance(sender_id, bool):
+        return False
+    value = str(sender_id).strip()
+    return value.isdigit() and value in TELEGRAM_ALLOWED_USER_IDS
 
 
 def _env(request, name: str, default: str = "") -> str:
@@ -380,6 +389,11 @@ async def telegram_webhook(request: Request):
     topic_id = message.get("message_thread_id")
     if not _telegram_context_allowed(request, chat.get("id"), topic_id):
         return {"ok": True, "status": "ignored", "reason": "outside_configured_topic"}
+
+    sender = message.get("from")
+    sender_id = sender.get("id") if isinstance(sender, dict) else None
+    if not _telegram_sender_allowed(sender_id):
+        return {"ok": True, "status": "ignored", "reason": "unauthorized_sender"}
 
     text = message.get("text")
     if not isinstance(text, str):
