@@ -743,20 +743,14 @@ AUDIT_MAX_ATTEMPTS = 3
 
 
 async def _audit(request, user_id: str, action: str, document_id: str | None = None, filename: str | None = None, metadata: dict | None = None) -> None:
-    """Write security-relevant audit events through the trusted database RPC.
+    """Write audit events through an owner-checked RPC using the caller's JWT.
 
-    Direct table INSERT is intentionally unavailable to browser users. The Worker
-    uses a service-role binding only for this narrowly scoped RPC. Fail closed
-    after bounded retries so callers never silently succeed without the required
-    audit record.
+    The database function verifies auth.uid() == p_owner_id and runs with a
+    fixed search_path. No service-role credential is required in the Worker.
     """
-    service_key = _env(request, "SUPABASE_SERVICE_ROLE_KEY").strip()
-    if not service_key:
-        logger.error(
-            "audit_write_failed",
-            extra={"action": action, "document_id": document_id, "reason": "service_role_missing"},
-        )
-        raise HTTPException(status_code=503, detail="Audit service is not configured.")
+    token = _token_from_request(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required for audit recording.")
 
     payload = {
         "p_owner_id": user_id,
@@ -773,12 +767,7 @@ async def _audit(request, user_id: str, action: str, document_id: str | None = N
                 request,
                 f"{_base(request)}/rest/v1/rpc/doka_record_audit_event",
                 method="POST",
-                headers={
-                    "apikey": service_key,
-                    "Authorization": f"Bearer {service_key}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
+                headers=_supabase_headers(request, token, "application/json"),
                 body=json.dumps(payload),
             )
             last_status = status
