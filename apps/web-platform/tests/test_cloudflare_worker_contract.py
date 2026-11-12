@@ -319,3 +319,13 @@ def test_worker_telegram_commands_require_an_allowlisted_sender_id():
     assert 'sender_id is None or isinstance(sender_id, bool)' in WORKER_SOURCE
     assert 'if not _telegram_sender_allowed(sender_id):' in WORKER_SOURCE
     assert '"reason": "unauthorized_sender"' in WORKER_SOURCE
+
+def test_forward_migration_uses_owner_checked_definer_rpcs_and_sha_bound_keys():
+    source = SECURITY_INTEGRITY_MIGRATION.lower()
+    assert source.count("security definer") >= 5
+    assert source.count("set search_path = pg_catalog, public, pg_temp") >= 5
+    assert source.count("auth.uid()") >= 10
+    assert "p_owner_id is distinct from auth.uid()" in source
+    assert "p_object_key !~ ('^users/' || auth.uid()::text || '/documents/' || p_sha256" in source
+    assert "chosen.object_key !~ ('^users/' || auth.uid()::text || '/documents/' || chosen.sha256" in source
+    assert "to service_role" not in source
