@@ -124,3 +124,12 @@ This validates the tested database ownership and audit boundaries, but it is not
 - The `doka-documents` bucket remains private, 50 MiB, with `allowed_mime_types=NULL`. No MIME allowlist or UPDATE policy was added because the full Storage upload/upsert consumer inventory and HTTP-level compatibility tests are still not established.
 - Historical secret scan workflow was updated to trigger on a main workflow-file push and use Gitleaks `v8.30.1`, but the new push run `43162644860` and follow-up run `43162817481` both failed with zero jobs. This is not a scan result. Issue #144 tracks restoring an executable full-history scan.
 - Issues #138, #95, #93, #83 and #82 were updated with current evidence and remaining acceptance gates. They remain open where the complete acceptance criteria are not met; no unsafe success claims or synthetic OCR output were enabled.
+
+
+### Full-history secret scan result and dependency audit (2026-11-12)
+
+- The standalone `.github/workflows/historical-secret-scan.yml` continues to produce push runs with zero jobs and is not considered an executed scan.
+- To obtain an actual scan, the required Doka Quality Checks backend dependency audit now checks out full history and runs Gitleaks `git --log-opts="--all"` using Gitleaks `v8.30.1`. The Gitleaks scan is allowed to finish and upload redacted SARIF before the job enforces the result, so the dependency audit still runs even when secrets are found.
+- Run `43163905255` executed the full-history scan and found 24 historical matches. The backend dependency audit itself completed successfully; the job failed at the final historical-secret gate as intended. All other Doka Quality Checks jobs passed. Production CI passed; CodeQL was still running at the time of this entry.
+- Redacted finding triage found repeated historical copies of legacy documentation, four `YOUR_TOKEN` curl placeholders, truncated API-documentation token examples, a legacy default encryption-key fallback, and provider-token-shaped values in old `AI_INTEGRATION_GUIDE.md` (Gemini, Hugging Face, OpenRouter, Groq). The provider-shaped values are not obviously placeholders and must be treated as potentially exposed until verified/revoked. No raw secret values were printed or attached.
+- Issue #145 tracks provider-side verification/revocation and the coordinated decision about history rewriting. Do not add ignore/baseline entries for potentially real provider credentials before revocation is confirmed.
