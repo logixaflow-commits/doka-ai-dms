@@ -153,20 +153,20 @@ def _assert_cross_user_mutations_denied(
 
 
 def _jwt_subject(token: str) -> str:
-    """Read the subject claim from the already-authenticated staging JWT."""
+    """Read the subject claim from the already-authenticated authenticated JWT."""
     import base64
 
     parts = token.split(".")
     if len(parts) != 3:
-        raise AssertionError("staging access token is not a JWT")
+        raise AssertionError("authenticated access token is not a JWT")
     try:
         payload = parts[1] + "=" * (-len(parts[1]) % 4)
         claims = json.loads(base64.urlsafe_b64decode(payload.encode("ascii")))
     except (ValueError, UnicodeError, json.JSONDecodeError) as exc:
-        raise AssertionError("staging access token claims could not be decoded") from exc
+        raise AssertionError("authenticated access token claims could not be decoded") from exc
     subject = claims.get("sub") if isinstance(claims, dict) else None
     if not isinstance(subject, str) or not subject:
-        raise AssertionError("staging access token has no subject claim")
+        raise AssertionError("authenticated access token has no subject claim")
     return subject
 
 
