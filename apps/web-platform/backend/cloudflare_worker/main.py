@@ -773,7 +773,33 @@ async def _audit(request, user_id: str, action: str, document_id: str | None = N
             last_status = status
             if 200 <= status < 300:
                 return
-            last_error = f"http_{status}"
+            if status == 404:
+                # Backward-compatible rollout bridge: before the forward migration
+                # exists, the current owner-scoped RLS INSERT policy remains active.
+                # Once the RPC exists, all audit writes use the owner-checked RPC.
+                legacy_status, _ = await _fetch(
+                    request,
+                    f"{_base(request)}/rest/v1/doka_audit_events",
+                    method="POST",
+                    headers={
+                        **_supabase_headers(request, token, "application/json"),
+                        "Prefer": "return=minimal",
+                    },
+                    body=json.dumps({
+                        "owner_id": user_id,
+                        "action": action,
+                        "document_id": document_id,
+                        "filename": filename,
+                        "metadata": metadata or {},
+                    }),
+                )
+                last_status = legacy_status
+                if 200 <= legacy_status < 300:
+                    logger.warning("audit_legacy_insert_fallback", extra={"action": action})
+                    return
+                last_error = f"legacy_http_{legacy_status}"
+            else:
+                last_error = f"http_{status}"
         except Exception as exc:  # noqa: BLE001 - converted to a fail-closed API error below
             last_error = type(exc).__name__
 
