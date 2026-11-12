@@ -292,6 +292,9 @@ def test_worker_audit_fails_closed_uses_owner_jwt_rpc_and_retries_with_structure
     assert "rest/v1/rpc/doka_record_audit_event" in WORKER_SOURCE
     assert '_token_from_request(request)' in audit_block
     assert 'headers=_supabase_headers(request, token, "application/json")' in audit_block
+    assert 'if status == 404:' in audit_block
+    assert '/rest/v1/doka_audit_events' in audit_block
+    assert '"audit_legacy_insert_fallback"' in audit_block
     assert 'SUPABASE_SERVICE_ROLE_KEY' not in WORKER_SOURCE
     assert "AUDIT_MAX_ATTEMPTS = 3" in WORKER_SOURCE
     assert '"audit_write_retry"' in WORKER_SOURCE
