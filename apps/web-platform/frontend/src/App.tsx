@@ -16,6 +16,8 @@ import RulesPage from '@/pages/admin/Rules';
 import PermissionsPage from '@/pages/admin/Permissions';
 import AuditPage from '@/pages/admin/Audit';
 import WorkflowsPage from '@/pages/Workflows';
+import SettingsPage from '@/pages/admin/Settings';
+import IntegrationsPage from '@/pages/admin/Integrations';
 import {
   getCurrentUser,
   isSupabaseConfigured,
@@ -82,6 +84,8 @@ export default function App() {
           <Route path="workflows" element={<WorkflowsPage />} />
           <Route path="permissions" element={<PermissionsPage />} />
           <Route path="audit" element={<AuditPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/integrations" element={<IntegrationsPage />} />
           <Route index element={<Navigate to={isLocalAuthEnabled() ? 'workspace' : 'dashboard'} replace />} />
         </Route>
         <Route path="/" element={<Navigate to={isAuthenticated ? (isLocalAuthEnabled() ? '/admin/workspace' : '/admin/dashboard') : '/login'} replace />} />
