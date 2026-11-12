@@ -84,3 +84,25 @@ A real B2 bucket must allow the app origin and PUT/OPTIONS in CORS, and expose E
 9. Delete the disposable test object and confirm cleanup.
 
 Never skip ETag or read-back verification to work around CORS; correct only the non-production bucket CORS rule.
+
+
+### Production owner-isolation verification (2026-11-12)
+
+A transaction-scoped Production verification was completed using two existing Auth user IDs and two synthetic document rows. All test writes were rolled back; no synthetic documents or audit rows remain.
+
+- Owner A successfully changed their own document status through `doka_bulk_update_documents`.
+- Owner A's attempt to trash Owner B's document was denied with the expected not-found/ownership-safe result; Owner B's row remained unchanged.
+- Owner A successfully created a version using their own user-prefixed object key.
+- Owner A's attempt to replace Owner B's document version was denied.
+- Authenticated direct INSERT into `doka_audit_events` was denied.
+- Authenticated execution of `doka_record_audit_event` was denied.
+- The same audit RPC executed successfully under `service_role`.
+- The transaction was rolled back after the assertions; the post-test Production database contains no synthetic test documents, versions, or audit events.
+
+This validates the tested database ownership and audit boundaries, but it is not a full browser/API/storage E2E test and does not replace real B2 upload acceptance.
+
+### Remaining workflow/dependency observations (2026-11-12)
+
+- The latest `main` commit `a9622f5beeb27e0ded69dea83ae9fb565f2b884d` passed Production CI, Doka Quality Checks, and both CodeQL language analyses.
+- Historical secret scan run `43160801106` failed with zero jobs returned by the Actions jobs endpoint. This is an unexecuted/unverified scan, not a clean scan and not evidence of a detected secret.
+- Dependabot PRs #142 and #143 propose the same Vitest 5.1.0 dependency change. Both passed backend checks and CodeQL/Dependency Review but failed frontend production build because TypeScript could not resolve Node built-in module types in test files (`node:fs`, `node:path`, `node:crypto`, and `process`). Do not merge until this is corrected and all required checks pass.
