@@ -308,8 +308,7 @@ jobs:
       - name: Compile acceptance runners and regression tests
         run: >-
           python -m py_compile
-          scripts/cloud_acceptance.py
-          scripts/cloud_provider_acceptance.py
+          scripts/cloud_acceptance_contracts.py
           scripts/cloudinary_derivative_acceptance.py
           scripts/release_gate_check.py
           apps/web-platform/tests/test_cloud_acceptance.py
