@@ -41,6 +41,19 @@ python apps/web-platform/backend/cloudflare_worker/bench_stream_hash.py
 
 Measured in the isolated Python 3.13.18 box: 1 MiB 0.089056s vs 0.000600s (148.52x); 10 MiB 0.890030s vs 0.005907s (150.67x); 100 MiB 8.902834s vs 0.058875s (151.22x). Environment-specific only; the script verifies identical digests.
 
+## Production security migration rollout
+
+The forward migration removes direct authenticated INSERT on audit/version tables and installs owner-checked SECURITY DEFINER RPCs with a fixed `pg_catalog, public, pg_temp` search path. The Worker audit call uses the caller's verified Supabase JWT; no service-role key is required.
+
+1. Require all CI checks to pass on the exact PR head.
+2. Deploy the reviewed Worker code first. If the audit RPC is not installed yet, the Worker uses a 404-only compatibility fallback to the existing owner-scoped audit INSERT policy. Other RPC errors do not trigger fallback.
+3. Apply `20261110090000_doka_security_integrity_remediation.sql` as a forward migration only after reviewing the SQL and confirming the Worker deployment is healthy.
+4. Verify an authenticated owner can create an audit event, and a mismatched owner ID is denied. Verify bulk status/trash, version replacement, and version restore succeed for the owner and reject cross-owner document/version IDs.
+5. Confirm direct authenticated INSERT on `doka_audit_events` and `doka_document_versions` is denied after migration. If the audit RPC is missing from the PostgREST schema cache, the legacy INSERT fallback will fail closed after privileges are revoked; refresh the schema cache rather than broadening grants.
+6. Keep a forward-repair plan. Do not restore direct authenticated INSERT or broaden protected column UPDATE grants as a rollback.
+
+Do not deploy or apply the migration if CI is failing, the Worker deployment cannot be verified, or the owner/cross-owner RPC checks cannot be performed.
+
 ## Multipart integrity
 
 For files above 5 GiB, the frontend worker computes whole-file SHA-256, per-part SHA-256 and per-part MD5. The client compares its per-part MD5 with the provider-generated part ETag returned by B2. The Worker checks each ETag against the part MD5, checks the B2 S3-compatible composite ETag (MD5 over concatenated binary part-MD5 values, suffixed with the part count), then streams the completed object back and checks exact size, whole SHA-256 and each part SHA-256. The x-amz-checksum-sha256 UploadPart header is not sent because it is not listed in B2 UploadPart documentation.
