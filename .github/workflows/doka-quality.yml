@@ -87,6 +87,8 @@ jobs:
         with:
           fetch-depth: 0
       - name: Scan full Git history for committed secrets
+        id: gitleaks_history
+        continue-on-error: true
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/repo:ro" \
@@ -163,6 +165,15 @@ jobs:
             backend-*-audit.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Enforce historical secret scan result
+        if: always()
+        env:
+          GITLEAKS_OUTCOME: ${{ steps.gitleaks_history.outcome }}
+        run: |
+          if [ "$GITLEAKS_OUTCOME" = "failure" ]; then
+            echo "Historical secret scan found potential secrets or failed operationally." >&2
+            exit 1
+          fi
 
   root-project-dependency-audit:
     name: Root project dependency audit
