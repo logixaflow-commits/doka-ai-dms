@@ -273,7 +273,7 @@ def test_audit_and_version_direct_insert_are_revoked_and_audit_rpc_is_owner_scop
     assert "revoke insert on table public.doka_document_versions from authenticated" in source
     assert "drop policy if exists doka_audit_owner_insert" in source
     assert "revoke all on function public.doka_record_audit_event" in source
-    assert "from public, anon, service_role" in source
+    assert "from public, anon, authenticated, service_role" in source
     assert "grant execute on function public.doka_record_audit_event" in source
     assert "to authenticated" in source
     assert "p_owner_id is distinct from auth.uid()" in source
