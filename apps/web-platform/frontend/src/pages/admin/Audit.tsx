@@ -228,7 +228,7 @@ export default function AuditLogsPage() {
                 />
               </div>
               <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Action" />
                 </SelectTrigger>
                 <SelectContent>
@@ -240,7 +240,7 @@ export default function AuditLogsPage() {
                 </SelectContent>
               </Select>
               <Select value={resourceFilter} onValueChange={setResourceFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Resource" />
                 </SelectTrigger>
                 <SelectContent>
@@ -252,7 +252,7 @@ export default function AuditLogsPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -264,7 +264,7 @@ export default function AuditLogsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <div className="flex-1">
                 <Input
                   type="date"
