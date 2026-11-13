@@ -152,3 +152,8 @@ apps/mobile/dist/
 # Monitoring
 infrastructure/monitoring/prometheus/data/
 infrastructure/monitoring/grafana/data/
+
+# Nexus Suite Inspector - never commit these
+inspector_credentials.env
+auth_sessions/
+*.session.json
