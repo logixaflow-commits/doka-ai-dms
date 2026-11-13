@@ -304,7 +304,7 @@ export default function WorkflowsPage() {
             <h1 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
               Doka Document Processing Workflow
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                Visual n8n Canvas
+                Local workflow editor
               </span>
             </h1>
             <p className="text-[11px] text-slate-400">OCR · Entity Extraction · Telegram Gate · Encrypted Vault</p>
@@ -331,17 +331,17 @@ export default function WorkflowsPage() {
           >
             {isRunning ? (
               <>
-                <Square className="h-3.5 w-3.5 animate-spin" /> Processing Inbound File...
+                <Square className="h-3.5 w-3.5 animate-spin" /> Running simulation...
               </>
             ) : (
               <>
-                <Play className="h-3.5 w-3.5 fill-current" /> Run Pipeline
+                <Play className="h-3.5 w-3.5 fill-current" /> Run simulation
               </>
             )}
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 border border-white/[0.08]">
-            <Save className="h-3.5 w-3.5" /> Save
+          <button disabled title="Workflow persistence is not connected yet" className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-500 opacity-70">
+            <Save className="h-3.5 w-3.5" /> Save unavailable
           </button>
         </div>
       </header>
