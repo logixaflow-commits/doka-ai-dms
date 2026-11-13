@@ -101,7 +101,7 @@ function getStatusBadge(status: string) {
   
   return (
     <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {status === 'all' ? 'All statuses' : status.charAt(0).toUpperCase() + status.slice(1)}
     </Badge>
   );
 }
@@ -217,7 +217,7 @@ export default function AuditLogsPage() {
       <Card>
         <CardContent className="p-4">
           <div className="space-y-4">
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <Input
@@ -234,7 +234,7 @@ export default function AuditLogsPage() {
                 <SelectContent>
                   {ACTION_TYPES.map((action) => (
                     <SelectItem key={action} value={action}>
-                      {action.charAt(0).toUpperCase() + action.slice(1)}
+                      {action === 'all' ? 'All actions' : action.charAt(0).toUpperCase() + action.slice(1)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -246,7 +246,7 @@ export default function AuditLogsPage() {
                 <SelectContent>
                   {RESOURCE_TYPES.map((resource) => (
                     <SelectItem key={resource} value={resource}>
-                      {resource.charAt(0).toUpperCase() + resource.slice(1)}
+                      {resource === 'all' ? 'All resources' : resource.charAt(0).toUpperCase() + resource.slice(1)}
                     </SelectItem>
                   ))}
                 </SelectContent>
