@@ -293,15 +293,15 @@ export default function WorkflowsPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-70px)] bg-[#070b14] text-slate-100 overflow-hidden select-none -m-4 sm:-m-7">
+    <div className="flex h-[calc(100dvh-70px)] min-h-[420px] flex-col overflow-hidden bg-[#070b14] text-slate-100 select-none -m-4 sm:-m-7">
       {/* Top Header */}
-      <header className="h-14 border-b border-white/[0.08] bg-[#0c1322]/80 backdrop-blur px-6 flex items-center justify-between z-20">
-        <div className="flex items-center gap-3">
+      <header className="relative z-20 flex min-h-14 flex-col gap-3 border-b border-white/[0.08] bg-[#0c1322]/95 px-3 py-3 backdrop-blur sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-0">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <Sliders className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
+            <h1 className="flex flex-wrap items-center gap-2 text-sm font-semibold tracking-wide text-white">
               Doka Document Processing Workflow
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                 Local workflow editor
@@ -311,7 +311,7 @@ export default function WorkflowsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <button
             onClick={() => setShowAddDrawer(!showAddDrawer)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-slate-200 border border-white/[0.1] transition-all"
@@ -347,11 +347,11 @@ export default function WorkflowsPage() {
       </header>
 
       {/* Canvas Area */}
-      <div className="flex-1 relative overflow-hidden flex" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
         <div
           ref={canvasRef}
           onClick={() => setSelectedNodeId(null)}
-          className="flex-1 h-full relative cursor-grab active:cursor-grabbing overflow-auto"
+          className="relative h-full min-w-0 flex-1 cursor-grab overflow-auto active:cursor-grabbing"
           style={{
             backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
@@ -444,7 +444,7 @@ export default function WorkflowsPage() {
 
         {/* Node Inspector Drawer */}
         {selectedNode && (
-          <div className="w-80 border-l border-white/[0.08] bg-[#0c1322]/95 backdrop-blur-xl p-5 flex flex-col z-20 shadow-2xl overflow-y-auto">
+          <div className="absolute inset-x-2 bottom-2 top-2 z-20 flex w-auto flex-col overflow-y-auto border border-white/[0.08] bg-[#0c1322]/95 p-4 shadow-2xl backdrop-blur-xl sm:relative sm:inset-auto sm:w-80 sm:shrink-0 sm:border-y-0 sm:border-r-0 sm:border-l sm:p-5">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-4">
               <div className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4 text-cyan-400" />
@@ -500,7 +500,7 @@ export default function WorkflowsPage() {
 
         {/* Add Node Modal */}
         {showAddDrawer && (
-          <div className="absolute top-4 left-6 w-80 bg-[#0d1627] border border-white/10 rounded-xl shadow-2xl p-4 z-30 backdrop-blur-xl">
+          <div className="absolute left-2 right-2 top-2 z-30 max-h-[calc(100%-1rem)] overflow-y-auto rounded-xl border border-white/10 bg-[#0d1627] p-4 shadow-2xl backdrop-blur-xl sm:left-6 sm:right-auto sm:top-4 sm:w-80">
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] mb-3">
               <span className="text-xs font-semibold text-white flex items-center gap-1.5">
                 <Plus className="h-3.5 w-3.5 text-cyan-400" /> Doka Processing Modules
