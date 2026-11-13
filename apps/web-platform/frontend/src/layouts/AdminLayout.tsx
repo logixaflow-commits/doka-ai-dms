@@ -10,6 +10,7 @@ import {
   LogOut,
   Shield,
   ShieldCheck,
+  Settings,
   Sliders,
   Workflow,
 } from 'lucide-react';
@@ -54,6 +55,7 @@ const automationItems = [
 const securityItems = [
   { title: 'Permissions', description: 'Folder access control', url: '/admin/permissions', icon: Shield },
   { title: 'Audit Trail', description: 'Actions and compliance', url: '/admin/audit', icon: History },
+  { title: 'Settings', description: 'Workspace preferences', url: '/admin/settings', icon: Settings },
 ];
 
 function NavigationGroup({
