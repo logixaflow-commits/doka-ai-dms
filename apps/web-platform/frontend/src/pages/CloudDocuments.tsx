@@ -442,7 +442,7 @@ export default function CloudDocuments() {
       {!showTrash && (
         <Card className="doka-panel overflow-hidden border-0 shadow-none">
           <CardContent className="space-y-4 p-5 sm:p-6">
-            <div><h2 className="font-semibold">Batch upload queue</h2><p className="mt-1 text-xs text-muted-foreground">Add multiple files, upload them sequentially and retry any failed item. Each file is limited to 50 MiB.</p></div>
+            <div><h2 className="font-semibold">Batch upload queue</h2><p className="mt-1 text-xs text-muted-foreground">Add multiple files, upload them sequentially and retry any failed item. Each file is limited to {formatSize(MAX_FILE_BYTES)}.</p></div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input aria-label="Choose multiple files for batch upload" type="file" multiple onChange={event => { queueBatchFiles(event.target.files); event.target.value = ''; }} disabled={busy} className="min-w-0 flex-1 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs" />
               <Button onClick={() => void processBatch()} disabled={busy || !batchQueue.some(item => item.status === 'queued' || item.status === 'failed')}>Upload queue</Button>
