@@ -297,14 +297,14 @@ export default function TemplateLibrary() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Template Library</h2>
           <p className="text-slate-500 dark:text-slate-400">
             Pre-built workflow templates for common processes
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={loadTemplates} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -334,7 +334,7 @@ export default function TemplateLibrary() {
       {/* Category Filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={selectedCategory === 'all' ? 'default' : 'outline'}
               size="sm"
